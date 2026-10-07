@@ -1,0 +1,24 @@
+# Local licensed inputs and outputs must never enter this repository.
+/private/
+/local-data/
+/local-validation/
+/docs/references/local/
+.Renviron
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+*.Rcheck/
+*.tar.gz
+*.duckdb
+*.duckdb.wal
+*.log
+# Licensed or record-derived files stay ignored; invented fixtures have one explicit home.
+*.parquet
+*.dta
+*.sas7bdat
+*.sav
+*.rds
+*.rda
+*.RData
+!/inst/extdata/synthetic/**

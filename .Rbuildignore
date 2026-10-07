@@ -1,0 +1,9 @@
+^docs$
+^GLOSSARY\.md$
+^LICENSE\.md$
+^\.github$
+^private$
+^local-data$
+^local-validation$
+^.*\.Rproj$
+^\.Rproj\.user$
