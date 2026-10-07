@@ -6,9 +6,10 @@
 \alias{easyNIS-package}
 \title{Development tools for the National Inpatient Sample}
 \description{
-easyNIS currently provides a capability roadmap and invented fixtures.
-No licensed-data year is release-supported. Import, harmonization, cohorts,
-survey inference, models, and publication exports remain in development.
+easyNIS currently provides a capability roadmap, invented fixtures, and
+experimental structural parquet import. No licensed-data year is
+release-supported. Annual adapters, harmonization, cohorts, survey inference,
+models, and publication exports remain in development.
 }
 \seealso{
 Useful links:

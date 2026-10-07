@@ -11,6 +11,15 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-003 | Deterministic invented fixtures with component joins, variable slot counts, missingness, and hand-calculated summaries. | Audited annual contracts and full inference/model/export expectations. |
 | NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. | Hosted CI execution after publication of these changes. |
 | NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
+| NIS-007 | Experimental DuckDB sessions, local parquet views, explicit projections, and exact BIGINT collection. | Reviewed annual metadata and conversion profiles. |
+| NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. | Annual source component and alias review. |
+| NIS-009 | Aggregate structural reports for identifiers, weights, code types, and missing required fields. | Full annual field-availability and missing-reason contracts. |
+
+Local aggregate checks accepted the 2018–2022 input structures and matched
+the official Core row counts. The 2017 input was rejected for invalid YEAR
+values. Source files were not changed. These checks do not authenticate
+release revisions, merged components, derived fields, or statistical methods.
+Receipts remain in ignored local validation storage.
 
 No annual analysis capability has passed its validation gates. The installed
 roadmap continues to report every year as a target.

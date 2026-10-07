@@ -15,3 +15,11 @@ The local metadata-only inventory queried schemas and parquet footers for the
 authorized 2017–2022 inputs, with receipts retained in the ignored validation
 folder. Saad subsequently authorized continued unattended implementation and
 resumption after usage-limit resets.
+
+The next increment added owned DuckDB sessions, structural parquet imports,
+component join checks, explicit projections, and aggregate validation reports.
+Tests use invented parquet files only. Local annual checks use aggregate
+queries and keep all receipts private. A direct-download attempt for official
+layout snapshots timed out; browser-accessible official documentation remains
+available, but the complete metadata audit is pending. No annual method or
+release-support claim follows from these structural checks.

@@ -45,3 +45,9 @@ local-validation/parquet-inventory` as one terminal command. The tool queries
 schemas and row counts from file footers and exports no discharge values.
 Keep its output in the ignored `local-validation/` folder. It does not confirm
 source counts, release revisions, conversion history, or annual support.
+
+`tools/validate-local-parquet.R` runs the experimental importer and aggregate
+structural checks against the six annual input directories. Run it with an
+input directory and an ignored private output directory. It needs pkgload.
+Its official-count comparisons do not authenticate merged components,
+conversion provenance, derived scores, or survey inference.
