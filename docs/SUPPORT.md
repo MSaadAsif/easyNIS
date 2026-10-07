@@ -2,7 +2,11 @@
 
 The target is every NIS year currently released, 1988–2023. This is a roadmap, not a present compatibility claim. **No year has implemented or validated easyNIS support yet.**
 
-The [CSV matrix](year-support.csv) has a row for every target year. Each capability must be backed by reproducible evidence before a release claims support. Extend the matrix when HCUP publishes a new year; do not advertise future years automatically.
+The [CSV matrix](../inst/metadata/year-support.csv) has a row for every target year. It is the canonical installed roadmap returned by `nis_supported_years()`. Each capability must be backed by reproducible evidence before a release claims support. Extend the matrix when HCUP publishes a new year; do not advertise future years automatically.
+
+The package foundation includes `nis_synthetic_data()` for 2017–2022 labels.
+Its small invented layouts are test choices. Generation and arithmetic tests
+alone do not promote any import, cohort, survey, model, or table capability.
 
 ## Coverage sequence
 

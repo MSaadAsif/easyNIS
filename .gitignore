@@ -2,6 +2,7 @@
 /private/
 /local-data/
 /local-validation/
+/.audit/
 /docs/references/local/
 .Renviron
 .Rhistory

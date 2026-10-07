@@ -1,6 +1,19 @@
 # Implementation backlog
 
-This is the ordered, reviewable backlog for the agreed scope. It is a planning document; none of these implementation items has been completed. Exact function names can change during API review. Each item should become a small issue/PR when implementation begins.
+This is the ordered, reviewable backlog for the agreed scope. Implementation began on 2026-10-08. Exact function names can change during API review. Each item should become a small issue/PR as implementation proceeds.
+
+## Initial implementation progress
+
+| ID | State on 2026-10-08 | Remaining acceptance work |
+|---|---|---|
+| NIS-001 | Saad authorized implementation and supplied public maintainer metadata. | Ali's full preferred public name and optional ORCID. |
+| NIS-002 | Installable development package, generated help/namespace, NEWS, citation, and contribution guide. Local Windows source check passes. | Cross-platform evidence and final coauthor metadata before release. |
+| NIS-003 | Deterministic invented fixtures with component joins, variable slot counts, missingness, and hand-calculated summaries. | Audited annual contracts and full inference/model/export expectations. |
+| NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. | Hosted CI execution after publication of these changes. |
+| NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
+
+No annual analysis capability has passed its validation gates. The installed
+roadmap continues to report every year as a target.
 
 ## Foundation and metadata
 

@@ -66,7 +66,7 @@ easyNIS before easyNRD [confirmed]
 
 ## Remaining review and deliberately deferred details
 
-The planning frontier is resolved. Final shared-understanding confirmation follows review of the written plan. Before implementation, obtain maintainer contact and local validation file paths. Before the relevant module is released, Saad and Ali must review exact inference/default choices using the cases listed in the plan. Historical methods and disk-backed inference remain gated research tasks, not silently accepted assumptions.
+The planning frontier is resolved. On 2026-10-08 Saad instructed Codex to begin implementation and provided the public maintainer name Muhammad Saad, email msaadasif.md@gmail.com, and ORCID 0000-0002-1792-2357. Saad identified the local AHRQ NIS folder for the licensed input inventory. Ali's full preferred public name and optional ORCID remain pending. Before the relevant module is released, Saad and Ali must review exact inference/default choices using the cases listed in the plan. Historical methods and disk-backed inference remain gated research tasks, not silently accepted assumptions.
 
 The repository can hold proposals during this interview. Function names, exact metadata storage, supported R baseline, and optional rendering dependency versions remain implementation proposals. They can be resolved during their stated phase with evidence and author review; the initial scope and workflow contracts above are confirmed. Accepted ADRs record only decisions already made.
 

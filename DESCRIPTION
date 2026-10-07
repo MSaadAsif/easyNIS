@@ -1,0 +1,23 @@
+Package: easyNIS
+Title: Reproducible Workflows for the National Inpatient Sample
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Muhammad", "Saad", role = c("aut", "cre"),
+           email = "msaadasif.md@gmail.com",
+           comment = c(ORCID = "0000-0002-1792-2357")),
+    person("Ali", role = "aut"))
+Description: Development tools for reproducible workflows with the Healthcare
+    Cost and Utilization Project National Inpatient Sample. Provides an explicit
+    year capability roadmap and deterministic, entirely invented discharge
+    fixtures for package development. Import and statistical analysis of
+    licensed files are planned and are not yet implemented or validated.
+License: MIT + file LICENSE
+URL: https://github.com/MSaadAsif/easyNIS
+BugReports: https://github.com/MSaadAsif/easyNIS/issues
+Depends: R (>= 4.1.0)
+Imports: utils
+Suggests: testthat (>= 3.0.0)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

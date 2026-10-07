@@ -1,6 +1,6 @@
 # easyNIS development plan
 
-Prepared 2026-10-08 for Saad and Ali. Read [decisions](DECISIONS.md) for confirmed choices and open questions. The repository currently contains planning documents; the interfaces below are proposed and have not been implemented or tested.
+Prepared 2026-10-08 for Saad and Ali. Read [decisions](DECISIONS.md) for confirmed choices and open questions. Implementation has begun with an installable package, the capability lookup, and invented fixtures. The full workflow interfaces below remain proposed and unimplemented.
 
 ## Intended result
 
