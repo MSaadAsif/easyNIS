@@ -17,6 +17,9 @@ for the requested columns. Row order is unspecified.}
 \value{
 A data frame preserving source types, including integer64 identifiers
 for BIGINT fields. No fields are implicitly harmonized or recoded.
+Identifier fields stored as decimal, floating, or wider integer types are
+refused when collection could round their values. Use a reviewed exact
+string or signed BIGINT conversion for such identifiers.
 }
 \description{
 Collect an explicit projection from a lazy relation

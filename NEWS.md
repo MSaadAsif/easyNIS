@@ -16,4 +16,6 @@
 - Added aggregate structural validation reports for keys, weights, and code
   types. Raw values are retained and analysis approval remains false.
 - Added tests for component joins, SQL quoting, connection cleanup, source
-  changes, and exact BIGINT collection.
+  deletion and modification-time changes, and exact BIGINT collection.
+- Reject unsafe decimal or wide numeric identifier collection before R can
+  round values. String identifiers must contain positive decimal digits.

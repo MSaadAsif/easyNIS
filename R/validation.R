@@ -99,13 +99,23 @@ identifier_problem_count <- function(con, view, field, type) {
   if (sql_numeric_type(type)) {
     invalid <- paste0(invalid, " OR NOT isfinite(", quoted, ") OR ", quoted,
                       " <= 0 OR ", quoted, " != FLOOR(", quoted, ")")
-    if (type %in% c("FLOAT", "DOUBLE")) {
-      threshold <- if (type == "FLOAT") "16777216" else "9007199254740992"
+    threshold <- identifier_precision_limit(type)
+    if (!is.null(threshold)) {
       invalid <- paste0(invalid, " OR ABS(", quoted, ") >= ", threshold)
     }
+  } else if (type == "VARCHAR") {
+    invalid <- paste0(invalid, " OR NOT regexp_full_match(", quoted,
+                      ", '[0-9]+') OR NOT regexp_matches(", quoted, ", '[1-9]')")
   } else if (type != "VARCHAR") {
     return(query_count(con, paste0("SELECT COUNT(*) AS n FROM ", sql_name(con, view))))
   }
   query_count(con, paste0("SELECT COUNT(*) AS n FROM ", sql_name(con, view),
                           " WHERE ", invalid))
+}
+
+identifier_precision_limit <- function(type) {
+  if (type == "FLOAT") return("16777216")
+  if (type %in% c("DOUBLE", "UBIGINT", "HUGEINT", "UHUGEINT") ||
+      startsWith(type, "DECIMAL(")) return("9007199254740992")
+  NULL
 }

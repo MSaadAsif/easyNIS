@@ -5,6 +5,9 @@
 #' component must have identical flat schemas. Case-insensitive field collisions
 #' are rejected before DuckDB can rename them. Source paths are quoted as SQL
 #' literals, and source files must remain unchanged while the relation is used.
+#' Size and modification time are checked before package queries. This is a
+#' metadata guard, not a content checksum; same-size changes with restored times
+#' cannot be detected. Do not edit sources during a session.
 #'
 #' Supplied components must have unique nonmissing join keys. Hospital joins use
 #' `YEAR` and `HOSP_NIS`; other component joins use `YEAR` and `KEY_NIS`.
@@ -254,6 +257,9 @@ check_relation <- function(data) {
 #'   for the requested columns. Row order is unspecified.
 #' @return A data frame preserving source types, including integer64 identifiers
 #'   for BIGINT fields. No fields are implicitly harmonized or recoded.
+#'   Identifier fields stored as decimal, floating, or wider integer types are
+#'   refused when collection could round their values. Use a reviewed exact
+#'   string or signed BIGINT conversion for such identifiers.
 #' @export
 nis_collect <- function(data, columns, limit = NULL) {
   check_relation(data)
@@ -269,6 +275,18 @@ nis_collect <- function(data, columns, limit = NULL) {
          call. = FALSE)
   }
   con <- data$session$connection
+  for (field in intersect(columns, c("KEY_NIS", "HOSP_NIS", "NIS_STRATUM"))) {
+    threshold <- identifier_precision_limit(data$schema$column_type[
+      match(field, data$schema$column_name)])
+    if (!is.null(threshold)) {
+      unsafe <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ",
+        sql_name(con, data$view), " WHERE ABS(", sql_name(con, field), ") >= ", threshold))
+      if (unsafe > 0) {
+        stop("Collection would round precision-unsafe identifiers in ", field,
+             "; use a reviewed exact conversion.", call. = FALSE)
+      }
+    }
+  }
   sql <- paste0("SELECT ", paste(sql_name(con, columns), collapse = ", "),
                 " FROM ", sql_name(con, data$view))
   if (!is.null(limit)) sql <- paste(sql, "LIMIT", as.integer(limit))

@@ -40,6 +40,9 @@ and types are preserved in lazy temporary DuckDB views. All shards in a
 component must have identical flat schemas. Case-insensitive field collisions
 are rejected before DuckDB can rename them. Source paths are quoted as SQL
 literals, and source files must remain unchanged while the relation is used.
+Size and modification time are checked before package queries. This is a
+metadata guard, not a content checksum; same-size changes with restored times
+cannot be detected. Do not edit sources during a session.
 }
 \details{
 Supplied components must have unique nonmissing join keys. Hospital joins use

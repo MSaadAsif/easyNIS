@@ -12,7 +12,7 @@ alone do not promote any import, cohort, survey, model, or table capability.
 
 | Stage | Years | Validation access | Main boundary |
 |---|---|---|---|
-| V1 | 2017–2022 | Saad/Ali report parquet access; files uninspected. | Modern coding, annual components and derived-tool variation. |
+| V1 | 2017–2022 | Local schema/footer inventory complete; aggregate structural checks recorded. Conversion provenance remains pending. | Modern coding, annual components and derived-tool variation. |
 | Expansion 1 | 2023 | Not yet established. | Removed race/geography and adjusted charges. |
 | Expansion 2 | 2012–2016 | Not yet established. | Redesign and split-era 2015. |
 | Expansion 3 | 1993–2011 | Not yet established. | Historical schemas, trend weights, 1998 redesign, 2000 charge weight. |

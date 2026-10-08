@@ -100,7 +100,7 @@ test_that("mixed years and mismatched shard schemas fail without leaking views",
   expect_identical(DBI::dbListTables(session$connection), before)
 })
 
-test_that("paths and column names are safely quoted and source changes are detected", {
+test_that("paths and names are quoted and source metadata changes are detected", {
   session <- nis_open()
   on.exit(nis_close(session))
   fixture <- nis_synthetic_data()$core
@@ -112,6 +112,9 @@ test_that("paths and column names are safely quoted and source changes are detec
   expect_error(nis_collect(data, "missing"), "lacks required")
   expect_error(nis_collect(data, c("YEAR", "YEAR")), "unique")
   expect_error(nis_collect(data, "YEAR", -1), "nonnegative")
+  Sys.setFileTime(path, file.info(path)$mtime + 10)
+  expect_error(nis_collect(data, "YEAR"), "changed or disappeared")
+  data <- nis_import(session, path, 2022)
   unlink(path)
   expect_error(nis_collect(data, "YEAR"), "changed or disappeared")
   expect_error(nis_validate(data), "changed or disappeared")

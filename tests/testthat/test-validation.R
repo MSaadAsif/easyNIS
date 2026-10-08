@@ -48,3 +48,41 @@ test_that("missing weight fields and invalid identifier types are structured err
   expect_true("required_field_absent" %in% report$issues$check)
   expect_true("invalid_identifier" %in% report$issues$check)
 })
+
+test_that("string identifiers require positive digits without losing leading zeros", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  core <- nis_synthetic_data()$core
+  core$KEY_NIS <- c("-1", "1.5", "NaN", "abc", "0", "000", " 1", "1 ",
+                    "", NA, "0001", "9007199254741001")
+  path <- write_invented_parquet(session, core)
+  on.exit(unlink(path), add = TRUE)
+  data <- nis_import(session, path, 2022)
+  report <- nis_validate(data)
+  issue <- subset(report$issues, field == "KEY_NIS" & check == "invalid_identifier")
+  expect_equal(issue$affected, 10)
+  expect_identical(tail(nis_collect(data, "KEY_NIS")$KEY_NIS, 2L),
+                   c("0001", "9007199254741001"))
+})
+
+test_that("decimal and wide numeric identifiers cannot silently round on collection", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  con <- session$connection
+  core <- nis_synthetic_data()$core
+  DBI::dbWriteTable(con, "numeric_keys", core)
+  for (type in c("DECIMAL(18,0)", "UBIGINT", "HUGEINT")) {
+    path <- tempfile(fileext = ".parquet")
+    on.exit(unlink(path), add = TRUE)
+    DBI::dbExecute(con, paste0("COPY (SELECT * REPLACE (CAST(KEY_NIS AS ", type,
+      ") AS KEY_NIS) FROM numeric_keys) TO ", DBI::dbQuoteString(con, path),
+      " (FORMAT PARQUET)"))
+    data <- nis_import(session, path, 2022)
+    report <- nis_validate(data)
+    issue <- subset(report$issues, field == "KEY_NIS" & check == "invalid_identifier")
+    expect_equal(issue$affected, 12)
+    expect_error(nis_collect(data, "KEY_NIS"), "would round precision-unsafe")
+    expect_identical(nis_collect(data, "YEAR")$YEAR, core$YEAR)
+    expect_error(nis_import(session, path, 2022, severity = path), "precision-unsafe")
+  }
+})
