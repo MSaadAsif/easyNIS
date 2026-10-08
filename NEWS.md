@@ -8,6 +8,9 @@
   contrasts, aliased coefficients, captured warnings and design provenance.
 - Retain distinct native frame/fitting/summary warnings in model diagnostics,
   including custom contrasts dropped when unused levels are removed.
+- Support bounded row-wise Gaussian outcome/predictor transformations and one
+  quasipoisson log-exposure offset. Record response scale and exposure fields;
+  refuse invalid observed transforms/exposures without silently excluding them.
 - Invented tests compare native fits and independent cluster score sandwiches.
   Annual support, interpreted effects and scientific approval remain pending.
 

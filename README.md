@@ -85,8 +85,10 @@ Read the [experimental estimate contract](docs/ESTIMATES.md) and run
 regressions on an existing design. It returns the native fit, numeric link-scale
 inference, complete-case accounting, factor contrasts and warnings. Family,
 missingness, df, confidence and variance are explicit. Read the
-[model contract](docs/MODELS.md) and run `example(nis_model)` offline. Interpreted
-effects, transformed formulas, exposure offsets and scientific approval remain
-pending.
+[model contract](docs/MODELS.md) and run `example(nis_model)` offline.
+Bounded row-wise transformations and a Poisson log-exposure offset retain their
+[formula/scale contract](docs/MODEL-FORMULAS.md). Interpreted effects, broader
+diagnostics and scientific approval remain pending.
+Native prediction for offset models is unsupported; see the formula contract.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
