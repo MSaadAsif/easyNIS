@@ -250,6 +250,34 @@ year. Clean committed evidence, independent review and hosted checks remain
 required. Interpreted effects, broader diagnostics, annual
 validation and scientific approval remain pending.
 
+## Sparse model precision continuation
+
+The formula increment merged in [PR #8](https://github.com/MSaadAsif/easyNIS/pull/8)
+after clean-head 1,080 package/60 tool assertions, Status OK, all five hosted jobs
+and refreshed independent reviews. Review caught supplied terms metadata
+overriding the checked response and an upstream offset-prediction omission;
+fresh formula construction and an explicit unsupported-prediction contract
+resolved both findings. Resulting main checks passed.
+
+The NIS-017 sparse-fixture continuation reproduces covariance errors up to
+`1.54e-5` against final-mean independent hospital score sandwiches, exceeding
+the existing `1e-7` absolute reference bound. Four outcomes and four sparse-factor
+rows among 64 observations exercise full and hospital-absent domains for both
+quasi families. Converged nonboundary quasi fits restart once from fitted
+coefficients at unchanged epsilon `1e-10` and maximum 50 iterations. Lowering
+epsilon was rejected because it also lowers R's QR threshold and can lose exact
+aliases. Initial/final iterations, restart status and policy are retained.
+Gaussian, boundary and nonconverged initial fits skip refinement. The native
+final fit remains intact; initial and final warnings are retained. Focused
+tests pass the unchanged covariance/interval bounds and quasi-family exact
+aliases with whole-hospital missingness. Windows verification passes 1,171
+package assertions, 60 tool assertions, all 36 gate scenarios, source Status OK,
+tarball inspection and installed all-link/transformed/offset workflows for every
+invented target year. Clean-head review and hosted checks remain required.
+This is a numerical improvement with bounded
+synthetic evidence, not a general sparse/separation guarantee or scientific
+approval. Interpreted effects and annual validation remain pending.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |
