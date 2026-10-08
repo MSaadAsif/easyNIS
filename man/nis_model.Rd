@@ -41,6 +41,8 @@ Aliased coefficients have NA inference. Nonconvergence is recorded, not
 concealed. Raw design columns and caller options are unchanged. Native
 fitting rescales weights to sum to analysis rows for numerical stability;
 analysis design weights retain their original pooling divisor.
+Native offset predictions are unsupported: \code{predict.svyglm} may omit the
+exposure offset. Offset fits retain this limitation in diagnostics.
 }
 \description{
 Fits a native survey GLM on a complete-case domain without rebuilding the
