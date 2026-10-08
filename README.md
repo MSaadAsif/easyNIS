@@ -2,7 +2,7 @@
 
 easyNIS is an R package in early development for reproducible workflows with the HCUP National Inpatient Sample. The planned workflow covers importing licensed files, annual differences, cohorts, survey-weighted results, models, and publication tables.
 
-**Status: experimental structural import and user-declared code matching implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and code flags with explicit scope and missingness policies. Annual adapters and statistical analysis remain unimplemented. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
+**Status: experimental import, code matching, survey designs and scalar estimates implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and explicit cohort, design and inference policies. Annual adapters and scientific approval remain pending. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
 
 ## Install and try the development package
 
@@ -47,7 +47,7 @@ Only invented synthetic records belong in public examples, tests, and CI. HCUP r
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
 `nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
 `nis_code_set()`, `nis_flag_codes()`, `nis_select()`, `nis_survey_design()`, and
-`nis_domain()`, and `nis_pool_design()`.
+`nis_domain()`, `nis_pool_design()`, and `nis_estimate()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
@@ -71,5 +71,14 @@ are explicit. Read the [experimental design contract](docs/SURVEY.md) and run
 
 `nis_pool_design()` combines complete single-year designs with explicit estimand
 intent and year-specific design keys. Read the [experimental pooling contract](docs/POOLING.md).
+
+`nis_estimate()` returns a numeric scalar total, mean or zero/one proportion,
+its native survey result, SE, Wald interval, sample accounting and provenance.
+Missingness, variance, interval degrees of freedom and confidence are explicit.
+For an existing experimental design, use
+`nis_estimate(design, "LOS", "mean", "fail", df = 2, confidence = 0.95,
+variance = "wr_unadjusted")`, with degrees of freedom chosen for your analysis.
+Read the [experimental estimate contract](docs/ESTIMATES.md) and run
+`example(nis_estimate)` offline. Saad and Ali's scientific review remains pending.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.

@@ -19,6 +19,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-012 | Invented SQL/R parity tests for exact/prefix matching and all missingness policies; common-slot sensitivity tests across invented year layouts. | Audited annual slot contracts and clinical cohort validation. |
 | NIS-013 | Experimental full-population native survey construction and subsequent logical domains, with explicit hospital WR method and fail-on-singleton policy. | Annual field/conversion review, scientific approval of design choices and additional inference policies. |
 | NIS-014 | Experimental pooled designs separate year-specific hospital/stratum keys and require combined-total, average-annual-total or pooled-proportion intent. Native weights scale only for explicit average annual totals. | Reviewed annual mappings/year composition, scientific approval and later historical/trend rules. |
+| NIS-015 | Experimental scalar total/mean/proportion API with explicit outcome missingness, unadjusted WR variance, interval df and confidence. Independent synthetic references added. | Full increment verification, independent review, licensed references and author scientific approval. |
 
 Local aggregate checks accepted the 2018–2022 input structures and matched
 the official Core row counts. The 2017 input was rejected for invalid YEAR
@@ -158,11 +159,26 @@ interpretations. Initial full verification passes 620 package assertions,
 tarball passes private-boundary inspection. The installed six-year pool verifies
 24 year-specific hospitals, 12 year-specific strata and independent combined
 and average domain totals/variances after the source sessions close. Final clean
-committed-head evidence, hosted checks and independent review remain required
-before merging. See [POOLING.md](POOLING.md).
+committed-head evidence, hosted checks and independent review completed before
+the pooling increment merged in [PR #4](https://github.com/MSaadAsif/easyNIS/pull/4).
+Main's checks passed after merging. See [POOLING.md](POOLING.md).
 
-The next synthetic criterion is NIS-015's explicit numeric estimates, standard
-errors, degrees-of-freedom/inference choices and outcome-missing accounting.
+NIS-015 now has explicit numeric estimates, standard errors, caller-selected
+interval degrees of freedom/confidence and outcome-missing accounting in the
+experimental `nis_estimate()` implementation. It retains the native result,
+raw analysis design and complete constructor/domain provenance. It refuses
+incompatible current options without mutation, and respects pooled total intent.
+Independent hospital-level WR arithmetic covers full and sparse domains,
+zero-contribution hospitals, unequal PSU counts, a stratum without observed
+outcomes, reused annual IDs, negative sentinels and safe BIGINT outcomes.
+The focused estimate suite passes 208 assertions with no failures, warnings or
+skips, and generated help is current. Initial full verification passes 828
+package assertions, 60 tool assertions, 36 merge-gate scenarios and a Status OK
+source check. The 57-entry source tarball passes private-boundary inspection.
+Installed public calls check annual and six-year totals, SEs, explicit t/normal
+intervals and weighted proportions after source sessions close. Final clean-head
+verification, independent review and hosted evidence remain required before merge.
+See [ESTIMATES.md](ESTIMATES.md).
 Annual metadata, conversion profiles and author scientific approval still gate
 annual claims. Model, disclosure and rendering capabilities remain separate.
 
