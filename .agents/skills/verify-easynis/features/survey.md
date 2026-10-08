@@ -24,3 +24,20 @@ domain totals and variances. The package suite adds direct native references
 with reused identifiers and varying annual weights, and rejects duplicate years,
 prior domains and incompatible fields/levels. Read `docs/POOLING.md` for the
 explicit estimand/divisor contract and remaining scientific gates.
+
+The installed workflow now exercises `nis_estimate()` for scalar domain totals,
+means and logical proportions for every invented year, with explicit missingness,
+unadjusted WR variance, confidence and interval degrees of freedom. It asserts
+numeric estimates, independent SEs, t/normal interval bounds, raw sample counts
+and retained native results. The pooled path checks combined total 264/SE
+sqrt(5808), average annual total 44/SE sqrt(5808)/6 and weighted pooled
+proportion 0.5/SE sqrt(972)/216. Inspect the scalar reference messages in the
+installed log as well as the source check and package results.
+
+Package cases calculate independent WR hospital contributions across the full
+sample. They include sparse domains, unequal hospital counts, whole hospitals
+and strata without observed outcomes, reused annual IDs, negative sentinels,
+safe/unsafe BIGINT outcomes, zero results, t/normal intervals, raw/provenance
+preservation and rejection of incompatible current options without mutation.
+Read `docs/ESTIMATES.md` for current-option requirements, separate native versus
+caller-selected degrees of freedom, sample accounting and approval limits.
