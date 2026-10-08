@@ -18,6 +18,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-011 | Experimental user-declared code sets and lazy flags with explicit scope, missingness, applicability, and provenance. | Annual metadata, canonical transformations, dictionaries, and clinical review. |
 | NIS-012 | Invented SQL/R parity tests for exact/prefix matching and all missingness policies; common-slot sensitivity tests across invented year layouts. | Audited annual slot contracts and clinical cohort validation. |
 | NIS-013 | Experimental full-population native survey construction and subsequent logical domains, with explicit hospital WR method and fail-on-singleton policy. | Annual field/conversion review, scientific approval of design choices and additional inference policies. |
+| NIS-014 | Experimental pooled designs separate year-specific hospital/stratum keys and require combined-total, average-annual-total or pooled-proportion intent. Native weights scale only for explicit average annual totals. | Reviewed annual mappings/year composition, scientific approval and later historical/trend rules. |
 
 Local aggregate checks accepted the 2018–2022 input structures and matched
 the official Core row counts. The 2017 input was rejected for invalid YEAR
@@ -92,6 +93,10 @@ collision rejection for every invented 2017–2022 label. Final committed-head
 verification, hosted checks and independent review are required before merging.
 No annual capability or scientific approval was promoted.
 
+The selection increment merged in [PR #2](https://github.com/MSaadAsif/easyNIS/pull/2)
+after clean-head verification, both independent reviews with zero blockers,
+and all five hosted platform/R checks. Main's checks passed after the merge.
+
 The next annual acceptance action is saving official source snapshots and
 reviewing component/missing-value contracts and conversion history. A bounded
 direct Core-specification retry on this workstation still timed out on
@@ -126,6 +131,40 @@ committed-head verification. Hosted checks and independent review are required
 before merge. See [SURVEY.md](SURVEY.md) for the contract and exact reference
 calculations. This eager prototype has no benchmarked memory envelope and
 provides no approved annual inference, pooling, model or export capability.
+
+The single-year increment merged in [PR #3](https://github.com/MSaadAsif/easyNIS/pull/3).
+Final clean-head verification passed 579 package assertions and 60 tool assertions,
+Status OK and all installed workflows. Refreshed independent reviews found zero
+blockers; all five hosted jobs passed against the current main base. A separate
+10-row reference with three and two hospitals per stratum independently matched
+total 72/variance 1632 and mean 4.5/variance 0.9697265625. Scientific approval
+remains pending.
+
+## Experimental pooling continuation
+
+NIS-014 now pools complete single-year designs with explicit common columns
+and estimand intent. Year-specific exact hospital/stratum keys retain reused
+annual identifiers as distinct design units. Raw annual objects and weights
+remain recoverable. Native weights divide by included years only when the caller
+requests average annual totals. Prior domains, repeated years and incompatible
+fields/classes/factor levels are refused. Pooled proportions are weighted across
+supplied discharges rather than an arithmetic average of annual proportions.
+
+The focused suite passes 41 assertions. Direct year-keyed native references and
+independent WR arithmetic cover different annual weights, zero-domain hospitals,
+missing outcomes, exact BIGINT identifiers and combined/average/proportion
+interpretations. Initial full verification passes 620 package assertions,
+60 tool assertions, a Status OK source check and offline examples. The 54-entry
+tarball passes private-boundary inspection. The installed six-year pool verifies
+24 year-specific hospitals, 12 year-specific strata and independent combined
+and average domain totals/variances after the source sessions close. Final clean
+committed-head evidence, hosted checks and independent review remain required
+before merging. See [POOLING.md](POOLING.md).
+
+The next synthetic criterion is NIS-015's explicit numeric estimates, standard
+errors, degrees-of-freedom/inference choices and outcome-missing accounting.
+Annual metadata, conversion profiles and author scientific approval still gate
+annual claims. Model, disclosure and rendering capabilities remain separate.
 
 ## Foundation and metadata
 

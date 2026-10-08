@@ -16,3 +16,11 @@ rejection, raw/exact identifiers, BIGINT weights, unsafe probabilities, logical
 missingness and nondefault option preservation. It does not certify annual
 conversions or promote scientific approval. Read `docs/SURVEY.md` for the
 method contract, inference limits and unbenchmarked eager-memory behavior.
+
+The installed workflow also pools all six complete invented-year designs after
+their DuckDB sessions close. It verifies 24 separate year/hospital PSUs and
+12 year/strata, plus independently calculated combined and average annual
+domain totals and variances. The package suite adds direct native references
+with reused identifiers and varying annual weights, and rejects duplicate years,
+prior domains and incompatible fields/levels. Read `docs/POOLING.md` for the
+explicit estimand/divisor contract and remaining scientific gates.

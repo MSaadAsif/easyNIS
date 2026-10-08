@@ -47,7 +47,21 @@ exercise_year <- function(year) {
     abs(unname(stats::vcov(total)) - (22^2 + 22^2)) < 1e-12,
     identical(design$provenance$analysis_ready, FALSE))
   cat("Invented year", year, "passed import, flags, selection, survey domains and independent comparisons.\n")
+  design
 }
-for (year in 2017:2022) exercise_year(year)
+designs <- lapply(2017:2022, exercise_year)
+combined <- nis_pool_design(designs, c("LOS", "domain"), "combined_total")
+average <- nis_pool_design(designs, c("LOS", "domain"), "average_annual_total")
+combined_domain <- nis_domain(combined, "domain", "fail")
+average_domain <- nis_domain(average, "domain", "fail")
+combined_total <- survey::svytotal(~LOS, combined_domain$design)
+average_total <- survey::svytotal(~LOS, average_domain$design)
+stopifnot(combined$population$discharges == 72L, combined$population$hospitals == 24L,
+  combined$population$strata == 12L, combined$population$degrees_of_freedom == 12,
+  abs(unname(stats::coef(combined_total)) - 264) < 1e-12,
+  abs(unname(stats::vcov(combined_total)) - 5808) < 1e-12,
+  abs(unname(stats::coef(average_total)) - 44) < 1e-12,
+  abs(unname(stats::vcov(average_total)) - 5808 / 36) < 1e-12)
+cat("Installed six-year pool passed exact year-key separation and explicit combined/average references.\n")
 stopifnot(nrow(nis_supported_years(supported_only = TRUE)) == 0L)
 cat("Installed workflow passed; year support remains experimental.\n")
