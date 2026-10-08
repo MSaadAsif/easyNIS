@@ -17,6 +17,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-009 | Aggregate structural reports for identifiers, weights, code types, and missing required fields. Lazy selections retain imported schema; field status distinguishes caller omission from unverified absence and reports requested SQL NULL counts. | Source-unavailable versus conversion-omitted fields and annual special missing-value meanings still require audited contracts. |
 | NIS-011 | Experimental user-declared code sets and lazy flags with explicit scope, missingness, applicability, and provenance. | Annual metadata, canonical transformations, dictionaries, and clinical review. |
 | NIS-012 | Invented SQL/R parity tests for exact/prefix matching and all missingness policies; common-slot sensitivity tests across invented year layouts. | Audited annual slot contracts and clinical cohort validation. |
+| NIS-013 | Experimental full-population native survey construction and subsequent logical domains, with explicit hospital WR method and fail-on-singleton policy. | Annual field/conversion review, scientific approval of design choices and additional inference policies. |
 
 Local aggregate checks accepted the 2018–2022 input structures and matched
 the official Core row counts. The 2017 input was rejected for invalid YEAR
@@ -96,6 +97,35 @@ reviewing component/missing-value contracts and conversion history. A bounded
 direct Core-specification retry on this workstation still timed out on
 2026-10-08; no source-byte snapshot or provisional registry was produced.
 Canonical annual transformations remain dependent on that evidence.
+
+## Experimental survey-design continuation
+
+The invented-input portion of NIS-013 now constructs a complete supplied-year
+native `survey` design before selecting logical domains. Raw columns and exact
+identifiers are retained, and provenance records source/component receipts,
+selection/flag history, the unverified population declaration, method, survey
+version and initial options. Domain accounting separates FALSE and unknown
+indicators and retains original PSU information. No global survey options are
+set by easyNIS, weights are not scaled and an FPC is not fabricated.
+
+A public-call regression found that native BIGINT weight arithmetic produced
+incorrect probabilities. Safely representable integer weights are now converted
+to doubles for the native design while raw columns remain intact. Precision-
+unsafe integer weights, nonfinite reciprocals, invalid structural fields,
+conflicting hospital strata and singleton strata are refused. The focused suite
+passes 69 assertions, including missing outcomes, nondefault caller options,
+large string/BIGINT identifiers, unknown and empty domains, and valid zero
+estimates and variances.
+
+Direct `survey` reference comparisons and independent hospital-level WR
+arithmetic cover domains absent from some hospitals. The initial full Windows
+verification passes 576 package assertions, 60 metadata-tool assertions, offline
+examples, a Status OK source check and installed domain workflows across all
+six invented labels. Subsequent provenance/policy cases require the final
+committed-head verification. Hosted checks and independent review are required
+before merge. See [SURVEY.md](SURVEY.md) for the contract and exact reference
+calculations. This eager prototype has no benchmarked memory envelope and
+provides no approved annual inference, pooling, model or export capability.
 
 ## Foundation and metadata
 

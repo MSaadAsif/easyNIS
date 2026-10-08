@@ -47,3 +47,16 @@
 - Imported fields and dropped flag definitions retain their provenance and
   cannot be overwritten by reusing their names, including case variants.
   Annual missing-value interpretation remains pending.
+
+## Experimental single-year design preparation
+
+- Added `nis_survey_design()` with explicit population, hospital WR method and
+  fail-on-singleton declarations, and a native `survey` design.
+- Added `nis_domain()` with explicit logical-indicator missingness and retained
+  full-design PSU information. Missing outcomes remain in the collected data.
+- Retain raw identifiers and weights. Safely convert BIGINT weights for native
+  probability calculations; reject precision-unsafe integers and nonfinite
+  reciprocal weights. easyNIS does not set global survey options.
+- Invented cases compare native totals and means against direct `survey` calls
+  and hand-calculated variances including zero-domain hospitals. Annual support,
+  pooled inference, model APIs and scientific approval remain pending.

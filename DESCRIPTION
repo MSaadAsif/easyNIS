@@ -10,8 +10,9 @@ Description: Development tools for reproducible workflows with the Healthcare
     Cost and Utilization Project National Inpatient Sample. Provides an explicit
     year capability roadmap, deterministic invented discharge fixtures, and
     experimental structural import of converted local parquet files.
-    Annual adapters and statistical analysis of licensed files are planned
-    and are not yet implemented or validated.
+    Includes experimental single-year survey-design preparation with explicit
+    population and domain policies. Annual adapters and approved statistical
+    analysis of licensed files remain planned and unvalidated.
 License: MIT + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
@@ -22,6 +23,7 @@ Imports:
     utils
 Suggests:
     arrow,
+    survey,
     testthat (>= 3.0.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
