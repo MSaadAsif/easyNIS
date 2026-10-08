@@ -286,3 +286,37 @@ test_that("frame and fitting warnings are retained once without escaping the mod
   expect_identical(fit$native$contrasts$group, fit$factors$group$contrasts)
   expect_identical(design, before)
 })
+
+test_that("custom contrast preparation warnings survive fixed native coding", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  contrast_name <- ".easynis_test_warning_contrasts"
+  present <- exists(contrast_name, envir = .GlobalEnv, inherits = FALSE)
+  previous <- if (present) get(contrast_name, envir = .GlobalEnv) else NULL
+  assign(contrast_name, function(n, contrasts = TRUE) {
+    warning("invented contrast preparation warning")
+    stats::contr.sum(n, contrasts = contrasts)
+  }, envir = .GlobalEnv)
+  on.exit({
+    if (present) assign(contrast_name, previous, envir = .GlobalEnv) else
+      rm(list = contrast_name, envir = .GlobalEnv)
+  }, add = TRUE)
+  design <- model_design(session, model_fixture())
+  design$design$variables$group <- factor(design$design$variables$group)
+  attr(design$design$variables$group, "contrasts") <- contrast_name
+  before <- design
+  expect_no_warning(fit <- fit_invented(design))
+  expect_identical(fit$diagnostics$warnings, "invented contrast preparation warning")
+  captured <- character()
+  reference <- withCallingHandlers(survey::svyglm(y ~ x + group, design$design,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L)), warning = function(w) {
+      captured <<- c(captured, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  expect_identical(fit$diagnostics$warnings, unique(captured))
+  expect_equal(stats::coef(fit$native), stats::coef(reference))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference))
+  expect_identical(fit$factors$group$contrasts, stats::contr.sum(c("0", "1")))
+  expect_identical(fit$native$contrasts$group, fit$factors$group$contrasts)
+  expect_identical(design, before)
+})
