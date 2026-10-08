@@ -137,7 +137,8 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
     stop("Analysis weight denominator must remain finite and positive.", call. = FALSE)
   }
   # Allowed transforms are row-wise and resolve independently of caller functions.
-  fit_formula <- formula
+  fit_formula <- as.call(list(as.name("~"), formula[[2L]], formula[[3L]]))
+  class(fit_formula) <- "formula"
   environment(fit_formula) <- list2env(list(offset = stats::offset), parent = baseenv())
   warnings <- character()
   capture_warning <- function(w) {

@@ -240,7 +240,7 @@ scale; native coefficients stay on that scale. Invalid observed transformations
 and exposures are refused instead of becoming silent missing exclusions.
 Complete-case domains retain original hospitals, raw fields and pooled keys.
 See [MODEL-FORMULAS.md](MODEL-FORMULAS.md) for the contract and acceptance cases.
-Initial Windows verification passes 1,071 package assertions, 60 tool
+Corrected Windows verification passes 1,078 package assertions, 60 tool
 assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
 and installed transformed-mean/exposure-offset references for every invented
 year. Clean committed evidence, independent review and hosted checks remain
