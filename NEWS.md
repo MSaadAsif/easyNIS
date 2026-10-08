@@ -36,3 +36,14 @@
 - Validate nonmissing observed code syntax before matching. Normalization is
   specific to coding system and uses the same ASCII whitespace rule in R/SQL.
   Malformed source strings cannot be repaired into positive matches.
+
+## Lazy selections and field status
+
+- Added `nis_select()` to narrow a relation without collecting or filtering
+  discharges. Exact selected columns and imported schema are retained.
+- Structural validation now distinguishes present fields, fields removed by
+  caller selection, and absences whose source/conversion reason is unverified.
+  Requested SQL NULL counts remain separate from unknown absent-field counts.
+- Imported fields and dropped flag definitions retain their provenance and
+  cannot be overwritten by reusing their names, including case variants.
+  Annual missing-value interpretation remains pending.

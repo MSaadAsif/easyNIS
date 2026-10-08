@@ -168,7 +168,7 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
   }
   result <- structure(list(
     session = session, view = joined, year = as.integer(year), schema = raw_schema,
-    sources = sources, component_schemas = schemas, joins = joins,
+    sources = sources, component_schemas = schemas, import_schema = raw_schema, joins = joins,
     provenance = provenance, validation_scope = "experimental_structure_only"
   ), class = "nis_data")
   success <- TRUE
@@ -294,11 +294,7 @@ check_relation <- function(data) {
 #' @export
 nis_collect <- function(data, columns, limit = NULL) {
   check_relation(data)
-  if (!is.character(columns) || !length(columns) || anyNA(columns) ||
-      any(!nzchar(columns)) || anyDuplicated(columns)) {
-    stop("`columns` must be unique non-empty raw column names.", call. = FALSE)
-  }
-  require_fields(data$schema, columns, "relation")
+  check_projection(data, columns)
   if (!is.null(limit) && (!(is.integer(limit) || is.double(limit)) ||
       length(limit) != 1L || is.na(limit) || !is.finite(limit) ||
       limit < 0 || limit != floor(limit) || limit > .Machine$integer.max)) {
@@ -323,4 +319,12 @@ nis_collect <- function(data, columns, limit = NULL) {
                 " FROM ", sql_name(con, data$view))
   if (!is.null(limit)) sql <- paste(sql, "LIMIT", as.integer(limit))
   DBI::dbGetQuery(con, sql)
+}
+
+check_projection <- function(data, columns) {
+  if (!is.character(columns) || !length(columns) || anyNA(columns) ||
+      any(!nzchar(columns)) || anyDuplicated(columns)) {
+    stop("`columns` must be unique non-empty column names.", call. = FALSE)
+  }
+  require_fields(data$schema, columns, "relation")
 }

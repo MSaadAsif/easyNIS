@@ -4,15 +4,25 @@
 \alias{nis_validate}
 \title{Report structural issues in an experimental import}
 \usage{
-nis_validate(data)
+nis_validate(data, fields = NULL)
 }
 \arguments{
-\item{data}{A relation returned by \code{\link[=nis_import]{nis_import()}}.}
+\item{data}{A relation returned by \code{\link[=nis_import]{nis_import()}}, \code{\link[=nis_flag_codes]{nis_flag_codes()}}, or
+\code{\link[=nis_select]{nis_select()}}.}
+
+\item{fields}{Optional unique column names to inspect for availability and
+SQL NULL counts. Absent names are allowed. \code{NULL} inspects the required
+structural fields. This does not decode special missing-value sentinels.}
 }
 \value{
 A \code{nis_validation} list with \code{issues}, \code{components},
 \code{structural_errors}, \code{analysis_ready} (always \code{FALSE} in this prototype),
-\code{year}, and \code{scope}. Issues have severity, check, field, affected count,
+\code{year}, \code{scope}, and \code{fields}. The field table distinguishes \code{present},
+\code{user_omitted}, and \code{unverified_absent}, with \code{imported}, \code{derived}, or
+\code{unverified} origin and aggregate \code{record_nulls}. An absent field has an
+unknown NULL count, not zero. Source-unavailable versus conversion-omitted
+requires audited annual contracts and remains unresolved here.
+Issues have severity, check, field, affected count,
 and message columns. A missing component is \code{"not_supplied"}, not a claim
 that it is unavailable in the original source.
 }

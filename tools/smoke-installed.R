@@ -23,7 +23,20 @@ exercise_year <- function(year) {
   rows <- nis_collect(flagged, c("KEY_NIS", "invented_flag"))
   expected <- core$I10_DX1[match(rows$KEY_NIS, core$KEY_NIS)] == "A001"
   stopifnot(nrow(rows) == nrow(core), identical(rows$invented_flag, expected))
-  cat("Invented year", year, "passed import, validation, flags, row preservation and R comparison.\n")
+  selected <- nis_select(flagged, c("KEY_NIS", "invented_flag"))
+  selected_rows <- nis_collect(selected, c("KEY_NIS", "invented_flag"))
+  stopifnot(nrow(selected_rows) == nrow(core),
+            identical(selected_rows$invented_flag,
+                      core$I10_DX1[match(selected_rows$KEY_NIS, core$KEY_NIS)] == "A001"))
+  availability <- nis_validate(selected, c("invented_flag", "DISCWT", "UNDECLARED_FIELD"))$fields
+  stopifnot(identical(availability$state, c("present", "user_omitted", "unverified_absent")),
+            identical(availability$origin, c("derived", "imported", "unverified")),
+            identical(availability$record_nulls, c(0, NA_real_, NA_real_)))
+  source_dropped <- nis_select(data, c("KEY_NIS", "I10_DX1"))
+  collision <- tryCatch(nis_flag_codes(source_dropped, "discwt", codes,
+    "principal_diagnosis", "no_match"), error = identity)
+  stopifnot(inherits(collision, "error"), grepl("conflicts", conditionMessage(collision)))
+  cat("Invented year", year, "passed import, validation, flags, selection, provenance and R comparison.\n")
 }
 for (year in 2017:2022) exercise_year(year)
 stopifnot(nrow(nis_supported_years(supported_only = TRUE)) == 0L)
