@@ -13,6 +13,8 @@ parentheses. Ordinary formula interactions retain native R meanings; use
 as `scale()` or `poly()`, caller functions, namespaces, indexing, dot expansion
 and global variables remain refused. Allowed functions resolve in a fixed
 base/statistics environment rather than the caller's formula environment.
+Fitting rebuilds a plain formula from the checked response and predictor
+expressions, discarding supplied terms metadata such as alternate `predvars`.
 
 Quasibinomial and quasipoisson outcomes remain named zero/one or nonnegative
 vectors. A transformed Gaussian outcome is reported by its exact expression
@@ -53,5 +55,5 @@ Acceptance cases include direct native and independent score-sandwich
 references for log1p Gaussian outcomes, squared/log predictors, and Poisson
 exposure offsets. Domain hospitals absent after outcome/exposure exclusions,
 pooled reused IDs, raw missing counts, factor coding, native prediction,
-caller-function shadowing and every rejection above must be exercised.
+caller-function shadowing, supplied terms metadata and every rejection above must be exercised.
 Scientific approval, annual support and interpreted effects remain pending.

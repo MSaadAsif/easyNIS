@@ -337,6 +337,25 @@ test_that("pooled reused IDs and missing rows retain independent variance", {
   expect_equal(fit$provenance$design$years, c(2022L, 2021L))
 })
 
+test_that("terms metadata cannot replace the checked formula expressions", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  design <- model_design(session, model_fixture())
+  reference <- fit_invented(design, y ~ x)
+  supplied <- stats::terms(y ~ x)
+  attr(supplied, "predvars") <- quote(list(abs(y), x * 2))
+  before <- supplied
+  fit <- fit_invented(design, supplied)
+  expect_equal(stats::coef(fit$native), stats::coef(reference$native))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference$native))
+  expect_identical(fit$native$y, reference$native$y)
+  expect_identical(fit$provenance$response_expression, "y")
+  expect_identical(fit$provenance$modeled_scale, "named_outcome")
+  expect_identical(supplied, before)
+  expect_equal(stats::predict(fit$native, newdata = data.frame(x = 2)),
+    stats::predict(reference$native, newdata = data.frame(x = 2)))
+})
+
 test_that("invalid formulas, fields and policies fail without caller mutation", {
   session <- nis_open()
   on.exit(nis_close(session))
