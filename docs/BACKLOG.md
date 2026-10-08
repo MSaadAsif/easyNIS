@@ -204,9 +204,24 @@ were checked through public calls and corrected before this verification.
 Final clean committed-head evidence, independent review and all five hosted
 checks remain required before merging. No annual capability is promoted.
 Logical FALSE/TRUE contrast matrices are retained without changing raw columns.
-Custom factor contrasts with dropped unused levels can emit the native warning
-twice, once during frame preparation and once during fitting; it is retained
-in diagnostics. Consolidating that warning handling is a later bounded task.
+The warning continuation reproduces a native custom-contrast warning escaping
+frame preparation while the same warning is captured during fitting. Preparation,
+fitting and summary now share one handler that retains distinct messages in
+diagnostics. Native coefficients/covariance, fitted contrast matrices and raw
+caller columns remain intact. Verification and current-head review are required
+before this continuation merges.
+
+The model increment merged in [PR #6](https://github.com/MSaadAsif/easyNIS/pull/6)
+after final clean verification with 998 package/60 tool assertions, a Status OK
+source check, all five hosted jobs and refreshed independent reviews with zero
+blockers. Separate reviewer calculations matched full/domain/pooled coefficients
+and score-sandwich covariances for all three families, including logical coding.
+The warning follow-up's initial Windows verification passes 1,007 package
+assertions, 60 tool assertions, all 36 gate scenarios, Status OK and installed
+workflows. Final clean-head evidence, hosted checks and independent review remain
+required. The next model acceptance work is transformed-outcome and exposure
+offset contracts, followed by explicit effect interpretations and broader
+diagnostics. Annual support and scientific approval remain pending.
 
 ## Foundation and metadata
 

@@ -261,3 +261,28 @@ test_that("invalid formulas, fields and policies fail without caller mutation", 
   expect_error(fit_invented(design), "wr_unadjusted")
   expect_identical(options(), before)
 })
+
+test_that("frame and fitting warnings are retained once without escaping the model call", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  design <- model_design(session, model_fixture())
+  group <- factor(design$design$variables$group, levels = 0:2)
+  stats::contrasts(group) <- stats::contr.treatment(levels(group))
+  design$design$variables$group <- group
+  before <- design
+  expect_no_warning(fit <- fit_invented(design))
+  expect_length(fit$diagnostics$warnings, 1L)
+  expect_match(fit$diagnostics$warnings, "contrasts dropped")
+  captured <- character()
+  reference <- withCallingHandlers(survey::svyglm(y ~ x + group, design$design,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L)), warning = function(w) {
+      captured <<- c(captured, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  expect_identical(fit$diagnostics$warnings, unique(captured))
+  expect_equal(stats::coef(fit$native), stats::coef(reference))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference))
+  expect_identical(fit$factors$group$levels, c("0", "1"))
+  expect_identical(fit$native$contrasts$group, fit$factors$group$contrasts)
+  expect_identical(design, before)
+})
