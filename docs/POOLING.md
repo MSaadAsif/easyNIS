@@ -24,6 +24,8 @@ not invented. A pooled proportion is not the arithmetic average of annual
 proportions. Native calls remain the caller's responsibility; an intent label
 does not prevent arbitrary native calls or approve a different interpretation.
 Missing outcome and inference policies remain explicit downstream decisions.
+The experimental [scalar estimate API](ESTIMATES.md) enforces total intent and
+records weighted pooled interpretations for means and proportions.
 
 ## Exact annual identity
 

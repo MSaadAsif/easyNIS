@@ -72,3 +72,19 @@
 - Independent synthetic calculations and direct native references cover varying
   annual weights, zero-domain hospitals, mean linearization and missing outcomes.
   Annual and scientific validation remain pending.
+
+## Experimental scalar inference
+
+- Added `nis_estimate()` for a scalar total, mean or zero/one proportion using
+  native survey linearization, with explicit missingness, unadjusted hospital WR
+  variance, confidence and interval degrees of freedom.
+- Return numeric values, SE and Wald bounds alongside the native result, raw
+  analysis design, exclusion counts and complete design provenance. Native
+  domain and population degrees of freedom remain separate from caller choices.
+- Preserve original PSU information when excluding NA/NaN outcomes. Reject
+  empty analyses, infinite outcomes, unsafe BIGINT conversion and incompatible
+  current survey options without altering caller settings.
+- Enforce pooled total intent and label pooled means/proportions as weighted
+  over included discharges. Independent synthetic WR calculations cover sparse
+  domains, absent hospitals, missing outcomes, reused annual IDs and intervals.
+  Annual support and scientific approval remain pending.
