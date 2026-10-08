@@ -13,6 +13,9 @@
   refuse invalid observed transforms/exposures without silently excluding them.
 - Invented tests compare native fits and independent cluster score sandwiches.
   Annual support, interpreted effects and scientific approval remain pending.
+- Refine converged nonboundary quasi-family fits once at the existing IRLS
+  tolerance; retain iteration counts and restart provenance. Sparse outcomes
+  and exact aliases have independent numeric regression cases.
 
 - Started an installable development package with generated help and namespace.
 - Added `nis_supported_years()` with separate roadmap and capability states.
