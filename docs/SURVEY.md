@@ -12,7 +12,9 @@ Supply `full_population = TRUE`, `method = "hospital_wr"` and
 source cannot recover the omitted hospitals by making this declaration. The
 prototype supports one supplied year, HOSP_NIS hospital clusters, NIS_STRATUM
 strata and DISCWT weights, with replacement and no FPC or scaling. Historical
-weights, pooling and alternative singleton policies remain unsupported.
+weights and alternative singleton policies remain unsupported. Experimental
+pooling is described in [POOLING.md](POOLING.md), and explicit scalar inference
+in [ESTIMATES.md](ESTIMATES.md).
 
 Identifiers must pass structural validation and exact collection. A hospital
 mapped to multiple strata is refused. Weights must be finite and positive;
@@ -38,7 +40,9 @@ hospitals with no domain members. Rebuilding a design from just the selected
 rows loses that information. Aggregate population counts report discharges,
 hospitals, strata, full-design degrees of freedom and singleton strata. A
 domain's effective degrees of freedom can differ; use native `survey` methods
-and a reviewed inference policy for any subsequent interval or test.
+and an explicit inference policy for any subsequent interval or test.
+`nis_estimate()` records these native values separately from caller-selected
+interval degrees of freedom.
 
 easyNIS does not set global survey options. First loading `survey` initializes
 its own defaults while preserving caller settings. Construction records those
@@ -65,4 +69,4 @@ Tests also compare direct survey calls, retain missing outcomes and exact large
 identifiers, accept valid zero estimates and variances, reject invalid weights
 and singleton/conflicting mappings, and preserve nondefault caller options.
 Scientific approval by Saad and Ali, annual metadata, licensed reference
-validation, pooling, model reports and export safeguards remain separate gates.
+validation, model reports and export safeguards remain separate gates.
