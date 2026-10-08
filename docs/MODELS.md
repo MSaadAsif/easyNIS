@@ -18,7 +18,8 @@ odds, risk, rate or causal interpretations.
 
 ## Formula and analysis population
 
-The formula has one named outcome and ordinary named predictor terms,
+The formula has a named outcome or a supported Gaussian numeric expression,
+plus ordinary named predictor terms,
 interactions and intercept declarations. Named fields may contain spaces or
 punctuation when quoted with R backticks. All formula fields must be retained
 in the supplied design. Native internal names `.survey.prob.weights`,
@@ -28,9 +29,12 @@ Numeric/logical vectors and explicit factor predictors
 are accepted. Character, BIGINT, other classed vectors and matrix fields are
 refused. Declare conversions and factors explicitly before modeling; native
 design edits remain the caller's responsibility and are not authenticated by
-the constructor's earlier provenance. Transformations, offsets, dot expansion,
-grouped responses and custom families are refused in this increment. Their
-modeled-scale, exposure and missingness contracts remain backlog work.
+the constructor's earlier provenance. Row-wise arithmetic and log/log1p/sqrt/abs/I
+expressions are supported, along with one quasipoisson `offset(log(exposure))`
+for positive numeric exposure. Quasi-family outcomes remain named vectors.
+Read [MODEL-FORMULAS.md](MODEL-FORMULAS.md) for the bounded expression, exposure,
+modeled-scale and missingness contract. Dot expansion, sample-dependent/caller
+functions, grouped responses and custom families remain refused.
 
 NA and NaN in any formula field are missing. Exclusion subsets the existing
 native design, preserving original hospital information and zero contributions
@@ -103,6 +107,6 @@ quoted fields, raw sentinels and rejection paths. The installed workflow tests
 intercept-only fits for all three links against independent weighted means
 and hospital WR variances for every invented 2017-2022 label.
 
-No model or annual support state is promoted. Transformed outcomes, exposure
-offsets, interpreted effects, broader diagnostics, licensed references and
+No model or annual support state is promoted. Interpreted effects, broader
+formula support, diagnostics, licensed references and
 memory benchmarks still need their separate contracts and evidence.

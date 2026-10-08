@@ -2,16 +2,18 @@
 #'
 #' Fits a native survey GLM on a complete-case domain without rebuilding the
 #' original hospital design. This first increment supports named outcomes and
-#' ordinary formula terms and interactions. Transformations, offsets, dot
-#' expansion, grouped responses and custom families require later contracts.
+#' ordinary terms, row-wise numeric transformations and Poisson log-exposure
+#' offsets. Dot expansion, grouped responses and custom families are refused.
 #' Inference remains experimental and does not approve annual support.
 #'
 #' @param design A [nis_survey_design()], [nis_pool_design()] or [nis_domain()]
 #'   result using hospital WR variance and singleton rejection.
-#' @param formula Two-sided R formula with one named outcome, retained named
-#'   predictors, and ordinary `+`, `-`, `*`, `:`, `/`, `^` terms. Precompute
-#'   transformations explicitly before design construction. Global variables
-#'   and `.` expansion are refused.
+#' @param formula Two-sided R formula with retained named fields and ordinary
+#'   terms/interactions. Gaussian outcomes and predictors may use row-wise
+#'   arithmetic, `log`, `log1p`, `sqrt`, `abs` and `I`. Quasi-family outcomes
+#'   remain named vectors. Quasipoisson permits one `offset(log(exposure))`
+#'   with a named positive numeric exposure field. Global variables, caller
+#'   functions, sample-dependent transforms and `.` expansion are refused.
 #' @param family Explicitly choose `"gaussian"` for identity-link means,
 #'   `"quasibinomial"` for logit-link zero/one outcomes or `"quasipoisson"`
 #'   for log-link nonnegative outcomes. No effect exponentiation is performed.
@@ -74,14 +76,23 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
     stop("wr_unadjusted requires survey.lonely.psu = \"fail\" and survey.adjust.domain.lonely = FALSE.",
          call. = FALSE)
   }
-  if (!inherits(formula, "formula") || length(formula) != 3L || !is.symbol(formula[[2L]])) {
-    stop("Supply a two-sided formula with one named outcome.", call. = FALSE)
+  if (!inherits(formula, "formula") || length(formula) != 3L ||
+      !model_expression_supported(formula[[2L]]) || !length(all.vars(formula[[2L]]))) {
+    stop("Supply a two-sided formula with a named or supported transformed outcome.", call. = FALSE)
+  }
+  if (family != "gaussian" && !is.symbol(formula[[2L]])) {
+    stop("Quasi-family outcomes must remain named vectors; transformed outcomes are Gaussian only.", call. = FALSE)
   }
   if (!model_terms_supported(formula[[3L]])) {
-    stop("Use named predictors and ordinary terms; transformations, offsets and dot expansion are unsupported.",
+    stop("Use supported row-wise terms; arbitrary functions and dot expansion are unsupported.",
          call. = FALSE)
   }
   fields <- all.vars(formula)
+  response_fields <- all.vars(formula[[2L]])
+  exposures <- model_offset_fields(formula[[3L]])
+  if (length(exposures) > 1L || (length(exposures) && family != "quasipoisson")) {
+    stop("Only one log-exposure offset in a quasipoisson model is supported.", call. = FALSE)
+  }
   if (any(fields %in% c(".survey.prob.weights", "(weights)", "(offset)"))) {
     stop("Native reserved weight/offset field names cannot be modeled.", call. = FALSE)
   }
@@ -100,13 +111,21 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       stop("Infinite model values are unsupported.", call. = FALSE)
     }
   }
-  outcome <- rows[[as.character(formula[[2L]])]]
-  if (is.factor(outcome)) stop("Model outcomes must be numeric or logical.", call. = FALSE)
+  if (any(vapply(rows[response_fields], is.factor, logical(1)))) {
+    stop("Model outcome source fields must be numeric or logical.", call. = FALSE)
+  }
+  outcome <- if (is.symbol(formula[[2L]])) rows[[as.character(formula[[2L]])]] else NULL
   if (family == "quasibinomial" && any(!outcome[!is.na(outcome)] %in% c(0, 1))) {
     stop("Logistic outcomes must be observed zero/one values.", call. = FALSE)
   }
   if (family == "quasipoisson" && any(outcome < 0, na.rm = TRUE)) {
     stop("Poisson-family outcomes must be nonnegative.", call. = FALSE)
+  }
+  for (field in exposures) {
+    exposure <- rows[[field]]
+    if (!is.numeric(exposure) || any(exposure <= 0, na.rm = TRUE)) {
+      stop("Exposure must be numeric with strictly positive observed values.", call. = FALSE)
+    }
   }
   missing_fields <- vapply(rows[fields], function(x) sum(is.na(x)), numeric(1))
   keep <- stats::complete.cases(rows[fields])
@@ -117,16 +136,20 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   if (!is.finite(denominator) || denominator <= 0) {
     stop("Analysis weight denominator must remain finite and positive.", call. = FALSE)
   }
-  # A data-only environment prevents formula fallback to caller objects.
+  # Allowed transforms are row-wise and resolve independently of caller functions.
   fit_formula <- formula
-  environment(fit_formula) <- baseenv()
+  environment(fit_formula) <- list2env(list(offset = stats::offset), parent = baseenv())
   warnings <- character()
   capture_warning <- function(w) {
     warnings <<- unique(c(warnings, conditionMessage(w)))
     invokeRestart("muffleWarning")
   }
-  frame <- withCallingHandlers(stats::model.frame(fit_formula, analysis$variables,
-    na.action = stats::na.fail, drop.unused.levels = TRUE), warning = capture_warning)
+  full_frame <- withCallingHandlers(stats::model.frame(fit_formula, rows,
+    na.action = stats::na.pass, drop.unused.levels = TRUE), warning = capture_warning)
+  validate_model_frame(full_frame, rows)
+  frame <- if (all(keep)) full_frame else withCallingHandlers(stats::model.frame(
+    fit_formula, analysis$variables, na.action = stats::na.fail, drop.unused.levels = TRUE),
+    warning = capture_warning)
   predictor_fields <- names(frame)[-1L]
   factor_fields <- predictor_fields[vapply(frame[predictor_fields], function(x) {
     is.factor(x) || is.logical(x)
@@ -181,7 +204,12 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       rank = native$rank, aliased = names(estimates)[!estimable],
       boundary = native$boundary),
     provenance = list(formula = paste(deparse(formula), collapse = " "), fields = fields,
-      family = family, link = native_family$link, modeled_scale = "named_outcome",
+      family = family, link = native_family$link,
+      modeled_scale = if (is.symbol(formula[[2L]])) "named_outcome" else "transformed_outcome",
+      response_expression = paste(deparse(formula[[2L]]), collapse = " "),
+      response_fields = response_fields,
+      offset = if (length(exposures)) list(field = exposures,
+        expression = paste(deparse(call("log", as.name(exposures))), collapse = " "), coefficient = 1) else NULL,
       coefficient_scale = "link", missing = missing, df = as.double(df),
       confidence = as.double(confidence), variance = variance,
       interval = if (is.infinite(df)) "normal_wald" else "t_wald",
@@ -195,7 +223,52 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
 model_terms_supported <- function(term) {
   if (is.symbol(term)) return(as.character(term) != ".")
   if (is.numeric(term)) return(length(term) == 1L && is.finite(term))
-  if (!is.call(term) || !is.symbol(term[[1L]]) ||
-      !as.character(term[[1L]]) %in% c("+", "-", "*", ":", "/", "^", "(")) return(FALSE)
+  if (!is.call(term) || !is.symbol(term[[1L]])) return(FALSE)
+  operation <- as.character(term[[1L]])
+  if (operation == "offset") {
+    return(length(term) == 2L && is.call(term[[2L]]) && length(term[[2L]]) == 2L &&
+      identical(term[[2L]][[1L]], as.name("log")) && is.symbol(term[[2L]][[2L]]) &&
+      as.character(term[[2L]][[2L]]) != ".")
+  }
+  if (operation %in% c("log", "log1p", "sqrt", "abs", "I")) return(model_expression_supported(term))
+  if (!operation %in% c("+", "-", "*", ":", "/", "^", "(")) return(FALSE)
   all(vapply(as.list(term)[-1L], model_terms_supported, logical(1)))
+}
+
+model_expression_supported <- function(expression) {
+  if (is.symbol(expression)) return(as.character(expression) != ".")
+  if (is.numeric(expression)) return(length(expression) == 1L && is.finite(expression))
+  if (!is.call(expression) || !is.symbol(expression[[1L]])) return(FALSE)
+  operation <- as.character(expression[[1L]])
+  if (operation %in% c("log", "log1p", "sqrt", "abs", "I", "(")) {
+    return(length(expression) == 2L && model_expression_supported(expression[[2L]]))
+  }
+  if (!operation %in% c("+", "-", "*", "/", "^") || !length(expression) %in% c(2L, 3L)) return(FALSE)
+  all(vapply(as.list(expression)[-1L], model_expression_supported, logical(1)))
+}
+
+model_offset_fields <- function(expression) {
+  if (!is.call(expression)) return(character())
+  if (identical(expression[[1L]], as.name("offset"))) {
+    return(as.character(expression[[2L]][[2L]]))
+  }
+  unlist(lapply(as.list(expression)[-1L], model_offset_fields), use.names = FALSE)
+}
+
+validate_model_frame <- function(frame, rows) {
+  expressions <- as.list(attr(attr(frame, "terms"), "variables"))[-1L]
+  for (i in seq_along(frame)) {
+    value <- frame[[i]]
+    if (!is.null(dim(value)) || (!is.factor(value) && !is.numeric(value) && !is.logical(value))) {
+      stop("Transformed model terms must be single numeric/logical vectors or factors.", call. = FALSE)
+    }
+    if (!is.factor(value) && any(is.infinite(value))) {
+      stop("Nonfinite transformed model terms are unsupported.", call. = FALSE)
+    }
+    source_fields <- all.vars(expressions[[i]])
+    observed_inputs <- if (length(source_fields)) stats::complete.cases(rows[source_fields]) else rep(TRUE, nrow(rows))
+    if (any(is.na(value) & observed_inputs)) {
+      stop("Transformed model terms produced missing values from observed inputs.", call. = FALSE)
+    }
+  }
 }

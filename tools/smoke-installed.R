@@ -10,6 +10,7 @@ exercise_year <- function(year) {
   core <- fixture$core
   core$I10_DX1 <- rep(c("A001", "B002"), length.out = nrow(core))
   core$domain <- core$HOSP_NIS %in% c("0001", "0003")
+  core$exposure <- rep(c(1, 2, 3), length.out = nrow(core))
   session <- nis_open()
   path <- tempfile(fileext = ".parquet")
   on.exit({ nis_close(session); unlink(path) }, add = TRUE)
@@ -37,7 +38,7 @@ exercise_year <- function(year) {
   collision <- tryCatch(nis_flag_codes(source_dropped, "discwt", codes,
     "principal_diagnosis", "no_match"), error = identity)
   stopifnot(inherits(collision, "error"), grepl("conflicts", conditionMessage(collision)))
-  design <- nis_survey_design(data, c("LOS", "domain"), full_population = TRUE,
+  design <- nis_survey_design(data, c("LOS", "domain", "exposure"), full_population = TRUE,
     method = "hospital_wr", singleton = "fail")
   domain <- nis_domain(design, "domain", "fail")
   total <- survey::svytotal(~LOS, domain$design)
@@ -85,6 +86,37 @@ exercise_year <- function(year) {
       inherits(fit$native, "svyglm"), identical(fit$provenance$analysis_ready, FALSE))
   }
   cat("Invented year", year, "passed all three model links against independent intercept references.\n")
+  for (kind in c("transformed_gaussian", "offset_poisson")) {
+    keep <- !is.na(core$LOS)
+    y <- if (kind == "transformed_gaussian") log1p(core$LOS) else core$LOS
+    w <- core$DISCWT
+    if (kind == "transformed_gaussian") {
+      coefficient <- sum(w[keep] * y[keep]) / sum(w[keep])
+      score <- w[keep] * (y[keep] - coefficient) / sum(w[keep])
+      fit <- nis_model(design, log1p(LOS) ~ 1, "gaussian", "exclude", 2, 0.95, "wr_unadjusted")
+      stopifnot(identical(fit$provenance$modeled_scale, "transformed_outcome"),
+        identical(fit$provenance$response_expression, "log1p(LOS)"))
+    } else {
+      rate <- sum(w[keep] * y[keep]) / sum(w[keep] * core$exposure[keep])
+      coefficient <- log(rate)
+      score <- w[keep] * (y[keep] - rate * core$exposure[keep]) / sum(w[keep] * y[keep])
+      fit <- nis_model(design, LOS ~ offset(log(exposure)), "quasipoisson", "exclude", 2, 0.95, "wr_unadjusted")
+      stopifnot(identical(fit$provenance$offset$field, "exposure"),
+        identical(fit$native$offset, log(core$exposure[keep])))
+    }
+    contribution <- numeric(nrow(core))
+    contribution[keep] <- score
+    hospitals <- tapply(contribution, core$HOSP_NIS, sum)
+    strata <- core$NIS_STRATUM[match(names(hospitals), core$HOSP_NIS)]
+    variance <- sum(vapply(split(hospitals, strata), function(x) {
+      length(x) / (length(x) - 1) * sum((x - base::mean(x))^2)
+    }, numeric(1)))
+    stopifnot(abs(fit$coefficients$estimate - coefficient) < 1e-8,
+      abs(fit$coefficients$se - sqrt(variance)) < 1e-7,
+      fit$sample$included == sum(keep),
+      identical(fit$design$variables$LOS, core$LOS[keep]))
+  }
+  cat("Invented year", year, "passed transformed-response and exposure-offset model references.\n")
   cat("Invented year", year, "passed import, flags, selection, survey domains and scalar estimate references.\n")
   design
 }
