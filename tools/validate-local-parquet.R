@@ -19,6 +19,13 @@ summary <- lapply(2017:2022, function(year) {
   if (inherits(imported, "error")) {
     failure <- conditionMessage(imported)
     writeLines(failure, file.path(args[2L], paste0("import-failure-", year, ".txt")))
+    if (inherits(imported, "nis_structure_error")) {
+      utils::write.csv(data.frame(
+        check = imported$check, component = imported$component,
+        fields = paste(imported$fields, collapse = ","), affected = imported$affected,
+        stringsAsFactors = FALSE
+      ), file.path(args[2L], paste0("import-issue-", year, ".csv")), row.names = FALSE)
+    }
     return(data.frame(
       year = year, actual_rows = NA_real_, official_core_rows = expected_counts[as.character(year)],
       row_count_matches = NA, structural_errors = TRUE, analysis_ready = FALSE,

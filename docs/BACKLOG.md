@@ -12,7 +12,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. Four hosted checks pass at 3d74cff; R devel is still installing dependencies. | Complete R devel and verify subsequent implementation commits. |
 | NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
 | NIS-007 | Experimental DuckDB sessions, local parquet views, explicit projections, and exact BIGINT collection. Unsafe decimal/wide numeric identifier collection is refused; strings require positive digits. | Reviewed annual metadata and conversion profiles. |
-| NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. | Annual source component and alias review. |
+| NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. Structural failures expose check/component/fields and aggregate counts. | Annual source component and alias review. |
 | NIS-009 | Aggregate structural reports for identifiers, weights, code types, and missing required fields. | Full annual field-availability and missing-reason contracts. |
 | NIS-011 | Experimental user-declared code sets and lazy flags with explicit scope, missingness, applicability, and provenance. | Annual metadata, canonical transformations, dictionaries, and clinical review. |
 | NIS-012 | Invented SQL/R parity tests for exact/prefix matching and all missingness policies; common-slot sensitivity tests across invented year layouts. | Audited annual slot contracts and clinical cohort validation. |
@@ -28,9 +28,9 @@ roadmap continues to report every year as a target.
 
 The draft implementation is [PR #1](https://github.com/MSaadAsif/easyNIS/pull/1).
 Experimental matching is described in [COHORTS.md](COHORTS.md). The next import
-increment should make failure conditions machine-readable and retain affected
-counts for missing, invalid, duplicate, unmatched, and conflicting component
-rows. This does not complete the annual missing-reason contract in NIS-009.
+increment should audit official layouts and conversion profiles, then define
+canonical transformations without losing raw meanings. Machine-readable join
+failures do not complete the annual missing-reason contract in NIS-009.
 
 ## Foundation and metadata
 

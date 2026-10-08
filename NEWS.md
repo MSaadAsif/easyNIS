@@ -19,6 +19,8 @@
   deletion and modification-time changes, and exact BIGINT collection.
 - Reject unsafe decimal or wide numeric identifier collection before R can
   round values. String identifiers must contain positive decimal digits.
+- Structural field/year/join failures provide machine-readable conditions with
+  check, component, fields, and affected counts, without discharge identifiers.
 
 ## Experimental code matching
 

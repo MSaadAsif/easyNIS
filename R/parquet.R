@@ -27,6 +27,11 @@
 #'   file metadata, component join receipts, and provenance. This experimental
 #'   relation is not approved for survey inference. Use [nis_validate()] to
 #'   inspect structural issues and [nis_collect()] for explicit projections.
+#'   Structural field/year/join failures signal a `nis_structure_error`
+#'   condition with `check`, `component`, `fields`, and aggregate `affected`.
+#'   Affected counts are rows unless the message explicitly identifies key
+#'   groups. Schema-only failures have an unknown affected count. Conditions
+#'   contain no discharge identifiers or source row values.
 #' @export
 #' @examples
 #' session <- nis_open()
@@ -83,7 +88,8 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
       sql_name(con, view), " WHERE TRY_CAST(\"YEAR\" AS DOUBLE) IS NULL OR ",
       "TRY_CAST(\"YEAR\" AS DOUBLE) IS DISTINCT FROM ", as.integer(year)))
     if (invalid_year > 0) {
-      stop(component, " contains missing, invalid, or mixed YEAR values.", call. = FALSE)
+      stop_structure_issue("invalid_year", component, "YEAR", invalid_year,
+        paste0(component, " contains missing, invalid, or mixed YEAR values."))
     }
     info <- file.info(files)
     sources[[component]] <- data.frame(
@@ -106,8 +112,9 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
     left_types <- raw_schema$column_type[match(keys, raw_schema$column_name)]
     right_types <- right_schema$column_type[match(keys, right_schema$column_name)]
     if (!identical(left_types, right_types)) {
-      stop("Join key types differ between core and ", component,
-           "; supply a reviewed conversion before joining.", call. = FALSE)
+      stop_structure_issue("join_key_type", component, keys[left_types != right_types],
+        message = paste0("Join key types differ between core and ", component,
+                          "; supply a reviewed conversion before joining."))
     }
     left <- sql_name(con, joined)
     right_sql <- sql_name(con, right)
@@ -116,7 +123,8 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
     unmatched <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", left,
       " l WHERE NOT EXISTS (SELECT 1 FROM ", right_sql, " r WHERE ", condition, ")"))
     if (unmatched > 0) {
-      stop(component, " has ", unmatched, " unmatched core rows.", call. = FALSE)
+      stop_structure_issue("unmatched_core", component, keys, unmatched,
+        paste0(component, " has ", unmatched, " unmatched core rows."))
     }
     unused <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", right_sql,
       " r WHERE NOT EXISTS (SELECT 1 FROM ", left, " l WHERE ", condition, ")"))
@@ -125,21 +133,24 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
       same_types <- raw_schema$column_type[match(shared, raw_schema$column_name)] ==
         right_schema$column_type[match(shared, right_schema$column_name)]
       if (!all(same_types)) {
-        stop("Shared columns have different types in ", component, ".", call. = FALSE)
+        stop_structure_issue("shared_field_type", component, shared[!same_types],
+          message = paste0("Shared columns have different types in ", component, "."))
       }
       conflict <- paste(paste0("l.", sql_name(con, shared), " IS DISTINCT FROM r.",
                                sql_name(con, shared)), collapse = " OR ")
       conflicts <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", left,
         " l JOIN ", right_sql, " r ON ", condition, " WHERE ", conflict))
       if (conflicts > 0) {
-        stop(component, " conflicts with core/shared fields on ", conflicts,
-             " matched rows.", call. = FALSE)
+        stop_structure_issue("shared_field_conflict", component, shared, conflicts,
+          paste0(component, " conflicts with core/shared fields on ", conflicts,
+                 " matched rows."))
       }
     }
     additional <- setdiff(right_schema$column_name, raw_schema$column_name)
     cross_case <- tolower(additional) %in% tolower(raw_schema$column_name)
     if (any(cross_case)) {
-      stop("Case-insensitive field collision across components.", call. = FALSE)
+      stop_structure_issue("field_name_collision", component, additional[cross_case],
+        message = "Case-insensitive field collision across components.")
     }
     projection <- if (length(additional)) {
       c("l.*", paste0("r.", sql_name(con, additional)))
@@ -205,8 +216,9 @@ parquet_component_schema <- function(con, files) {
 require_fields <- function(schema, fields, component) {
   missing <- setdiff(fields, schema$column_name)
   if (length(missing)) {
-    stop(component, " lacks required fields: ", paste(missing, collapse = ", "),
-         ".", call. = FALSE)
+    stop_structure_issue("required_field_absent", component, missing,
+      message = paste0(component, " lacks required fields: ",
+                       paste(missing, collapse = ", "), "."))
   }
 }
 
@@ -215,22 +227,34 @@ require_unique_keys <- function(con, view, schema, keys, component) {
   quoted <- sql_name(con, keys)
   missing <- paste(paste0(quoted, " IS NULL OR TRIM(CAST(", quoted,
                           " AS VARCHAR)) = ''"), collapse = " OR ")
-  if (query_count(con, paste0("SELECT COUNT(*) AS n FROM ", sql_name(con, view),
-                              " WHERE ", missing)) > 0) {
-    stop(component, " has missing join keys.", call. = FALSE)
+  missing_count <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ",
+                                         sql_name(con, view), " WHERE ", missing))
+  if (missing_count > 0) {
+    stop_structure_issue("missing_join_keys", component, keys, missing_count,
+      paste0(component, " has ", missing_count, " rows with missing join keys."))
   }
   for (key in setdiff(keys, "YEAR")) {
     type <- schema$column_type[match(key, schema$column_name)]
-    if (identifier_problem_count(con, view, key, type) > 0) {
-      stop(component, " has invalid or precision-unsafe join identifiers.", call. = FALSE)
+    invalid_count <- identifier_problem_count(con, view, key, type)
+    if (invalid_count > 0) {
+      stop_structure_issue("invalid_identifier", component, key, invalid_count,
+        paste0(component, " has ", invalid_count,
+               " invalid or precision-unsafe join identifiers."))
     }
   }
   duplicates <- query_count(con, paste0("SELECT COUNT(*) AS n FROM (SELECT ",
     paste(quoted, collapse = ", "), " FROM ", sql_name(con, view), " GROUP BY ",
     paste(quoted, collapse = ", "), " HAVING COUNT(*) > 1) duplicate_keys"))
   if (duplicates > 0) {
-    stop(component, " has duplicate join keys.", call. = FALSE)
+    stop_structure_issue("duplicate_join_keys", component, keys, duplicates,
+      paste0(component, " has ", duplicates, " groups of duplicate join keys."))
   }
+}
+
+stop_structure_issue <- function(check, component, fields, affected = NA_real_, message) {
+  stop(structure(list(message = message, call = NULL, check = check,
+                      component = component, fields = fields, affected = affected),
+                 class = c("nis_structure_error", "error", "condition")))
 }
 
 query_count <- function(con, sql) as.numeric(DBI::dbGetQuery(con, sql)$n)

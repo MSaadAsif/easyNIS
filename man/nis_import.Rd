@@ -33,6 +33,11 @@ A \code{nis_data} list with session, lazy view, year, raw schema, source
 file metadata, component join receipts, and provenance. This experimental
 relation is not approved for survey inference. Use \code{\link[=nis_validate]{nis_validate()}} to
 inspect structural issues and \code{\link[=nis_collect]{nis_collect()}} for explicit projections.
+Structural field/year/join failures signal a \code{nis_structure_error}
+condition with \code{check}, \code{component}, \code{fields}, and aggregate \code{affected}.
+Affected counts are rows unless the message explicitly identifies key
+groups. Schema-only failures have an unknown affected count. Conditions
+contain no discharge identifiers or source row values.
 }
 \description{
 Experimental structural import, not a verified annual adapter. Raw fields
