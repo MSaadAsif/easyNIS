@@ -169,6 +169,27 @@ test_that("factor interactions, contrasts, aliases and explicit df remain recove
   expect_true("duplicate" %in% alias$diagnostics$aliased)
 })
 
+test_that("logical predictors retain native FALSE/TRUE coding without changing raw columns", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  design <- model_design(session, model_fixture())
+  raw <- design$design$variables$domain
+  fit <- fit_invented(design, y ~ domain)
+  expect_identical(fit$factors$domain$levels, c("FALSE", "TRUE"))
+  expect_identical(fit$factors$domain$zero_coded_levels, "FALSE")
+  expect_identical(fit$native$contrasts, list(domain = fit$factors$domain$contrasts))
+  expect_identical(fit$design$variables$domain, raw)
+  expect_length(fit$diagnostics$warnings, 0L)
+  saved <- options(contrasts = c("contr.sum", "contr.poly"))
+  on.exit(options(saved), add = TRUE)
+  sum_fit <- fit_invented(design, y ~ domain)
+  expect_equal(sum_fit$factors$domain$contrasts, stats::contr.sum(c("FALSE", "TRUE")))
+  expect_length(sum_fit$factors$domain$zero_coded_levels, 0L)
+  expect_identical(fit$factors$domain$zero_coded_levels, "FALSE")
+  binary <- fit_invented(design, domain ~ x, "quasibinomial")
+  expect_length(binary$factors, 0L)
+})
+
 test_that("pooled reused IDs and missing rows retain independent variance", {
   session <- nis_open()
   on.exit(nis_close(session))

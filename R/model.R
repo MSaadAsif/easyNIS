@@ -122,7 +122,13 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   environment(fit_formula) <- baseenv()
   frame <- stats::model.frame(fit_formula, analysis$variables, na.action = stats::na.fail,
                               drop.unused.levels = TRUE)
-  factor_fields <- names(frame)[vapply(frame, is.factor, logical(1))]
+  predictor_fields <- names(frame)[-1L]
+  factor_fields <- predictor_fields[vapply(frame[predictor_fields], function(x) {
+    is.factor(x) || is.logical(x)
+  }, logical(1))]
+  for (field in factor_fields) {
+    if (is.logical(frame[[field]])) frame[[field]] <- factor(frame[[field]], levels = c(FALSE, TRUE))
+  }
   contrasts <- lapply(frame[factor_fields], stats::contrasts)
   warnings <- character()
   capture_warning <- function(w) {

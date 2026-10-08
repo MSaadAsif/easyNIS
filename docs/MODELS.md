@@ -66,6 +66,9 @@ the native undefined test statistic/p-value rather than an invented test.
 and any zero-coded levels. Treatment contrasts identify the reference level;
 sum and polynomial contrasts need not have one. Matrices are fixed when
 fitting so later contrast-option changes cannot alter the recorded coding.
+Logical predictors follow native factor coding with levels FALSE and TRUE;
+their matrices are fixed and reported without changing raw logical columns.
+Logical responses remain zero/one outcomes and are not factor predictors.
 One-level analysis factors follow native rejection, without silently dropping
 the formula term. Warnings are captured in `diagnostics`, along with rank,
 aliased terms, convergence and boundary status. Finite nonconverged fits can
