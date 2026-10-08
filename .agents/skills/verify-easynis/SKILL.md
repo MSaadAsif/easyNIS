@@ -17,7 +17,7 @@ process that loads that installed package.
 ## Doctor
 
 The doctor is read-only. Require the DESCRIPTION-pinned roxygen2 and DBI,
-DuckDB, testthat, pkgload and Arrow before driving. The PowerShell wrapper also
+DuckDB, testthat, pkgload, Arrow and survey before driving. The PowerShell wrapper also
 checks Git and GitHub authentication. Use the ignored local configuration or
 `EASYNIS_RSCRIPT` and `R_LIBS_USER` to select machine-specific runtime paths.
 
