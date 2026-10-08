@@ -41,6 +41,9 @@ Aliased coefficients have NA inference. Nonconvergence is recorded, not
 concealed. Raw design columns and caller options are unchanged. Native
 fitting rescales weights to sum to analysis rows for numerical stability;
 analysis design weights retain their original pooling divisor.
+Converged nonboundary quasi-family fits restart once from their fitted
+coefficients to refine final IRLS working weights at the same tolerance.
+Initial/final iteration counts and restart status are retained.
 Native offset predictions are unsupported: \code{predict.svyglm} may omit the
 exposure offset. Offset fits retain this limitation in diagnostics.
 }

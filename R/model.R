@@ -32,6 +32,9 @@
 #'   concealed. Raw design columns and caller options are unchanged. Native
 #'   fitting rescales weights to sum to analysis rows for numerical stability;
 #'   analysis design weights retain their original pooling divisor.
+#'   Converged nonboundary quasi-family fits restart once from their fitted
+#'   coefficients to refine final IRLS working weights at the same tolerance.
+#'   Initial/final iteration counts and restart status are retained.
 #'   Native offset predictions are unsupported: `predict.svyglm` may omit the
 #'   exposure offset. Offset fits retain this limitation in diagnostics.
 #' @export
@@ -168,6 +171,14 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
     control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
   if (length(contrasts)) fit_arguments$contrasts <- contrasts
   native <- withCallingHandlers(do.call(survey::svyglm, fit_arguments), warning = capture_warning)
+  initial_iterations <- native$iter
+  refined <- family != "gaussian" && isTRUE(native$converged) && !isTRUE(native$boundary)
+  if (refined) {
+    start <- stats::coef(native, na.rm = FALSE)
+    start[is.na(start)] <- 0
+    fit_arguments$start <- unname(start)
+    native <- withCallingHandlers(do.call(survey::svyglm, fit_arguments), warning = capture_warning)
+  }
   summary <- withCallingHandlers(summary(native, df.resid = df), warning = capture_warning)
   estimates <- stats::coef(native, na.rm = FALSE)
   estimable <- !is.na(estimates)
@@ -203,7 +214,8 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       analysis_degrees_of_freedom = survey::degf(analysis),
       full_population_degrees_of_freedom = design$population$degrees_of_freedom,
       native_residual_degrees_of_freedom = native$df.residual),
-    diagnostics = list(warnings = warnings, converged = native$converged,
+    diagnostics = list(warnings = warnings, converged = native$converged, iterations = native$iter,
+      initial_iterations = initial_iterations, refined = refined,
       native_offset_prediction = if (length(exposures)) "unsupported" else "not_applicable",
       rank = native$rank, aliased = names(estimates)[!estimable],
       boundary = native$boundary),
@@ -219,6 +231,7 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       interval = if (is.infinite(df)) "normal_wald" else "t_wald",
       fitting_weight_rescale = "sum_to_analysis_rows", survey_version = as.character(utils::packageVersion("survey")),
       fitting_control = list(epsilon = 1e-10, maxit = 50L),
+      fitting_refinement = "one_converged_nonboundary_quasi_restart",
       current_survey_options = options()[grepl("^survey[.]", names(options()))],
       design = design$provenance, population = design$population, domains = design$domains,
       scope = "experimental_survey_glm", analysis_ready = FALSE)), class = "nis_model")

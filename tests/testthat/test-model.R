@@ -54,6 +54,14 @@ model_sandwich <- function(rows, formula, family, keep) {
   list(coefficients = stats::coef(fit), covariance = bread %*% meat %*% bread)
 }
 
+model_native_refinement <- function(native, design) {
+  if (native$family$family == "gaussian" || !isTRUE(native$converged) || isTRUE(native$boundary)) return(native)
+  start <- stats::coef(native, na.rm = FALSE)
+  start[is.na(start)] <- 0
+  survey::svyglm(stats::formula(native), design, family = native$family,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L), start = unname(start))
+}
+
 test_that("three model families match native fits and independent cluster scores", {
   session <- nis_open()
   on.exit(nis_close(session))
@@ -74,6 +82,7 @@ test_that("three model families match native fits and independent cluster scores
       reference <- model_sandwich(rows, formula, native_family, keep)
       native <- survey::svyglm(formula, result$design, family = native_family, na.action = stats::na.fail,
                                control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+      native <- model_native_refinement(native, result$design)
       native_summary <- summary(native, df.resid = 6)
       expect_s3_class(result, "nis_model")
       expect_s3_class(result$native, "svyglm")
@@ -100,6 +109,75 @@ test_that("three model families match native fits and independent cluster scores
   expect_equal(gaussian$sample$missing_by_field, c(y = 8, x = 8, group = 0))
   expect_equal(gaussian$sample$excluded_missing, 16)
   expect_equal(gaussian$sample$full_population_degrees_of_freedom, 6)
+})
+
+test_that("rare outcomes and sparse factors retain independent domain covariance", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$binary <- 0L
+  rows$binary[c(6, 23, 40, 53)] <- 1L
+  rows$count <- 0
+  rows$count[c(6, 23, 40, 53)] <- 1:4
+  rows$group <- as.integer(seq_len(64L) %in% c(6, 17, 40, 49))
+  design <- model_design(session, rows)
+  rows$group <- factor(rows$group)
+  design$design$variables$group <- rows$group
+  before <- design
+  for (selected in list(design, nis_domain(design, "domain", "fail"))) {
+    for (family in c("quasibinomial", "quasipoisson")) {
+      formula <- stats::reformulate(c("x", "group"),
+        if (family == "quasibinomial") "binary" else "count")
+      fit <- fit_invented(selected, formula, family)
+      keep <- rows$KEY_NIS %in% as.character(fit$design$variables$KEY_NIS)
+      native_family <- if (family == "quasibinomial") stats::quasibinomial() else stats::quasipoisson()
+      reference <- model_sandwich(rows, formula, native_family, keep)
+      expect_equal(stats::coef(fit$native), reference$coefficients, tolerance = 1e-8)
+      expect_lt(max(abs(stats::vcov(fit$native) - reference$covariance)), 1e-7)
+      expect_lt(max(abs(fit$coefficients$lower - (unname(reference$coefficients) -
+        stats::qt(0.95, 6) * sqrt(diag(reference$covariance))))), 1e-7)
+      expect_true(fit$diagnostics$converged)
+      expect_true(fit$diagnostics$refined)
+      expect_identical(fit$diagnostics$iterations, fit$native$iter)
+      expect_equal(fit$provenance$fitting_control, list(epsilon = 1e-10, maxit = 50L))
+      expect_equal(fit$diagnostics$rank, 3L)
+      expect_length(fit$diagnostics$warnings, 0L)
+      expect_identical(fit$factors$group$levels, c("0", "1"))
+      expect_identical(fit$factors$group$zero_coded_levels, "0")
+      expect_equal(fit$sample$full_population_degrees_of_freedom, 6)
+      expect_equal(fit$sample$included, sum(keep))
+      expect_identical(fit$design$variables$group, rows$group[keep])
+    }
+  }
+  expect_identical(design, before)
+})
+
+test_that("quasi-family refinement preserves exact aliases and missing domains", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$x[rows$HOSP_NIS == "0004"] <- NA
+  design <- model_design(session, rows)
+  design$design <- stats::update(design$design, duplicate = x)
+  before <- design
+  for (selected in list(design, nis_domain(design, "domain", "fail"))) {
+    for (family in c("quasibinomial", "quasipoisson")) {
+      outcome <- if (family == "quasibinomial") "binary" else "count"
+      alias <- fit_invented(selected, stats::reformulate(c("x", "duplicate", "group"), outcome),
+        family, "exclude")
+      reduced <- fit_invented(selected, stats::reformulate(c("x", "group"), outcome), family, "exclude")
+      estimable <- !alias$coefficients$aliased
+      expect_true(alias$diagnostics$refined)
+      expect_identical(alias$diagnostics$aliased, "duplicate")
+      expect_equal(alias$diagnostics$rank, 3L)
+      expect_true(all(is.na(alias$coefficients[!estimable, c("estimate", "se", "lower", "upper", "p_value")])))
+      expect_equal(alias$coefficients[estimable, ], reduced$coefficients, ignore_attr = TRUE, tolerance = 1e-10)
+      expect_equal(stats::vcov(alias$native), stats::vcov(reduced$native), tolerance = 1e-10)
+      expect_equal(alias$sample$excluded_missing, 8L)
+      expect_equal(alias$sample$full_population_degrees_of_freedom, 6)
+    }
+  }
+  expect_identical(design, before)
 })
 
 test_that("row-wise transformed outcomes and predictors match independent survey references", {
@@ -168,6 +246,7 @@ test_that("log-exposure offsets retain native scales, exclusions and pooled keys
   reference <- model_sandwich(all, formula, stats::quasipoisson(), keep)
   native <- survey::svyglm(formula, fit$design, family = stats::quasipoisson(),
     control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+  native <- model_native_refinement(native, fit$design)
   expect_equal(stats::coef(fit$native), reference$coefficients, tolerance = 1e-8)
   expect_lt(max(abs(stats::vcov(fit$native) - reference$covariance)), 1e-7)
   expect_equal(stats::coef(fit$native), stats::coef(native))
@@ -254,6 +333,7 @@ test_that("finite nonconverged fits retain the native warning for inspection", {
       invokeRestart("muffleWarning")
     })
   expect_false(fit$diagnostics$converged)
+  expect_false(fit$diagnostics$refined)
   expect_identical(fit$diagnostics$converged, reference$converged)
   expect_true(any(grepl("did not converge", fit$diagnostics$warnings)))
   expect_identical(fit$diagnostics$warnings, captured)
