@@ -11,6 +11,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-003 | Deterministic invented fixtures with component joins, variable slot counts, missingness, and hand-calculated summaries. | Audited annual contracts and full inference/model/export expectations. |
 | NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. Four hosted checks passed at 7576a14. | Complete R devel and hosted checks for the final review fixes. |
 | NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
+| NIS-006 | Core specification audit reader now follows each source's column guide, validates internal structure, and preserves the previous registry on failure. Offline invented tool tests added to CI. | Saved source snapshots for all annual components, missing-value formats, and review by both authors. |
 | NIS-007 | Experimental DuckDB sessions, local parquet views, explicit projections, and exact BIGINT collection. Unsafe decimal/wide numeric identifier collection is refused; strings require positive digits. | Reviewed annual metadata and conversion profiles. |
 | NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. Structural failures expose check/component/fields and aggregate counts. | Annual source component and alias review. |
 | NIS-009 | Aggregate structural reports for identifiers, weights, code types, and missing required fields. | Full annual field-availability and missing-reason contracts. |
@@ -41,6 +42,20 @@ checks, not annual or clinical certification. Private checks still accept
 2018–2022 structures and reject the 2017 input. Direct official-layout retrieval
 remains blocked by timeouts; cached source snapshots and coauthor metadata
 review are still required before annual adapters or approved inference.
+
+The metadata continuation found that the 2017 and 2022 official Core column
+guides differ, so the updater's fixed positions could not parse every target
+year correctly. It now reads the guide, checks year/revision and field/record
+structure, supports a strictly offline cache run, and stages the registry only
+after every requested year succeeds. See [METADATA-AUDIT.md](METADATA-AUDIT.md)
+for commands, evidence limits, and the next annual/conversion review steps.
+No annual registry or support promotion was produced by this increment.
+The tool suite passes 60 assertions with no failures, warnings, or skips.
+The unchanged package passes 473 assertions and a fresh Windows R 4.6.1 source
+check with Status OK, including offline examples. The 44-entry source tarball
+excludes the audit tools, snapshots, private inputs, and validation receipts.
+Generated documentation is current. The new tool suite runs separately in CI;
+hosted evidence for this continuation must be checked after its commit is pushed.
 
 ## Foundation and metadata
 
