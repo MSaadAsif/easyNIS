@@ -47,7 +47,7 @@ Only invented synthetic records belong in public examples, tests, and CI. HCUP r
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
 `nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
 `nis_code_set()`, `nis_flag_codes()`, `nis_select()`, `nis_survey_design()`, and
-`nis_domain()`, `nis_pool_design()`, and `nis_estimate()`.
+`nis_domain()`, `nis_pool_design()`, `nis_estimate()`, and `nis_model()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
@@ -80,5 +80,13 @@ For an existing experimental design, use
 variance = "wr_unadjusted")`, with degrees of freedom chosen for your analysis.
 Read the [experimental estimate contract](docs/ESTIMATES.md) and run
 `example(nis_estimate)` offline. Saad and Ali's scientific review remains pending.
+
+`nis_model()` fits experimental Gaussian, quasibinomial logistic and quasipoisson
+regressions on an existing design. It returns the native fit, numeric link-scale
+inference, complete-case accounting, factor contrasts and warnings. Family,
+missingness, df, confidence and variance are explicit. Read the
+[model contract](docs/MODELS.md) and run `example(nis_model)` offline. Interpreted
+effects, transformed formulas, exposure offsets and scientific approval remain
+pending.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
