@@ -7,14 +7,23 @@
 #' User declarations of provenance remain unverified. A report without structural
 #' errors is not an approved analysis input.
 #'
-#' @param data A relation returned by [nis_import()].
+#' @param data A relation returned by [nis_import()], [nis_flag_codes()], or
+#'   [nis_select()].
+#' @param fields Optional unique column names to inspect for availability and
+#'   SQL NULL counts. Absent names are allowed. `NULL` inspects the required
+#'   structural fields. This does not decode special missing-value sentinels.
 #' @return A `nis_validation` list with `issues`, `components`,
 #'   `structural_errors`, `analysis_ready` (always `FALSE` in this prototype),
-#'   `year`, and `scope`. Issues have severity, check, field, affected count,
+#'   `year`, `scope`, and `fields`. The field table distinguishes `present`,
+#'   `user_omitted`, and `unverified_absent`, with `imported`, `derived`, or
+#'   `unverified` origin and aggregate `record_nulls`. An absent field has an
+#'   unknown NULL count, not zero. Source-unavailable versus conversion-omitted
+#'   requires audited annual contracts and remains unresolved here.
+#'   Issues have severity, check, field, affected count,
 #'   and message columns. A missing component is `"not_supplied"`, not a claim
 #'   that it is unavailable in the original source.
 #' @export
-nis_validate <- function(data) {
+nis_validate <- function(data, fields = NULL) {
   check_relation(data)
   con <- data$session$connection
   view <- sql_name(con, data$view)
@@ -27,9 +36,16 @@ nis_validate <- function(data) {
     )
   }
   required <- c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
+  if (is.null(fields)) fields <- required
+  if (!is.character(fields) || !length(fields) || anyNA(fields) ||
+      any(!nzchar(fields)) || anyDuplicated(fields)) {
+    stop("`fields` must be unique non-empty column names.", call. = FALSE)
+  }
+  known <- c(data$import_schema$column_name, names(data$flags))
   for (field in setdiff(required, schema$column_name)) {
-    add("error", "required_field_absent", field, message =
-      "Required structural field absent; source/conversion omission is unverified.")
+    message <- if (field %in% known) "Required structural field removed by user selection." else
+      "Required structural field absent; source/conversion omission is unverified."
+    add("error", "required_field_absent", field, message = message)
   }
   rows <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", view))
   if (rows == 0) add("error", "empty_core", affected = 0, message = "Core has no rows.")
@@ -64,7 +80,8 @@ nis_validate <- function(data) {
   code_fields <- schema$column_name[grepl("^I10_(DX|PR)[0-9]+$", schema$column_name)]
   if (!"I10_DX1" %in% code_fields) {
     add("warning", "principal_diagnosis_absent", "I10_DX1", message =
-      "Principal diagnosis was not supplied; cohort capability is unavailable.")
+      if ("I10_DX1" %in% known) "Principal diagnosis removed by user selection." else
+        "Principal diagnosis was not supplied; cohort capability is unavailable.")
   }
   for (field in code_fields) {
     if (schema$column_type[match(field, schema$column_name)] != "VARCHAR") {
@@ -83,10 +100,30 @@ nis_validate <- function(data) {
       names(data$sources), "supplied", "not_supplied"), stringsAsFactors = FALSE
   )
   structure(list(
-    issues = issue_table, components = components,
+    issues = issue_table, components = components, fields = field_status(data, fields),
     structural_errors = any(issue_table$severity == "error"), analysis_ready = FALSE,
     year = data$year, scope = data$validation_scope
   ), class = "nis_validation")
+}
+
+field_status <- function(data, fields) {
+  imported <- fields %in% data$import_schema$column_name
+  derived <- fields %in% names(data$flags)
+  present <- fields %in% data$schema$column_name
+  result <- data.frame(
+    field = fields,
+    state = ifelse(present, "present", ifelse(imported | derived, "user_omitted", "unverified_absent")),
+    origin = ifelse(imported, "imported", ifelse(derived, "derived", "unverified")),
+    record_nulls = NA_real_, stringsAsFactors = FALSE
+  )
+  if (any(present)) {
+    con <- data$session$connection
+    counts <- DBI::dbGetQuery(con, paste0("SELECT ",
+      paste(paste0("COUNT(*) - COUNT(", sql_name(con, fields[present]), ")"), collapse = ", "),
+      " FROM ", sql_name(con, data$view)))
+    result$record_nulls[present] <- vapply(counts, as.numeric, numeric(1))
+  }
+  result
 }
 
 sql_numeric_type <- function(type) {

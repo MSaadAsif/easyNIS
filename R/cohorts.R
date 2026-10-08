@@ -15,7 +15,8 @@
 #'
 #' @param data A relation returned by [nis_import()].
 #' @param name A new flag column name. Existing fields cannot be overwritten,
-#'   including case-insensitive collisions.
+#'   including case-insensitive collisions with imported fields and recorded
+#'   flag definitions removed by [nis_select()]. Use a fresh name for a new set.
 #' @param codes A declaration returned by [nis_code_set()].
 #' @param scope Explicitly choose `"principal_diagnosis"`,
 #'   `"secondary_diagnosis"`, `"any_diagnosis"`, or `"any_procedure"`.
@@ -46,8 +47,10 @@
 nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
   check_relation(data)
   check_string(name, "name")
-  if (tolower(name) %in% tolower(data$schema$column_name)) {
-    stop("Flag name conflicts with an existing field.", call. = FALSE)
+  if (tolower(name) %in% tolower(c(data$schema$column_name,
+                                  data$import_schema$column_name, names(data$flags)))) {
+    stop("Flag name conflicts with an existing or imported field or recorded definition.",
+         call. = FALSE)
   }
   if (!inherits(codes, "nis_code_set")) {
     stop("`codes` must come from nis_code_set().", call. = FALSE)
