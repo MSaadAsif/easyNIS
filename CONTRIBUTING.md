@@ -21,6 +21,9 @@ generation alone does not establish synthetic validation of an annual workflow.
 
 With R and the suggested development packages installed, run from the checkout:
 
+Documentation generation uses roxygen2 8.1.0, recorded in DESCRIPTION and pinned
+in CI. Update both when changing the generator version.
+
 ```r
 roxygen2::roxygenise()
 testthat::test_local()
