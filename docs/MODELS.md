@@ -58,6 +58,16 @@ unchanged; the input object is not modified.
 to sum to analysis rows, independent of the design's pooling divisor. Gaussian
 identity, quasibinomial logit and quasipoisson log are constructed internally.
 IRLS uses epsilon `1e-10` and at most 50 iterations, recorded in provenance.
+Converged nonboundary quasi-family fits restart once from the fitted coefficient
+vector, using zero starts for aliased coefficients and the same tolerance and
+iteration limit. This updates the final working weights without lowering R's
+epsilon-dependent QR rank threshold. Gaussian, boundary and nonconverged initial
+fits do not restart. The returned native object is the unchanged final fit;
+warnings from both fits remain captured. Diagnostics record `initial_iterations`,
+final native `iterations` and `refined`; provenance declares the restart policy.
+This refinement addresses observed sparse-fixture covariance precision. It does
+not guarantee convergence, stable inference or scientific suitability for every
+sparse or separated model.
 `summary` uses the caller's explicit `df.resid`; standard `summary(native)`
 still uses survey's native residual-df default. No native df is overwritten.
 Finite caller df uses t tests and t Wald intervals; `Inf` uses normal tests
