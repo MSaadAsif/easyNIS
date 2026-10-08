@@ -61,4 +61,4 @@ The [easyNRD audit](EASYNRD-REVIEW.md) links inspected files at a fixed commit r
 
 ## Limits of this research
 
-No patient-level NIS files were loaded or analyzed in this planning session. Local codebooks, scripts, and report methodology supplied additional context through the [Biostatistics review](CONTEXT-REVIEW.md). No package numerical tests were run because easyNIS implementation does not yet exist. Historical finite-population/design choices, exact annual metadata, model inference defaults, and difficult disclosure cases require the stated review and validation gates.
+No patient-level NIS files were loaded or analyzed in the planning session. Local codebooks, scripts, and report methodology supplied additional context through the [Biostatistics review](CONTEXT-REVIEW.md). Implementation subsequently added invented fixture tests and private aggregate structural checks. Historical finite-population/design choices, exact annual metadata, model inference defaults, and difficult disclosure cases require the stated review and validation gates.

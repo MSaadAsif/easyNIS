@@ -2,6 +2,8 @@
 /private/
 /local-data/
 /local-validation/
+/.audit/
+/.easynis-local.ps1
 /docs/references/local/
 .Renviron
 .Rhistory

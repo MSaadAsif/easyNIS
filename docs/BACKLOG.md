@@ -1,6 +1,84 @@
 # Implementation backlog
 
-This is the ordered, reviewable backlog for the agreed scope. It is a planning document; none of these implementation items has been completed. Exact function names can change during API review. Each item should become a small issue/PR when implementation begins.
+This is the ordered, reviewable backlog for the agreed scope. Implementation began on 2026-10-08. Exact function names can change during API review. Each item should become a small issue/PR as implementation proceeds.
+
+## Initial implementation progress
+
+| ID | State on 2026-10-08 | Remaining acceptance work |
+|---|---|---|
+| NIS-001 | Saad authorized implementation and supplied public maintainer metadata. | Ali's full preferred public name and optional ORCID. |
+| NIS-002 | Installable development package, generated help/namespace, NEWS, citation, and contribution guide. Local Windows source check passes. | Cross-platform evidence and final coauthor metadata before release. |
+| NIS-003 | Deterministic invented fixtures with component joins, variable slot counts, missingness, and hand-calculated summaries. | Audited annual contracts and full inference/model/export expectations. |
+| NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. Four hosted checks passed at 7576a14. | Complete R devel and hosted checks for the final review fixes. |
+| NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
+| NIS-006 | Core specification audit reader now follows each source's column guide, validates internal structure, and preserves the previous registry on failure. Offline invented tool tests added to CI. | Saved source snapshots for all annual components, missing-value formats, and review by both authors. |
+| NIS-007 | Experimental DuckDB sessions, local parquet views, explicit projections, and exact BIGINT collection. Unsafe decimal/wide numeric identifier collection is refused; strings require positive digits. | Reviewed annual metadata and conversion profiles. |
+| NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. Structural failures expose check/component/fields and aggregate counts. | Annual source component and alias review. |
+| NIS-009 | Aggregate structural reports for identifiers, weights, code types, and missing required fields. | Full annual field-availability and missing-reason contracts. |
+| NIS-011 | Experimental user-declared code sets and lazy flags with explicit scope, missingness, applicability, and provenance. | Annual metadata, canonical transformations, dictionaries, and clinical review. |
+| NIS-012 | Invented SQL/R parity tests for exact/prefix matching and all missingness policies; common-slot sensitivity tests across invented year layouts. | Audited annual slot contracts and clinical cohort validation. |
+
+Local aggregate checks accepted the 2018–2022 input structures and matched
+the official Core row counts. The 2017 input was rejected for invalid YEAR
+values. The tools ran read-only queries and performed no source writes. These checks do not authenticate
+release revisions, merged components, derived fields, or statistical methods.
+Receipts remain in ignored local validation storage.
+
+No annual analysis capability has passed its validation gates. The installed
+roadmap continues to report every year as a target.
+
+The draft implementation is [PR #1](https://github.com/MSaadAsif/easyNIS/pull/1).
+Experimental matching is described in [COHORTS.md](COHORTS.md). The next import
+increment should audit official layouts and conversion profiles, then define
+canonical transformations without losing raw meanings. Machine-readable join
+failures do not complete the annual missing-reason contract in NIS-009.
+
+The latest Windows R 4.6.1 source check passes with Status OK and 473 assertions,
+without failures, warnings, or skips. Offline examples and a 44-entry source
+tarball inspection pass. Independent review findings about decimal precision,
+normalization, whitespace, row order, extreme integer bounds, and structured
+schema diagnostics were fixed and verified. These are experimental behavior
+checks, not annual or clinical certification. Private checks still accept
+2018–2022 structures and reject the 2017 input. Direct official-layout retrieval
+remains blocked by timeouts; cached source snapshots and coauthor metadata
+review are still required before annual adapters or approved inference.
+
+The metadata continuation found that the 2017 and 2022 official Core column
+guides differ, so the updater's fixed positions could not parse every target
+year correctly. It now reads the guide, checks year/revision and field/record
+structure, supports a strictly offline cache run, and stages the registry only
+after every requested year succeeds. See [METADATA-AUDIT.md](METADATA-AUDIT.md)
+for commands, evidence limits, and the next annual/conversion review steps.
+No annual registry or support promotion was produced by this increment.
+The tool suite passes 60 assertions with no failures, warnings, or skips.
+The unchanged package passes 473 assertions and a fresh Windows R 4.6.1 source
+check with Status OK, including offline examples. The 44-entry source tarball
+excludes the audit tools, snapshots, private inputs, and validation receipts.
+Generated documentation is current. The new tool suite runs separately in CI;
+hosted evidence for this continuation must be checked after its commit is pushed.
+
+## Explicit-start development environment
+
+On 2026-10-08 Saad confirmed autonomous implementation after an explicit start,
+including independent review, adequate verification, commits, pushes and
+protected development merges. Experimental statistical code may merge while
+scientific validation and release approval remain with Saad and Ali. Scheduling
+requires a separate explicit request. See [AUTONOMY.md](AUTONOMY.md) for the loop
+and [SKILL-ROUTES.md](SKILL-ROUTES.md) for the inspected skill choices.
+
+The local verification harness checks the pinned R documentation generator,
+package/tool assertions, source build/check, tarball boundaries, and an isolated
+installed import/validation/cohort workflow across six invented year labels.
+The offline merge-gate suite covers 36 positive and rejection scenarios, including
+stale head/base reviews, missing or failed CI, missing local evidence, dirty
+worktrees, read-only behavior and head-matched protected merge requests.
+GitHub main protection now requires all five existing R/platform jobs, a current
+base and resolved conversations, including for administrators.
+
+The earlier uncommitted column-selection increment remains separate from this
+setup. Its omitted-source-field flag-name collision is the first known
+implementation finding to resolve when development is explicitly started.
+No annual capability or scientific approval was promoted by this environment work.
 
 ## Foundation and metadata
 

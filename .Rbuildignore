@@ -7,3 +7,9 @@
 ^local-validation$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^tools$
+^CONTRIBUTING\.md$
+^\.audit$
+^AGENTS\.md$
+^\.agents$
+^\.easynis-local\.ps1$

@@ -2,13 +2,17 @@
 
 The target is every NIS year currently released, 1988–2023. This is a roadmap, not a present compatibility claim. **No year has implemented or validated easyNIS support yet.**
 
-The [CSV matrix](year-support.csv) has a row for every target year. Each capability must be backed by reproducible evidence before a release claims support. Extend the matrix when HCUP publishes a new year; do not advertise future years automatically.
+The [CSV matrix](../inst/metadata/year-support.csv) has a row for every target year. It is the canonical installed roadmap returned by `nis_supported_years()`. Each capability must be backed by reproducible evidence before a release claims support. Extend the matrix when HCUP publishes a new year; do not advertise future years automatically.
+
+The package foundation includes `nis_synthetic_data()` for 2017–2022 labels.
+Its small invented layouts are test choices. Generation and arithmetic tests
+alone do not promote any import, cohort, survey, model, or table capability.
 
 ## Coverage sequence
 
 | Stage | Years | Validation access | Main boundary |
 |---|---|---|---|
-| V1 | 2017–2022 | Saad/Ali report parquet access; files uninspected. | Modern coding, annual components and derived-tool variation. |
+| V1 | 2017–2022 | Local schema/footer inventory complete; aggregate structural checks recorded. Conversion provenance remains pending. | Modern coding, annual components and derived-tool variation. |
 | Expansion 1 | 2023 | Not yet established. | Removed race/geography and adjusted charges. |
 | Expansion 2 | 2012–2016 | Not yet established. | Redesign and split-era 2015. |
 | Expansion 3 | 1993–2011 | Not yet established. | Historical schemas, trend weights, 1998 redesign, 2000 charge weight. |
