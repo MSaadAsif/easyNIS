@@ -60,3 +60,15 @@
 - Invented cases compare native totals and means against direct `survey` calls
   and hand-calculated variances including zero-domain hospitals. Annual support,
   pooled inference, model APIs and scientific approval remain pending.
+
+## Experimental pooled-year design preparation
+
+- Added `nis_pool_design()` for complete single-year designs with explicit
+  combined-total, average-annual-total or pooled-proportion intent.
+- Year-specific hospital and stratum keys prevent cross-year identifier reuse
+  from collapsing the design. Original annual objects and raw weights remain.
+- Only explicit average annual totals scale native weights by included years.
+  Common analysis fields, classes and factor levels must agree.
+- Independent synthetic calculations and direct native references cover varying
+  annual weights, zero-domain hospitals, mean linearization and missing outcomes.
+  Annual and scientific validation remain pending.
