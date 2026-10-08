@@ -58,6 +58,33 @@ exercise_year <- function(year) {
     abs(proportion$estimate - 0.5) < 1e-12,
     abs(proportion$se - sqrt(162) / 36) < 1e-12,
     inherits(scalar$native, "svystat"), identical(scalar$provenance$analysis_ready, FALSE))
+  for (family in c("gaussian", "quasibinomial", "quasipoisson")) {
+    field <- if (family == "quasibinomial") "domain" else "LOS"
+    outcome <- as.double(core[[field]])
+    keep <- !is.na(outcome)
+    denominator <- sum(core$DISCWT[keep])
+    mean <- sum(core$DISCWT[keep] * outcome[keep]) / denominator
+    score <- numeric(nrow(core))
+    score[keep] <- core$DISCWT[keep] * (outcome[keep] - mean) / denominator
+    hospitals <- tapply(score, core$HOSP_NIS, sum)
+    strata <- core$NIS_STRATUM[match(names(hospitals), core$HOSP_NIS)]
+    variance <- sum(vapply(split(hospitals, strata), function(x) {
+      length(x) / (length(x) - 1) * sum((x - base::mean(x))^2)
+    }, numeric(1)))
+    coefficient <- switch(family, gaussian = mean, quasibinomial = stats::qlogis(mean),
+      quasipoisson = log(mean))
+    derivative <- switch(family, gaussian = 1, quasibinomial = 1 / (mean * (1 - mean)),
+      quasipoisson = 1 / mean)
+    fit <- nis_model(design, stats::reformulate("1", field), family, "exclude",
+      2, 0.95, "wr_unadjusted")
+    se <- sqrt(variance) * derivative
+    stopifnot(abs(fit$coefficients$estimate - coefficient) < 1e-8,
+      abs(fit$coefficients$se - se) < 1e-7,
+      abs(fit$coefficients$lower - (coefficient - stats::qt(0.975, 2) * se)) < 1e-7,
+      fit$sample$included == sum(keep), fit$sample$excluded_missing == sum(!keep),
+      inherits(fit$native, "svyglm"), identical(fit$provenance$analysis_ready, FALSE))
+  }
+  cat("Invented year", year, "passed all three model links against independent intercept references.\n")
   cat("Invented year", year, "passed import, flags, selection, survey domains and scalar estimate references.\n")
   design
 }

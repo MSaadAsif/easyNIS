@@ -1,5 +1,14 @@
 # easyNIS 0.0.0.9000
 
+## Experimental survey models
+
+- Added `nis_model()` for named-outcome Gaussian, quasibinomial logistic and
+  quasipoisson survey fits with explicit complete-case and inference choices.
+- Preserve native fits, raw columns, original hospital information, factor
+  contrasts, aliased coefficients, captured warnings and design provenance.
+- Invented tests compare native fits and independent cluster score sandwiches.
+  Annual support, interpreted effects and scientific approval remain pending.
+
 - Started an installable development package with generated help and namespace.
 - Added `nis_supported_years()` with separate roadmap and capability states.
 - Added `nis_synthetic_data()` with entirely invented component records for
