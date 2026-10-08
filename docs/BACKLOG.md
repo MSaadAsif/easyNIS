@@ -226,6 +226,30 @@ Frame and custom contrast preparation both use the same warning handler. The
 custom-contrast regression reproduces the former lost diagnostic message and
 checks native numeric/coding parity and restoration of caller state.
 
+## Experimental formula and exposure continuation
+
+The warning increment merged in [PR #7](https://github.com/MSaadAsif/easyNIS/pull/7)
+after clean-head 1,015 package/60 tool assertions, Status OK, all five hosted
+jobs and refreshed independent reviews with zero blockers. Installed reviewer
+probes covered custom contrast warnings, multiple distinct messages and warn=2.
+
+The NIS-016/034 formula increment supports row-wise numeric Gaussian response
+and predictor expressions and one positive log-exposure quasipoisson offset.
+It records exact response/exposure expressions, source fields and modeled
+scale; native coefficients stay on that scale. Invalid observed transformations
+and exposures are refused instead of becoming silent missing exclusions.
+Complete-case domains retain original hospitals, raw fields and pooled keys.
+See [MODEL-FORMULAS.md](MODEL-FORMULAS.md) for the contract and acceptance cases.
+Supplied terms metadata is discarded so it cannot replace checked expressions.
+Native offset predictions are explicitly unsupported and marked in diagnostics
+because the installed native predictor omits exposure; independent fitted-value
+references include the offset. Corrected Windows verification passes 1,080 package assertions, 60 tool
+assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
+and installed transformed-mean/exposure-offset references for every invented
+year. Clean committed evidence, independent review and hosted checks remain
+required. Interpreted effects, broader diagnostics, annual
+validation and scientific approval remain pending.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

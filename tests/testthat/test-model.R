@@ -19,7 +19,8 @@ model_design <- function(session, rows) {
   path <- write_invented_parquet(session, rows)
   on.exit(unlink(path))
   nis_survey_design(nis_import(session, path, unique(rows$YEAR)),
-    c("y", "binary", "count", "x", "group", "domain"), TRUE, "hospital_wr", "fail")
+    intersect(c("y", "binary", "count", "x", "group", "domain", "exposure", "positive", "period"), names(rows)),
+    TRUE, "hospital_wr", "fail")
 }
 
 fit_invented <- function(design, formula = y ~ x + group, family = "gaussian",
@@ -99,6 +100,126 @@ test_that("three model families match native fits and independent cluster scores
   expect_equal(gaussian$sample$missing_by_field, c(y = 8, x = 8, group = 0))
   expect_equal(gaussian$sample$excluded_missing, 16)
   expect_equal(gaussian$sample$full_population_degrees_of_freedom, 6)
+})
+
+test_that("row-wise transformed outcomes and predictors match independent survey references", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$y <- rows$y + 4
+  rows$positive <- abs(rows$x) + rep(c(0.5, 1, 2, 3), each = 16L)
+  rows$y[rows$HOSP_NIS == "0004"] <- NA
+  rows$positive[rows$HOSP_NIS == "0007"] <- NA
+  design <- model_design(session, rows)
+  formula <- log1p(y) ~ I(x^2) + log(positive) + group
+  for (selected in list(design, nis_domain(design, "domain", "fail"))) {
+    fit <- fit_invented(selected, formula, missing = "exclude")
+    keep <- stats::complete.cases(rows[c("y", "x", "positive", "group")]) &
+      rows$KEY_NIS %in% as.character(selected$design$variables$KEY_NIS)
+    reference <- model_sandwich(rows, formula, stats::gaussian(), keep)
+    native <- survey::svyglm(formula, fit$design,
+      control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+    expect_equal(stats::coef(fit$native), reference$coefficients, tolerance = 1e-10)
+    expect_lt(max(abs(stats::vcov(fit$native) - reference$covariance)), 1e-10)
+    expect_equal(stats::coef(fit$native), stats::coef(native))
+    expect_equal(stats::vcov(fit$native), stats::vcov(native))
+    expect_identical(fit$provenance$modeled_scale, "transformed_outcome")
+    expect_identical(fit$provenance$response_expression, "log1p(y)")
+    expect_identical(fit$provenance$response_fields, "y")
+    expect_equal(fit$sample$included, sum(keep))
+    expect_equal(fit$sample$missing_by_field, c(y = 8, x = 0, positive = 8, group = 0))
+    expect_identical(fit$design$variables$y, rows$y[keep])
+    expect_null(fit$provenance$offset)
+  }
+  shadow <- new.env(parent = environment(formula))
+  shadow$log1p <- function(...) stop("caller function must not run")
+  shadow$log <- shadow$log1p
+  environment(formula) <- shadow
+  protected <- fit_invented(design, formula, missing = "exclude")
+  expect_s3_class(protected$native, "svyglm")
+  prediction <- stats::predict(protected$native, data.frame(x = c(0, 1), positive = c(1, 2), group = c(0, 1)))
+  reference_formula <- log1p(y) ~ I(x^2) + log(positive) + group
+  reference <- survey::svyglm(reference_formula, protected$design)
+  expect_equal(prediction, stats::predict(reference, data.frame(x = c(0, 1), positive = c(1, 2), group = c(0, 1))))
+})
+
+test_that("log-exposure offsets retain native scales, exclusions and pooled keys", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  first <- model_fixture()
+  first$exposure <- rep(c(0.5, 1, 2, 5), 16L) * rep(c(1, 2, 3, 1), each = 16L)
+  first$positive <- abs(first$x) + 1
+  first$period <- 0
+  second <- first
+  second$YEAR <- 2021L
+  second$DISCWT <- second$DISCWT * 2.5
+  second$count <- second$count * 1.4
+  second$period <- 1
+  first$count[first$HOSP_NIS == "0004"] <- NA
+  second$exposure[second$HOSP_NIS == "0007"] <- NA
+  years <- list(model_design(session, first), model_design(session, second))
+  columns <- c("count", "x", "group", "domain", "exposure", "period")
+  pooled <- nis_pool_design(years, columns, "combined_total")
+  domain <- nis_domain(pooled, "domain", "fail")
+  formula <- count ~ x + group + period + offset(log(exposure))
+  fit <- fit_invented(domain, formula, "quasipoisson", "exclude")
+  all <- rbind(first, second)
+  keep <- all$domain & !is.na(all$count) & !is.na(all$exposure)
+  reference <- model_sandwich(all, formula, stats::quasipoisson(), keep)
+  native <- survey::svyglm(formula, fit$design, family = stats::quasipoisson(),
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+  expect_equal(stats::coef(fit$native), reference$coefficients, tolerance = 1e-8)
+  expect_lt(max(abs(stats::vcov(fit$native) - reference$covariance)), 1e-7)
+  expect_equal(stats::coef(fit$native), stats::coef(native))
+  expect_equal(stats::vcov(fit$native), stats::vcov(native))
+  expect_equal(fit$native$offset, log(all$exposure[keep]))
+  expect_equal(fit$provenance$offset, list(field = "exposure", expression = "log(exposure)", coefficient = 1))
+  expect_identical(fit$provenance$response_expression, "count")
+  expect_identical(fit$provenance$modeled_scale, "named_outcome")
+  expect_equal(fit$sample$missing_by_field, c(count = 8, x = 0, group = 0, period = 0, exposure = 8))
+  expect_equal(fit$sample$included, sum(keep))
+  expect_equal(fit$sample$full_population_degrees_of_freedom, 12)
+  expect_identical(fit$design$variables$exposure, all$exposure[keep])
+  scaled <- nis_domain(nis_pool_design(years, columns, "average_annual_total"), "domain", "fail")
+  scaled_fit <- fit_invented(scaled, formula, "quasipoisson", "exclude")
+  expect_equal(stats::coef(scaled_fit$native), stats::coef(fit$native), tolerance = 1e-10)
+  expect_equal(stats::vcov(scaled_fit$native), stats::vcov(fit$native), tolerance = 1e-10)
+  linear <- drop(stats::model.matrix(~ x + group + period, all[keep, ]) %*%
+    reference$coefficients) + log(all$exposure[keep])
+  expect_equal(unname(fit$native$linear.predictors), unname(linear), tolerance = 1e-7)
+  expect_equal(unname(fit$native$fitted.values), unname(exp(linear)), tolerance = 1e-7)
+  expect_identical(fit$diagnostics$native_offset_prediction, "unsupported")
+})
+
+test_that("formula restrictions refuse invalid terms instead of losing observed inputs", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$positive <- abs(rows$x) + 1
+  rows$exposure <- 1
+  design <- model_design(session, rows)
+  for (formula in list(y ~ mean(x), y ~ scale(x), y ~ poly(x, 2), y ~ x[1], y ~ get("x"),
+                       y ~ base::log(positive), y ~ offset(exposure), y ~ offset(log(exposure + 1)),
+                       y ~ offset(log(exposure)) + offset(log(positive)))) {
+    expect_error(fit_invented(design, formula), "supported|unsupported")
+  }
+  expect_error(fit_invented(design, log1p(binary) ~ x, "quasibinomial"), "Gaussian only")
+  expect_error(fit_invented(design, log1p(count) ~ x, "quasipoisson"), "Gaussian only")
+  expect_error(fit_invented(design, y ~ x + offset(log(exposure))), "quasipoisson")
+  for (value in c(0, -1)) {
+    invalid <- design
+    invalid$design$variables$exposure[1L] <- value
+    invalid$design$variables$x[1L] <- NA
+    expect_error(fit_invented(invalid, count ~ x + offset(log(exposure)), "quasipoisson", "exclude"), "positive")
+  }
+  invalid <- design
+  invalid$design$variables$y[1L] <- -2
+  invalid$design$variables$x[1L] <- NA
+  expect_error(fit_invented(invalid, log1p(y) ~ x, missing = "exclude"), "observed inputs")
+  expect_error(fit_invented(design, y ~ I(x / 0)), "Nonfinite|observed inputs")
+  invalid <- design
+  invalid$design$variables$positive[1L] <- 1e308
+  expect_error(fit_invented(invalid, y ~ I(positive^2)), "Nonfinite")
 })
 
 test_that("zero estimates and quoted field names keep raw model values", {
@@ -219,12 +340,31 @@ test_that("pooled reused IDs and missing rows retain independent variance", {
   expect_equal(fit$provenance$design$years, c(2022L, 2021L))
 })
 
+test_that("terms metadata cannot replace the checked formula expressions", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  design <- model_design(session, model_fixture())
+  reference <- fit_invented(design, y ~ x)
+  supplied <- stats::terms(y ~ x)
+  attr(supplied, "predvars") <- quote(list(abs(y), x * 2))
+  before <- supplied
+  fit <- fit_invented(design, supplied)
+  expect_equal(stats::coef(fit$native), stats::coef(reference$native))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference$native))
+  expect_identical(fit$native$y, reference$native$y)
+  expect_identical(fit$provenance$response_expression, "y")
+  expect_identical(fit$provenance$modeled_scale, "named_outcome")
+  expect_identical(supplied, before)
+  expect_equal(stats::predict(fit$native, newdata = data.frame(x = 2)),
+    stats::predict(reference$native, newdata = data.frame(x = 2)))
+})
+
 test_that("invalid formulas, fields and policies fail without caller mutation", {
   session <- nis_open()
   on.exit(nis_close(session))
   design <- model_design(session, model_fixture())
   expect_error(nis_model(design, y ~ x), "explicit")
-  for (formula in list(~ x, log(y) ~ x, y ~ log(x), y ~ offset(x), y ~ ., y ~ I(x^2),
+  for (formula in list(~ x, log(y) ~ x, y ~ log(x), y ~ offset(x), y ~ ., y ~ scale(x),
                        y ~ stats::poly(x, 2), y ~ get("x"))) {
     expect_error(fit_invented(design, formula), "formula|terms|unsupported")
   }

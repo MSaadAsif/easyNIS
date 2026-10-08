@@ -50,3 +50,11 @@ The source suite adds multivariable native/independent score-sandwich references
 factor interactions/contrast matrices, aliased terms, zero SEs, pooled reused IDs,
 missing hospitals and explicit rejection paths. These results do not promote
 annual support, interpreted effects or scientific approval.
+
+Installed calls also exercise `log1p(LOS)` Gaussian means and a quasipoisson
+log-exposure offset for every invented year. Independent transformed means,
+weighted outcome/exposure ratios and hospital-score WR variances check numeric
+coefficients/SEs, modeled-scale metadata, offsets and raw columns. Package cases
+add squared/log predictors, source-field missing counts, pooled reused IDs,
+prediction with the fixed formula environment and invalid expression/exposure
+rejection. Read `docs/MODEL-FORMULAS.md` for the bounded syntax and scale contract.

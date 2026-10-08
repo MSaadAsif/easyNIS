@@ -10,10 +10,12 @@ nis_model(design, formula, family, missing, df, confidence, variance)
 \item{design}{A \code{\link[=nis_survey_design]{nis_survey_design()}}, \code{\link[=nis_pool_design]{nis_pool_design()}} or \code{\link[=nis_domain]{nis_domain()}}
 result using hospital WR variance and singleton rejection.}
 
-\item{formula}{Two-sided R formula with one named outcome, retained named
-predictors, and ordinary \code{+}, \code{-}, \code{*}, \code{:}, \code{/}, \code{^} terms. Precompute
-transformations explicitly before design construction. Global variables
-and \code{.} expansion are refused.}
+\item{formula}{Two-sided R formula with retained named fields and ordinary
+terms/interactions. Gaussian outcomes and predictors may use row-wise
+arithmetic, \code{log}, \code{log1p}, \code{sqrt}, \code{abs} and \code{I}. Quasi-family outcomes
+remain named vectors. Quasipoisson permits one \code{offset(log(exposure))}
+with a named positive numeric exposure field. Global variables, caller
+functions, sample-dependent transforms and \code{.} expansion are refused.}
 
 \item{family}{Explicitly choose \code{"gaussian"} for identity-link means,
 \code{"quasibinomial"} for logit-link zero/one outcomes or \code{"quasipoisson"}
@@ -39,12 +41,14 @@ Aliased coefficients have NA inference. Nonconvergence is recorded, not
 concealed. Raw design columns and caller options are unchanged. Native
 fitting rescales weights to sum to analysis rows for numerical stability;
 analysis design weights retain their original pooling divisor.
+Native offset predictions are unsupported: \code{predict.svyglm} may omit the
+exposure offset. Offset fits retain this limitation in diagnostics.
 }
 \description{
 Fits a native survey GLM on a complete-case domain without rebuilding the
 original hospital design. This first increment supports named outcomes and
-ordinary formula terms and interactions. Transformations, offsets, dot
-expansion, grouped responses and custom families require later contracts.
+ordinary terms, row-wise numeric transformations and Poisson log-exposure
+offsets. Dot expansion, grouped responses and custom families are refused.
 Inference remains experimental and does not approve annual support.
 }
 \examples{
