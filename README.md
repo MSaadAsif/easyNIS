@@ -46,7 +46,8 @@ Only invented synthetic records belong in public examples, tests, and CI. HCUP r
 
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
 `nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
-`nis_code_set()`, `nis_flag_codes()`, and `nis_select()`.
+`nis_code_set()`, `nis_flag_codes()`, `nis_select()`, `nis_survey_design()`, and
+`nis_domain()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
@@ -61,5 +62,11 @@ slots. Clinical validity and annual code dictionaries remain unverified. Run
 can report columns removed by selection separately from unverified source or
 conversion absences. Explicit field requests return SQL NULL counts without
 interpreting special missing-value sentinels. Run `example(nis_select)` offline.
+
+Experimental `nis_survey_design()` collects a narrow full-population projection
+for a native `survey` design. `nis_domain()` selects logical domains after
+construction. Population, method, singleton and domain missingness declarations
+are explicit. Read the [experimental design contract](docs/SURVEY.md) and run
+`example(nis_survey_design)` offline. Annual inference approval remains pending.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.

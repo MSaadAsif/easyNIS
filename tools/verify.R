@@ -5,7 +5,7 @@ if (length(args) > 1L || (length(args) && args != "--doctor")) {
 if (!file.exists("DESCRIPTION") || !file.exists("tools/check-tarball.R")) {
   stop("Run from the easyNIS package repository.")
 }
-required <- c("DBI", "duckdb", "testthat", "pkgload", "roxygen2", "arrow")
+required <- c("DBI", "duckdb", "testthat", "pkgload", "roxygen2", "arrow", "survey")
 available <- vapply(required, requireNamespace, logical(1), quietly = TRUE)
 if (!all(available)) stop("Missing development packages: ", paste(required[!available], collapse = ", "))
 description <- read.dcf("DESCRIPTION")

@@ -9,6 +9,7 @@ exercise_year <- function(year) {
   fixture <- nis_synthetic_data(year)
   core <- fixture$core
   core$I10_DX1 <- rep(c("A001", "B002"), length.out = nrow(core))
+  core$domain <- core$HOSP_NIS %in% c("0001", "0003")
   session <- nis_open()
   path <- tempfile(fileext = ".parquet")
   on.exit({ nis_close(session); unlink(path) }, add = TRUE)
@@ -36,7 +37,16 @@ exercise_year <- function(year) {
   collision <- tryCatch(nis_flag_codes(source_dropped, "discwt", codes,
     "principal_diagnosis", "no_match"), error = identity)
   stopifnot(inherits(collision, "error"), grepl("conflicts", conditionMessage(collision)))
-  cat("Invented year", year, "passed import, validation, flags, selection, provenance and R comparison.\n")
+  design <- nis_survey_design(data, c("LOS", "domain"), full_population = TRUE,
+    method = "hospital_wr", singleton = "fail")
+  domain <- nis_domain(design, "domain", "fail")
+  total <- survey::svytotal(~LOS, domain$design)
+  stopifnot(design$population$discharges == nrow(core),
+    domain$population$hospitals == 4L, domain$domains[[1L]]$included == 6L,
+    abs(unname(stats::coef(total)) - 44) < 1e-12,
+    abs(unname(stats::vcov(total)) - (22^2 + 22^2)) < 1e-12,
+    identical(design$provenance$analysis_ready, FALSE))
+  cat("Invented year", year, "passed import, flags, selection, survey domains and independent comparisons.\n")
 }
 for (year in 2017:2022) exercise_year(year)
 stopifnot(nrow(nis_supported_years(supported_only = TRUE)) == 0L)
