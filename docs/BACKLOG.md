@@ -182,6 +182,32 @@ See [ESTIMATES.md](ESTIMATES.md).
 Annual metadata, conversion profiles and author scientific approval still gate
 annual claims. Model, disclosure and rendering capabilities remain separate.
 
+## Experimental model continuation
+
+PR #5 merged after the cancelled macOS runner job was retried unchanged and
+all five hosted checks passed. Its committed verification and independent
+reviews remained bound to the same head/base. No gate was bypassed.
+
+The first NIS-016 increment adds explicit Gaussian identity, quasibinomial logit
+and quasipoisson log fits on native full-design domains. Complete-case exclusion
+retains original hospitals. Formula fields, overlapping missing counts, analysis
+weights, separate native/caller df, factor coding, warnings, aliases and complete
+provenance are reported. Numeric coefficient inference remains on the link
+scale. See [MODELS.md](MODELS.md) for the contract and independent sandwich
+calculation. Transformations/offsets, interpreted effects and broader sparse/
+convergence diagnostics remain separate NIS-016/017/034 acceptance work.
+Windows verification after logical predictor coding correction passes 998 package assertions, 60 metadata-tool
+assertions, 36 merge-gate scenarios, a Status OK source check, source-tarball
+privacy inspection and installed three-family intercept references for every
+invented year. Native contrast re-evaluation and reserved weight/offset names
+were checked through public calls and corrected before this verification.
+Final clean committed-head evidence, independent review and all five hosted
+checks remain required before merging. No annual capability is promoted.
+Logical FALSE/TRUE contrast matrices are retained without changing raw columns.
+Custom factor contrasts with dropped unused levels can emit the native warning
+twice, once during frame preparation and once during fitting; it is retained
+in diagnostics. Consolidating that warning handling is a later bounded task.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

@@ -41,3 +41,12 @@ safe/unsafe BIGINT outcomes, zero results, t/normal intervals, raw/provenance
 preservation and rejection of incompatible current options without mutation.
 Read `docs/ESTIMATES.md` for current-option requirements, separate native versus
 caller-selected degrees of freedom, sample accounting and approval limits.
+
+The installed workflow calls `nis_model()` for Gaussian identity, quasibinomial
+logit and quasipoisson log intercept fits for every invented year. Independent
+weighted-mean and hospital WR arithmetic, followed by link derivatives, checks
+coefficients, SEs, t intervals and complete-case accounting. Read `docs/MODELS.md`.
+The source suite adds multivariable native/independent score-sandwich references,
+factor interactions/contrast matrices, aliased terms, zero SEs, pooled reused IDs,
+missing hospitals and explicit rejection paths. These results do not promote
+annual support, interpreted effects or scientific approval.
