@@ -8,7 +8,7 @@ if (!length(entries) || any(!startsWith(entries, "easyNIS/"))) {
 }
 paths <- sub("^easyNIS/", "", entries)
 forbidden <- grepl(
-  "(^|/)(private|local-data|local-validation|local|docs|tools|\\.git|\\.github)(/|$)|\\.\\.(/|$)|\\.(pdf|parquet|dta|sas7bdat|sav|rds|rda|rdata|duckdb|log)$",
+  "(^|/)(private|local-data|local-validation|local|docs|tools|\\.git|\\.github|\\.agents)(/|$)|(^|/)(AGENTS[.]md|[.]easynis-local[.]ps1)$|\\.\\.(/|$)|\\.(pdf|parquet|dta|sas7bdat|sav|rds|rda|rdata|duckdb|log)$",
   paths, ignore.case = TRUE
 )
 if (any(forbidden)) {

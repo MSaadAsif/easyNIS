@@ -48,6 +48,9 @@ jobs:
       - name: Test metadata audit tools offline
         run: testthat::test_dir('tools/tests', stop_on_failure = TRUE)
         shell: Rscript {0}
+      - name: Test autonomous merge gate offline
+        run: ./tools/tests/test-merge-gate.ps1
+        shell: pwsh
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual")'

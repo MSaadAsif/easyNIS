@@ -57,6 +57,29 @@ excludes the audit tools, snapshots, private inputs, and validation receipts.
 Generated documentation is current. The new tool suite runs separately in CI;
 hosted evidence for this continuation must be checked after its commit is pushed.
 
+## Explicit-start development environment
+
+On 2026-10-08 Saad confirmed autonomous implementation after an explicit start,
+including independent review, adequate verification, commits, pushes and
+protected development merges. Experimental statistical code may merge while
+scientific validation and release approval remain with Saad and Ali. Scheduling
+requires a separate explicit request. See [AUTONOMY.md](AUTONOMY.md) for the loop
+and [SKILL-ROUTES.md](SKILL-ROUTES.md) for the inspected skill choices.
+
+The local verification harness checks the pinned R documentation generator,
+package/tool assertions, source build/check, tarball boundaries, and an isolated
+installed import/validation/cohort workflow across six invented year labels.
+The offline merge-gate suite covers 36 positive and rejection scenarios, including
+stale head/base reviews, missing or failed CI, missing local evidence, dirty
+worktrees, read-only behavior and head-matched protected merge requests.
+GitHub main protection now requires all five existing R/platform jobs, a current
+base and resolved conversations, including for administrators.
+
+The earlier uncommitted column-selection increment remains separate from this
+setup. Its omitted-source-field flag-name collision is the first known
+implementation finding to resolve when development is explicitly started.
+No annual capability or scientific approval was promoted by this environment work.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

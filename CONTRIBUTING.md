@@ -4,6 +4,11 @@ Start from the ordered work in [the backlog](docs/BACKLOG.md). Describe the
 behavior and validation evidence in an issue or pull request. New implementation
 must be independent of easyNRD until reuse permission and licensing are resolved.
 
+Agent development follows [the explicit-start policy](docs/AUTONOMY.md).
+Use `tools/verify.ps1 -Doctor` and `tools/verify.ps1` for local verification.
+Experimental development merges require current CI and independent agent review;
+scientific validation and release approval remain separate.
+
 Saad coordinates maintenance and API decisions. Saad and Ali review data
 definitions, cohort rules, inference, and disclosure changes before release.
 Muhammad Saad is the maintainer. Ali's preferred full public name and optional

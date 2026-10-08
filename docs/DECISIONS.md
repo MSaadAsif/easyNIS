@@ -22,6 +22,8 @@ Updated 2026-10-08. The requested grill-with-docs workflow records decisions as 
 | D14 | Use DuckDB for disk-based preparation and narrow analysis projections, with numerical reference checks and 40 GB benchmarks. | Q12. Disk-backed inference remains to prototype and validate. |
 | D15 | Record pooled estimands, missingness, inference choices, and disclosure checks explicitly. | Q13. |
 | D16 | Write independent easyNIS implementation; defer copying easyNRD code until permission/licensing is resolved. | Q14. |
+| D17 | An explicit start authorizes autonomous review, testing, commits, pushes and merges of passing increments; scheduling requires a separate explicit request. | Saad's confirmed autonomy-policy answers on 2026-10-08; docs/AUTONOMY.md. |
+| D18 | Experimental statistical code may merge after independent reference tests and agent review; Saad and Ali retain scientific validation and release approval. | Saad accepted this boundary on 2026-10-08. |
 
 ## Completed interview rounds
 
