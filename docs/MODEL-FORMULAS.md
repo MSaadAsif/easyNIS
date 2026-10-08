@@ -43,8 +43,15 @@ cannot silently change a centering basis or quantile cutpoint.
 Provenance records the exact response expression, response source fields,
 whether the modeled outcome is transformed, and any exposure field/expression.
 Native formulas, offsets, fits, raw analysis columns, factor matrices, warning
-messages and full-design/domain accounting remain available. Native prediction
-uses the same fixed allowed-function environment.
+messages and full-design/domain accounting remain available. Non-offset native
+prediction uses the same fixed allowed-function environment. Offset prediction
+is unsupported: `predict.svyglm` in the installed survey 4.5 omits the offset
+from its linear predictor. Offset fits record
+`diagnostics$native_offset_prediction = "unsupported"`. The returned native fit
+is unchanged; correct fitted values do not establish correct native predictions
+for new exposure values. Such predictions require a separately verified
+calculation of the design matrix times coefficients plus `log(exposure)` before
+applying the inverse link.
 
 The mechanics follow the official R [GLM](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/glm.html)
 and [model-frame](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/model.frame.html)
@@ -54,6 +61,7 @@ establish scientific suitability for NIS outcomes.
 Acceptance cases include direct native and independent score-sandwich
 references for log1p Gaussian outcomes, squared/log predictors, and Poisson
 exposure offsets. Domain hospitals absent after outcome/exposure exclusions,
-pooled reused IDs, raw missing counts, factor coding, native prediction,
+pooled reused IDs, raw missing counts, factor coding, non-offset native prediction,
+independent fitted values including offsets, the offset prediction limitation,
 caller-function shadowing, supplied terms metadata and every rejection above must be exercised.
 Scientific approval, annual support and interpreted effects remain pending.

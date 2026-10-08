@@ -184,8 +184,11 @@ test_that("log-exposure offsets retain native scales, exclusions and pooled keys
   scaled_fit <- fit_invented(scaled, formula, "quasipoisson", "exclude")
   expect_equal(stats::coef(scaled_fit$native), stats::coef(fit$native), tolerance = 1e-10)
   expect_equal(stats::vcov(scaled_fit$native), stats::vcov(fit$native), tolerance = 1e-10)
-  new <- data.frame(x = c(0, 1), group = c(0, 1), period = c(0, 1), exposure = c(1, 5))
-  expect_equal(stats::predict(fit$native, new, type = "response"), stats::predict(native, new, type = "response"))
+  linear <- drop(stats::model.matrix(~ x + group + period, all[keep, ]) %*%
+    reference$coefficients) + log(all$exposure[keep])
+  expect_equal(unname(fit$native$linear.predictors), unname(linear), tolerance = 1e-7)
+  expect_equal(unname(fit$native$fitted.values), unname(exp(linear)), tolerance = 1e-7)
+  expect_identical(fit$diagnostics$native_offset_prediction, "unsupported")
 })
 
 test_that("formula restrictions refuse invalid terms instead of losing observed inputs", {

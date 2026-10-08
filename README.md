@@ -89,5 +89,6 @@ missingness, df, confidence and variance are explicit. Read the
 Bounded row-wise transformations and a Poisson log-exposure offset retain their
 [formula/scale contract](docs/MODEL-FORMULAS.md). Interpreted effects, broader
 diagnostics and scientific approval remain pending.
+Native prediction for offset models is unsupported; see the formula contract.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.

@@ -32,6 +32,8 @@
 #'   concealed. Raw design columns and caller options are unchanged. Native
 #'   fitting rescales weights to sum to analysis rows for numerical stability;
 #'   analysis design weights retain their original pooling divisor.
+#'   Native offset predictions are unsupported: `predict.svyglm` may omit the
+#'   exposure offset. Offset fits retain this limitation in diagnostics.
 #' @export
 #' @examples
 #' if (requireNamespace("survey", quietly = TRUE)) {
@@ -202,6 +204,7 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       full_population_degrees_of_freedom = design$population$degrees_of_freedom,
       native_residual_degrees_of_freedom = native$df.residual),
     diagnostics = list(warnings = warnings, converged = native$converged,
+      native_offset_prediction = if (length(exposures)) "unsupported" else "not_applicable",
       rank = native$rank, aliased = names(estimates)[!estimable],
       boundary = native$boundary),
     provenance = list(formula = paste(deparse(formula), collapse = " "), fields = fields,

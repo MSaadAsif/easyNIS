@@ -240,7 +240,10 @@ scale; native coefficients stay on that scale. Invalid observed transformations
 and exposures are refused instead of becoming silent missing exclusions.
 Complete-case domains retain original hospitals, raw fields and pooled keys.
 See [MODEL-FORMULAS.md](MODEL-FORMULAS.md) for the contract and acceptance cases.
-Corrected Windows verification passes 1,078 package assertions, 60 tool
+Supplied terms metadata is discarded so it cannot replace checked expressions.
+Native offset predictions are explicitly unsupported and marked in diagnostics
+because the installed native predictor omits exposure; independent fitted-value
+references include the offset. Corrected Windows verification passes 1,080 package assertions, 60 tool
 assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
 and installed transformed-mean/exposure-offset references for every invented
 year. Clean committed evidence, independent review and hosted checks remain
