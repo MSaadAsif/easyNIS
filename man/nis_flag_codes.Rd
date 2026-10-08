@@ -10,7 +10,8 @@ nis_flag_codes(data, name, codes, scope, missing, slots = NULL)
 \item{data}{A relation returned by \code{\link[=nis_import]{nis_import()}}.}
 
 \item{name}{A new flag column name. Existing fields cannot be overwritten,
-including case-insensitive collisions.}
+including case-insensitive collisions with imported fields and recorded
+flag definitions removed by \code{\link[=nis_select]{nis_select()}}. Use a fresh name for a new set.}
 
 \item{codes}{A declaration returned by \code{\link[=nis_code_set]{nis_code_set()}}.}
 
