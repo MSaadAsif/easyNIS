@@ -19,3 +19,15 @@
   deletion and modification-time changes, and exact BIGINT collection.
 - Reject unsafe decimal or wide numeric identifier collection before R can
   round values. String identifiers must contain positive decimal digits.
+
+## Experimental code matching
+
+- Added versioned user-declared code sets with syntax checks, explicit coding
+  system, year and quarter applicability, and source/author provenance.
+- Added literal exact or prefix flags for principal, secondary, all diagnosis,
+  and procedure scopes. Missingness policy and selected slots are explicit.
+- Flags retain every discharge, preserve the original relation, and record
+  common-slot versus observed-slot selection. Restricted quarters are unknown
+  outside their declared periods.
+- Invented tests compare SQL results with R and expose cross-year slot
+  sensitivity. No clinical phenotypes or annual dictionaries are validated.

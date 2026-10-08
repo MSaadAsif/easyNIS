@@ -2,7 +2,7 @@
 
 easyNIS is an R package in early development for reproducible workflows with the HCUP National Inpatient Sample. The planned workflow covers importing licensed files, annual differences, cohorts, survey-weighted results, models, and publication tables.
 
-**Status: package foundation and experimental structural import implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, and aggregate structural checks. Annual adapters and statistical analysis remain unimplemented. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
+**Status: experimental structural import and user-declared code matching implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and code flags with explicit scope and missingness policies. Annual adapters and statistical analysis remain unimplemented. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
 
 ## Install and try the development package
 
@@ -45,10 +45,16 @@ Saad and Ali are developing easyNIS before resuming the broader easyNRD work. Th
 Only invented synthetic records belong in public examples, tests, and CI. HCUP records and local reference-book copies must stay outside version control. Users obtain NIS data independently and run licensed-data checks locally.
 
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
-`nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, and `nis_validate()`.
+`nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
+`nis_code_set()`, and `nis_flag_codes()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
 proposal, not an executable API.
+
+Code matching requires a user-declared code set with system, valid years,
+version, source, and author. Flags retain all discharges and record selected
+slots. Clinical validity and annual code dictionaries remain unverified. Run
+`example(nis_flag_codes)` offline and read the [matcher contract](docs/COHORTS.md).
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.

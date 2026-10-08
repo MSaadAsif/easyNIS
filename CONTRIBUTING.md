@@ -39,7 +39,8 @@ R CMD check --no-manual easyNIS_0.0.0.9000.tar.gz
 
 The tarball check excludes private folders, record file formats, local books,
 and development-only files. CI runs examples and tests on Windows, macOS,
-Linux, R old release, and R devel. Those platforms are pending until CI runs.
+Linux, R old release, and R devel. Refer to the PR checks for commit-specific
+results; local Windows evidence does not establish every platform.
 R 4.1 is the provisional language minimum, not a tested compatibility claim.
 
 For a private input inventory, install the optional developer dependencies DBI
