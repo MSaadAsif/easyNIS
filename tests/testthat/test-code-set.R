@@ -32,4 +32,10 @@ test_that("malformed or ambiguous sets cannot define a cohort", {
   expect_error(invented_code_set(valid_quarters = c(1, 5)), "quarters")
   expect_error(nis_code_set("A001", "ICD10CM", 2022, "", "source", "author"),
                "version")
+  for (field in c("version", "source", "author")) {
+    args <- list(codes = "A001", system = "ICD10CM", valid_years = 2022,
+                 version = "1", source = "source", author = "author")
+    args[[field]] <- " \t\r\n"
+    expect_error(do.call(nis_code_set, args), "non-whitespace provenance")
+  }
 })

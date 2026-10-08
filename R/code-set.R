@@ -13,8 +13,9 @@
 #' @param version,source,author Non-empty strings documenting the user's set.
 #' @param match Either `"exact"` or `"prefix"`. Prefixes are literal strings,
 #'   never regular expressions or SQL wildcard patterns.
-#' @param normalize If `TRUE`, trim spaces, uppercase, and remove decimal points
-#'   from both the set and observed codes. If `FALSE`, matching preserves raw
+#' @param normalize If `TRUE`, trim ASCII spaces, tabs and line breaks, uppercase,
+#'   and remove diagnosis decimal points from both the set and observed codes.
+#'   Procedure decimal points are always invalid. If `FALSE`, matching preserves raw
 #'   spelling. Decimal points are only accepted after the third diagnosis character.
 #' @param valid_quarters Integer quarters 1 through 4, applied in every declared
 #'   year. A restricted set requires valid DQTR values when flagging. Use separate
@@ -49,9 +50,14 @@ nis_code_set <- function(codes, system, valid_years, version, source, author,
   if (!length(valid_quarters) || any(!valid_quarters %in% 1:4)) {
     stop("`valid_quarters` must contain quarters 1 through 4.", call. = FALSE)
   }
-  for (field in c("version", "source", "author")) check_string(get(field), field)
+  for (field in c("version", "source", "author")) {
+    check_string(get(field), field)
+    if (!nzchar(trimws(get(field)))) {
+      stop("`", field, "` must contain non-whitespace provenance.", call. = FALSE)
+    }
+  }
   syntax <- if (normalize) toupper(trimws(codes)) else codes
-  matched <- if (normalize) normalize_codes(codes) else codes
+  matched <- if (normalize) normalize_codes(codes, system) else codes
   if (anyDuplicated(matched)) {
     stop("Duplicate codes after the selected normalization are not allowed.", call. = FALSE)
   }
@@ -69,7 +75,10 @@ nis_code_set <- function(codes, system, valid_years, version, source, author,
   ), class = "nis_code_set")
 }
 
-normalize_codes <- function(codes) toupper(gsub(".", "", trimws(codes), fixed = TRUE))
+normalize_codes <- function(codes, system) {
+  normalized <- toupper(trimws(codes))
+  if (system == "ICD10CM") gsub(".", "", normalized, fixed = TRUE) else normalized
+}
 
 code_syntax_valid <- function(codes, system, matching) {
   if (system == "ICD10PCS") {

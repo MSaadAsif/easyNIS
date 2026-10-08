@@ -33,3 +33,6 @@
   outside their declared periods.
 - Invented tests compare SQL results with R and expose cross-year slot
   sensitivity. No clinical phenotypes or annual dictionaries are validated.
+- Validate nonmissing observed code syntax before matching. Normalization is
+  specific to coding system and uses the same ASCII whitespace rule in R/SQL.
+  Malformed source strings cannot be repaired into positive matches.

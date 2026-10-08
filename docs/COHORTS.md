@@ -13,9 +13,10 @@ and author. Numeric code vectors are refused because leading zeros are part
 of procedure codes. Exact matching tests complete strings. Prefix matching
 tests literal beginnings, without regular expressions or SQL wildcards.
 
-Normalization is off by default. Turn it on explicitly to trim spaces,
-uppercase, and remove diagnosis decimal points on both sides of the match.
-Malformed set decimals are refused before normalization. Raw source columns
+Normalization is off by default. Turn it on explicitly to trim ASCII spaces,
+tabs, carriage returns and line feeds, uppercase, and remove diagnosis decimal
+points on both sides of the match. Malformed set and observed decimals are
+refused before normalization. Procedure decimal points are always invalid. Raw source columns
 remain unchanged. Syntax does not establish dictionary membership, complete
 billable codes, clinical sensitivity, or specificity.
 
@@ -36,6 +37,9 @@ and records outside those quarters receive NA even when their string matches.
 
 Every call requires a scope and missingness policy. A positive match takes
 precedence over null or blank selected slots within the applicable period.
+Nonmissing selected source codes must have complete system-compatible syntax.
+Malformed values stop matching with aggregate diagnostics rather than produce
+negative flags. Blank slots use the same ASCII whitespace rule as normalization.
 
 | Missingness policy | When no selected slot matches |
 |---|---|

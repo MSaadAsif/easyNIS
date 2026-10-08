@@ -34,6 +34,9 @@ A positive match takes precedence over missing slots. Missing-policy choices
 refer to null or blank selected slots, without inferring special missing
 reasons. Records outside the declared quarters receive NA. The code-set
 declaration and exact selected columns are retained in \code{flags} provenance.
+Nonmissing observed codes must have complete system-compatible syntax before
+matching. Malformed values fail with aggregate diagnostics, not a negative
+flag. ASCII spaces, tabs, carriage returns and line feeds define blank slots.
 }
 \details{
 Annual slot metadata and clinical validity remain unverified. The default

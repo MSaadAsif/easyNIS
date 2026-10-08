@@ -31,8 +31,9 @@ are rejected. Leading zeros in procedure codes are preserved.}
 \item{match}{Either \code{"exact"} or \code{"prefix"}. Prefixes are literal strings,
 never regular expressions or SQL wildcard patterns.}
 
-\item{normalize}{If \code{TRUE}, trim spaces, uppercase, and remove decimal points
-from both the set and observed codes. If \code{FALSE}, matching preserves raw
+\item{normalize}{If \code{TRUE}, trim ASCII spaces, tabs and line breaks, uppercase,
+and remove diagnosis decimal points from both the set and observed codes.
+Procedure decimal points are always invalid. If \code{FALSE}, matching preserves raw
 spelling. Decimal points are only accepted after the third diagnosis character.}
 
 \item{valid_quarters}{Integer quarters 1 through 4, applied in every declared

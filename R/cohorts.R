@@ -5,6 +5,9 @@
 #' refer to null or blank selected slots, without inferring special missing
 #' reasons. Records outside the declared quarters receive NA. The code-set
 #' declaration and exact selected columns are retained in `flags` provenance.
+#' Nonmissing observed codes must have complete system-compatible syntax before
+#' matching. Malformed values fail with aggregate diagnostics, not a negative
+#' flag. ASCII spaces, tabs, carriage returns and line feeds define blank slots.
 #'
 #' Annual slot metadata and clinical validity remain unverified. The default
 #' slot policy uses observed available columns and records that choice. Specify
@@ -86,9 +89,23 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
   }
   con <- data$session$connection
   fields <- sql_name(con, selected)
-  transformed <- if (codes$normalize) {
-    paste0("replace(upper(trim(", fields, ")), '.', '')")
-  } else fields
+  trimmed <- paste0("trim(", fields, ", chr(32) || chr(9) || chr(10) || chr(13))")
+  candidates <- if (codes$normalize) paste0("upper(", trimmed, ")") else fields
+  pattern <- if (procedure) "[0-9A-HJ-NP-Z]{7}" else
+    "([A-Z][0-9][A-Z0-9]{1,5}|[A-Z][0-9][A-Z0-9][.][A-Z0-9]{1,4})"
+  malformed <- paste0("(", fields, " IS NOT NULL AND ", trimmed,
+    " != '' AND NOT regexp_full_match(", candidates, ", ",
+    DBI::dbQuoteString(con, pattern), "))")
+  bad_rows <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", sql_name(con, data$view),
+                                     " WHERE ", paste(malformed, collapse = " OR ")))
+  if (bad_rows > 0) {
+    stop_structure_issue("invalid_code_syntax", "relation", selected, bad_rows,
+      paste0("Selected source slots have malformed ", codes$system,
+             " syntax in ", bad_rows, " rows; matching was not performed."))
+  }
+  transformed <- if (codes$normalize && !procedure) {
+    paste0("replace(", candidates, ", '.', '')")
+  } else candidates
   literals <- as.character(DBI::dbQuoteString(con, codes$matching_codes))
   slot_matches <- vapply(transformed, function(field) {
     if (codes$match == "exact") {
@@ -97,7 +114,7 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
                                        "), FALSE)"), collapse = " OR "), ")")
   }, character(1))
   positive <- paste(slot_matches, collapse = " OR ")
-  missing_fields <- paste0("(", fields, " IS NULL OR trim(", fields, ") = '')")
+  missing_fields <- paste0("(", fields, " IS NULL OR ", trimmed, " = '')")
   unknown <- switch(missing,
     no_match = "FALSE",
     unknown_if_all_missing = paste(missing_fields, collapse = " AND "),
