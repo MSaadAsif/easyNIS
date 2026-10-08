@@ -34,7 +34,35 @@ test_that("failed joins retain machine-readable aggregate diagnostics and clean 
     expect_identical(issue$fields, case$fields)
     expect_equal(issue$affected, case$affected)
     expect_identical(names(issue), c("message", "call", "check", "component", "fields", "affected"))
-    expect_false(any(fixture$core$KEY_NIS %in% issue$message))
+    expect_false(any(vapply(fixture$core$KEY_NIS,
+      function(key) grepl(key, issue$message, fixed = TRUE), logical(1))))
     expect_identical(DBI::dbListTables(session$connection), before)
+  }
+})
+
+test_that("schema failures carry structured field diagnostics without file paths", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  con <- session$connection
+  core <- nis_synthetic_data()$core
+  first <- write_invented_parquet(session, core)
+  second <- write_invented_parquet(session, core[-1L])
+  nested <- tempfile(fileext = ".parquet")
+  on.exit(unlink(c(first, second, nested)), add = TRUE)
+  DBI::dbExecute(con, paste0("COPY (SELECT 2022 AS YEAR, {'part': 1} AS nested) TO ",
+    DBI::dbQuoteString(con, nested), " (FORMAT PARQUET)"))
+  cases <- list(
+    list(paths = c(first, second), check = "shard_schema_mismatch"),
+    list(paths = nested, check = "nested_field")
+  )
+  for (case in cases) {
+    issue <- tryCatch(nis_import(session, case$paths, 2022), nis_structure_error = identity)
+    expect_s3_class(issue, "nis_structure_error")
+    expect_identical(issue$check, case$check)
+    expect_identical(issue$component, "core")
+    expect_true(length(issue$fields) > 0L)
+    expect_true(is.na(issue$affected))
+    expect_false(any(vapply(case$paths, function(path) grepl(path, issue$message, fixed = TRUE),
+                            logical(1))))
   }
 })

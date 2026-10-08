@@ -145,7 +145,11 @@ test_that("case collisions are rejected before raw names change", {
   path <- tempfile(fileext = ".parquet")
   on.exit(unlink(path), add = TRUE)
   arrow::write_parquet(data.frame(YEAR = 2022L, AGE = 1L, age = 2L), path)
-  expect_error(nis_import(session, path, 2022), "case-insensitive field collisions")
+  issue <- tryCatch(nis_import(session, path, 2022), nis_structure_error = identity)
+  expect_s3_class(issue, "nis_structure_error")
+  expect_match(conditionMessage(issue), "case-insensitive field collisions")
+  expect_identical(issue$check, "field_name_collision")
+  expect_identical(issue$fields, c("AGE", "age"))
 })
 
 test_that("nested fields are refused by flat structural import", {

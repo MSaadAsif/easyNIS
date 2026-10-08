@@ -86,3 +86,20 @@ test_that("decimal and wide numeric identifiers cannot silently round on collect
     expect_error(nis_import(session, path, 2022, severity = path), "precision-unsafe")
   }
 })
+
+test_that("minimum signed wide identifiers fail collection without arithmetic overflow", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  con <- session$connection
+  path <- tempfile(fileext = ".parquet")
+  on.exit(unlink(path), add = TRUE)
+  DBI::dbExecute(con, paste0("COPY (SELECT 2022 AS YEAR, ",
+    "CAST('-170141183460469231731687303715884105728' AS HUGEINT) AS KEY_NIS, ",
+    "1 AS HOSP_NIS, 1 AS NIS_STRATUM, 1.0 AS DISCWT) TO ",
+    DBI::dbQuoteString(con, path), " (FORMAT PARQUET)"))
+  data <- nis_import(session, path, 2022)
+  expect_error(nis_collect(data, "KEY_NIS"), "would round precision-unsafe")
+  report <- nis_validate(data)
+  issue <- subset(report$issues, field == "KEY_NIS" & check == "invalid_identifier")
+  expect_equal(issue$affected, 1)
+})

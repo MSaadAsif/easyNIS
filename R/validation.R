@@ -101,7 +101,8 @@ identifier_problem_count <- function(con, view, field, type) {
                       " <= 0 OR ", quoted, " != FLOOR(", quoted, ")")
     threshold <- identifier_precision_limit(type)
     if (!is.null(threshold)) {
-      invalid <- paste0(invalid, " OR ABS(", quoted, ") >= ", threshold)
+      invalid <- paste0(invalid, " OR ", quoted, " >= ", threshold,
+                        " OR ", quoted, " <= -", threshold)
     }
   } else if (type == "VARCHAR") {
     invalid <- paste0(invalid, " OR NOT regexp_full_match(", quoted,

@@ -74,7 +74,7 @@ nis_import <- function(session, core, year, hospital = NULL, severity = NULL,
   sources <- schemas <- views <- list()
   for (component in names(components)) {
     files <- parquet_files(components[[component]])
-    schema <- parquet_component_schema(con, files)
+    schema <- parquet_component_schema(con, files, component)
     view <- next_view_name(session)
     literals <- paste(DBI::dbQuoteString(con, files), collapse = ", ")
     DBI::dbExecute(con, paste0("CREATE TEMP VIEW ", sql_name(con, view),
@@ -193,22 +193,29 @@ parquet_files <- function(paths) {
   paths
 }
 
-parquet_component_schema <- function(con, files) {
+parquet_component_schema <- function(con, files, component) {
   schemas <- lapply(files, function(path) {
     quoted <- as.character(DBI::dbQuoteString(con, path))
     physical <- DBI::dbGetQuery(con, paste0("SELECT name, num_children FROM parquet_schema(",
                                            quoted, ")"))[-1L, , drop = FALSE]
     if (any(physical$num_children > 0L, na.rm = TRUE)) {
-      stop("Nested parquet fields are not supported by structural import.", call. = FALSE)
+      stop_structure_issue("nested_field", component,
+        physical$name[!is.na(physical$num_children) & physical$num_children > 0L],
+        message = "Nested parquet fields are not supported by structural import.")
     }
     if (anyDuplicated(tolower(physical$name))) {
-      stop("Parquet has case-insensitive field collisions.", call. = FALSE)
+      collisions <- duplicated(tolower(physical$name)) |
+        duplicated(tolower(physical$name), fromLast = TRUE)
+      stop_structure_issue("field_name_collision", component, physical$name[collisions],
+        message = "Parquet has case-insensitive field collisions.")
     }
     DBI::dbGetQuery(con, paste0("DESCRIBE SELECT * FROM read_parquet(", quoted,
                               ", hive_partitioning = false)"))[, c("column_name", "column_type")]
   })
   if (!all(vapply(schemas, identical, logical(1), schemas[[1L]]))) {
-    stop("Parquet shards must have identical names, column order, and types.", call. = FALSE)
+    stop_structure_issue("shard_schema_mismatch", component,
+      unique(unlist(lapply(schemas, function(schema) schema$column_name))),
+      message = "Parquet shards must have identical names, column order, and types.")
   }
   schemas[[1L]]
 }
@@ -304,7 +311,8 @@ nis_collect <- function(data, columns, limit = NULL) {
       match(field, data$schema$column_name)])
     if (!is.null(threshold)) {
       unsafe <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ",
-        sql_name(con, data$view), " WHERE ABS(", sql_name(con, field), ") >= ", threshold))
+        sql_name(con, data$view), " WHERE ", sql_name(con, field), " >= ", threshold,
+        " OR ", sql_name(con, field), " <= -", threshold))
       if (unsafe > 0) {
         stop("Collection would round precision-unsafe identifiers in ", field,
              "; use a reviewed exact conversion.", call. = FALSE)

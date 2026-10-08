@@ -9,7 +9,7 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 | NIS-001 | Saad authorized implementation and supplied public maintainer metadata. | Ali's full preferred public name and optional ORCID. |
 | NIS-002 | Installable development package, generated help/namespace, NEWS, citation, and contribution guide. Local Windows source check passes. | Cross-platform evidence and final coauthor metadata before release. |
 | NIS-003 | Deterministic invented fixtures with component joins, variable slot counts, missingness, and hand-calculated summaries. | Audited annual contracts and full inference/model/export expectations. |
-| NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. Four hosted checks pass at 3d74cff; R devel is still installing dependencies. | Complete R devel and verify subsequent implementation commits. |
+| NIS-004 | CI configured for five platform/R combinations; local source tarball inspection passes. Four hosted checks passed at 7576a14. | Complete R devel and hosted checks for the final review fixes. |
 | NIS-005 | Located six annual parquet datasets; metadata inventory tool added. | Conversion history, release revisions, missing/label provenance, prefiltering, and hardware details. |
 | NIS-007 | Experimental DuckDB sessions, local parquet views, explicit projections, and exact BIGINT collection. Unsafe decimal/wide numeric identifier collection is refused; strings require positive digits. | Reviewed annual metadata and conversion profiles. |
 | NIS-008 | Synthetic tests cover unique keys, unmatched rows, shared-field conflicts, and row-preserving component joins. Structural failures expose check/component/fields and aggregate counts. | Annual source component and alias review. |
@@ -31,6 +31,16 @@ Experimental matching is described in [COHORTS.md](COHORTS.md). The next import
 increment should audit official layouts and conversion profiles, then define
 canonical transformations without losing raw meanings. Machine-readable join
 failures do not complete the annual missing-reason contract in NIS-009.
+
+The latest Windows R 4.6.1 source check passes with Status OK and 473 assertions,
+without failures, warnings, or skips. Offline examples and a 44-entry source
+tarball inspection pass. Independent review findings about decimal precision,
+normalization, whitespace, row order, extreme integer bounds, and structured
+schema diagnostics were fixed and verified. These are experimental behavior
+checks, not annual or clinical certification. Private checks still accept
+2018–2022 structures and reject the 2017 input. Direct official-layout retrieval
+remains blocked by timeouts; cached source snapshots and coauthor metadata
+review are still required before annual adapters or approved inference.
 
 ## Foundation and metadata
 
