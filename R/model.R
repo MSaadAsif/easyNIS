@@ -120,8 +120,13 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   # A data-only environment prevents formula fallback to caller objects.
   fit_formula <- formula
   environment(fit_formula) <- baseenv()
-  frame <- stats::model.frame(fit_formula, analysis$variables, na.action = stats::na.fail,
-                              drop.unused.levels = TRUE)
+  warnings <- character()
+  capture_warning <- function(w) {
+    warnings <<- unique(c(warnings, conditionMessage(w)))
+    invokeRestart("muffleWarning")
+  }
+  frame <- withCallingHandlers(stats::model.frame(fit_formula, analysis$variables,
+    na.action = stats::na.fail, drop.unused.levels = TRUE), warning = capture_warning)
   predictor_fields <- names(frame)[-1L]
   factor_fields <- predictor_fields[vapply(frame[predictor_fields], function(x) {
     is.factor(x) || is.logical(x)
@@ -129,12 +134,7 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   for (field in factor_fields) {
     if (is.logical(frame[[field]])) frame[[field]] <- factor(frame[[field]], levels = c(FALSE, TRUE))
   }
-  contrasts <- lapply(frame[factor_fields], stats::contrasts)
-  warnings <- character()
-  capture_warning <- function(w) {
-    warnings <<- c(warnings, conditionMessage(w))
-    invokeRestart("muffleWarning")
-  }
+  contrasts <- withCallingHandlers(lapply(frame[factor_fields], stats::contrasts), warning = capture_warning)
   native_family <- switch(family, gaussian = stats::gaussian(),
     quasibinomial = stats::quasibinomial(), quasipoisson = stats::quasipoisson())
   fit_arguments <- list(formula = fit_formula, design = analysis,

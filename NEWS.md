@@ -6,6 +6,8 @@
   quasipoisson survey fits with explicit complete-case and inference choices.
 - Preserve native fits, raw columns, original hospital information, factor
   contrasts, aliased coefficients, captured warnings and design provenance.
+- Retain distinct native frame/fitting/summary warnings in model diagnostics,
+  including custom contrasts dropped when unused levels are removed.
 - Invented tests compare native fits and independent cluster score sandwiches.
   Annual support, interpreted effects and scientific approval remain pending.
 
