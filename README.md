@@ -46,7 +46,7 @@ Only invented synthetic records belong in public examples, tests, and CI. HCUP r
 
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
 `nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
-`nis_code_set()`, and `nis_flag_codes()`.
+`nis_code_set()`, `nis_flag_codes()`, and `nis_select()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
@@ -56,5 +56,10 @@ Code matching requires a user-declared code set with system, valid years,
 version, source, and author. Flags retain all discharges and record selected
 slots. Clinical validity and annual code dictionaries remain unverified. Run
 `example(nis_flag_codes)` offline and read the [matcher contract](docs/COHORTS.md).
+
+`nis_select()` narrows a lazy relation without filtering records. Validation
+can report columns removed by selection separately from unverified source or
+conversion absences. Explicit field requests return SQL NULL counts without
+interpreting special missing-value sentinels. Run `example(nis_select)` offline.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.

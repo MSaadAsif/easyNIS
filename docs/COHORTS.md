@@ -55,7 +55,8 @@ sensitivity analysis. The default uses observed available columns and records
 that choice, without certifying that the conversion includes all source slots.
 
 Flags are logical columns on a new lazy relation. Existing fields cannot be
-overwritten, including case-insensitive name collisions. Every discharge is
+overwritten, including case-insensitive name collisions with imported fields
+or recorded flag definitions omitted by `nis_select()`. Every discharge is
 retained. The original relation and raw codes remain available. Provenance
 records the original code set, matching policy, scope, missingness policy, and
 exact selected columns. A flag is a candidate domain indicator; it does not
