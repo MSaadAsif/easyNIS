@@ -134,7 +134,7 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   for (field in factor_fields) {
     if (is.logical(frame[[field]])) frame[[field]] <- factor(frame[[field]], levels = c(FALSE, TRUE))
   }
-  contrasts <- lapply(frame[factor_fields], stats::contrasts)
+  contrasts <- withCallingHandlers(lapply(frame[factor_fields], stats::contrasts), warning = capture_warning)
   native_family <- switch(family, gaussian = stats::gaussian(),
     quasibinomial = stats::quasibinomial(), quasipoisson = stats::quasipoisson())
   fit_arguments <- list(formula = fit_formula, design = analysis,

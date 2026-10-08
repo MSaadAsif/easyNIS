@@ -216,12 +216,15 @@ after final clean verification with 998 package/60 tool assertions, a Status OK
 source check, all five hosted jobs and refreshed independent reviews with zero
 blockers. Separate reviewer calculations matched full/domain/pooled coefficients
 and score-sandwich covariances for all three families, including logical coding.
-The warning follow-up's initial Windows verification passes 1,007 package
+The warning follow-up's corrected Windows verification passes 1,015 package
 assertions, 60 tool assertions, all 36 gate scenarios, Status OK and installed
 workflows. Final clean-head evidence, hosted checks and independent review remain
 required. The next model acceptance work is transformed-outcome and exposure
 offset contracts, followed by explicit effect interpretations and broader
 diagnostics. Annual support and scientific approval remain pending.
+Frame and custom contrast preparation both use the same warning handler. The
+custom-contrast regression reproduces the former lost diagnostic message and
+checks native numeric/coding parity and restoration of caller state.
 
 ## Foundation and metadata
 

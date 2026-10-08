@@ -70,7 +70,7 @@ Logical predictors follow native factor coding with levels FALSE and TRUE;
 their matrices are fixed and reported without changing raw logical columns.
 Logical responses remain zero/one outcomes and are not factor predictors.
 One-level analysis factors follow native rejection, without silently dropping
-the formula term. Distinct warning messages from frame preparation, fitting
+the formula term. Distinct warning messages from frame and contrast preparation, fitting
 and summary are captured in `diagnostics`, along with rank,
 aliased terms, convergence and boundary status. Finite nonconverged fits can
 return for inspection; they are not certified. Automated separation/sparsity
