@@ -35,6 +35,11 @@ for positive numeric exposure. Quasi-family outcomes remain named vectors.
 Read [MODEL-FORMULAS.md](MODEL-FORMULAS.md) for the bounded expression, exposure,
 modeled-scale and missingness contract. Dot expansion, sample-dependent/caller
 functions, grouped responses and custom families remain refused.
+Each formula-frame column must have a distinct name. If an expression label
+collides with a separately named field used in the same formula, `nis_model()`
+refuses the ambiguous formula before factor coding or support counting; rename
+the field or reformulate it. A single quoted field or expression remains valid
+when its model-frame name is unique.
 
 NA and NaN in any formula field are missing. Exclusion subsets the existing
 native design, preserving original hospital information and zero contributions
@@ -91,6 +96,31 @@ return for inspection; they are not certified. Automated separation/sparsity
 diagnosis remains NIS-017 work. Explicit profile contrasts with selected mean,
 odds or rate interpretations are available through `nis_model_contrast()`;
 read [MODEL-CONTRASTS.md](MODEL-CONTRASTS.md) for scale and diagnostic guards.
+`diagnostics$factor_support` is a named list for each fitted factor or logical
+predictor, including supported row-wise expressions that evaluate to factors
+or logicals. Each data frame reports `level`, `supplied_rows`, `analysis_rows`,
+`analysis_weight`, and `analysis_hospitals`. Supplied counts for raw named
+factors use their source integer codes before complete-case exclusion;
+expressions use their evaluated full formula frame. Analysis counts and raw
+design weights use the retained analysis design. Missingness remains represented
+in `sample$missing_by_field`.
+Hospital counts use the native first nested cluster identifier, preserving
+year-specific hospital identities in pooled designs. Raw named factors retain
+their declared levels, including declared zero-support levels; logical terms
+report FALSE and TRUE. For factor-producing expressions, the available levels
+are those in the supplied evaluated formula frame, since native frame
+evaluation may discard unused levels. Empty levels have zero counts and weight.
+An explicitly declared NA factor level is counted as a category, separately
+from genuinely missing factor codes and from the literal string `"NA"` for raw
+named factors. In an expression such as `I(group)`, native formula-frame
+evaluation can recode a true missing factor code to the declared NA level in
+the supplied counts; the raw missing count and complete-case analysis selection
+remain unchanged.
+These are observed support counts only: they apply no sparsity threshold and
+make no separation, convergence, or scientific certification claim. The
+diagnostics do not alter raw fields, factor contrasts, fitting, covariance,
+weights, or caller options. See [MODEL-SUPPORT.md](MODEL-SUPPORT.md) for the
+bounded contract and cases.
 
 The declared variance requires current `survey.lonely.psu = "fail"` and
 `survey.adjust.domain.lonely = FALSE`; incompatible options are refused.

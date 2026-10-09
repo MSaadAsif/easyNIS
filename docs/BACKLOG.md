@@ -313,6 +313,57 @@ On 2026-10-09 a bounded direct retry of the official 2017 Core specification
 again timed out after 30 seconds. No source snapshot or provisional registry
 was produced; annual source and conversion review remain dependencies.
 
+## Factor-support diagnostic continuation
+
+The contrast increment merged in [PR #10](https://github.com/MSaadAsif/easyNIS/pull/10)
+after clean-head verification, both independent reviews with zero blockers and
+all five hosted jobs. Main's checks passed at `04a80c6`. Independent 144-row,
+three-stratum, twelve-hospital
+probes matched projected hospital-influence estimates and SEs within `7.8e-14`
+and checked odds versus risk and exposure rates versus unequal-exposure means.
+
+The next NIS-017 increment reports per-level supplied and analyzed row counts,
+analysis weights and contributing hospitals for fitted factor/logical
+predictors. Declared but unobserved levels retain zero support where their
+source definition is recoverable. These counts describe the supplied domain
+and complete-case analysis, without introducing a sparsity threshold or
+claiming to detect separation. Pooling keeps year-specific hospitals distinct
+and retains the analysis-weight divisor. Focused verification passes 370 model
+and 178 contrast assertions with no failures, errors, warnings or skips. Full
+Windows verification passes 1,376 package assertions, 60 metadata-tool
+assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
+and installed fixed reference counts for six invented years and a pooled
+average-annual design. Cases cover whole-hospital missingness, domains, unused
+declared levels, logical missingness and expressions, model-frame label
+collisions, native covariance parity and caller-state preservation. Numeric-only
+fits return an empty list without allocating an extra analysis-weight vector.
+Clean committed-head verification, independent reviews and hosted checks
+remain required before merge.
+Review reproduced a formula ambiguity where `I(group)` and a distinct quoted
+raw field named `I(group)` received the same native model-frame label. The old
+public call returned duplicated support metadata instead of rejecting the
+ambiguity. A failing public regression is retained locally. Distinct formula
+terms now require unique model-frame labels, checked before named metadata and
+contrast preparation. Valid quoted fields and separate expression/decoy cases
+remain accepted. Corrected focused checks pass 373 model and 178 contrast
+assertions with no failures, errors, warnings or skips; full corrected-source
+verification is in progress. Independent probes also check three-level factor
+coding, zero-analysis levels, whole-hospital exclusions and pooled year keys.
+Independent review also reproduced rejection of previously accepted factors
+with a declared NA level. Integer category-code matching and unnamed count
+vectors now distinguish declared NA, literal `"NA"`, unused levels and true
+missing codes without creating invalid data-frame row names. Raw named-factor
+supplied counts follow raw codes; expression counts follow native evaluated
+frames, which can recode a missing code into an NA level. Existing raw-field
+missingness and complete-case exclusion remain unchanged. Corrected-source
+verification passes 1,400 package assertions, 60 metadata-tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and the
+installed annual/pooled workflows. The focused suites pass 394 model and 178
+contrast assertions. Final clean committed-head evidence and refreshed
+current-head reviews remain required before hosted checks and protected merge.
+The existing covariance, fitting and factor coding contracts remain in force.
+No annual capability or scientific approval is promoted.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

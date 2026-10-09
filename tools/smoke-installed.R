@@ -12,6 +12,7 @@ exercise_year <- function(year) {
   core$domain <- core$HOSP_NIS %in% c("0001", "0003")
   core$exposure <- rep(c(1, 2, 3), length.out = nrow(core))
   core$contrast_x <- rep(c(-2, -1, 1), 4L) + rep(c(-0.4, 0.2, 0.6, -0.3), each = 3L)
+  core$support_group <- ifelse(core$HOSP_NIS %in% c("0001", "0003"), "A", "B")
   session <- nis_open()
   path <- tempfile(fileext = ".parquet")
   on.exit({ nis_close(session); unlink(path) }, add = TRUE)
@@ -39,7 +40,7 @@ exercise_year <- function(year) {
   collision <- tryCatch(nis_flag_codes(source_dropped, "discwt", codes,
     "principal_diagnosis", "no_match"), error = identity)
   stopifnot(inherits(collision, "error"), grepl("conflicts", conditionMessage(collision)))
-  design <- nis_survey_design(data, c("LOS", "domain", "exposure", "contrast_x"), full_population = TRUE,
+  design <- nis_survey_design(data, c("LOS", "domain", "exposure", "contrast_x", "support_group"), full_population = TRUE,
     method = "hospital_wr", singleton = "fail")
   domain <- nis_domain(design, "domain", "fail")
   total <- survey::svytotal(~LOS, domain$design)
@@ -86,6 +87,16 @@ exercise_year <- function(year) {
       fit$sample$included == sum(keep), fit$sample$excluded_missing == sum(!keep),
       inherits(fit$native, "svyglm"), identical(fit$provenance$analysis_ready, FALSE))
   }
+  design$design$variables$support_group <- factor(core$support_group,
+    levels = c("A", "B", "EMPTY"))
+  support_fit <- nis_model(design, LOS ~ support_group, "gaussian", "exclude",
+    2, 0.95, "wr_unadjusted")
+  support <- support_fit$diagnostics$factor_support$support_group
+  stopifnot(identical(support$level, c("A", "B", "EMPTY")),
+    identical(as.numeric(support[1L, -1L]), c(6, 6, 18, 2)),
+    identical(as.numeric(support[2L, -1L]), c(6, 6, 18, 2)),
+    identical(as.numeric(support[3L, -1L]), c(0, 0, 0, 0)))
+  cat("Invented year", year, "passed installed factor support counts.\n")
   cat("Invented year", year, "passed all three model links against independent intercept references.\n")
   for (kind in c("transformed_gaussian", "offset_poisson")) {
     keep <- !is.na(core$LOS)
@@ -149,10 +160,18 @@ exercise_year <- function(year) {
   design
 }
 designs <- lapply(2017:2022, exercise_year)
-combined <- nis_pool_design(designs, c("LOS", "domain"), "combined_total")
-average <- nis_pool_design(designs, c("LOS", "domain"), "average_annual_total")
+combined <- nis_pool_design(designs, c("LOS", "domain", "support_group"), "combined_total")
+average <- nis_pool_design(designs, c("LOS", "domain", "support_group"), "average_annual_total")
 combined_domain <- nis_domain(combined, "domain", "fail")
 average_domain <- nis_domain(average, "domain", "fail")
+pooled_support_fit <- nis_model(average, LOS ~ support_group, "gaussian", "exclude",
+  12, 0.95, "wr_unadjusted")
+pooled_support <- pooled_support_fit$diagnostics$factor_support$support_group
+stopifnot(identical(pooled_support$level, c("A", "B", "EMPTY")),
+  identical(as.numeric(pooled_support[1L, -1L]), c(36, 36, 18, 12)),
+  identical(as.numeric(pooled_support[2L, -1L]), c(36, 36, 18, 12)),
+  identical(as.numeric(pooled_support[3L, -1L]), c(0, 0, 0, 0)))
+cat("Installed pooled factor support passed average-weight and reused-hospital counts.\n")
 combined_total <- survey::svytotal(~LOS, combined_domain$design)
 average_total <- survey::svytotal(~LOS, average_domain$design)
 stopifnot(combined$population$discharges == 72L, combined$population$hospitals == 24L,
