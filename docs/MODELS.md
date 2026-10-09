@@ -81,6 +81,10 @@ and intervals. Confidence bounds remain on the coefficient's link scale.
 `coefficients` retains every coefficient, including aliased terms with NA
 inference. Zero estimates and SEs are valid. A zero estimate with zero SE has
 the native undefined test statistic/p-value rather than an invented test.
+Fitted coefficient names must be unique, including aliased coefficients.
+For example, a factor-generated label that matches a separate numeric field
+is rejected before coefficient inference is mapped by name. Rename the field
+or reformulate the model to make the coefficient labels distinct.
 `factors` records fitted levels, explicit contrast matrices, ordered status
 and any zero-coded levels. Treatment contrasts identify the reference level;
 sum and polynomial contrasts need not have one. Matrices are fixed when
