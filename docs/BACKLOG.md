@@ -364,6 +364,32 @@ current-head reviews remain required before hosted checks and protected merge.
 The existing covariance, fitting and factor coding contracts remain in force.
 No annual capability or scientific approval is promoted.
 
+The factor-support increment merged in [PR #11](https://github.com/MSaadAsif/easyNIS/pull/11).
+Final clean verification passed 1,400 package assertions, 60 metadata-tool
+assertions, all 36 merge-gate scenarios, source Status OK and installed annual
+and pooled workflows. Independent specification and standards reviews found
+no remaining blockers, including installed probes for duplicate model-frame
+labels and explicit NA factor levels. All five hosted checks passed for the
+reviewed head and the resulting main commit.
+
+The first NIS-018 increment implements numeric descriptive tables under
+[DESCRIPTIVE-TABLES.md](DESCRIPTIVE-TABLES.md). Explicit row declarations select
+mean, proportion or total statistics and provide labels and units. Each row
+retains its original scalar result, native design and provenance. Weighted
+values remain separate from raw discharge counts; missingness, denominators,
+year-specific hospital counts and pointwise inference policies remain explicit.
+No rounding, suppression or rendering occurs. Disclosure status is unreviewed
+and annual capability and scientific approval remain unchanged. Focused checks
+pass 55 expectations; full source verification passes 1,455 package assertions,
+60 metadata-tool assertions, all 36 merge-gate scenarios, source Status OK,
+tarball inspection and the installed workflow for all six invented year labels.
+Cases include independent hospital-level WR arithmetic, repeated and quoted
+fields, per-field missingness, domains, pooled intent, zero results, invalid
+specifications and caller-state preservation. Clean committed-head verification,
+independent reviews and hosted checks remain required before protected merge.
+Next table acceptance work is numeric regression tables, followed by a reviewed
+disclosure policy and rendering adapters; grouping and comparison definitions
+remain explicit future choices.
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

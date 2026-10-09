@@ -52,6 +52,31 @@ exercise_year <- function(year) {
   scalar <- nis_estimate(domain, "LOS", "total", "fail", 2, 0.95, "wr_unadjusted")
   mean <- nis_estimate(domain, "LOS", "mean", "fail", Inf, 0.9, "wr_unadjusted")
   proportion <- nis_estimate(design, "domain", "proportion", "fail", 2, 0.95, "wr_unadjusted")
+  table_spec <- data.frame(id = c("los", "share", "los_total"),
+    field = c("LOS", "domain", "LOS"),
+    statistic = c("mean", "proportion", "total"),
+    label = c("Length of stay", "Domain share", "Weighted stay total"),
+    unit = c("days", "proportion", "weighted days"))
+  table <- nis_descriptive_table(design, table_spec, "exclude", 2, 0.95,
+    "wr_unadjusted")
+  independent <- function(field, statistic) {
+    y <- as.double(core[[field]])
+    keep <- !is.na(y)
+    denominator <- sum(core$DISCWT[keep])
+    estimate <- sum(core$DISCWT[keep] * y[keep])
+    if (statistic != "total") estimate <- estimate / denominator
+    contribution <- numeric(nrow(core))
+    contribution[keep] <- core$DISCWT[keep] * if (statistic == "total") y[keep] else
+      (y[keep] - estimate) / denominator
+    hospitals <- tapply(contribution, core$HOSP_NIS, sum)
+    strata <- core$NIS_STRATUM[match(names(hospitals), core$HOSP_NIS)]
+    variance <- sum(vapply(split(hospitals, strata), function(x) {
+      length(x) / (length(x) - 1) * sum((x - mean(x))^2)
+    }, numeric(1)))
+    c(estimate = estimate, se = sqrt(variance))
+  }
+  expected_table <- rbind(independent("LOS", "mean"),
+    independent("domain", "proportion"), independent("LOS", "total"))
   stopifnot(abs(scalar$estimate - 44) < 1e-12,
     abs(scalar$se - sqrt(968)) < 1e-12,
     abs(scalar$lower - (44 - stats::qt(0.975, 2) * sqrt(968))) < 1e-12,
@@ -60,7 +85,16 @@ exercise_year <- function(year) {
     abs(mean$estimate - 22 / 9) < 1e-12, abs(mean$se) < 1e-12,
     abs(proportion$estimate - 0.5) < 1e-12,
     abs(proportion$se - sqrt(162) / 36) < 1e-12,
-    inherits(scalar$native, "svystat"), identical(scalar$provenance$analysis_ready, FALSE))
+    inherits(scalar$native, "svystat"), identical(scalar$provenance$analysis_ready, FALSE),
+    inherits(table, "nis_descriptive_table"),
+    identical(table$data$id, table_spec$id),
+    max(abs(table$data$weighted_estimate - expected_table[, "estimate"])) < 1e-12,
+    max(abs(table$data$se - expected_table[, "se"])) < 1e-12,
+    identical(table$data$analysis_hospitals, c(4, 4, 4)),
+    identical(table$data$raw_missing, c(0, 0, 0)),
+    identical(table$results$los$native,
+      nis_estimate(design, "LOS", "mean", "exclude", 2, 0.95, "wr_unadjusted")$native),
+    identical(table$provenance$analysis_ready, FALSE))
   for (family in c("gaussian", "quasibinomial", "quasipoisson")) {
     field <- if (family == "quasibinomial") "domain" else "LOS"
     outcome <- as.double(core[[field]])
@@ -157,6 +191,7 @@ exercise_year <- function(year) {
     identical(contrast$provenance$analysis_ready, FALSE))
   cat("Invented year", year, "passed installed model contrast against independent slope/sandwich reference.\n")
   cat("Invented year", year, "passed import, flags, selection, survey domains and scalar estimate references.\n")
+  cat("Invented year", year, "passed installed descriptive table independent references.\n")
   design
 }
 designs <- lapply(2017:2022, exercise_year)
