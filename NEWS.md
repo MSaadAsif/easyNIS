@@ -2,6 +2,12 @@
 
 ## Experimental survey models
 
+- Added `nis_model_contrast()` with caller-declared named coefficient weights,
+  full covariance and explicit link, mean-difference, odds, mean or rate-ratio
+  interpretations. Preserve model scales, sample accounting and provenance;
+  distinguish link SEs from delta-method ratio SEs and retain link Wald tests.
+  Refuse incompatible scales, nonzero aliases/intercepts, nonconverged or
+  boundary interpreted effects and nonfinite/underflowing ratio results.
 - Added `nis_model()` for named-outcome Gaussian, quasibinomial logistic and
   quasipoisson survey fits with explicit complete-case and inference choices.
 - Preserve native fits, raw columns, original hospital information, factor
@@ -12,7 +18,7 @@
   quasipoisson log-exposure offset. Record response scale and exposure fields;
   refuse invalid observed transforms/exposures without silently excluding them.
 - Invented tests compare native fits and independent cluster score sandwiches.
-  Annual support, interpreted effects and scientific approval remain pending.
+  Annual support and scientific approval remain pending.
 - Refine converged nonboundary quasi-family fits once at the existing IRLS
   tolerance; retain iteration counts and restart provenance. Sparse outcomes
   and exact aliases have independent numeric regression cases.

@@ -64,4 +64,7 @@ exposure offsets. Domain hospitals absent after outcome/exposure exclusions,
 pooled reused IDs, raw missing counts, factor coding, non-offset native prediction,
 independent fitted values including offsets, the offset prediction limitation,
 caller-function shadowing, supplied terms metadata and every rejection above must be exercised.
-Scientific approval, annual support and interpreted effects remain pending.
+Scientific approval and annual support remain pending. The separate
+`nis_model_contrast()` API supports explicit profile contrasts with selected
+mean/odds/rate labels; transformed Gaussian responses retain the link label.
+Read [MODEL-CONTRASTS.md](MODEL-CONTRASTS.md) for interpretation and offset limits.

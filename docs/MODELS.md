@@ -88,7 +88,9 @@ the formula term. Distinct warning messages from frame and contrast preparation,
 and summary are captured in `diagnostics`, along with rank,
 aliased terms, convergence and boundary status. Finite nonconverged fits can
 return for inspection; they are not certified. Automated separation/sparsity
-diagnosis and interpreted effects remain NIS-017 work.
+diagnosis remains NIS-017 work. Explicit profile contrasts with selected mean,
+odds or rate interpretations are available through `nis_model_contrast()`;
+read [MODEL-CONTRASTS.md](MODEL-CONTRASTS.md) for scale and diagnostic guards.
 
 The declared variance requires current `survey.lonely.psu = "fail"` and
 `survey.adjust.domain.lonely = FALSE`; incompatible options are refused.
@@ -117,6 +119,6 @@ quoted fields, raw sentinels and rejection paths. The installed workflow tests
 intercept-only fits for all three links against independent weighted means
 and hospital WR variances for every invented 2017-2022 label.
 
-No model or annual support state is promoted. Interpreted effects, broader
+No model or annual support state is promoted. Broader interpreted effects,
 formula support, diagnostics, licensed references and
 memory benchmarks still need their separate contracts and evidence.

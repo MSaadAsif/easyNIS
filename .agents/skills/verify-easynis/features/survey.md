@@ -58,3 +58,15 @@ coefficients/SEs, modeled-scale metadata, offsets and raw columns. Package cases
 add squared/log predictors, source-field missing counts, pooled reused IDs,
 prediction with the fixed formula environment and invalid expression/exposure
 rejection. Read `docs/MODEL-FORMULAS.md` for the bounded syntax and scale contract.
+
+The installed workflow calls `nis_model_contrast()` on a Gaussian slope fit for
+each invented year. Independent weighted least-squares coefficients and hospital
+WR sandwich covariance check profile-difference estimates, SEs, t intervals and
+link tests. Inspect the model contrast reference messages in the installed log.
+The focused source command is `testthat::test_local(filter = "model")`; shared
+invented fixture and score-sandwich helpers are in `helper-model.R`.
+The contrast suite includes interactions, finite/infinite df, reverse contrasts,
+pooled reused IDs, missing hospitals, explicit odds/mean/rate ratios, alias zeros
+and refusal, transformed outcome labels, offset semantics, diagnostics and
+zero/nonfinite numerical boundaries. Read `docs/MODEL-CONTRASTS.md`. Annual
+support and scientific approval remain pending.
