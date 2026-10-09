@@ -449,6 +449,38 @@ gate scenarios, source Status OK and installed reviews for six invented years.
 Regression-table review, undeclared relations and rendering remain open.
 The policy is not scientifically or legally approved.
 
+The first disclosure increment merged in [PR #14](https://github.com/MSaadAsif/easyNIS/pull/14)
+after clean-head verification, independent review and all five hosted checks.
+The resulting main checks passed. Its review identified a documented combined-
+subtotal recovery path, which the following bounded correction addresses.
+
+The bounded NIS-019 correction closes recovery of selected disclosive sums
+through combined declared margins. It freezes each relation's original
+primary-hidden parts and distinct primary-field pairs, then checks those sums
+against all declared equations. Repairs consider connected margin components.
+If declarations alone determine a protected hidden target, the complete review
+fails without a presentation. The procedure remains experimental and does not
+enumerate all subsets or solve nonnegative/whole-number constraints. Additive
+raw counts retain multiplicity; raw equality does not establish disjoint groups.
+
+Public disjoint indicators reproduce A = 3, B = 4, C = 30, D = 30 and S = C+D.
+Publishing all, S and E formerly recovered the seven-discharge A+B group. The
+corrected review also suppresses S. The installed smoke now sources
+`inst/examples/disclosure-subtotals.R` through the installed package and checks
+that recovery and exact preservation of shown numeric values. The focused
+disclosure suite passes 114 expectations without failures, warnings or skips;
+the old implementation fails seven assertions in the initial reproduction.
+Cases include three primary-hidden parts, pairs without a shared relation,
+hospital-only and zero sums, declaration-only hidden zeros, and a two-level
+group of 12 discharges confined to one hospital. Generated help is current.
+Precommit Windows verification passes 1,626 package assertions, 60 metadata-tool
+assertions, all 36 merge-gate scenarios, source Status OK, a 75-entry tarball
+inspection and installed public workflows including the subtotal reproduction.
+Final clean committed-head verification, independent review and hosted checks
+remain required before merge. No annual support or scientific/publication
+approval changes. The next acceptance work is disclosure-preserving rendering;
+regression-table review and larger unchecked cross-relation sums remain separate.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

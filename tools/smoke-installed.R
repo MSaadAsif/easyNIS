@@ -274,4 +274,17 @@ stopifnot(abs(combined_estimate$estimate - 264) < 1e-12,
   abs(pooled_proportion$upper - (0.5 + stats::qnorm(0.95) * sqrt(972) / 216)) < 1e-12)
 cat("Installed six-year scalar totals, SEs, intervals and weighted pooled proportion passed independent values.\n")
 stopifnot(nrow(nis_supported_years(supported_only = TRUE)) == 0L)
+subtotal_review <- source(system.file("examples/disclosure-subtotals.R", package = "easyNIS"),
+  local = new.env())$value
+subtotal_status <- stats::setNames(subtotal_review$presentation$disclosure_status,
+  subtotal_review$presentation$id)
+subtotal_shown <- subtotal_status == "shown"
+stopifnot(identical(unname(subtotal_status[c("a", "b")]), rep("suppressed_primary", 2)),
+  any(subtotal_status[c("all", "s", "e")] != "shown"),
+  identical(unname(subtotal_status[["s"]]), "suppressed_complementary"),
+  identical(subtotal_review$presentation$estimate[subtotal_shown],
+    subtotal_review$table$data$weighted_estimate[subtotal_shown]),
+  all(is.na(subtotal_review$presentation$estimate[!subtotal_shown])),
+  all(is.na(subtotal_review$presentation$unweighted_n[!subtotal_shown])))
+cat("Installed declared subtotals passed the seven-discharge hidden-sum regression.\n")
 cat("Installed workflow passed; year support remains experimental.\n")
