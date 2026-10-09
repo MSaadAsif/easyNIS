@@ -14,6 +14,8 @@
 #'   remain named vectors. Quasipoisson permits one `offset(log(exposure))`
 #'   with a named positive numeric exposure field. Global variables, caller
 #'   functions, sample-dependent transforms and `.` expansion are refused.
+#'   Distinct terms must produce distinct model-frame names; rename fields or
+#'   reformulate when a named predictor collides with an expression label.
 #' @param family Explicitly choose `"gaussian"` for identity-link means,
 #'   `"quasibinomial"` for logit-link zero/one outcomes or `"quasipoisson"`
 #'   for log-link nonnegative outcomes. No effect exponentiation is performed.
@@ -27,7 +29,8 @@
 #' @return A `nis_model` list with the unchanged native `svyglm` in `native`,
 #'   its explicit-df `summary`, link-scale numeric `coefficients`, analysis
 #'   `design`, `sample` accounting, factor contrast matrices in `factors`,
-#'   `diagnostics` including captured warnings, and full `provenance`.
+#'   `diagnostics` including captured warnings and observed factor support
+#'   counts (`diagnostics$factor_support`), and full `provenance`.
 #'   Aliased coefficients have NA inference. Nonconvergence is recorded, not
 #'   concealed. Raw design columns and caller options are unchanged. Native
 #'   fitting rescales weights to sum to analysis rows for numerical stability;
@@ -152,6 +155,10 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   }
   full_frame <- withCallingHandlers(stats::model.frame(fit_formula, rows,
     na.action = stats::na.pass, drop.unused.levels = TRUE), warning = capture_warning)
+  if (anyDuplicated(names(full_frame))) {
+    stop("Formula terms produced identical model-frame names; rename the field or reformulate so predictor labels are unique.",
+      call. = FALSE)
+  }
   validate_model_frame(full_frame, rows)
   frame <- if (all(keep)) full_frame else withCallingHandlers(stats::model.frame(
     fit_formula, analysis$variables, na.action = stats::na.fail, drop.unused.levels = TRUE),
@@ -163,6 +170,58 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   for (field in factor_fields) {
     if (is.logical(frame[[field]])) frame[[field]] <- factor(frame[[field]], levels = c(FALSE, TRUE))
   }
+  model_variables <- as.list(attr(attr(full_frame, "terms"), "variables"))[-1L]
+  analysis_weights <- if (length(factor_fields)) as.numeric(stats::weights(analysis)) else numeric()
+  analysis_clusters <- if (length(factor_fields)) analysis$cluster[[1L]] else NULL
+  factor_support <- lapply(factor_fields, function(field) {
+    expression <- model_variables[[match(field, names(full_frame))]]
+    raw_field <- if (is.symbol(expression)) as.character(expression) else NULL
+    source <- if (!is.null(raw_field) && is.factor(rows[[raw_field]])) {
+      rows[[raw_field]]
+    } else {
+      full_frame[[field]]
+    }
+    level_names <- if (is.factor(source)) {
+      levels(source)
+    } else if (is.logical(source)) {
+      c("FALSE", "TRUE")
+    } else {
+      levels(frame[[field]])
+    }
+    # model.frame maps true missing codes to an NA level when one is declared,
+    # so supplied raw-factor counts must use the retained source codes.
+    supplied_values <- source
+    if (is.logical(supplied_values)) {
+      supplied_values <- factor(supplied_values, levels = c(FALSE, TRUE))
+    }
+    analyzed_values <- frame[[field]]
+    supplied_codes <- as.integer(supplied_values)
+    supplied_levels <- levels(supplied_values)
+    analysis_codes <- as.integer(analyzed_values)
+    analysis_levels <- levels(analyzed_values)
+    level_mask <- function(codes, available_levels, level) {
+      index <- match(level, available_levels)
+      if (is.na(index)) return(rep(FALSE, length(codes)))
+      !is.na(codes) & codes == index
+    }
+    data.frame(level = level_names,
+      supplied_rows = vapply(seq_along(level_names), function(i) {
+        sum(level_mask(supplied_codes, supplied_levels, level_names[[i]]))
+      }, numeric(1), USE.NAMES = FALSE),
+      analysis_rows = vapply(seq_along(level_names), function(i) {
+        sum(level_mask(analysis_codes, analysis_levels, level_names[[i]]))
+      }, numeric(1), USE.NAMES = FALSE),
+      analysis_weight = vapply(seq_along(level_names), function(i) {
+        selected <- level_mask(analysis_codes, analysis_levels, level_names[[i]])
+        sum(analysis_weights[selected])
+      }, numeric(1), USE.NAMES = FALSE),
+      analysis_hospitals = vapply(seq_along(level_names), function(i) {
+        selected <- level_mask(analysis_codes, analysis_levels, level_names[[i]])
+        length(unique(analysis_clusters[selected]))
+      }, numeric(1), USE.NAMES = FALSE),
+      stringsAsFactors = FALSE, row.names = NULL, check.names = FALSE)
+  })
+  names(factor_support) <- factor_fields
   contrasts <- withCallingHandlers(lapply(frame[factor_fields], stats::contrasts), warning = capture_warning)
   native_family <- switch(family, gaussian = stats::gaussian(),
     quasibinomial = stats::quasibinomial(), quasipoisson = stats::quasipoisson())
@@ -214,7 +273,8 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       analysis_degrees_of_freedom = survey::degf(analysis),
       full_population_degrees_of_freedom = design$population$degrees_of_freedom,
       native_residual_degrees_of_freedom = native$df.residual),
-    diagnostics = list(warnings = warnings, converged = native$converged, iterations = native$iter,
+    diagnostics = list(warnings = warnings, factor_support = factor_support,
+      converged = native$converged, iterations = native$iter,
       initial_iterations = initial_iterations, refined = refined,
       native_offset_prediction = if (length(exposures)) "unsupported" else "not_applicable",
       rank = native$rank, aliased = names(estimates)[!estimable],

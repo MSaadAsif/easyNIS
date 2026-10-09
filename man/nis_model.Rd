@@ -15,7 +15,9 @@ terms/interactions. Gaussian outcomes and predictors may use row-wise
 arithmetic, \code{log}, \code{log1p}, \code{sqrt}, \code{abs} and \code{I}. Quasi-family outcomes
 remain named vectors. Quasipoisson permits one \code{offset(log(exposure))}
 with a named positive numeric exposure field. Global variables, caller
-functions, sample-dependent transforms and \code{.} expansion are refused.}
+functions, sample-dependent transforms and \code{.} expansion are refused.
+Distinct terms must produce distinct model-frame names; rename fields or
+reformulate when a named predictor collides with an expression label.}
 
 \item{family}{Explicitly choose \code{"gaussian"} for identity-link means,
 \code{"quasibinomial"} for logit-link zero/one outcomes or \code{"quasipoisson"}
@@ -36,7 +38,8 @@ must specify lonely PSU \code{"fail"} and domain adjustment \code{FALSE}.}
 A \code{nis_model} list with the unchanged native \code{svyglm} in \code{native},
 its explicit-df \code{summary}, link-scale numeric \code{coefficients}, analysis
 \code{design}, \code{sample} accounting, factor contrast matrices in \code{factors},
-\code{diagnostics} including captured warnings, and full \code{provenance}.
+\code{diagnostics} including captured warnings and observed factor support
+counts (\code{diagnostics$factor_support}), and full \code{provenance}.
 Aliased coefficients have NA inference. Nonconvergence is recorded, not
 concealed. Raw design columns and caller options are unchanged. Native
 fitting rescales weights to sum to analysis rows for numerical stability;
