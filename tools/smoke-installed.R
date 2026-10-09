@@ -190,6 +190,23 @@ exercise_year <- function(year) {
     identical(contrast$model, fit), contrast$contrast[["(Intercept)"]] == 0,
     identical(contrast$provenance$analysis_ready, FALSE))
   cat("Invented year", year, "passed installed model contrast against independent slope/sandwich reference.\n")
+  regression_spec <- data.frame(id = c("slope", "constant"),
+    term = c("contrast_x", "(Intercept)"), label = c("Caller slope", "Caller constant"),
+    unit = c("link", "link"))
+  regression_table <- nis_regression_table(fit, regression_spec, "link")
+  expected_coefficient <- stats::coef(fit$native)
+  stopifnot(inherits(regression_table, "nis_regression_table"),
+    identical(regression_table$data$id, regression_spec$id),
+    max(abs(regression_table$data$estimate - coefficients[match(regression_spec$term, names(coefficients))])) < 1e-10,
+    max(abs(regression_table$data$se - sqrt(diag(covariance))[match(regression_spec$term, names(coefficients))])) < 1e-10,
+    identical(regression_table$data$estimate, unname(expected_coefficient[regression_spec$term])),
+    identical(regression_table$data$se, fit$coefficients$se[match(regression_spec$term, fit$coefficients$term)]),
+    identical(regression_table$data$analysis_hospitals, c(4, 4)),
+    identical(regression_table$data$raw_supplied, c(12, 12)),
+    identical(regression_table$data$disclosure_status, c("unreviewed", "unreviewed")),
+    identical(regression_table$model, fit),
+    identical(regression_table$provenance$analysis_ready, FALSE))
+  cat("Invented year", year, "passed installed regression table coefficient and sample preservation.\n")
   cat("Invented year", year, "passed import, flags, selection, survey domains and scalar estimate references.\n")
   cat("Invented year", year, "passed installed descriptive table independent references.\n")
   design
@@ -201,6 +218,12 @@ combined_domain <- nis_domain(combined, "domain", "fail")
 average_domain <- nis_domain(average, "domain", "fail")
 pooled_support_fit <- nis_model(average, LOS ~ support_group, "gaussian", "exclude",
   12, 0.95, "wr_unadjusted")
+pooled_table <- nis_regression_table(pooled_support_fit,
+  data.frame(id = "group", term = "support_groupB", label = "Declared group", unit = "link"), "link")
+stopifnot(identical(pooled_table$data$analysis_hospitals, 24),
+  identical(pooled_table$data$raw_supplied, 72),
+  identical(pooled_table$data$analysis_hospitals,
+    as.double(length(unique(pooled_support_fit$design$cluster[[1L]])))))
 pooled_support <- pooled_support_fit$diagnostics$factor_support$support_group
 stopifnot(identical(pooled_support$level, c("A", "B", "EMPTY")),
   identical(as.numeric(pooled_support[1L, -1L]), c(36, 36, 18, 12)),

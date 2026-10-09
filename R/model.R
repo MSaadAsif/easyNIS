@@ -230,6 +230,10 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
     control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
   if (length(contrasts)) fit_arguments$contrasts <- contrasts
   native <- withCallingHandlers(do.call(survey::svyglm, fit_arguments), warning = capture_warning)
+  if (anyDuplicated(names(stats::coef(native, na.rm = FALSE)))) {
+    stop("Formula terms produced identical coefficient names; rename the field or reformulate so coefficient labels are unique.",
+         call. = FALSE)
+  }
   initial_iterations <- native$iter
   refined <- family != "gaussian" && isTRUE(native$converged) && !isTRUE(native$boundary)
   if (refined) {
