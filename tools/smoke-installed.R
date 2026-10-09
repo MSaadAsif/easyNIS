@@ -95,6 +95,23 @@ exercise_year <- function(year) {
     identical(table$results$los$native,
       nis_estimate(design, "LOS", "mean", "exclude", 2, 0.95, "wr_unadjusted")$native),
     identical(table$provenance$analysis_ready, FALSE))
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  exposed <- function(rows) {
+    count <- sum(rows)
+    count >= 1 && count <= 10 || count > 0 && length(unique(core$HOSP_NIS[rows])) < 2
+  }
+  los_exposed <- exposed(core$LOS != 0) || exposed(rep(TRUE, nrow(core)))
+  expected_review <- ifelse(c(los_exposed, exposed(core$domain) || exposed(!core$domain),
+    los_exposed), "suppressed_primary", "shown")
+  shown <- expected_review == "shown"
+  stopifnot(inherits(review, "nis_disclosure_review"),
+    identical(review$presentation$disclosure_status, expected_review),
+    identical(review$presentation$estimate[shown], table$data$weighted_estimate[shown]),
+    all(is.na(review$presentation$estimate[!shown])),
+    all(is.na(review$presentation$unweighted_n[!shown])),
+    !any(c("raw_missing", "raw_supplied", "analysis_hospitals", "weighted_denominator") %in%
+      names(review$presentation)),
+    identical(review$provenance$analysis_ready, FALSE))
   for (family in c("gaussian", "quasibinomial", "quasipoisson")) {
     field <- if (family == "quasibinomial") "domain" else "LOS"
     outcome <- as.double(core[[field]])

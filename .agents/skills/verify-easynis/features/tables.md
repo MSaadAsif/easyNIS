@@ -27,3 +27,14 @@ counts, native hospital IDs, diagnostics and unchanged model. The installed
 smoke exercises regression tables for all six invented year labels and checks
 the pooled distinct-hospital count. Source cases live in
 `tests/testthat/test-regression-table.R`.
+
+`nis_disclosure_review()` reviews one descriptive table under an explicit
+range, zero policy, hospital minimum and declared margins. Check statuses
+against counts computed independently from the invented rows, never from
+weighted estimates. Confirm shown presentation values equal the numeric table,
+suppressed values are `NA`, and `presentation` has only its documented columns
+and no extra attributes. Include counts 0, 1, 9, 10 and 11, a large weighted
+total from few raw rows, one contributing hospital, binary complements, missing
+counts, margin recovery and a small suppressed pair. The installed smoke runs a
+review for all six invented year labels. Source cases live in
+`tests/testthat/test-disclosure.R`; the contract is `docs/DISCLOSURE.md`.
