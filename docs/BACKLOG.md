@@ -390,6 +390,35 @@ independent reviews and hosted checks remain required before protected merge.
 Next table acceptance work is numeric regression tables, followed by a reviewed
 disclosure policy and rendering adapters; grouping and comparison definitions
 remain explicit future choices.
+The numeric descriptive table merged in [PR #12](https://github.com/MSaadAsif/easyNIS/pull/12).
+Clean committed-head verification passed 1,455 package assertions, 60 tool
+assertions, all 36 merge-gate scenarios, source Status OK and the installed
+workflow. Independent specification and standards reviews found zero blockers.
+An independent installed probe checked unequal weights, field-specific and
+whole-hospital exclusions, sequential domains, average annual pooling, exact
+numeric/native preservation and duplicate declaration rejection. All five
+hosted checks passed on the reviewed head and resulting main commit.
+
+The next NIS-018 increment adds numeric regression tables under
+[REGRESSION-TABLES.md](REGRESSION-TABLES.md). Explicit row declarations select
+existing coefficients on the link scale. Exact coefficient inference, aliases,
+undefined tests, factor coding, model sample accounting, diagnostics and full
+provenance remain available without refitting, exponentiation or rounding.
+A public regression reproduced duplicate coefficient names when a factor level
+and a distinct numeric predictor share a label and one coefficient is aliased.
+Model fitting now rejects duplicate fitted coefficient names before mapping
+inference, including aliases; distinct nearby labels remain valid.
+Focused verification passes 55 table and 180 model/contrast assertions, with
+no failures, warnings or skips. Full source verification passes 1,512 package
+assertions, 60 metadata-tool assertions, all 36 merge-gate scenarios, source
+Status OK, tarball inspection and installed public workflows for six invented
+year labels and a pooled design with 24 year-specific hospitals. Clean
+committed-head verification, independent reviews and hosted checks remain
+required before protected merge. Disclosure status remains unreviewed and no
+annual support or scientific approval is promoted.
+Next acceptance work is a documented disclosure/suppression contract and its
+NIS-019 cases, followed by rendering adapters. Explicit interpreted-contrast
+rows and grouped comparisons retain separate scope and scale decisions.
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |
