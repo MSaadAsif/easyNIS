@@ -339,6 +339,28 @@ collisions, native covariance parity and caller-state preservation. Numeric-only
 fits return an empty list without allocating an extra analysis-weight vector.
 Clean committed-head verification, independent reviews and hosted checks
 remain required before merge.
+Review reproduced a formula ambiguity where `I(group)` and a distinct quoted
+raw field named `I(group)` received the same native model-frame label. The old
+public call returned duplicated support metadata instead of rejecting the
+ambiguity. A failing public regression is retained locally. Distinct formula
+terms now require unique model-frame labels, checked before named metadata and
+contrast preparation. Valid quoted fields and separate expression/decoy cases
+remain accepted. Corrected focused checks pass 373 model and 178 contrast
+assertions with no failures, errors, warnings or skips; full corrected-source
+verification is in progress. Independent probes also check three-level factor
+coding, zero-analysis levels, whole-hospital exclusions and pooled year keys.
+Independent review also reproduced rejection of previously accepted factors
+with a declared NA level. Integer category-code matching and unnamed count
+vectors now distinguish declared NA, literal `"NA"`, unused levels and true
+missing codes without creating invalid data-frame row names. Raw named-factor
+supplied counts follow raw codes; expression counts follow native evaluated
+frames, which can recode a missing code into an NA level. Existing raw-field
+missingness and complete-case exclusion remain unchanged. Corrected-source
+verification passes 1,400 package assertions, 60 metadata-tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and the
+installed annual/pooled workflows. The focused suites pass 394 model and 178
+contrast assertions. Final clean committed-head evidence and refreshed
+current-head reviews remain required before hosted checks and protected merge.
 The existing covariance, fitting and factor coding contracts remain in force.
 No annual capability or scientific approval is promoted.
 

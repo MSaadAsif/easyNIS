@@ -15,6 +15,12 @@ and global variables remain refused. Allowed functions resolve in a fixed
 base/statistics environment rather than the caller's formula environment.
 Fitting rebuilds a plain formula from the checked response and predictor
 expressions, discarding supplied terms metadata such as alternate `predvars`.
+The evaluated formula frame must have unique column names. For example,
+`y ~ I(group) + \`I(group)\`` is refused when `I(group)` is also a retained
+field, because the expression and field produce indistinguishable frame labels.
+Rename the field or reformulate the terms. Either `y ~ I(group)` or
+`y ~ \`I(group)\`` remains supported alone, including when the design retains
+an unrelated field with the same spelling as an expression label.
 
 Quasibinomial and quasipoisson outcomes remain named zero/one or nonnegative
 vectors. A transformed Gaussian outcome is reported by its exact expression

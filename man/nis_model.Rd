@@ -15,7 +15,9 @@ terms/interactions. Gaussian outcomes and predictors may use row-wise
 arithmetic, \code{log}, \code{log1p}, \code{sqrt}, \code{abs} and \code{I}. Quasi-family outcomes
 remain named vectors. Quasipoisson permits one \code{offset(log(exposure))}
 with a named positive numeric exposure field. Global variables, caller
-functions, sample-dependent transforms and \code{.} expansion are refused.}
+functions, sample-dependent transforms and \code{.} expansion are refused.
+Distinct terms must produce distinct model-frame names; rename fields or
+reformulate when a named predictor collides with an expression label.}
 
 \item{family}{Explicitly choose \code{"gaussian"} for identity-link means,
 \code{"quasibinomial"} for logit-link zero/one outcomes or \code{"quasipoisson"}
