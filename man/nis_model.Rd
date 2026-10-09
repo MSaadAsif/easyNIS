@@ -36,7 +36,8 @@ must specify lonely PSU \code{"fail"} and domain adjustment \code{FALSE}.}
 A \code{nis_model} list with the unchanged native \code{svyglm} in \code{native},
 its explicit-df \code{summary}, link-scale numeric \code{coefficients}, analysis
 \code{design}, \code{sample} accounting, factor contrast matrices in \code{factors},
-\code{diagnostics} including captured warnings, and full \code{provenance}.
+\code{diagnostics} including captured warnings and observed factor support
+counts (\code{diagnostics$factor_support}), and full \code{provenance}.
 Aliased coefficients have NA inference. Nonconvergence is recorded, not
 concealed. Raw design columns and caller options are unchanged. Native
 fitting rescales weights to sum to analysis rows for numerical stability;

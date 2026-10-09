@@ -36,6 +36,7 @@ test_that("three model families match native fits and independent cluster scores
       expect_identical(result$provenance$design, selected$provenance)
       expect_identical(result$provenance$domains, selected$domains)
       expect_false(result$provenance$analysis_ready)
+      expect_length(result$diagnostics$factor_support, 0L)
       expect_length(result$diagnostics$warnings, 0L)
     }
   }
@@ -45,6 +46,68 @@ test_that("three model families match native fits and independent cluster scores
   expect_equal(gaussian$sample$missing_by_field, c(y = 8, x = 8, group = 0))
   expect_equal(gaussian$sample$excluded_missing, 16)
   expect_equal(gaussian$sample$full_population_degrees_of_freedom, 6)
+})
+
+test_that("factor support counts describe supplied and analyzed native levels", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$group <- factor(ifelse(rows$HOSP_NIS == "0003", "b", "a"),
+    levels = c("a", "b", "unused"))
+  rows$logical_group <- rep(c(FALSE, TRUE), 32L)
+  rows$logical_group[c(1L, 10L, 33L)] <- NA
+  rows$y[rows$HOSP_NIS == "0001"] <- NA
+  design <- model_design(session, rows)
+  design$design$variables$group <- rows$group
+  design$design$variables$logical_group <- rows$logical_group
+  selected <- nis_domain(design, "domain", "fail")
+  before <- selected
+  options_before <- options()[grepl("^survey[.]|^contrasts$|^na.action$", names(options()))]
+  fit <- fit_invented(selected, y ~ group + logical_group, missing = "exclude")
+  group <- fit$diagnostics$factor_support$group
+  expect_identical(group$level, c("a", "b", "unused"))
+  expect_equal(as.numeric(group[1L, -1L]), c(40, 31, 110, 4))
+  expect_equal(as.numeric(group[2L, -1L]), c(8, 8, 28, 1))
+  expect_equal(unname(as.numeric(group[3L, -1L])), c(0, 0, 0, 0))
+  logical_support <- fit$diagnostics$factor_support$logical_group
+  expect_identical(logical_support$level, c("FALSE", "TRUE"))
+  expect_equal(as.numeric(logical_support[1L, -1L]), c(22, 19, 58, 5))
+  expect_equal(as.numeric(logical_support[2L, -1L]), c(24, 20, 80, 5))
+  expect_identical(fit$factors$group$levels, c("a", "b"))
+  reference <- survey::svyglm(y ~ group + logical_group, fit$design,
+    family = stats::gaussian(), na.action = stats::na.fail,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+  expect_equal(stats::coef(fit$native), stats::coef(reference))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference))
+  expect_equal(fit$native$contrasts, lapply(fit$factors, `[[`, "contrasts"))
+  expect_identical(selected, before)
+  expect_identical(options()[names(options_before)], options_before)
+  expect_equal(fit$sample$missing_by_field, c(y = 8, group = 0, logical_group = 2))
+  selected$design$variables[["I(group)"]] <- factor(rep(c("decoy", "other"), 24L),
+    levels = c("decoy", "other"))
+  collision_fit <- fit_invented(selected, y ~ I(group), missing = "exclude")
+  expect_identical(collision_fit$diagnostics$factor_support[["I(group)"]]$level, c("a", "b"))
+  expect_equal(collision_fit$diagnostics$factor_support[["I(group)"]]$supplied_rows,
+    c(40L, 8L))
+
+  pooled_designs <- lapply(2021:2022, function(year) {
+    annual_rows <- rows
+    annual_rows$YEAR <- year
+    annual <- model_design(session, annual_rows)
+    annual$design$variables$group <- factor(annual_rows$group,
+      levels = c("a", "b", "unused"))
+    annual
+  })
+  pooled <- nis_pool_design(pooled_designs, c("y", "group"), "average_annual_total")
+  pooled_fit <- fit_invented(pooled, y ~ group, missing = "exclude")
+  pooled_group <- pooled_fit$diagnostics$factor_support$group
+  expect_identical(pooled_group$level, c("a", "b", "unused"))
+  expect_equal(pooled_group$analysis_hospitals, c(12, 2, 0))
+  expect_equal(pooled_group$analysis_weight, c(168, 28, 0))
+  expect_equal(pooled_fit$sample$excluded_missing, 16L)
+  logical_expression_fit <- fit_invented(selected, y ~ I(logical_group), missing = "exclude")
+  expect_identical(logical_expression_fit$diagnostics$factor_support[["I(logical_group)"]],
+    logical_support)
 })
 
 test_that("rare outcomes and sparse factors retain independent domain covariance", {
