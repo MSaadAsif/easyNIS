@@ -41,14 +41,16 @@ review assists a human publication check and does not certify a manuscript.
 }
 \details{
 Every row checks included, missing and nonzero discharge counts.
-Binary fields also check zero-valued discharges, which a published
-proportion and count reveal. Nonempty nonzero and zero-valued groups also
-check their contributing hospitals. Margins compare nonzero counts for
-binary rows and included counts otherwise. Complementary suppression
-repeatedly suppresses the published member with the smallest margin count
-until no declared relation recovers one suppressed row or a disclosive
-sum. The procedure is greedy, conservative and limited to declared
-relations. Annual support and scientific approval remain pending.
+Binary fields also check zero-valued discharges, and other two-valued
+fields check their smaller level. Nonempty groups also check their
+contributing hospitals. Margins compare nonzero counts for binary rows and
+included counts otherwise. Complementary suppression repeats until rows on
+a suppressed field are all suppressed, no single margin recovers one
+suppressed row or a disclosive or single-hospital suppressed sum, no
+combination of margins determines a suppressed field, and no two published
+\code{unweighted_n} values differ by a disclosive amount. The procedure is
+greedy, conservative and limited to declared relations. Annual support and
+scientific approval remain pending.
 }
 \examples{
 if (requireNamespace("survey", quietly = TRUE)) {

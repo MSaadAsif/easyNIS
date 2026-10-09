@@ -96,9 +96,13 @@ exercise_year <- function(year) {
       nis_estimate(design, "LOS", "mean", "exclude", 2, 0.95, "wr_unadjusted")$native),
     identical(table$provenance$analysis_ready, FALSE))
   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
-  small <- function(count) count >= 1 && count <= 10
-  expected_review <- ifelse(c(small(sum(core$LOS != 0)), small(sum(core$domain)) ||
-    small(sum(!core$domain)), small(sum(core$LOS != 0))), "suppressed_primary", "shown")
+  exposed <- function(rows) {
+    count <- sum(rows)
+    count >= 1 && count <= 10 || count > 0 && length(unique(core$HOSP_NIS[rows])) < 2
+  }
+  los_exposed <- exposed(core$LOS != 0) || exposed(rep(TRUE, nrow(core)))
+  expected_review <- ifelse(c(los_exposed, exposed(core$domain) || exposed(!core$domain),
+    los_exposed), "suppressed_primary", "shown")
   shown <- expected_review == "shown"
   stopifnot(inherits(review, "nis_disclosure_review"),
     identical(review$presentation$disclosure_status, expected_review),

@@ -4,7 +4,9 @@
 
 - Added `nis_disclosure_review()` for descriptive tables. Caller-declared
   ranges, zero policy, hospital minimum and additive margins drive primary and
-  greedy complementary suppression from unweighted discharge counts.
+  greedy complementary suppression from unweighted discharge counts. Rows on
+  one field are suppressed together, and combined margins and published count
+  differences are checked.
 - Only the returned `presentation` is an export candidate; it omits raw
   missing, supplied, hospital and weighted denominator fields. The audit and
   original table stay internal. Regression tables, rendering and annual
