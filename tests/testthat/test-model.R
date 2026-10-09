@@ -110,6 +110,83 @@ test_that("factor support counts describe supplied and analyzed native levels", 
     logical_support)
 })
 
+test_that("duplicate formula-frame labels fail clearly before factor preparation", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$group <- factor(rows$group, levels = c(0, 1))
+  rows[["I(group)"]] <- factor(rep(c("decoy", "other"), 32L),
+    levels = c("decoy", "other"))
+  design <- model_design(session, rows)
+  design$design$variables$group <- rows$group
+  design$design$variables[["I(group)"]] <- rows[["I(group)"]]
+
+  expect_error(fit_invented(design, y ~ I(group) + `I(group)`),
+    "identical model-frame names")
+  raw_fit <- fit_invented(design, y ~ `I(group)`)
+  expect_identical(raw_fit$diagnostics$factor_support[["I(group)"]]$level,
+    c("decoy", "other"))
+  expression_fit <- fit_invented(design, y ~ I(group))
+  expect_identical(expression_fit$diagnostics$factor_support[["I(group)"]]$level,
+    c("0", "1"))
+})
+
+test_that("factor support separates an explicit NA level from missing codes", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$group <- ordered(rep(c("A", NA_character_, "NA", "B"), 16L),
+    levels = c("A", "B", NA_character_, "NA", "unused"), exclude = NULL)
+  is.na(rows$group)[c(10L, 26L)] <- TRUE
+  rows$y[rows$HOSP_NIS == "0001"] <- NA
+  expect_true(is.na(rows$group)[10L])
+  expect_true(is.na(rows$group)[26L])
+  expect_false(is.na(rows$group)[2L])
+  design <- model_design(session, rows)
+  design$design$variables$group <- rows$group
+  selected <- nis_domain(design, "domain", "fail")
+  before <- selected
+  fit <- fit_invented(selected, y ~ group, missing = "exclude")
+  support <- fit$diagnostics$factor_support$group
+  expected <- data.frame(level = c("A", "B", NA_character_, "NA", "unused"),
+    supplied_rows = c(12, 12, 11, 12, 0),
+    analysis_rows = c(10, 10, 9, 10, 0),
+    analysis_weight = c(20, 50, 27, 40, 0),
+    analysis_hospitals = c(5, 5, 5, 5, 0),
+    stringsAsFactors = FALSE, row.names = NULL)
+  expect_equal(support, expected)
+  expect_identical(levels(fit$native$model$group), c("A", "B", NA_character_, "NA"))
+  expect_equal(fit$sample$missing_by_field, c(y = 8, group = 1))
+  expect_equal(fit$sample$included, 39L)
+  expect_equal(fit$sample$excluded_missing, 9L)
+  reference <- survey::svyglm(y ~ group, fit$design, family = stats::gaussian(),
+    na.action = stats::na.fail,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+  expect_equal(stats::coef(fit$native), stats::coef(reference))
+  expect_equal(stats::vcov(fit$native), stats::vcov(reference))
+  expect_identical(selected, before)
+
+  expression_fit <- fit_invented(selected, y ~ I(group), missing = "exclude")
+  expression_support <- expression_fit$diagnostics$factor_support[["I(group)"]]
+  expression_frame <- stats::model.frame(y ~ I(group), selected$design$variables,
+    na.action = stats::na.pass, drop.unused.levels = TRUE)
+  expression_levels <- levels(expression_frame[["I(group)"]])
+  expect_identical(expression_levels, c("A", "B", NA_character_, "NA"))
+  expect_equal(tabulate(as.integer(expression_frame[["I(group)"]]),
+    nbins = length(expression_levels)), c(12L, 12L, 12L, 12L))
+  expect_equal(expression_support$level, expression_levels)
+  expect_equal(expression_support$supplied_rows, c(12, 12, 12, 12))
+  expect_equal(expression_support$analysis_rows, c(10, 10, 9, 10))
+  expect_equal(expression_support$analysis_weight, c(20, 50, 27, 40))
+  expect_equal(expression_support$analysis_hospitals, c(5, 5, 5, 5))
+  expect_equal(expression_fit$sample$missing_by_field, c(y = 8, group = 1))
+  expression_reference <- survey::svyglm(y ~ I(group), expression_fit$design,
+    family = stats::gaussian(), na.action = stats::na.fail,
+    control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+  expect_equal(stats::coef(expression_fit$native), stats::coef(expression_reference))
+  expect_equal(stats::vcov(expression_fit$native), stats::vcov(expression_reference))
+})
+
 test_that("rare outcomes and sparse factors retain independent domain covariance", {
   session <- nis_open()
   on.exit(nis_close(session))
