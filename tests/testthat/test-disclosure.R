@@ -215,6 +215,7 @@ test_that("suppressed sums, unweighted n differences and other codings are check
   rows$s2 <- rows$s1
   rows$s2[seq(3L, by = 13L, length.out = 5L)] <- NA_real_
   rows$coded <- 1 + spread(3L)
+  rows$coded_hospital <- 1 + at(1:12)
   rows$zeros <- 1L - at(1:12)
   rows$flag <- spread(5L) == 1L
   rows$big <- DBI::dbGetQuery(session$connection, paste0(
@@ -222,7 +223,8 @@ test_that("suppressed sums, unweighted n differences and other codings are check
     "FROM range(", disclosure_n, ") t(i)"))$x
   expect_s3_class(rows$big, "integer64")
   table <- disclosure_table(session, rows,
-    fields = c("all", "h1", "h2", "h3", "h4", "s1", "s2", "coded", "zeros", "flag", "big"))
+    fields = c("all", "h1", "h2", "h3", "h4", "s1", "s2", "coded", "coded_hospital",
+      "zeros", "flag", "big"))
   review <- nis_disclosure_review(table, c(1, 10), "display", 2,
     list(list(total = "all", parts = c("h1", "h2", "h3", "h4"))))
   status <- review_status(review)
@@ -234,9 +236,136 @@ test_that("suppressed sums, unweighted n differences and other codings are check
   expect_identical(unname(status[c("s1", "s2")]), c("shown", "suppressed_complementary"))
   expect_identical(unname(reasons[["s2"]]), "n_difference:s1")
   expect_identical(unname(reasons[["coded"]]), "two_level")
+  expect_identical(unname(status[["coded_hospital"]]), "suppressed_primary")
+  expect_identical(unname(reasons[["coded_hospital"]]), "hospitals_two_level")
   expect_identical(unname(reasons[["zeros"]]), "hospitals_zero_valued")
   expect_identical(unname(reasons[c("flag", "big")]), c("nonzero", "nonzero"))
   expect_identical(review$audit$nonzero[review$audit$id %in% c("flag", "big")], c(5, 4))
+})
+
+test_that("subtotals cannot restore a disclosive primary-hidden sum", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- disclosure_base()
+  # Disjoint indicators; hospital membership does not itself force suppression.
+  rows$HOSP_NIS <- sprintf("%04d", (seq_len(disclosure_n) - 1L) %% 10L + 1L)
+  rows$NIS_STRATUM <- ifelse(rows$HOSP_NIS <= "0005", 1L, 2L)
+  rows$all <- 1L
+  rows$a <- at(1:3)
+  rows$b <- at(4:7)
+  rows$c <- at(8:37)
+  rows$d <- at(38:67)
+  rows$s <- rows$c + rows$d
+  rows$e <- 1L - rows$a - rows$b - rows$s
+  fields <- c("all", "a", "b", "c", "d", "s", "e")
+  table <- disclosure_table(session, rows, fields)
+  margins <- list(list(total = "all", parts = c("a", "b", "c", "d", "e")),
+    list(total = "s", parts = c("c", "d")))
+  expect_identical(sum(rows$a + rows$b) + 0, 7)
+  expect_identical(sum(rows$all - rows$s - rows$e) + 0, 7)
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  status <- review_status(review)
+  # all - s - e recovered the hidden pair before the combined-sum repair.
+  expect_true(any(status[c("all", "s", "e")] != "shown"))
+  expect_identical(unname(status[["s"]]), "suppressed_complementary")
+  expect_match(unname(review_reasons(review)[["s"]]), "^margins_sum:")
+  expect_true(all(is.na(review$presentation$estimate[status != "shown"])))
+
+  # Three primary-hidden parts require the frozen relation subset, not pairs.
+  rows$a <- at(1:3)
+  rows$b <- at(4:6)
+  rows$g <- at(7:9)
+  rows$c <- at(10:39)
+  rows$d <- at(40:69)
+  rows$s <- rows$c + rows$d
+  rows$e <- 1L - rows$a - rows$b - rows$g - rows$s
+  margins[[1]]$parts <- c("a", "b", "g", "c", "d", "e")
+  table <- disclosure_table(session, rows, c(fields, "g"))
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  expect_true(any(review_status(review)[c("all", "s", "e")] != "shown"))
+})
+
+test_that("primary pairs are protected even without a shared relation", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- disclosure_base()
+  rows$HOSP_NIS <- sprintf("%04d", (seq_len(disclosure_n) - 1L) %% 10L + 1L)
+  rows$NIS_STRATUM <- ifelse(rows$HOSP_NIS <= "0005", 1L, 2L)
+  rows$a <- at(1:3)
+  rows$b <- at(4:7)
+  rows$c <- at(8:37)
+  rows$d <- at(38:67)
+  rows$e <- at(68:127)
+  rows$f <- at(128:200)
+  rows$x <- rows$a + rows$c + rows$e
+  rows$y <- rows$b + rows$d + rows$f
+  rows$s <- rows$c + rows$d
+  rows$t <- rows$e + rows$f
+  table <- disclosure_table(session, rows, c("a", "b", "c", "d", "e", "f", "x", "y", "s", "t"))
+  margins <- list(list(total = "x", parts = c("a", "c", "e")),
+    list(total = "y", parts = c("b", "d", "f")),
+    list(total = "s", parts = c("c", "d")),
+    list(total = "t", parts = c("e", "f")))
+  expect_identical(sum(rows$x + rows$y - rows$s - rows$t) + 0, 7)
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  expect_true(any(review_status(review)[c("x", "y", "s", "t")] != "shown"))
+  expect_match(paste(review$audit$reasons, collapse = ";"), "margins_sum:pair:")
+})
+
+test_that("combined-margin sums apply zero and hospital policies", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- disclosure_base()
+  rows$all <- 1L
+  rows$a <- at(1:6)
+  rows$b <- at(7:12)
+  rows$c <- at(13:42)
+  rows$d <- at(43:72)
+  rows$s <- rows$c + rows$d
+  rows$e <- 1L - rows$a - rows$b - rows$s
+  fields <- c("all", "a", "b", "c", "d", "s", "e")
+  margins <- list(list(total = "all", parts = c("a", "b", "c", "d", "e")),
+    list(total = "s", parts = c("c", "d")))
+  expect_identical(sum(rows$a + rows$b) + 0, 12)
+  expect_identical(length(unique(rows$HOSP_NIS[rows$a + rows$b > 0])), 1L)
+  table <- disclosure_table(session, rows, fields)
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  expect_identical(unname(review_status(review)[["s"]]), "suppressed_complementary")
+  expect_match(unname(review_reasons(review)[["s"]]), "^margins_sum:")
+  # With one hospital permitted, the recoverable sum of 12 passes this policy.
+  review <- nis_disclosure_review(table, c(1, 10), "display", 1, margins)
+  expect_identical(unname(review_status(review)[["s"]]), "shown")
+
+  rows$HOSP_NIS <- sprintf("%04d", (seq_len(disclosure_n) - 1L) %% 10L + 1L)
+  rows$NIS_STRATUM <- ifelse(rows$HOSP_NIS <= "0005", 1L, 2L)
+  rows$all <- at(1:180)
+  rows$a <- 0L
+  rows$b <- 0L
+  rows$c <- at(1:30)
+  rows$d <- at(31:60)
+  rows$s <- rows$c + rows$d
+  rows$e <- rows$all - rows$s
+  table <- disclosure_table(session, rows, fields)
+  review <- nis_disclosure_review(table, c(1, 10), "suppress", 2, margins)
+  expect_identical(unname(review_status(review)[["s"]]), "suppressed_complementary")
+  expect_match(unname(review_reasons(review)[["s"]]), "^margins_sum:")
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  expect_true(all(review_status(review) == "shown"))
+})
+
+test_that("declarations that alone determine hidden values fail closed", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- disclosure_base()
+  rows$x <- at(1:100)
+  rows$z <- 0L
+  spec <- disclosure_spec(c("x", "x", "z"), c("total", "proportion", "total"),
+    c("x_n", "x_pct", "z"))
+  table <- disclosure_table(session, rows, spec = spec)
+  # x = x + z declares z = 0 regardless of any published values.
+  margins <- list(list(total = "x_n", parts = c("x_pct", "z")))
+  expect_error(nis_disclosure_review(table, c(1, 10), "suppress", 2, margins),
+    "declarations alone determine.*z")
 })
 
 test_that("zero policy, ranges and hospital thresholds are explicit", {

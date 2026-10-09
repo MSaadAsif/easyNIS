@@ -47,9 +47,18 @@ contributing hospitals. Margins compare nonzero counts for binary rows and
 included counts otherwise. Complementary suppression repeats until rows on
 a suppressed field are all suppressed, no single margin recovers one
 suppressed row or a disclosive or single-hospital suppressed sum, no
-combination of margins determines a suppressed field, and no two published
-\code{unweighted_n} values differ by a disclosive amount. The procedure is
-greedy, conservative and limited to declared relations. Annual support and
+combination of margins determines a suppressed field or a protected sum,
+and no two published \code{unweighted_n} values differ by a disclosive amount.
+Protected sums are frozen before repairs: primary-hidden parts within each
+relation and pairs of primary-hidden fields participating in margins, when
+their summed raw counts or contributing hospitals fail the policy. These
+are additive raw counts, with repeated fields counted repeatedly; their
+hospital count uses the union of contributing hospitals. Count equality
+alone does not establish that the underlying groups are disjoint. The call
+fails if declarations alone determine a protected hidden target. The
+procedure is greedy and conservative within these bounded checks, not a
+search over all subsets or nonnegative/whole-number constraints. Undeclared
+relations and external tables require human review. Annual support and
 scientific approval remain pending.
 }
 \examples{

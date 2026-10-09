@@ -80,21 +80,51 @@ suppresses one published row and records why.
    `min_hospitals` hospitals (`margin:<k>`).
 3. Margins combine. Treating each field as an unknown and each margin as a
    linear equation, a suppressed field is determined when its unit vector lies
-   in the row space of the equations restricted to suppressed fields. A
-   determined field triggers suppression of a published member of a margin
-   containing it (`margins:<field>`).
+   in the row space of the equations restricted to suppressed fields. The same
+   test applies to a bounded set of protected sums, frozen before any repair:
+   the primary-hidden parts of each relation, and each pair of distinct
+   primary-hidden fields participating in margins. A sum is protected when its
+   summed raw count fails the range or zero policy, or its contributing
+   hospital count is below `min_hospitals`. The test uses a coefficient of one
+   per occurrence of a field. It does not replace the original primary set
+   with the larger set of complementary suppressions. A determined target
+   triggers suppression of a published row connected to it through declared
+   margins (`margins:<field>`, `margins_sum:relation:<k>` or
+   `margins_sum:pair:<fields>`).
 4. Two published rows whose `unweighted_n` values differ by a disclosive
    amount can reveal a small group of missing outcomes. The row with more
    missing outcomes is suppressed (`n_difference:<id>`).
 
 Repairs 2 and 3 choose the published candidate with the smallest margin count,
-breaking ties by table order. The procedure is greedy and conservative but not
-minimal. A field determined only by the declarations themselves, with every
-related row suppressed, cannot be repaired by further suppression. Repair 2 is
-the only check on sums of several suppressed rows; linear combinations that
-span relations are checked only for individual fields. Undeclared arithmetic
-relations, external publications and other tables remain the reviewer's
-responsibility.
+breaking ties by table order. Repair 3 considers the entire connected margin
+component, since a publication several relations away can determine the
+target. Each repair hides at least one row, so the procedure terminates. If the
+declarations alone determine a hidden field or protected sum, or no connected
+published row remains to hide, the call fails without returning a presentation.
+For example, declaring `x = x + z` determines `z = 0` even if every row is hidden.
+The error names the target but contains no raw numeric counts.
+
+The procedure is greedy and conservative within these bounded checks; it is
+not minimal or a full disclosure certification. It considers at most one
+primary-part sum per relation and a quadratic number of primary-field pairs,
+not every subset. Larger sums spanning relations that do not match these
+targets remain unchecked. It does not solve nonnegative or whole-number
+constraints, and it uses numerical QR rank tests for the declared equations.
+Undeclared arithmetic relations, external publications and other tables remain
+the reviewer's responsibility.
+
+For sums, counts are additive raw counts with multiplicity, while contributing
+hospitals are the union across the selected rows. Equality of raw counts does
+not establish that the underlying discharge groups form a disjoint partition;
+the caller must verify that meaning. In particular, sums of overlapping fields
+are not interpreted as counts of distinct discharges.
+
+The installed public example `examples/disclosure-subtotals.R` uses disjoint
+invented indicators with A = 3, B = 4, C = 30, D = 30, S = C + D and E the rest.
+With declarations `all = A+B+C+D+E` and `S = C+D`, publishing all, S and E
+recovers A+B = 7. A single-margin repair hides C and D but leaves that sum
+exposed. The combined-sum repair also hides S. Run the example with
+`source(system.file("examples/disclosure-subtotals.R", package = "easyNIS"))`.
 
 ## Result
 
@@ -123,6 +153,9 @@ binary and two-level complements, logical and BIGINT outcomes, missing counts
 and `unweighted_n` differences, margin recovery of one suppressed part, a small
 summed pair forcing a third suppression, a single-hospital suppressed sum, a
 suppressed total, count and proportion rows on one field, three margins that
-jointly determine a row, declaration and arithmetic failures, pooled reused
-hospital IDs, exact preservation of shown values and absence of hidden raw
-fields.
+jointly determine a row, nested subtotal recovery of pairs and three primary
+parts, primary pairs without a shared relation, zero and hospital-only hidden
+sums across margins, declaration-only determination, declaration and arithmetic
+failures, pooled reused hospital IDs, exact preservation of shown values and
+absence of hidden raw fields. A two-level group of 12 discharges in one
+hospital independently exercises the two-level hospital minimum.

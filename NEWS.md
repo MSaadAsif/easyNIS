@@ -7,6 +7,11 @@
   greedy complementary suppression from unweighted discharge counts. Rows on
   one field are suppressed together, and combined margins and published count
   differences are checked.
+- Combined margins now also protect the original primary-hidden parts of each
+  relation and pairs of primary-hidden fields when their additive raw sum or
+  hospital contribution fails the caller's policy. Declarations that alone
+  determine a hidden target fail closed. These bounded checks do not search
+  every subset or certify a publication.
 - Only the returned `presentation` is an export candidate; it omits raw
   missing, supplied, hospital and weighted denominator fields. The audit and
   original table stay internal. Regression tables, rendering and annual
