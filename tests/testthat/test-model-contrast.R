@@ -220,3 +220,21 @@ test_that("zero variance retains undefined tests and nonfinite arithmetic is ref
   poisson$native$cov.unscaled["x", "x"] <- -1
   expect_error(nis_model_contrast(poisson, c(x = 1), "link_difference"), "nonnegative")
 })
+
+test_that("model coefficient names must be unique even when the duplicate is aliased", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- model_fixture()
+  rows$group <- factor(rows$group)
+  rows$group1 <- as.numeric(rows$group == 1)
+  design <- model_design(session, rows)
+  design$design$variables$group <- rows$group
+  design$design$variables$group1 <- rows$group1
+  expect_error(fit_invented(design, y ~ group + group1), "coefficient names.*unique")
+  rows$group1_raw <- seq_len(nrow(rows)) / nrow(rows)
+  valid_design <- model_design(session, rows)
+  valid_design$design$variables$group <- rows$group
+  valid_design$design$variables$group1_raw <- rows$group1_raw
+  valid <- fit_invented(valid_design, y ~ group + group1_raw)
+  expect_identical(anyDuplicated(valid$coefficients$term), 0L)
+})

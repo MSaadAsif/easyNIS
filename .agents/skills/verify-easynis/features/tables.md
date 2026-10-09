@@ -17,3 +17,13 @@ unchanged. Disclosure status must remain `unreviewed`.
 The full installed smoke runs this path for all six invented year labels. Source
 cases live in `tests/testthat/test-descriptive-table.R`; the smoke path is
 `tools/smoke-installed.R`.
+
+`nis_regression_table()` selects exact existing coefficient rows from one
+`nis_model()` and requires `scale = "link"`. Keep repeated terms under distinct
+IDs when needed, and inspect retained `factors` and model provenance before
+assigning caller labels. Compare all numeric columns directly with the fit's
+coefficient table, including aliased and undefined inference; confirm sample
+counts, native hospital IDs, diagnostics and unchanged model. The installed
+smoke exercises regression tables for all six invented year labels and checks
+the pooled distinct-hospital count. Source cases live in
+`tests/testthat/test-regression-table.R`.

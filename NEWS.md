@@ -1,5 +1,16 @@
 # easyNIS 0.0.0.9000
 
+## Experimental numeric regression tables
+
+- Added `nis_regression_table()` to select existing model coefficients on the
+  explicit link scale. The table preserves exact inference, aliases, missing
+  test results, factor coding, sample accounting, diagnostics and provenance.
+- Caller labels and units remain declarations. No fitting, exponentiation,
+  reference rows, rounding, disclosure review or annual support promotion is
+  added.
+- Added declaration and preservation checks, including installed workflows for
+  all six invented years and pooled hospital counts.
+
 ## Experimental numeric descriptive tables
 
 - Added `nis_descriptive_table()` for caller-declared means, proportions and
@@ -30,6 +41,8 @@
   `docs/MODEL-SUPPORT.md` for the limits and invented reference cases.
 - Retain distinct native frame/fitting/summary warnings in model diagnostics,
   including custom contrasts dropped when unused levels are removed.
+- Refuse model fits whose coefficient names are duplicated by a factor level
+  and a separately named predictor, including when the duplicate is aliased.
 - Support bounded row-wise Gaussian outcome/predictor transformations and one
   quasipoisson log-exposure offset. Record response scale and exposure fields;
   refuse invalid observed transforms/exposures without silently excluding them.
