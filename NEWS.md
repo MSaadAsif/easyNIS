@@ -1,5 +1,16 @@
 # easyNIS 0.0.0.9000
 
+## Experimental numeric descriptive tables
+
+- Added `nis_descriptive_table()` for caller-declared means, proportions and
+  totals on existing experimental single-year, domain and pooled designs.
+- Reuse `nis_estimate()` per row and retain its native results and provenance.
+  Report unrounded numeric values, independent missingness and denominators,
+  native hospital counts, and `unreviewed` disclosure status.
+- Added independent WR references, declaration failures and installed smoke
+  coverage across all six invented year labels. Tables remain nonpublishable
+  and do not promote annual support.
+
 ## Experimental survey models
 
 - Added `nis_model_contrast()` with caller-declared named coefficient weights,
