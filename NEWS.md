@@ -12,6 +12,11 @@
   quasipoisson survey fits with explicit complete-case and inference choices.
 - Preserve native fits, raw columns, original hospital information, factor
   contrasts, aliased coefficients, captured warnings and design provenance.
+- Report bounded per-level supplied and analyzed row, raw-weight and distinct
+  hospital counts for fitted factor/logical predictors in
+  `diagnostics$factor_support`, including declared unused raw-factor levels.
+  These observed counts do not diagnose sparsity or separation; see
+  `docs/MODEL-SUPPORT.md` for the limits and invented reference cases.
 - Retain distinct native frame/fitting/summary warnings in model diagnostics,
   including custom contrasts dropped when unused levels are removed.
 - Support bounded row-wise Gaussian outcome/predictor transformations and one

@@ -27,7 +27,8 @@
 #' @return A `nis_model` list with the unchanged native `svyglm` in `native`,
 #'   its explicit-df `summary`, link-scale numeric `coefficients`, analysis
 #'   `design`, `sample` accounting, factor contrast matrices in `factors`,
-#'   `diagnostics` including captured warnings, and full `provenance`.
+#'   `diagnostics` including captured warnings and observed factor support
+#'   counts (`diagnostics$factor_support`), and full `provenance`.
 #'   Aliased coefficients have NA inference. Nonconvergence is recorded, not
 #'   concealed. Raw design columns and caller options are unchanged. Native
 #'   fitting rescales weights to sum to analysis rows for numerical stability;
@@ -163,6 +164,35 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
   for (field in factor_fields) {
     if (is.logical(frame[[field]])) frame[[field]] <- factor(frame[[field]], levels = c(FALSE, TRUE))
   }
+  model_variables <- as.list(attr(attr(full_frame, "terms"), "variables"))[-1L]
+  analysis_weights <- if (length(factor_fields)) as.numeric(stats::weights(analysis)) else numeric()
+  analysis_clusters <- if (length(factor_fields)) analysis$cluster[[1L]] else NULL
+  factor_support <- lapply(factor_fields, function(field) {
+    expression <- model_variables[[match(field, names(full_frame))]]
+    raw_field <- if (is.symbol(expression)) as.character(expression) else NULL
+    source <- if (!is.null(raw_field) && is.factor(rows[[raw_field]])) {
+      rows[[raw_field]]
+    } else {
+      full_frame[[field]]
+    }
+    level_names <- if (is.factor(source)) {
+      levels(source)
+    } else if (is.logical(source)) {
+      c("FALSE", "TRUE")
+    } else {
+      levels(frame[[field]])
+    }
+    observed <- as.character(full_frame[[field]])
+    analyzed <- as.character(frame[[field]])
+    data.frame(level = level_names,
+      supplied_rows = vapply(level_names, function(level) sum(!is.na(observed) & observed == level), numeric(1)),
+      analysis_rows = vapply(level_names, function(level) sum(!is.na(analyzed) & analyzed == level), numeric(1)),
+      analysis_weight = vapply(level_names, function(level) sum(analysis_weights[!is.na(analyzed) & analyzed == level]), numeric(1)),
+      analysis_hospitals = vapply(level_names, function(level) length(unique(
+        analysis_clusters[!is.na(analyzed) & analyzed == level])), numeric(1)),
+      stringsAsFactors = FALSE)
+  })
+  names(factor_support) <- factor_fields
   contrasts <- withCallingHandlers(lapply(frame[factor_fields], stats::contrasts), warning = capture_warning)
   native_family <- switch(family, gaussian = stats::gaussian(),
     quasibinomial = stats::quasibinomial(), quasipoisson = stats::quasipoisson())
@@ -214,7 +244,8 @@ nis_model <- function(design, formula, family, missing, df, confidence, variance
       analysis_degrees_of_freedom = survey::degf(analysis),
       full_population_degrees_of_freedom = design$population$degrees_of_freedom,
       native_residual_degrees_of_freedom = native$df.residual),
-    diagnostics = list(warnings = warnings, converged = native$converged, iterations = native$iter,
+    diagnostics = list(warnings = warnings, factor_support = factor_support,
+      converged = native$converged, iterations = native$iter,
       initial_iterations = initial_iterations, refined = refined,
       native_offset_prediction = if (length(exposures)) "unsupported" else "not_applicable",
       rank = native$rank, aliased = names(estimates)[!estimable],

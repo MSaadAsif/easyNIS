@@ -63,6 +63,13 @@ The installed workflow calls `nis_model_contrast()` on a Gaussian slope fit for
 each invented year. Independent weighted least-squares coefficients and hospital
 WR sandwich covariance check profile-difference estimates, SEs, t intervals and
 link tests. Inspect the model contrast reference messages in the installed log.
+The installed model workflow also checks per-level factor-support rows and
+empty declared levels for every invented year. A pooled average-annual-total
+fit checks divisor-preserved analysis weights and distinct year-specific
+hospital counts after pooling reused hospital IDs. The package model suite
+independently counts support after domain and whole-hospital missingness, checks
+logical missing values and `I()` factor/logical terms, verifies contrast and
+covariance preservation, and guards against expression-label collisions.
 The focused source command is `testthat::test_local(filter = "model")`; shared
 invented fixture and score-sandwich helpers are in `helper-model.R`.
 The contrast suite includes interactions, finite/infinite df, reverse contrasts,
