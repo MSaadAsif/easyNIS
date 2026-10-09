@@ -31,9 +31,18 @@
 #'   included counts otherwise. Complementary suppression repeats until rows on
 #'   a suppressed field are all suppressed, no single margin recovers one
 #'   suppressed row or a disclosive or single-hospital suppressed sum, no
-#'   combination of margins determines a suppressed field, and no two published
-#'   `unweighted_n` values differ by a disclosive amount. The procedure is
-#'   greedy, conservative and limited to declared relations. Annual support and
+#'   combination of margins determines a suppressed field or a protected sum,
+#'   and no two published `unweighted_n` values differ by a disclosive amount.
+#'   Protected sums are frozen before repairs: primary-hidden parts within each
+#'   relation and pairs of primary-hidden fields participating in margins, when
+#'   their summed raw counts or contributing hospitals fail the policy. These
+#'   are additive raw counts, with repeated fields counted repeatedly; their
+#'   hospital count uses the union of contributing hospitals. Count equality
+#'   alone does not establish that the underlying groups are disjoint. The call
+#'   fails if declarations alone determine a protected hidden target. The
+#'   procedure is greedy and conservative within these bounded checks, not a
+#'   search over all subsets or nonnegative/whole-number constraints. Undeclared
+#'   relations and external tables require human review. Annual support and
 #'   scientific approval remain pending.
 #' @export
 #' @examples
@@ -139,6 +148,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     reasons[[i]] <- names(failed)[failed]
   }
   status <- ifelse(lengths(reasons) > 0L, "suppressed_primary", "shown")
+  primary <- status == "suppressed_primary"
 
   for (relation in margins) {
     if (audit$margin_count[match(relation$total, ids)] !=
@@ -156,6 +166,42 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     for (j in seq_along(columns)) {
       equations[k, columns[[j]]] <- equations[k, columns[[j]]] + signs[[j]]
     }
+  }
+  declaration_rank <- if (length(margins)) qr(equations)$rank else 0L
+  # Freeze these targets before complementary rows enlarge the hidden sets.
+  protected_sums <- list()
+  add_sum <- function(members, label) {
+    if (length(members) < 2L ||
+        !(disclosive(sum(audit$margin_count[members])) ||
+          length(unique(unlist(margin_hospitals[members]))) < min_hospitals)) return()
+    protected_sums[[length(protected_sums) + 1L]] <<- list(
+      coefficients = as.double(tabulate(match(fields[members], unique_fields),
+        nbins = length(unique_fields))), label = label)
+  }
+  for (k in seq_along(margins)) {
+    parts <- match(margins[[k]]$parts, ids)
+    add_sum(parts[primary[parts]], paste0("relation:", k))
+  }
+  primary_rows <- match(unique(fields[primary]), fields)
+  primary_rows <- primary_rows[colSums(equations != 0)[match(fields[primary_rows], unique_fields)] > 0]
+  if (length(primary_rows) > 1L) {
+    for (a in seq_len(length(primary_rows) - 1L)) {
+      for (b in seq.int(a + 1L, length(primary_rows))) {
+        pair <- primary_rows[c(a, b)]
+        add_sum(pair, paste0("pair:", paste(fields[pair], collapse = "+")))
+      }
+    }
+  }
+  # A repair may need a published field several relations away from the target.
+  connected_rows <- function(coefficients) {
+    connected <- coefficients != 0
+    repeat {
+      related <- rowSums(equations[, connected, drop = FALSE] != 0) > 0
+      expanded <- connected | colSums(equations[related, , drop = FALSE] != 0) > 0
+      if (identical(connected, expanded)) break
+      connected <- expanded
+    }
+    which(fields %in% unique_fields[connected])
   }
   hide_row <- function(pick, reason) {
     status[[pick]] <<- "suppressed_complementary"
@@ -190,16 +236,27 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     if (length(margins) && any(hidden_fields)) {
       reduced <- equations[, hidden_fields, drop = FALSE]
       rank <- qr(reduced)$rank
-      for (j in which(hidden_fields & colSums(equations != 0) > 0)) {
-        unit <- as.double(unique_fields[hidden_fields] == unique_fields[[j]])
-        if (qr(rbind(reduced, unit))$rank > rank) next
-        related <- which(equations[, j] != 0)
-        candidates <- unique(unlist(lapply(margins[related], function(relation) {
-          match(c(relation$total, relation$parts), ids)
-        })))
+      targets <- lapply(which(hidden_fields & colSums(equations != 0) > 0), function(j) {
+        list(coefficients = as.double(seq_along(unique_fields) == j),
+          label = unique_fields[[j]], reason = paste0("margins:", unique_fields[[j]]))
+      })
+      targets <- c(targets, lapply(protected_sums, function(target) {
+        target$reason <- paste0("margins_sum:", target$label)
+        target
+      }))
+      for (target in targets) {
+        if (qr(rbind(reduced, target$coefficients[hidden_fields]))$rank > rank) next
+        if (qr(rbind(equations, target$coefficients))$rank == declaration_rank) {
+          stop("Margin declarations alone determine protected hidden target `",
+               target$label, "`; suppression cannot repair this review.", call. = FALSE)
+        }
+        candidates <- connected_rows(target$coefficients)
         candidates <- candidates[status[candidates] == "shown"]
-        if (!length(candidates)) next
-        hide_row(smallest(candidates), paste0("margins:", unique_fields[[j]]))
+        if (!length(candidates)) {
+          stop("No published row can protect hidden margin target `", target$label,
+               "`; suppression cannot repair this review.", call. = FALSE)
+        }
+        hide_row(smallest(candidates), target$reason)
         repaired <- TRUE
         break
       }
@@ -236,7 +293,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       min_hospitals = min_hospitals, margins = margins),
     rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
     count_basis = "unweighted included discharges",
-    complementary = "greedy: same-field rows, declared relation recovery and sums, linear determination, unweighted n differences",
+    complementary = "greedy: same-field rows, declared relation recovery and sums, hidden fields and bounded primary sums across margins, unweighted n differences",
     table = table$provenance, scope = "experimental_disclosure_review",
     analysis_ready = FALSE)
   structure(list(presentation = presentation, audit = audit, table = table,

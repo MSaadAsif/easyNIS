@@ -36,5 +36,14 @@ suppressed values are `NA`, and `presentation` has only its documented columns
 and no extra attributes. Include counts 0, 1, 9, 10 and 11, a large weighted
 total from few raw rows, one contributing hospital, binary complements, missing
 counts, margin recovery and a small suppressed pair. The installed smoke runs a
-review for all six invented year labels. Source cases live in
-`tests/testthat/test-disclosure.R`; the contract is `docs/DISCLOSURE.md`.
+review for all six invented year labels and sources the installed public
+`examples/disclosure-subtotals.R` reproduction. Confirm that two combined
+relations cannot publish all, S and E when their difference recovers a
+seven-discharge primary-hidden pair. Keep the same check for three original
+primary parts and for a pair without a shared relation. Exercise hospital-only
+and zero sums, a two-level group of 12 discharges in one hospital, and a
+declaration that forces a hidden zero independently of published values.
+That declaration must fail the whole review. Check the documented limit of
+one original-primary sum per relation and primary pairs; do not report full
+subset certification. Source cases live in `tests/testthat/test-disclosure.R`;
+the contract is `docs/DISCLOSURE.md`.
