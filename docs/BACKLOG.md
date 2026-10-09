@@ -278,6 +278,41 @@ This is a numerical improvement with bounded
 synthetic evidence, not a general sparse/separation guarantee or scientific
 approval. Interpreted effects and annual validation remain pending.
 
+## Explicit model contrast continuation
+
+The sparse precision increment merged in [PR #9](https://github.com/MSaadAsif/easyNIS/pull/9)
+after clean-head verification, independent review and all five hosted jobs.
+The resulting main checks passed at `7bbaad2`.
+
+The next NIS-017 increment adds caller-declared named coefficient contrasts.
+Their variance uses the complete fitted coefficient covariance, including
+interaction cross-terms. Caller-selected model df and confidence remain the
+inference policies. Explicit interpretations distinguish link differences,
+named-outcome Gaussian mean differences, logistic odds ratios, Poisson mean
+ratios without exposure offsets, and Poisson rate ratios with exposure offsets.
+Transformed Gaussian outcomes retain their modeled scale. Intercepts and
+nonzero aliased terms cannot enter a difference contrast. Interpreted effects
+require converged nonboundary fits; link differences retain diagnostic warnings.
+The caller defines the compared covariate profiles. A coefficient vector alone
+does not authenticate that comparison or establish a causal interpretation.
+
+Focused verification passes 521 model assertions, including 178 new contrast
+assertions. Initial full Windows verification passes 1,349 package assertions,
+60 metadata-tool assertions, all 36 merge-gate scenarios, a source check with
+Status OK, source-tarball inspection and installed independent slope/sandwich
+contrasts for all six invented year labels. Direct native comparisons and
+independent hospital score calculations cover interactions, domains, whole-
+hospital missingness and pooled reused identifiers. Finite/infinite df, reverse
+contrasts, reciprocal ratios, aliases, zero variance, transformed outcomes,
+exposure semantics and numerical rejection paths are exercised. Clean committed-
+head verification, independent reviews and hosted checks remain required.
+No annual capability or scientific approval is promoted. The next acceptance
+work is broader sparse/separation diagnostics, followed by numeric table
+contracts; annual metadata and licensed validation retain their dependencies.
+On 2026-10-09 a bounded direct retry of the official 2017 Core specification
+again timed out after 30 seconds. No source snapshot or provisional registry
+was produced; annual source and conversion review remain dependencies.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |
