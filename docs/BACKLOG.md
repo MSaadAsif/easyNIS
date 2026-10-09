@@ -425,21 +425,27 @@ its head and resulting main checks passed.
 The first NIS-019 increment reviews numeric descriptive tables under
 [DISCLOSURE.md](DISCLOSURE.md). The caller states the suppressed count range,
 zero policy, minimum contributing hospitals and additive margins; nothing is
-defaulted. Checks use unweighted included, missing, nonzero and binary
-complement counts and their native first-level hospitals. Declared margins must
-hold exactly in raw counts. Greedy complementary suppression continues until no
-declared relation recovers a single suppressed row or a disclosive suppressed
-sum. Only the presentation frame is an export candidate; it omits raw missing,
-supplied, hospital and weighted denominator fields and carries no extra
-attributes. Focused tests cover counts 0/1/9/10/11 under both zero policies, a
-15,000 weighted total from three discharges, one contributing hospital, binary
-complements, missing-count differencing, single and summed-pair margin recovery,
-a suppressed total, pooled reused hospital IDs and declaration failures.
-The focused suite passes 78 expectations. Precommit Windows verification passes
-1,590 package assertions, 60 metadata-tool assertions, all 36 merge-gate
-scenarios, source Status OK, tarball inspection and installed reviews for all
-six invented year labels. Clean committed-head verification, independent review
-and hosted checks remain required before protected merge.
+defaulted. Checks use unweighted included, missing, nonzero, binary complement
+and two-level counts and their native first-level hospitals. Declared margins
+must hold exactly in raw counts. Complementary suppression covers rows on the
+same field, single-margin recovery and disclosive or single-hospital suppressed
+sums, fields determined by combined margins, and disclosive differences between
+published unweighted counts. Only the presentation frame is an export
+candidate; it omits raw missing, supplied, hospital and weighted denominator
+fields and carries no extra attributes.
+
+Independent review of the first head reproduced two exact recoveries: a
+proportion row left published beside its complementary-suppressed count row,
+and three margins that jointly determined a suppressed category. Both now have
+failing-before regressions, together with tests for single-hospital sums,
+nested missing counts, 1/2 coding, zero-valued hospitals, and logical and
+BIGINT outcomes. Removing any of the four new repairs fails the focused suite,
+which passes 93 expectations. Cases also cover counts 0/1/9/10/11 under both
+zero policies, a 15,000 weighted total from three discharges, pooled reused
+hospital IDs and declaration failures. Full verification, refreshed review and
+hosted checks are required for the corrected head. Precommit corrected
+verification passes 1,605 package assertions, 60 tool assertions, all 36 merge-
+gate scenarios, source Status OK and installed reviews for six invented years.
 Regression-table review, undeclared relations and rendering remain open.
 The policy is not scientifically or legally approved.
 

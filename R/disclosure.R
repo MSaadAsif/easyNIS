@@ -25,14 +25,16 @@
 #'   `suppressed_primary` or `suppressed_complementary`). Suppressed rows have
 #'   `NA` values. `audit` and `table` contain raw counts and must stay local.
 #' @details Every row checks included, missing and nonzero discharge counts.
-#'   Binary fields also check zero-valued discharges, which a published
-#'   proportion and count reveal. Nonempty nonzero and zero-valued groups also
-#'   check their contributing hospitals. Margins compare nonzero counts for
-#'   binary rows and included counts otherwise. Complementary suppression
-#'   repeatedly suppresses the published member with the smallest margin count
-#'   until no declared relation recovers one suppressed row or a disclosive
-#'   sum. The procedure is greedy, conservative and limited to declared
-#'   relations. Annual support and scientific approval remain pending.
+#'   Binary fields also check zero-valued discharges, and other two-valued
+#'   fields check their smaller level. Nonempty groups also check their
+#'   contributing hospitals. Margins compare nonzero counts for binary rows and
+#'   included counts otherwise. Complementary suppression repeats until rows on
+#'   a suppressed field are all suppressed, no single margin recovers one
+#'   suppressed row or a disclosive or single-hospital suppressed sum, no
+#'   combination of margins determines a suppressed field, and no two published
+#'   `unweighted_n` values differ by a disclosive amount. The procedure is
+#'   greedy, conservative and limited to declared relations. Annual support and
+#'   scientific approval remain pending.
 #' @export
 #' @examples
 #' if (requireNamespace("survey", quietly = TRUE)) {
@@ -84,40 +86,56 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
   in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
   disclosive <- function(count) in_range(count) | (zero == "suppress" & count == 0)
 
-  audit <- do.call(rbind, lapply(seq_along(ids), function(i) {
+  fields <- vapply(table$results, function(x) x$provenance$field, character(1), USE.NAMES = FALSE)
+  rows <- lapply(seq_along(ids), function(i) {
     result <- table$results[[i]]
-    field <- result$provenance$field
-    value <- result$design$variables[[field]]
+    value <- result$design$variables[[fields[[i]]]]
     if (inherits(value, "integer64")) value <- as.double(as.character(value))
     hospital <- as.character(result$design$cluster[[1L]])
     if (length(value) != length(hospital) || anyNA(value)) {
       stop("Row `", ids[[i]], "` does not retain its included outcome values.", call. = FALSE)
     }
+    list(value = value, hospital = hospital,
+         binary = is.logical(value) || all(value %in% c(0, 1)))
+  })
+  audit <- do.call(rbind, lapply(seq_along(ids), function(i) {
+    value <- rows[[i]]$value
+    hospital <- rows[[i]]$hospital
     nonzero <- value != 0
-    binary <- is.logical(value) || all(value %in% c(0, 1))
-    data.frame(id = ids[[i]], binary = binary,
+    levels <- if (!rows[[i]]$binary && length(unique(value)) == 2L) split(hospital, value) else list()
+    data.frame(id = ids[[i]], field = fields[[i]], binary = rows[[i]]$binary,
       included = as.double(length(value)),
-      missing = as.double(result$sample$excluded_missing),
+      missing = as.double(table$results[[i]]$sample$excluded_missing),
       nonzero = as.double(sum(nonzero)),
       zero_valued = as.double(sum(!nonzero)),
+      two_level_minimum = if (length(levels)) as.double(min(lengths(levels))) else NA_real_,
       hospitals_included = as.double(length(unique(hospital))),
       hospitals_nonzero = as.double(length(unique(hospital[nonzero]))),
       hospitals_zero_valued = as.double(length(unique(hospital[!nonzero]))),
+      hospitals_two_level = if (length(levels)) {
+        as.double(min(vapply(levels, function(h) length(unique(h)), integer(1))))
+      } else NA_real_,
       stringsAsFactors = FALSE)
   }))
   audit$margin_count <- ifelse(audit$binary, audit$nonzero, audit$included)
+  margin_hospitals <- lapply(rows, function(row) {
+    if (row$binary) row$hospital[row$value != 0] else row$hospital
+  })
   reasons <- vector("list", nrow(audit))
   for (i in seq_len(nrow(audit))) {
     row <- audit[i, ]
+    two_level <- !is.na(row$two_level_minimum)
     failed <- c(
       included = disclosive(row$included),
       missing = in_range(row$missing),
       nonzero = disclosive(row$nonzero),
       zero_valued = row$binary && disclosive(row$zero_valued),
+      two_level = two_level && in_range(row$two_level_minimum),
       hospitals_included = row$hospitals_included < min_hospitals,
       hospitals_nonzero = row$nonzero > 0 && row$hospitals_nonzero < min_hospitals,
       hospitals_zero_valued = row$binary && row$zero_valued > 0 &&
-        row$hospitals_zero_valued < min_hospitals)
+        row$hospitals_zero_valued < min_hospitals,
+      hospitals_two_level = two_level && row$hospitals_two_level < min_hospitals)
     reasons[[i]] <- names(failed)[failed]
   }
   status <- ifelse(lengths(reasons) > 0L, "suppressed_primary", "shown")
@@ -129,21 +147,74 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
            "` does not equal the sum of its parts in raw counts.", call. = FALSE)
     }
   }
+  unique_fields <- unique(fields)
+  # Each relation is total - sum(parts) = 0 over field-level raw counts.
+  equations <- matrix(0, length(margins), length(unique_fields))
+  for (k in seq_along(margins)) {
+    columns <- match(fields[match(c(margins[[k]]$total, margins[[k]]$parts), ids)], unique_fields)
+    signs <- c(1, rep(-1, length(margins[[k]]$parts)))
+    for (j in seq_along(columns)) {
+      equations[k, columns[[j]]] <- equations[k, columns[[j]]] + signs[[j]]
+    }
+  }
+  hide_row <- function(pick, reason) {
+    status[[pick]] <<- "suppressed_complementary"
+    reasons[[pick]] <<- reason
+  }
+  smallest <- function(candidates) candidates[order(audit$margin_count[candidates], candidates)][[1L]]
   repeat {
     repaired <- FALSE
+    for (i in which(status != "shown")) {
+      for (j in which(status == "shown" & fields == fields[[i]])) {
+        hide_row(j, paste0("field:", ids[[i]]))
+        repaired <- TRUE
+      }
+    }
+    if (repaired) next
     for (k in seq_along(margins)) {
       members <- match(c(margins[[k]]$total, margins[[k]]$parts), ids)
       hidden <- members[status[members] != "shown"]
       published <- members[status[members] == "shown"]
       if (!length(hidden) || !length(published)) next
       total_hidden <- status[members[[1L]]] != "shown"
-      exposed <- length(hidden) == 1L ||
-        (!total_hidden && disclosive(sum(audit$margin_count[hidden])))
+      exposed <- length(hidden) == 1L || (!total_hidden &&
+        (disclosive(sum(audit$margin_count[hidden])) ||
+         length(unique(unlist(margin_hospitals[hidden]))) < min_hospitals))
       if (!exposed) next
-      pick <- published[order(audit$margin_count[published], published)][[1L]]
-      status[[pick]] <- "suppressed_complementary"
-      reasons[[pick]] <- paste0("margin:", k)
+      hide_row(smallest(published), paste0("margin:", k))
       repaired <- TRUE
+      break
+    }
+    if (repaired) next
+    hidden_fields <- unique_fields %in% fields[status != "shown"]
+    if (length(margins) && any(hidden_fields)) {
+      reduced <- equations[, hidden_fields, drop = FALSE]
+      rank <- qr(reduced)$rank
+      for (j in which(hidden_fields & colSums(equations != 0) > 0)) {
+        unit <- as.double(unique_fields[hidden_fields] == unique_fields[[j]])
+        if (qr(rbind(reduced, unit))$rank > rank) next
+        related <- which(equations[, j] != 0)
+        candidates <- unique(unlist(lapply(margins[related], function(relation) {
+          match(c(relation$total, relation$parts), ids)
+        })))
+        candidates <- candidates[status[candidates] == "shown"]
+        if (!length(candidates)) next
+        hide_row(smallest(candidates), paste0("margins:", unique_fields[[j]]))
+        repaired <- TRUE
+        break
+      }
+    }
+    if (repaired) next
+    shown_rows <- which(status == "shown")
+    for (a in shown_rows) {
+      gap <- abs(audit$included[shown_rows] - audit$included[[a]])
+      partner <- shown_rows[gap > 0 & in_range(gap)]
+      if (!length(partner)) next
+      pair <- c(a, partner[[1L]])
+      pick <- pair[order(-audit$missing[pair], -pair)][[1L]]
+      hide_row(pick, paste0("n_difference:", ids[[setdiff(pair, pick)]]))
+      repaired <- TRUE
+      break
     }
     if (!repaired) break
   }
@@ -165,7 +236,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       min_hospitals = min_hospitals, margins = margins),
     rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
     count_basis = "unweighted included discharges",
-    complementary = "greedy smallest margin count over declared additive relations",
+    complementary = "greedy: same-field rows, declared relation recovery and sums, linear determination, unweighted n differences",
     table = table$provenance, scope = "experimental_disclosure_review",
     analysis_ready = FALSE)
   structure(list(presentation = presentation, audit = audit, table = table,
