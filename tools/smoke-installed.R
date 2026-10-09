@@ -11,6 +11,7 @@ exercise_year <- function(year) {
   core$I10_DX1 <- rep(c("A001", "B002"), length.out = nrow(core))
   core$domain <- core$HOSP_NIS %in% c("0001", "0003")
   core$exposure <- rep(c(1, 2, 3), length.out = nrow(core))
+  core$contrast_x <- rep(c(-2, -1, 1), 4L) + rep(c(-0.4, 0.2, 0.6, -0.3), each = 3L)
   session <- nis_open()
   path <- tempfile(fileext = ".parquet")
   on.exit({ nis_close(session); unlink(path) }, add = TRUE)
@@ -38,7 +39,7 @@ exercise_year <- function(year) {
   collision <- tryCatch(nis_flag_codes(source_dropped, "discwt", codes,
     "principal_diagnosis", "no_match"), error = identity)
   stopifnot(inherits(collision, "error"), grepl("conflicts", conditionMessage(collision)))
-  design <- nis_survey_design(data, c("LOS", "domain", "exposure"), full_population = TRUE,
+  design <- nis_survey_design(data, c("LOS", "domain", "exposure", "contrast_x"), full_population = TRUE,
     method = "hospital_wr", singleton = "fail")
   domain <- nis_domain(design, "domain", "fail")
   total <- survey::svytotal(~LOS, domain$design)
@@ -117,6 +118,33 @@ exercise_year <- function(year) {
       identical(fit$design$variables$LOS, core$LOS[keep]))
   }
   cat("Invented year", year, "passed transformed-response and exposure-offset model references.\n")
+  x <- cbind("(Intercept)" = 1, contrast_x = core$contrast_x)
+  w <- core$DISCWT
+  bread <- solve(crossprod(x, x * w))
+  coefficients <- drop(bread %*% crossprod(x, w * core$LOS))
+  score <- x * (w * (core$LOS - drop(x %*% coefficients)))
+  hospitals <- rowsum(score, core$HOSP_NIS)
+  mapping <- core$NIS_STRATUM[match(rownames(hospitals), core$HOSP_NIS)]
+  meat <- matrix(0, 2L, 2L)
+  for (stratum in unique(mapping)) {
+    values <- hospitals[mapping == stratum, , drop = FALSE]
+    centered <- sweep(values, 2L, colMeans(values))
+    meat <- meat + nrow(values) / (nrow(values) - 1L) * crossprod(centered)
+  }
+  covariance <- bread %*% meat %*% bread
+  fit <- nis_model(design, LOS ~ contrast_x, "gaussian", "fail", 2, 0.95, "wr_unadjusted")
+  contrast <- nis_model_contrast(fit, c(contrast_x = 2), "mean_difference")
+  expected <- 2 * coefficients[2L]
+  se <- 2 * sqrt(covariance[2L, 2L])
+  stopifnot(abs(contrast$estimate - expected) < 1e-10,
+    abs(contrast$link_se - se) < 1e-10,
+    abs(contrast$effect_se - se) < 1e-10,
+    abs(contrast$lower - (expected - stats::qt(0.975, 2) * se)) < 1e-10,
+    abs(contrast$upper - (expected + stats::qt(0.975, 2) * se)) < 1e-10,
+    abs(contrast$p_value - 2 * stats::pt(abs(expected / se), 2, lower.tail = FALSE)) < 1e-10,
+    identical(contrast$model, fit), contrast$contrast[["(Intercept)"]] == 0,
+    identical(contrast$provenance$analysis_ready, FALSE))
+  cat("Invented year", year, "passed installed model contrast against independent slope/sandwich reference.\n")
   cat("Invented year", year, "passed import, flags, selection, survey domains and scalar estimate references.\n")
   design
 }
