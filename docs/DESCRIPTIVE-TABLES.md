@@ -46,8 +46,9 @@ The table also retains the declarations and inference policies in provenance.
 
 These are internal numeric tables with disclosure status `unreviewed` and
 `analysis_ready = FALSE`. They do not apply suppression, serialize results,
-approve publication or promote annual support. Downstream disclosure and
-rendering must enforce their own acceptance criteria before publication.
+approve publication or promote annual support. [DISCLOSURE.md](DISCLOSURE.md)
+describes the separate experimental review; rendering must enforce its own
+acceptance criteria before publication.
 
 Verification must exercise the installed public interface on invented data.
 Independent hospital-level arithmetic must check weighted means, proportions,
