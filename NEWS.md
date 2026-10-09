@@ -1,5 +1,17 @@
 # easyNIS 0.0.0.9000
 
+## Experimental disclosure review
+
+- Added `nis_disclosure_review()` for descriptive tables. Caller-declared
+  ranges, zero policy, hospital minimum and additive margins drive primary and
+  greedy complementary suppression from unweighted discharge counts. Rows on
+  one field are suppressed together, and combined margins and published count
+  differences are checked.
+- Only the returned `presentation` is an export candidate; it omits raw
+  missing, supplied, hospital and weighted denominator fields. The audit and
+  original table stay internal. Regression tables, rendering and annual
+  support are not changed.
+
 ## Experimental numeric regression tables
 
 - Added `nis_regression_table()` to select existing model coefficients on the
