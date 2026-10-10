@@ -511,9 +511,12 @@ when every row was suppressed and a level just below one displayed as 100
 percent. HTML now retains an exact separate confidence column on every row;
 interval suppression still hides all bounds. A failing-before public regression
 covers three confidence levels with exact and rounded displays. The focused
-export suite passes 149 expectations. Standalone notes explicitly identify
+export suite passes 150 expectations. Standalone notes explicitly identify
 unchecked larger combinations of declared margins. Final verification and
 refreshed independent review are required for this correction.
+The macOS CI run rejected the decimal near-one fixture after it parsed as one;
+the boundary fixture now uses machine epsilon to preserve a value below one
+without changing production validation or weakening the confidence case.
 
 ## Foundation and metadata
 

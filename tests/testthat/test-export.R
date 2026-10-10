@@ -56,7 +56,10 @@ test_that("HTML retains exact confidence levels when every row is suppressed", {
     "hospital_wr", "fail")
   output <- tempfile(fileext = ".html")
   on.exit(unlink(output), add = TRUE)
-  for (confidence in c(0.9, 0.9123456789012345, 0.9999999999999999)) {
+  # Avoid decimal-literal parsing differences at the upper boundary on macOS.
+  near_one <- 1 - .Machine$double.eps / 2
+  expect_lt(near_one, 1)
+  for (confidence in c(0.9, 0.9123456789012345, near_one)) {
     table <- nis_descriptive_table(design, export_spec[1L, ], "exclude", Inf,
       confidence, "wr_unadjusted")
     review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
