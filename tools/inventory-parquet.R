@@ -22,7 +22,7 @@ main <- function(args) {
       "DESCRIBE SELECT * FROM read_parquet(", quoted, ")"
     ))
     footer <- DBI::dbGetQuery(con, paste0(
-      "SELECT num_rows, num_row_groups FROM parquet_file_metadata(", quoted, ")"
+      "SELECT num_rows, num_row_groups, created_by FROM parquet_file_metadata(", quoted, ")"
     ))
     if (nrow(footer) != 1L) stop("Expected one footer for ", relative_path)
     year_match <- regexec("NIS_([0-9]{4})[.]parquet", relative_path)
@@ -34,6 +34,7 @@ main <- function(args) {
       modified_utc = format(info$mtime, tz = "UTC", usetz = TRUE),
       rows_from_footer = as.character(footer$num_rows),
       row_groups = as.character(footer$num_row_groups), columns = nrow(schema),
+      writer_metadata = as.character(footer$created_by),
       conversion_provenance = "unknown", release_revision = "unknown",
       labels_preserved = "unverified", missing_reasons_preserved = "unverified",
       prefiltered = "unknown", stringsAsFactors = FALSE
@@ -59,10 +60,11 @@ main <- function(args) {
     "Only file footers and schemas were queried. No discharge values were read or exported.",
     "Year hints come from directory names, not inspected YEAR values.",
     "Footer counts are not independent source-count validation.",
+    "writer_metadata is the unverified created_by footer string, not proof of the converter, source release or transformations.",
     "Conversion history, prefiltering, labels, missing reasons, and revisions remain unverified.",
     "Keep these receipts ignored and outside any distributed package."
   ), file.path(output, "README.md"))
   cat("Inventoried", length(files), "parquet files. Receipts saved privately.\n")
 }
 
-main(commandArgs(trailingOnly = TRUE))
+if (sys.nframe() == 0L) main(commandArgs(trailingOnly = TRUE))
