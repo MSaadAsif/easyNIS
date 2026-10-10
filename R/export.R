@@ -1,8 +1,8 @@
 #' Export a disclosure-reviewed table
 #'
 #' Writes the presentation of one [nis_disclosure_review()] to CSV or HTML.
-#' Only reviewed presentations can be exported, and the review is rechecked
-#' before writing. The file is a candidate for human publication review and
+#' Only reviewed presentations can be exported. The review is recomputed from
+#' its retained results and recorded policy and must match exactly. The file is a candidate for human publication review and
 #' does not certify a manuscript.
 #'
 #' @param review An experimental [nis_disclosure_review()] result.
@@ -83,44 +83,33 @@ nis_export_table <- function(review, path, format, digits, overwrite) {
   staged <- tempfile("easyNIS-export-", tmpdir = directory, fileext = paste0(".", format))
   on.exit(if (file.exists(staged)) unlink(staged), add = TRUE)
   connection <- file(staged, open = "wb")
-  writeLines(enc2utf8(lines), connection, sep = "\n", useBytes = TRUE)
-  close(connection)
+  tryCatch(writeLines(enc2utf8(lines), connection, sep = "\n", useBytes = TRUE),
+    finally = close(connection))
   if (!file.rename(staged, path)) stop("Could not write `path`.", call. = FALSE)
   invisible(normalizePath(path))
 }
-
-presentation_columns <- c("id", "label", "statistic", "unit", "estimand", "estimate",
-  "se", "lower", "upper", "df", "confidence", "unweighted_n", "disclosure_status")
-hidden_columns <- c("estimate", "se", "lower", "upper", "unweighted_n")
 
 check_review <- function(review) {
   refuse <- function() {
     stop("`review` must be an unmodified nis_disclosure_review result.", call. = FALSE)
   }
+  table <- review$table
+  policy <- review$provenance$policy
   if (!inherits(review, "nis_disclosure_review") || !is.list(review) ||
-      !is.data.frame(review$presentation) || !inherits(review$table, "nis_descriptive_table") ||
-      !is.data.frame(review$table$data) || !is.data.frame(review$audit) ||
-      !identical(review$provenance$scope, "experimental_disclosure_review")) refuse()
-  shown_table <- review$presentation
-  data <- review$table$data
-  if (!identical(names(shown_table), presentation_columns) ||
-      !setequal(names(attributes(shown_table)), c("names", "class", "row.names")) ||
-      nrow(shown_table) != nrow(data) || nrow(review$audit) != nrow(data) ||
-      !all(shown_table$disclosure_status %in%
-        c("shown", "suppressed_primary", "suppressed_complementary")) ||
-      !identical(review$audit$disclosure_status, shown_table$disclosure_status)) refuse()
-  for (column in c("id", "label", "statistic", "unit", "estimand", "df", "confidence")) {
-    if (!identical(shown_table[[column]], data[[column]])) refuse()
+      !identical(names(review), c("presentation", "audit", "table", "provenance")) ||
+      !is.data.frame(review$presentation) || !inherits(table, "nis_descriptive_table") ||
+      !is.data.frame(table$data) || !is.list(table$results) ||
+      !identical(names(table$results), table$data$id) || !is.list(policy)) refuse()
+  for (column in c("estimate", "se", "lower", "upper", "df", "confidence")) {
+    from_results <- vapply(table$results, function(x) {
+      if (is.numeric(x[[column]]) && length(x[[column]]) == 1L) as.double(x[[column]]) else NaN
+    }, numeric(1), USE.NAMES = FALSE)
+    field <- if (column == "estimate") "weighted_estimate" else column
+    if (!identical(as.double(table$data[[field]]), from_results)) refuse()
   }
-  shown <- shown_table$disclosure_status == "shown"
-  if (any(!vapply(shown_table[hidden_columns], is.numeric, logical(1))) ||
-      any(!is.na(as.matrix(shown_table[!shown, hidden_columns, drop = FALSE])))) refuse()
-  expected <- list(estimate = data$weighted_estimate, se = data$se, lower = data$lower,
-    upper = data$upper, unweighted_n = review$audit$included)
-  for (column in hidden_columns) {
-    if (!identical(as.double(shown_table[[column]][shown]),
-                   as.double(expected[[column]][shown]))) refuse()
-  }
+  rerun <- tryCatch(nis_disclosure_review(table, policy$suppress, policy$zero,
+    policy$min_hospitals, policy$margins), error = function(e) NULL)
+  if (is.null(rerun) || !identical(rerun, review)) refuse()
   invisible(TRUE)
 }
 
@@ -128,11 +117,8 @@ exact_number <- function(x) {
   vapply(x, function(value) {
     if (is.na(value)) return("")
     if (is.infinite(value)) return(if (value > 0) "Inf" else "-Inf")
-    for (digits in 15:17) {
-      text <- sprintf("%.*g", digits, value)
-      if (as.numeric(text) == value) return(text)
-    }
-    text
+    if (value == round(value) && abs(value) <= 2^53) return(sprintf("%.0f", value))
+    sprintf("%.17g", value)
   }, character(1), USE.NAMES = FALSE)
 }
 

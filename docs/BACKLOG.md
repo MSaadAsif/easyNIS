@@ -485,15 +485,19 @@ its head and resulting main checks passed.
 
 The first NIS-020 increment adds `nis_export_table()` under
 [EXPORT.md](EXPORT.md). It writes only a rechecked disclosure review's
-presentation, to CSV or HTML with base R. Descriptive and regression tables and
-modified reviews, including a revealed suppressed value, a changed shown value,
-an added column or attribute and a relabeled status, are refused. CSV values
-parse back to identical doubles, using up to 17 significant digits, with empty
-suppressed cells and no audit fields. HTML escapes caller text, records the
+presentation, to CSV or HTML with base R. Descriptive and regression tables are
+refused. Each review is recomputed from its retained results and recorded
+policy and must match exactly, so modified reviews are refused even when the
+edit is consistent across presentation, audit, table and provenance. CSV
+writes whole numbers in full and other values with 17 significant digits, which
+any correctly rounding parser reads back exactly, with empty suppressed cells
+and no audit fields. HTML escapes caller text, records the
 experimental scope, count basis and policy, rounds only to caller-chosen
 significant digits, and contains no suppressed value. Output is staged and
-renamed; existing files are replaced only on request. The focused suite passes
-117 expectations covering infinite df, non-ASCII, comma, quote and newline
+renamed; existing files are replaced only on request. Independent review of
+the first head reproduced an exported hidden value after a consistent
+multi-field relabel, a forged policy note and forged counts; each now has a
+failing-before regression. The focused suite passes 122 expectations covering infinite df, non-ASCII, comma, quote and newline
 labels, markup in labels and units, rounding, argument errors, extension
 mismatch, missing directories and replacement. The installed smoke exports the
 subtotal reproduction in both formats. Word output, regression-table export and

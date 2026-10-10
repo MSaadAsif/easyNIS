@@ -1,11 +1,8 @@
 export_n <- 200L
 
-# Independent shortest exact decimal form of a double.
+# Independent exact decimal form: whole numbers in full, others with 17 digits.
 nis_test_exact <- function(x) {
-  for (digits in 15:17) {
-    text <- sprintf("%.*g", digits, x)
-    if (as.numeric(text) == x) return(text)
-  }
+  if (x == trunc(x)) format(x, scientific = FALSE) else sprintf("%.17g", x)
 }
 
 # Hospital h holds rows 20 * (h - 1) + 1:20; strata split hospitals 1-5 and 6-10.
@@ -46,6 +43,8 @@ export_review <- function(session, df = Inf) {
     list(list(total = "all", parts = c("cat_a", "cat_b", "cat_c"))))
 }
 
+escape_test <- function(x) gsub(">", "&gt;", gsub("<", "&lt;", x, fixed = TRUE), fixed = TRUE)
+
 text_of <- function(path) paste(readLines(path, encoding = "UTF-8", warn = FALSE), collapse = "\n")
 
 test_that("CSV round-trips shown values exactly and leaves suppressed cells empty", {
@@ -77,7 +76,7 @@ test_that("CSV round-trips shown values exactly and leaves suppressed cells empt
   lines <- readLines(path, encoding = "UTF-8")
   hidden_line <- lines[[which(out$id == "c1") + 1L]]
   expect_identical(hidden_line,
-    "\"c1\",\"Rare <b>event</b>\",\"total\",\"weighted discharges\",\"single_year_total\",,,,,Inf,0.9,,\"suppressed_primary\"")
+    "\"c1\",\"Rare <b>event</b>\",\"total\",\"weighted discharges\",\"single_year_total\",,,,,Inf,0.90000000000000002,,\"suppressed_primary\"")
   expect_false(any(grepl("raw_missing|analysis_hospitals|weighted_denominator|included",
     lines[[1L]])))
 })
@@ -122,8 +121,12 @@ test_that("HTML escapes text, records the policy and never shows hidden values",
     expect_identical(cells[c(5:7, 9)], rep("<td>Suppressed</td>", 4))
   }
   for (i in which(shown)) {
-    expect_match(rows[[i]], paste0("<td>", nis_test_exact(table$weighted_estimate[[i]]),
-      "</td>"), fixed = TRUE)
+    cells <- regmatches(rows[[i]], gregexpr("<td>.*?</td>", rows[[i]]))[[1L]]
+    expect_identical(cells[2:7], paste0("<td>", c(table$statistic[[i]],
+      escape_test(table$unit[[i]]), table$estimand[[i]],
+      nis_test_exact(table$weighted_estimate[[i]]), nis_test_exact(table$se[[i]]),
+      paste0(nis_test_exact(table$lower[[i]]), " to ", nis_test_exact(table$upper[[i]]),
+        " (90%)")), "</td>"))
   }
 })
 
@@ -183,6 +186,34 @@ test_that("only unmodified disclosure reviews can be exported", {
   count <- review
   count$presentation$unweighted_n[[shown]] <- count$presentation$unweighted_n[[shown]] - 1
   expect_error(nis_export_table(count, path, "csv", NULL, FALSE), "unmodified")
+  hidden_row <- function(x, i) {
+    x$presentation$disclosure_status[[i]] <- "shown"
+    x$audit$disclosure_status[[i]] <- "shown"
+    for (column in c("estimate", "se", "lower", "upper")) {
+      x$presentation[[column]][[i]] <- x$table$data[[if (column == "estimate")
+        "weighted_estimate" else column]][[i]]
+    }
+    x$presentation$unweighted_n[[i]] <- x$audit$included[[i]]
+    x
+  }
+  expect_error(nis_export_table(hidden_row(review, hidden), path, "csv", NULL, FALSE),
+    "unmodified")
+  forged_policy <- review
+  forged_policy$provenance$policy <- list(suppress = c(1, 3), zero = "display",
+    min_hospitals = 1, margins = list())
+  expect_error(nis_export_table(forged_policy, path, "csv", NULL, FALSE), "unmodified")
+  forged_count <- review
+  forged_count$audit$included[[shown]] <- forged_count$audit$included[[shown]] + 1
+  forged_count$presentation$unweighted_n[[shown]] <- forged_count$audit$included[[shown]]
+  expect_error(nis_export_table(forged_count, path, "csv", NULL, FALSE), "unmodified")
+  forged_estimate <- review
+  forged_estimate$table$data$weighted_estimate[[shown]] <- 1
+  forged_estimate$presentation$estimate[[shown]] <- 1
+  expect_error(nis_export_table(forged_estimate, path, "csv", NULL, FALSE), "unmodified")
+  factor_status <- review
+  factor_status$presentation$disclosure_status <- factor(review$presentation$disclosure_status)
+  factor_status$audit$disclosure_status <- factor_status$presentation$disclosure_status
+  expect_error(nis_export_table(factor_status, path, "csv", NULL, FALSE), "unmodified")
   expect_false(file.exists(path))
 })
 

@@ -13,12 +13,16 @@ does not certify a manuscript or approve annual support.
 
 - `review` is an experimental `nis_disclosure_review`. Descriptive tables,
   regression tables and other objects are refused, so unreviewed values have
-  no export path. The review is rechecked before writing: `presentation` must
-  have exactly its documented columns in order, one row per table row with
-  matching IDs, labels, statistics, units and estimands, valid statuses, `NA`
-  estimate, SE, interval and count on every suppressed row, and shown values
-  identical to the reviewed numeric table. A modified review is refused
-  rather than exported.
+  no export path. Before writing, the table's estimate, SE, interval, df and
+  confidence columns must equal the retained `nis_estimate` results, and the
+  review is recomputed from its table under its recorded policy. The complete
+  recomputed review, including presentation, audit and provenance, must be
+  identical to the supplied one. A review edited in one field, or consistently
+  across fields, such as a relabeled status with revealed values, a changed
+  count or estimate, or a different recorded policy, is refused. Recomputation
+  cannot authenticate an object whose retained estimates were themselves
+  forged; it ensures the file matches what the review procedure produces from
+  the retained results.
 - `path` is one file path whose extension matches `format`
   (case-insensitive). Its directory must exist.
 - `format` is `"csv"` or `"html"`.
@@ -31,20 +35,22 @@ does not certify a manuscript or approve annual support.
 
 The file is written to a temporary file in the target directory and then
 renamed, so a failed call leaves no partial output and preserves an existing
-file. The call returns the normalized path invisibly. It never modifies the
+file. The existence check precedes the rename, so a file created at `path` by
+another process during the call can still be replaced. The call returns the normalized path invisibly. It never modifies the
 review.
 
 ## CSV
 
 The CSV contains the 13 presentation columns in order, UTF-8 encoded, with
 `\n` line endings and a header row. Text columns are quoted, with embedded
-quotes doubled. Numeric values use the shortest of 15, 16 or 17 significant
-digits that parses back to the identical double, so `utils::read.csv()`
-recovers every shown value exactly. Infinite degrees of freedom are written as
+quotes doubled. Whole numbers up to 2^53 are written in full and other values
+with 17 significant digits, which identifies each double exactly for any
+correctly rounding parser, including `utils::read.csv()`. Infinite degrees of freedom are written as
 `Inf`. Suppressed cells are empty, and `disclosure_status` records whether the
 row was shown or suppressed as primary or complementary. Audit counts, missing
 counts, supplied counts, hospital counts and weighted denominators are never
-written.
+written. Text is quoted but `utils::read.csv()` still converts a label of
+`NA` to a missing value unless `na.strings` is changed.
 
 The CSV is a data interchange file and carries no policy notes. Keep it with
 the review provenance or the HTML export, which records the policy. Spreadsheet
@@ -58,8 +64,10 @@ The HTML file is a standalone UTF-8 document with no scripts or external
 resources. Every caller-supplied text value is escaped. The table shows the
 label, statistic, unit, estimand, estimate, SE, interval with its confidence
 level, degrees of freedom, unweighted discharges and disclosure status.
-Suppressed rows show `Suppressed` in every value cell and state primary or
-complementary suppression; no hidden value appears anywhere in the document.
+Suppressed rows show `Suppressed` in the estimate, SE, interval and count
+cells and state primary or complementary suppression; their df and confidence
+level are the caller's table-wide choices and remain visible. No hidden value
+appears anywhere in the document.
 
 Notes under the table state that the table is experimental and not analysis
 ready, that counts are unweighted included discharges rather than patients,
@@ -78,6 +86,8 @@ markup, quotes and ampersands in labels and units, non-ASCII labels in both
 formats, commas, quotes and newlines in CSV text, rounding to significant
 digits without changing the review, the absence of hidden values from HTML,
 refusal of unreviewed descriptive tables, regression tables and modified
-reviews (including a revealed suppressed value and a changed shown value),
+reviews (including a revealed suppressed value, a status relabeled
+consistently with revealed values, a forged policy, consistently changed
+counts and estimates, and factor statuses),
 argument errors, extension mismatch, a missing directory, refusal to replace
 an existing file and explicit replacement.
