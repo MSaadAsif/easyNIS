@@ -290,7 +290,7 @@ cat("Installed declared subtotals passed the seven-discharge hidden-sum regressi
 export_dir <- tempfile("easyNIS-export-smoke-")
 dir.create(export_dir)
 export_csv <- nis_export_table(subtotal_review, file.path(export_dir, "subtotals.csv"), "csv",
-  NULL, FALSE)
+  NULL, "refuse", FALSE)
 exported <- utils::read.csv(export_csv, stringsAsFactors = FALSE)
 stopifnot(identical(names(exported), names(subtotal_review$presentation)),
   identical(exported$disclosure_status, subtotal_review$presentation$disclosure_status),
@@ -298,13 +298,27 @@ stopifnot(identical(names(exported), names(subtotal_review$presentation)),
   identical(as.double(exported$unweighted_n), as.double(subtotal_review$presentation$unweighted_n)),
   all(is.na(exported$estimate[!subtotal_shown])))
 export_html <- nis_export_table(subtotal_review, file.path(export_dir, "subtotals.html"), "html",
-  4, FALSE)
+  4, NULL, FALSE)
 html_text <- paste(readLines(export_html, encoding = "UTF-8"), collapse = "\n")
 stopifnot(grepl("Suppressed (complementary)", html_text, fixed = TRUE),
   grepl("not analysis ready", html_text, fixed = TRUE),
   inherits(tryCatch(nis_export_table(subtotal_review$table, file.path(export_dir, "raw.csv"),
-    "csv", NULL, FALSE), error = identity), "error"),
+    "csv", NULL, "refuse", FALSE), error = identity), "error"),
   !file.exists(file.path(export_dir, "raw.csv")))
+formula_table <- nis_descriptive_table(designs[[length(designs)]],
+  data.frame(id = "@los", field = "LOS", statistic = "mean",
+    label = "=HYPERLINK(\"https://example.invalid\")", unit = "days"),
+  "exclude", 2, 0.95, "wr_unadjusted")
+formula_review <- nis_disclosure_review(formula_table, c(1, 10), "display", 2, list())
+formula_csv <- file.path(export_dir, "formula.csv")
+formula_refused <- tryCatch(nis_export_table(formula_review, formula_csv, "csv", NULL,
+  "refuse", FALSE), error = conditionMessage)
+stopifnot(grepl("id in row '@los', label in row '@los'", formula_refused, fixed = TRUE),
+  !file.exists(formula_csv))
+nis_export_table(formula_review, formula_csv, "csv", NULL, "prefix", FALSE)
+formula_back <- utils::read.csv(formula_csv, stringsAsFactors = FALSE)
+stopifnot(identical(formula_back$id, "'@los"),
+  identical(formula_back$label, paste0("'", formula_review$presentation$label)))
 unlink(export_dir, recursive = TRUE)
-cat("Installed CSV and HTML exports preserved shown values and suppression.\n")
+cat("Installed CSV and HTML exports preserved shown values and suppression and handled formula text.\n")
 cat("Installed workflow passed; year support remains experimental.\n")

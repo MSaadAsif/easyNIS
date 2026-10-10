@@ -4,7 +4,7 @@
 \alias{nis_export_table}
 \title{Export a disclosure-reviewed table}
 \usage{
-nis_export_table(review, path, format, digits, overwrite)
+nis_export_table(review, path, format, digits, formula_text, overwrite)
 }
 \arguments{
 \item{review}{An experimental \code{\link[=nis_disclosure_review]{nis_disclosure_review()}} result.}
@@ -17,6 +17,12 @@ exist.}
 \item{digits}{\code{NULL} for exact values, required for CSV. For HTML, a whole
 number from 1 to 15 rounds the estimate, SE and interval to that many
 significant digits. Counts, df and confidence levels are never rounded.}
+
+\item{formula_text}{For CSV, how to write text cells that begin with \code{=},
+\code{+}, \code{-}, \code{@}, a tab or a carriage return, which spreadsheet programs can
+run as formulas: \code{"refuse"} stops without writing and names each cell,
+\code{"prefix"} writes them with a leading \verb{'}, and \code{"keep"} writes them
+unchanged. Must be \code{NULL} for HTML.}
 
 \item{overwrite}{\code{TRUE} or \code{FALSE}. An existing file is replaced only when
 \code{TRUE}.}
@@ -33,7 +39,7 @@ does not certify a manuscript.
 \details{
 CSV contains the 13 presentation columns with exact numeric values
 that \code{\link[utils:read.csv]{utils::read.csv()}} parses back to identical doubles; suppressed cells
-are empty. HTML is a standalone escaped document whose notes record the
+are empty. Text cells follow \code{formula_text}. HTML is a standalone escaped document whose notes record the
 experimental scope, count basis and disclosure policy. Suppressed values
 appear in neither format, and audit counts are never written. Output is
 written to a temporary file and renamed, so a failure leaves no partial
@@ -54,9 +60,11 @@ if (requireNamespace("survey", quietly = TRUE)) {
   table <- nis_descriptive_table(design, specification, "fail", 2, 0.95,
     "wr_unadjusted")
   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
-  csv <- nis_export_table(review, tempfile(fileext = ".csv"), "csv", NULL, FALSE)
+  csv <- nis_export_table(review, tempfile(fileext = ".csv"), "csv", NULL,
+    "refuse", FALSE)
   utils::read.csv(csv)
-  html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, FALSE)
+  html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, NULL,
+    FALSE)
   nis_close(session)
   unlink(c(path, csv, html))
 }
