@@ -337,4 +337,36 @@ stopifnot(length(docx_rows) == nrow(subtotal_review$presentation),
   any(grepl("not analysis ready", docx_summary$text, fixed = TRUE)))
 unlink(export_dir, recursive = TRUE)
 cat("Installed CSV, HTML and Word exports preserved shown values and suppression and handled formula text.\n")
+workflow <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"),
+  local = new.env())$value
+stopifnot(identical(names(workflow), c("report", "csv", "html")),
+  all(file.exists(unlist(workflow))))
+workflow_csv <- utils::read.csv(workflow$csv, stringsAsFactors = FALSE)
+workflow_report <- readLines(workflow$report, encoding = "UTF-8")
+workflow_html <- paste(readLines(workflow$html, encoding = "UTF-8"), collapse = "\n")
+reference_mean <- (72 + 144 + 240 + 360) / (24 + 36 + 48 + 60)
+reference_se <- sqrt((96 / 7)^2 + (432 / 7)^2) / 168
+stopifnot(identical(workflow_csv$disclosure_status, c("shown", "suppressed_primary")),
+  abs(workflow_csv$estimate[1L] - reference_mean) < 1e-12,
+  abs(workflow_csv$se[1L] - reference_se) < 1e-12,
+  abs(workflow_csv$lower[1L] - (reference_mean - stats::qt(0.975, 2) * reference_se)) < 1e-12,
+  abs(workflow_csv$upper[1L] - (reference_mean + stats::qt(0.975, 2) * reference_se)) < 1e-12,
+  workflow_csv$unweighted_n[1L] == 48,
+  all(is.na(workflow_csv[2L, c("estimate", "se", "lower", "upper", "unweighted_n")])),
+  !any(c("raw_supplied", "raw_missing", "hospitals", "weighted_denominator") %in% names(workflow_csv)),
+  grepl("Suppressed (primary)", workflow_html, fixed = TRUE),
+  all(c("[Exact CSV table](table.csv)", "[HTML table with disclosure notes](table.html)") %in% workflow_report),
+  any(grepl("wr_unadjusted; interval df 2; confidence 0.95", workflow_report, fixed = TRUE)),
+  any(grepl("Code set: A001 ICD10CM", workflow_report, fixed = TRUE)),
+  !any(grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|KEY_NIS|source_receipt|900719925474", workflow_report)),
+  !any(vapply(unlist(workflow), function(path) any(grepl(path, workflow_report, fixed = TRUE)), logical(1))))
+workflow_repeat <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"),
+  local = new.env())$value
+stopifnot(!identical(workflow, workflow_repeat),
+  identical(readLines(workflow_repeat$report), workflow_report),
+  identical(readBin(workflow_repeat$csv, "raw", file.info(workflow_repeat$csv)$size),
+    readBin(workflow$csv, "raw", file.info(workflow$csv)$size)),
+  identical(readLines(workflow_repeat$html), readLines(workflow$html)))
+unlink(c(dirname(workflow$report), dirname(workflow_repeat$report)), recursive = TRUE)
+cat("Installed offline quickstart passed independent WR inference, suppression, sanitized report and repeatability.\n")
 cat("Installed workflow passed; year support remains experimental.\n")
