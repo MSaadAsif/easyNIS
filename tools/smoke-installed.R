@@ -335,6 +335,17 @@ stopifnot(length(docx_rows) == nrow(subtotal_review$presentation),
   identical(vapply(docx_rows[!subtotal_shown], `[[`, character(1), 5L),
     rep("Suppressed", sum(!subtotal_shown))),
   any(grepl("not analysis ready", docx_summary$text, fixed = TRUE)))
+local({
+  previous <- options(OutDec = ".")
+  on.exit(options(previous))
+  output <- file.path(export_dir, "decimal.html")
+  nis_export_table(subtotal_review, output, "html", 3, NULL, TRUE)
+  baseline <- readBin(output, "raw", file.info(output)$size)
+  options(OutDec = ",")
+  nis_export_table(subtotal_review, output, "html", 3, NULL, TRUE)
+  stopifnot(identical(readBin(output, "raw", file.info(output)$size), baseline),
+    identical(getOption("OutDec"), ","))
+})
 unlink(export_dir, recursive = TRUE)
 cat("Installed CSV, HTML and Word exports preserved shown values and suppression and handled formula text.\n")
 workflow <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"),

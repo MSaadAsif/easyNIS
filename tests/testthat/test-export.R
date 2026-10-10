@@ -259,6 +259,37 @@ test_that("HTML rounds to significant digits without changing the review", {
   expect_match(html, "<td>200</td>", fixed = TRUE)
 })
 
+test_that("exports use decimal points independently of caller display options", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  review <- export_review(session, df = 8)
+  before <- review
+  directory <- tempfile()
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  previous <- options(OutDec = ".")
+  on.exit(options(previous), add = TRUE)
+  for (digits in list(NULL, 3)) {
+    for (format in c("csv", "html", "docx")) {
+      if (format == "csv" && !is.null(digits)) next
+      output <- file.path(directory, paste0("table.", format))
+      options(OutDec = ".")
+      nis_export_table(review, output, format, digits,
+        if (format == "csv") "keep" else NULL, TRUE)
+      baseline <- if (format == "docx") officer::docx_summary(officer::read_docx(output))$text else
+        readBin(output, "raw", file.info(output)$size)
+      options(OutDec = ",")
+      nis_export_table(review, output, format, digits,
+        if (format == "csv") "keep" else NULL, TRUE)
+      actual <- if (format == "docx") officer::docx_summary(officer::read_docx(output))$text else
+        readBin(output, "raw", file.info(output)$size)
+      expect_identical(actual, baseline, info = paste(format, digits))
+      expect_identical(getOption("OutDec"), ",")
+      expect_identical(review, before)
+    }
+  }
+})
+
 test_that("only unmodified disclosure reviews can be exported", {
   session <- nis_open()
   on.exit(nis_close(session))
