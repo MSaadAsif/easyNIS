@@ -13,6 +13,8 @@
 
 ## Experimental table export
 
+- Rounded HTML and Word numbers now use decimal points even when the caller
+  sets `OutDec = ","`, matching exact values and CSV. Caller options are unchanged.
 - Added `nis_export_table()` to write a disclosure review's presentation to
   CSV or HTML with base R. Unreviewed and regression tables are refused. The
   review is recomputed from its retained results and recorded policy and must

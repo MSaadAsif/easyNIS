@@ -18,7 +18,8 @@ optional officer package, version 0.5.0 or later.}
 \item{digits}{\code{NULL} for exact values, required for CSV. For HTML and Word,
 a whole number from 1 to 15 rounds the estimate, SE and interval to that
 many significant digits. Counts, df and confidence levels are never
-rounded.}
+rounded. Numeric text always uses a decimal point, independently of the
+caller's \code{OutDec} option.}
 
 \item{formula_text}{For CSV, how to write text cells that begin with \code{=},
 \code{+}, \code{-}, \code{@}, their full-width forms, a tab, a carriage return or a line

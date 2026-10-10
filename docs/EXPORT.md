@@ -33,6 +33,8 @@ does not certify a manuscript or approve annual support.
   and Word it is `NULL` for exact values or a whole number from 1 to 15 giving
   significant digits for the estimate, SE and interval bounds. Counts,
   degrees of freedom and confidence levels are never rounded.
+  Numeric text in every format uses a decimal point independently of R's
+  `OutDec` display option. Export leaves that option unchanged.
 - `formula_text` must be `NULL` for HTML and Word. For CSV it is `"refuse"`,
   `"prefix"` or `"keep"` and controls text cells that begin with `=`, `+`,
   `-`, `@`, their full-width forms, a tab, a carriage return or a line feed;
