@@ -522,7 +522,8 @@ the resulting main checks passed at `50c5d14`.
 
 The next NIS-020 increment closes the documented spreadsheet-formula gap in
 CSV export. A new required `formula_text` argument handles text cells that
-begin with `=`, `+`, `-`, `@`, a tab or a carriage return: `"refuse"` names
+begin with `=`, `+`, `-`, `@`, their full-width forms, a tab, a carriage
+return or a line feed: `"refuse"` names
 each affected column and row id and writes nothing, `"prefix"` writes a
 leading `'`, and `"keep"` writes the text unchanged. HTML requires `NULL`.
 Every text column is checked, including caller ids and units; numeric columns
@@ -530,12 +531,15 @@ are unaffected. The new public regression fails on the previous code, which
 wrote such labels unchanged. Implementation surfaced two defects before commit:
 a raw carriage-return byte in the pattern was lost when R parsed the source,
 and columns without affected cells added empty entries to the refusal message.
-Both are covered. `utils::read.csv()` splits a quoted carriage return, so that
+Both are covered; the test asserts the exact refusal message. Independent
+review of the first head found that line feed and the full-width forms listed
+by OWASP were missing and that the empty-entry repair was untested. Both
+were fixed, and mutants removing each character class or the repair now fail
+the focused suite. `utils::read.csv()` splits a quoted carriage return, so that
 case is checked in the written bytes. The installed smoke refuses and then
-prefixes an invented `=HYPERLINK(...)` label and `@` id. Precommit Windows
-verification passes 1,815 package assertions, 60 tool assertions, source
-Status OK and the installed workflow. Clean committed-head verification,
-independent review and hosted checks remain required. Word output and
+prefixes an invented `=HYPERLINK(...)` label and `@` id. Clean committed-head
+verification, refreshed independent review and hosted checks are required for
+the corrected head. Word output and
 regression-table export remain open; annual support and scientific approval
 are unchanged.
 

@@ -15,8 +15,9 @@
   Confidence levels remain exact and visible in a separate column, including
   on suppressed rows. Notes identify unchecked larger declared-margin combinations.
 - CSV export requires an explicit `formula_text` policy for text cells that a
-  spreadsheet could run as a formula (`=`, `+`, `-`, `@`, tab or carriage
-  return): refuse, prefix with `'`, or keep unchanged.
+  spreadsheet could run as a formula (`=`, `+`, `-`, `@`, their full-width
+  forms, tab, carriage return or line feed): refuse, prefix with `'`, or keep
+  unchanged.
 - Output is staged and renamed, and existing files are replaced only on
   request. Word export, regression-table export and annual support are not
   changed.

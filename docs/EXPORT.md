@@ -36,7 +36,8 @@ does not certify a manuscript or approve annual support.
   degrees of freedom and confidence levels are never rounded.
 - `formula_text` must be `NULL` for HTML. For CSV it is `"refuse"`,
   `"prefix"` or `"keep"` and controls text cells that begin with `=`, `+`,
-  `-`, `@`, a tab or a carriage return; see below. It has no default.
+  `-`, `@`, their full-width forms, a tab, a carriage return or a line feed;
+  see below. It has no default.
 - `overwrite` is `TRUE` or `FALSE`. An existing file is replaced only when it
   is `TRUE`.
 
@@ -63,10 +64,11 @@ written. Text is quoted but `utils::read.csv()` still converts a label of
 The CSV is a data interchange file and carries no policy notes. Keep it with
 the review provenance or the HTML export, which records the policy.
 
-Spreadsheet programs can run a cell that begins with `=`, `+`, `-`, `@`, a tab
-or a carriage return as a formula, and a formula can fetch external content or
-start programs. These are the characters listed by the OWASP CSV injection
-guidance. Every text column is checked, including caller ids, labels and units.
+Spreadsheet programs can run a cell as a formula when it begins with `=`, `+`,
+`-` or `@`, their full-width forms (U+FF1D, U+FF0B, U+FF0D, U+FF20), a tab, a
+carriage return or a line feed, and a formula can fetch external content or
+start programs. The set follows the OWASP CSV injection guidance; other
+spreadsheet behavior is not tested. Every text column is checked, including caller ids, labels and units.
 Numeric columns are written as numbers and are not affected, so a negative
 estimate stays numeric. `formula_text` chooses the handling:
 
@@ -80,7 +82,7 @@ estimate stays numeric. `formula_text` chooses the handling:
 
 Text that only contains these characters later, such as `Stay - days`, is
 unaffected. A quoted carriage return is valid CSV, but `utils::read.csv()`
-splits it into separate cells.
+splits it into separate cells, which also shifts later rows.
 
 ## HTML
 
@@ -119,7 +121,8 @@ reviews (including a revealed suppressed value, a status relabeled
 consistently with revealed values, a forged policy, consistently changed
 counts and estimates, and factor statuses),
 argument errors, extension mismatch, a missing directory, refusal to replace
-an existing file and explicit replacement. Formula-text cases cover each
-leading character in ids, labels and units under all three policies, a
-refusal that names every affected cell and writes no file, internal hyphens,
+an existing file and explicit replacement. Formula-text cases cover every
+leading character in labels under all three policies, plus `@` and full-width
+`@` ids and `-` and full-width `-` units, an exact refusal message that names
+every affected cell and no other, no file after refusal, internal hyphens,
 and rejection of a CSV policy for HTML.
