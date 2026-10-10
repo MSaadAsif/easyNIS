@@ -328,7 +328,7 @@ test_that("arguments and file handling are explicit", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
   expect_error(nis_export_table(review, path, "csv", NULL, "keep"), "explicitly")
-  expect_error(nis_export_table(review, path, "docx", NULL, "keep", FALSE), "`format`")
+  expect_error(nis_export_table(review, path, "pdf", NULL, "keep", FALSE), "`format`")
   expect_error(nis_export_table(review, path, c("csv", "html"), NULL, "keep", FALSE), "`format`")
   expect_error(nis_export_table(review, sub("csv$", "html", path), "csv", NULL, "keep", FALSE),
     "ending in .csv")
@@ -352,4 +352,180 @@ test_that("arguments and file handling are explicit", {
   nis_export_table(review, path, "csv", NULL, "keep", TRUE)
   expect_identical(utils::read.csv(path)$id, review$presentation$id)
   expect_identical(list.files(dirname(path), pattern = "^easyNIS-export-"), character())
+})
+
+html_cells <- function(path) {
+  html <- text_of(path)
+  unescape <- function(x) {
+    for (pair in list(c("&lt;", "<"), c("&gt;", ">"), c("&quot;", "\""), c("&#39;", "'"),
+                      c("&amp;", "&"))) {
+      x <- gsub(pair[[1L]], pair[[2L]], x, fixed = TRUE)
+    }
+    x
+  }
+  cell_text <- function(row, tag) {
+    unescape(gsub(paste0("</?", tag, ">"), "",
+      regmatches(row, gregexpr(paste0("<", tag, ">.*?</", tag, ">"), row))[[1L]]))
+  }
+  rows <- regmatches(html, gregexpr("<tr>.*?</tr>", html))[[1L]]
+  notes <- regmatches(html, gregexpr("<li>.*?</li>", html))[[1L]]
+  list(header = cell_text(rows[[1L]], "th"),
+    cells = lapply(rows[-1L], cell_text, tag = "td"),
+    notes = unescape(gsub("</?li>", "", notes)))
+}
+
+docx_cells <- function(path) {
+  summary <- officer::docx_summary(officer::read_docx(path))
+  table <- summary[summary$content_type == "table cell", ]
+  table <- table[order(table$row_id, table$cell_id), ]
+  rows <- split(table$text, table$row_id)
+  paragraphs <- summary$text[summary$content_type == "paragraph" & nzchar(summary$text)]
+  list(header = rows[[1L]], cells = unname(rows[-1L]), paragraphs = paragraphs)
+}
+
+# Every XML part of the document, and the unescaped text of every w:t node in them.
+docx_xml <- function(path) {
+  directory <- tempfile("docx-")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE))
+  parts <- utils::unzip(path, exdir = directory)
+  parts <- parts[grepl("[.](xml|rels)$", parts)]
+  xml <- vapply(parts, function(part) {
+    paste(readLines(part, encoding = "UTF-8", warn = FALSE), collapse = "\n")
+  }, character(1), USE.NAMES = FALSE)
+  names(xml) <- basename(parts)
+  text <- unlist(lapply(xml, function(x) {
+    nodes <- regmatches(x, gregexpr("<w:t(?: [^>]*)?>[^<]*</w:t>", x, perl = TRUE))[[1L]]
+    nodes <- sub("^<w:t[^>]*>", "", sub("</w:t>$", "", nodes))
+    for (pair in list(c("&lt;", "<"), c("&gt;", ">"), c("&quot;", "\""), c("&apos;", "'"),
+                      c("&amp;", "&"))) {
+      nodes <- gsub(pair[[1L]], pair[[2L]], nodes, fixed = TRUE)
+    }
+    nodes
+  }), use.names = FALSE)
+  list(xml = xml, text = text)
+}
+
+test_that("Word contains the HTML cells and notes and no hidden value", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  review <- export_review(session, df = 8)
+  before <- review
+  html <- tempfile(fileext = ".html")
+  docx <- tempfile(fileext = ".DOCX")
+  on.exit(unlink(c(html, docx)), add = TRUE)
+  for (digits in list(NULL, 3)) {
+    nis_export_table(review, html, "html", digits, NULL, TRUE)
+    returned <- nis_export_table(review, docx, "docx", digits, NULL, TRUE)
+    expect_identical(returned, normalizePath(docx))
+    expect_identical(review, before)
+    expected <- html_cells(html)
+    word <- docx_cells(docx)
+    expect_identical(word$header, expected$header)
+    expect_length(word$cells, nrow(review$presentation))
+    expect_identical(word$cells, expected$cells)
+    expect_identical(word$paragraphs,
+      c("easyNIS experimental descriptive table", expected$notes))
+  }
+  expect_identical(word$cells[[which(review$presentation$id == "cat_c")]][[1L]], "Category\nC")
+  expect_identical(word$cells[[which(review$presentation$id == "c1")]][c(1L, 5:7, 9:10)],
+    c("Rare <b>event</b>", rep("Suppressed", 4), "Suppressed (primary)"))
+  expect_true(any(grepl("rounded to 3 significant digits", word$paragraphs, fixed = TRUE)))
+
+  table <- review$table$data
+  shown <- review$presentation$disclosure_status == "shown"
+  hidden <- c(table$weighted_estimate[!shown], table$se[!shown], table$lower[!shown],
+    table$upper[!shown])
+  expect_true(length(hidden) > 0L)
+  for (digits in list(NULL, 3, 15)) {
+    nis_export_table(review, html, "html", digits, NULL, TRUE)
+    nis_export_table(review, docx, "docx", digits, NULL, TRUE)
+    expected <- html_cells(html)
+    document <- docx_xml(docx)
+    # Every text node in every part is a caption, header, cell or note string.
+    expect_true(all(document$text %in% c("easyNIS experimental descriptive table",
+      expected$header, unlist(expected$cells), expected$notes)))
+    tokens <- unlist(strsplit(document$text, "\\s+"))
+    for (value in hidden) {
+      expect_false(nis_test_exact(value) %in% tokens, info = nis_test_exact(value))
+    }
+    body <- document$xml[["document.xml"]]
+    expect_match(body, "w:orient=\"landscape\"", fixed = TRUE)
+    expect_match(body, "Rare &lt;b&gt;event&lt;/b&gt;", fixed = TRUE)
+    expect_false(grepl("<b>event", body, fixed = TRUE))
+    # No row may split across pages.
+    expect_identical(lengths(gregexpr("<w:cantSplit/>", body, fixed = TRUE)),
+      nrow(review$presentation) + 1L)
+    expect_identical(lengths(gregexpr("<w:tr>|<w:tr ", body)), nrow(review$presentation) + 1L)
+    # Row properties come first in each row, and cell margins precede tblLook.
+    parsed <- xml2::read_xml(body)
+    namespaces <- xml2::xml_ns(parsed)
+    expect_true(all(xml2::xml_name(
+      xml2::xml_find_all(parsed, "//w:tbl/w:tr/*[1]", namespaces)) == "trPr"))
+    expect_identical(xml2::xml_name(xml2::xml_find_all(parsed,
+      "//w:tbl/w:tblPr/w:tblLook/preceding-sibling::*[1]", namespaces)), "tblCellMar")
+
+    # Header words and package text keep at least 0.08 inch plus 0.07 inch per
+    # character of their longest word (1440 twips per inch); widths fill 10 inches.
+    widths <- as.numeric(xml2::xml_attr(xml2::xml_find_all(parsed, "//w:tbl/w:tblGrid/w:gridCol",
+      namespaces), "w"))
+    expect_equal(sum(widths), 14400, tolerance = 20 / 14400)
+    package_text <- rbind(expected$header, do.call(rbind, expected$cells))
+    package_text[-1L, c(1L, 3L)] <- ""
+    package_text[-1L, c(5:7, 9L)][package_text[-1L, c(5:7, 9L)] != "Suppressed"] <- ""
+    longest <- apply(package_text, 2L, function(x) max(nchar(unlist(strsplit(x, "\\s+")))))
+    expect_true(all(widths >= 1440 * (0.08 + 0.07 * pmax(4, longest)) - 2))
+  }
+})
+
+test_that("Word export needs officer and text that a Word document can hold", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  path <- write_invented_parquet(session, export_rows())
+  on.exit(unlink(path), add = TRUE)
+  design <- nis_survey_design(nis_import(session, path, 2022), "stay", TRUE,
+    "hospital_wr", "fail")
+  spec <- data.frame(id = c("bell", "plain", "space", "fffe", "ffff"), field = "stay",
+    statistic = "mean", label = c("Stay\a", "Tab\there\r\nand line", "Stay", "Stay",
+      "Stay\uffff"),
+    unit = c("days", "days", "days\v", "days\ufffe", "days"), stringsAsFactors = FALSE)
+  table <- nis_descriptive_table(design, spec, "fail", Inf, 0.95, "wr_unadjusted")
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  output <- tempfile(fileext = ".docx")
+  on.exit(unlink(output), add = TRUE)
+
+  expect_identical(
+    tryCatch(nis_export_table(review, output, "docx", NULL, NULL, FALSE),
+      error = conditionMessage),
+    paste0("Word documents cannot contain control characters other than tab, ",
+      "carriage return and line feed, or U+FFFE and U+FFFF: label in row 'bell', ",
+      "label in row 'ffff', unit in row 'space', unit in row 'fffe'."))
+  expect_false(file.exists(output))
+  html <- sub("docx$", "html", output)
+  on.exit(unlink(html), add = TRUE)
+  nis_export_table(review, html, "html", NULL, NULL, FALSE)
+  expect_true(file.exists(html))
+
+  plain <- nis_descriptive_table(design, spec[2L, ], "fail", Inf, 0.95, "wr_unadjusted")
+  plain <- nis_disclosure_review(plain, c(1, 10), "display", 2, list())
+  nis_export_table(plain, output, "docx", NULL, NULL, FALSE)
+  # officer writes a carriage return and line feed as one line feed.
+  expect_identical(docx_cells(output)$cells[[1L]][[1L]], "Tab\there\nand line")
+
+  expect_error(nis_export_table(plain, output, "docx", NULL, "keep", TRUE),
+    "`formula_text` must be NULL for HTML and Word")
+  for (digits in list(0, 16, 2.5)) {
+    expect_error(nis_export_table(plain, output, "docx", digits, NULL, TRUE), "`digits`")
+  }
+  expect_error(nis_export_table(plain, sub("docx$", "html", output), "docx", NULL, NULL,
+    TRUE), "ending in .docx")
+  expect_error(nis_export_table(plain, output, "docx", NULL, NULL, FALSE), "overwrite = TRUE")
+
+  unlink(output)
+  local_mocked_bindings(officer_available = function() FALSE)
+  expect_error(nis_export_table(plain, output, "docx", NULL, NULL, FALSE),
+    "Word export needs the optional officer package, version 0.5.0 or later. Install it with install.packages(\"officer\"), or export CSV or HTML.",
+    fixed = TRUE)
+  expect_false(file.exists(output))
+  expect_identical(list.files(dirname(output), pattern = "^easyNIS-export-"), character())
 })
