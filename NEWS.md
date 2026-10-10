@@ -1,5 +1,17 @@
 # easyNIS 0.0.0.9000
 
+## Experimental table export
+
+- Added `nis_export_table()` to write a disclosure review's presentation to
+  CSV or HTML with base R. Unreviewed and regression tables are refused, and a
+  modified review is rejected before writing.
+- CSV values parse back to identical doubles and suppressed cells are empty.
+  HTML escapes caller text, rounds only when asked, shows no suppressed value
+  and records the experimental scope, count basis and disclosure policy.
+- Output is staged and renamed, and existing files are replaced only on
+  request. Word export, regression-table export and annual support are not
+  changed.
+
 ## Experimental disclosure review
 
 - Added `nis_disclosure_review()` for descriptive tables. Caller-declared

@@ -2,8 +2,9 @@
 
 This is the first bounded NIS-019 increment. It reviews one
 `nis_descriptive_table` and produces a presentation table with primary and
-complementary suppression. Regression tables, grouped comparisons, rendering
-and serialization remain separate increments. The review assists a human
+complementary suppression. Regression tables and grouped comparisons remain
+separate increments; [EXPORT.md](EXPORT.md) writes the presentation to CSV or
+HTML. The review assists a human
 publication check; it does not certify a manuscript or approve annual support.
 
 ## Policy source

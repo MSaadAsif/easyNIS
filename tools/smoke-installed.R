@@ -287,4 +287,24 @@ stopifnot(identical(unname(subtotal_status[c("a", "b")]), rep("suppressed_primar
   all(is.na(subtotal_review$presentation$estimate[!subtotal_shown])),
   all(is.na(subtotal_review$presentation$unweighted_n[!subtotal_shown])))
 cat("Installed declared subtotals passed the seven-discharge hidden-sum regression.\n")
+export_dir <- tempfile("easyNIS-export-smoke-")
+dir.create(export_dir)
+export_csv <- nis_export_table(subtotal_review, file.path(export_dir, "subtotals.csv"), "csv",
+  NULL, FALSE)
+exported <- utils::read.csv(export_csv, stringsAsFactors = FALSE)
+stopifnot(identical(names(exported), names(subtotal_review$presentation)),
+  identical(exported$disclosure_status, subtotal_review$presentation$disclosure_status),
+  identical(as.double(exported$estimate), as.double(subtotal_review$presentation$estimate)),
+  identical(as.double(exported$unweighted_n), as.double(subtotal_review$presentation$unweighted_n)),
+  all(is.na(exported$estimate[!subtotal_shown])))
+export_html <- nis_export_table(subtotal_review, file.path(export_dir, "subtotals.html"), "html",
+  4, FALSE)
+html_text <- paste(readLines(export_html, encoding = "UTF-8"), collapse = "\n")
+stopifnot(grepl("Suppressed (complementary)", html_text, fixed = TRUE),
+  grepl("not analysis ready", html_text, fixed = TRUE),
+  inherits(tryCatch(nis_export_table(subtotal_review$table, file.path(export_dir, "raw.csv"),
+    "csv", NULL, FALSE), error = identity), "error"),
+  !file.exists(file.path(export_dir, "raw.csv")))
+unlink(export_dir, recursive = TRUE)
+cat("Installed CSV and HTML exports preserved shown values and suppression.\n")
 cat("Installed workflow passed; year support remains experimental.\n")

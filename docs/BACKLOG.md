@@ -480,6 +480,25 @@ Final clean committed-head verification, independent review and hosted checks
 remain required before merge. No annual support or scientific/publication
 approval changes. The next acceptance work is disclosure-preserving rendering;
 regression-table review and larger unchecked cross-relation sums remain separate.
+The bounded correction merged in [PR #15](https://github.com/MSaadAsif/easyNIS/pull/15);
+its head and resulting main checks passed.
+
+The first NIS-020 increment adds `nis_export_table()` under
+[EXPORT.md](EXPORT.md). It writes only a rechecked disclosure review's
+presentation, to CSV or HTML with base R. Descriptive and regression tables and
+modified reviews, including a revealed suppressed value, a changed shown value,
+an added column or attribute and a relabeled status, are refused. CSV values
+parse back to identical doubles, using up to 17 significant digits, with empty
+suppressed cells and no audit fields. HTML escapes caller text, records the
+experimental scope, count basis and policy, rounds only to caller-chosen
+significant digits, and contains no suppressed value. Output is staged and
+renamed; existing files are replaced only on request. The focused suite passes
+117 expectations covering infinite df, non-ASCII, comma, quote and newline
+labels, markup in labels and units, rounding, argument errors, extension
+mismatch, missing directories and replacement. The installed smoke exports the
+subtotal reproduction in both formats. Word output, regression-table export and
+spreadsheet formula neutralization remain open; annual support and scientific
+approval are unchanged.
 
 ## Foundation and metadata
 
