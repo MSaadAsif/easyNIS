@@ -589,6 +589,30 @@ review and hosted checks are required for the corrected head.
 Regression-table disclosure review and export remain open; annual support and
 scientific approval are unchanged.
 
+The Word increment merged in [PR #18](https://github.com/MSaadAsif/easyNIS/pull/18)
+after clean committed-head verification, independent specification and standards
+reviews with zero blockers, and all five hosted checks. The protected merge
+gate passed for the reviewed head and base. Scientific approval and annual
+support remain unchanged.
+
+The next bounded export follow-up closes automated layout coverage gaps noted
+in review. Public Word exports now exercise caller words at 24, 25 and 120
+characters without text truncation or width growth beyond the cap, header
+width protection, proportional scaling of every column when protected text
+exceeds ten inches, and lone carriage returns in both labels and units without
+mutating the review. The scaling case uses exact binary df/confidence values
+solely to exercise long scientific strings, not to recommend inference choices.
+EXPORT.md removes an example that overstated when that branch is reached.
+The export suite passes 301 assertions. Independent in-memory mutants removing
+the cap, header protection and proportional scaling fail the new public-document
+cases. Precommit verification passes 1,927 package assertions, 60 metadata-tool
+assertions, all 36 merge-gate scenarios, a source check with Status OK, tarball
+inspection and the installed workflow. Clean committed-head verification,
+current-head independent review and hosted checks remain
+required before this follow-up merges. Next larger acceptance work is
+regression-table disclosure review and a reproducible synthetic workflow report;
+annual metadata and licensed validation retain their external dependencies.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |
