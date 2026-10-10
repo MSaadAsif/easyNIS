@@ -67,8 +67,10 @@ before a CSV is opened in such a program.
 
 The HTML file is a standalone UTF-8 document with no scripts or external
 resources. Every caller-supplied text value is escaped. The table shows the
-label, statistic, unit, estimand, estimate, SE, interval with its confidence
-level, degrees of freedom, unweighted discharges and disclosure status.
+label, statistic, unit, estimand, estimate, SE, interval bounds, degrees of
+freedom, unweighted discharges, disclosure status and confidence level.
+Confidence levels have a separate column on the 0 to 1 scale, written with
+17 significant digits so they parse back to identical doubles.
 Suppressed rows show `Suppressed` in the estimate, SE, interval and count
 cells and state primary or complementary suppression; their df and confidence
 level are the caller's table-wide choices and remain visible. No hidden value
@@ -78,7 +80,8 @@ Notes under the table state that the table is experimental and not analysis
 ready, that counts are unweighted included discharges rather than patients,
 that estimates are survey weighted, the suppression range, zero policy,
 hospital minimum and number of declared margins, that complementary
-suppression is a bounded greedy procedure and that undeclared relations and
+suppression is a bounded greedy procedure, that larger combinations of declared
+margins remain unchecked and that undeclared relations and
 other publications need human review, and whether values are exact or rounded
 to the stated significant digits.
 
@@ -90,7 +93,9 @@ cells for primary and complementary rows, absent audit fields, HTML escaping of
 markup, quotes and ampersands in labels and units, non-ASCII labels in both
 formats, commas, quotes and newlines in CSV text, rounding to significant
 digits without changing the review, the absence of hidden values from HTML,
-refusal of unreviewed descriptive tables, regression tables and modified
+exact visible confidence levels even when every row is suppressed, including
+levels close to one that would round to 100 percent, refusal of unreviewed
+descriptive tables, regression tables and modified
 reviews (including a revealed suppressed value, a status relabeled
 consistently with revealed values, a forged policy, consistently changed
 counts and estimates, and factor statuses),

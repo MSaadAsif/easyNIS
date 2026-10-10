@@ -33,12 +33,12 @@ export_spec <- data.frame(
     "weighted discharges", "weighted discharges", "days <script>", "proportion"),
   stringsAsFactors = FALSE)
 
-export_review <- function(session, df = Inf) {
+export_review <- function(session, df = Inf, confidence = 0.9) {
   path <- write_invented_parquet(session, export_rows())
   on.exit(unlink(path))
   design <- nis_survey_design(nis_import(session, path, 2022), unique(export_spec$field),
     TRUE, "hospital_wr", "fail")
-  table <- nis_descriptive_table(design, export_spec, "exclude", df, 0.9, "wr_unadjusted")
+  table <- nis_descriptive_table(design, export_spec, "exclude", df, confidence, "wr_unadjusted")
   nis_disclosure_review(table, c(1, 10), "display", 2,
     list(list(total = "all", parts = c("cat_a", "cat_b", "cat_c"))))
 }
@@ -46,6 +46,33 @@ export_review <- function(session, df = Inf) {
 escape_test <- function(x) gsub(">", "&gt;", gsub("<", "&lt;", x, fixed = TRUE), fixed = TRUE)
 
 text_of <- function(path) paste(readLines(path, encoding = "UTF-8", warn = FALSE), collapse = "\n")
+
+test_that("HTML retains exact confidence levels when every row is suppressed", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  path <- write_invented_parquet(session, export_rows())
+  on.exit(unlink(path), add = TRUE)
+  design <- nis_survey_design(nis_import(session, path, 2022), "c1", TRUE,
+    "hospital_wr", "fail")
+  output <- tempfile(fileext = ".html")
+  on.exit(unlink(output), add = TRUE)
+  for (confidence in c(0.9, 0.9123456789012345, 0.9999999999999999)) {
+    table <- nis_descriptive_table(design, export_spec[1L, ], "exclude", Inf,
+      confidence, "wr_unadjusted")
+    review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+    expect_identical(review$presentation$disclosure_status, "suppressed_primary")
+    for (digits in list(NULL, 3)) {
+      nis_export_table(review, output, "html", digits, TRUE)
+      html <- text_of(output)
+      expect_match(html, "<th>Confidence level (0 to 1)</th>", fixed = TRUE)
+      expect_match(html, paste0("<td>", sprintf("%.17g", confidence), "</td>"),
+        fixed = TRUE)
+      expect_false(grepl("(100%)", html, fixed = TRUE))
+      expect_match(html, "Larger combinations of declared margins remain unchecked",
+        fixed = TRUE)
+    }
+  }
+})
 
 test_that("CSV round-trips shown values exactly and leaves suppressed cells empty", {
   session <- nis_open()
@@ -104,7 +131,7 @@ test_that("HTML escapes text, records the policy and never shows hidden values",
   expect_match(html, "from 1 to 10 inclusive; zero counts: display; minimum contributing hospitals: 2; declared margins: 1.",
     fixed = TRUE)
   expect_match(html, "Values are exact.", fixed = TRUE)
-  expect_match(html, "(90%)", fixed = TRUE)
+  expect_match(html, "<td>0.90000000000000002</td>", fixed = TRUE)
   table <- review$table$data
   shown <- review$presentation$disclosure_status == "shown"
   hidden_values <- c(table$weighted_estimate[!shown], table$se[!shown],
@@ -125,8 +152,7 @@ test_that("HTML escapes text, records the policy and never shows hidden values",
     expect_identical(cells[2:7], paste0("<td>", c(table$statistic[[i]],
       escape_test(table$unit[[i]]), table$estimand[[i]],
       nis_test_exact(table$weighted_estimate[[i]]), nis_test_exact(table$se[[i]]),
-      paste0(nis_test_exact(table$lower[[i]]), " to ", nis_test_exact(table$upper[[i]]),
-        " (90%)")), "</td>"))
+      paste0(nis_test_exact(table$lower[[i]]), " to ", nis_test_exact(table$upper[[i]]))), "</td>"))
   }
 })
 
