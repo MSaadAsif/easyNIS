@@ -1,5 +1,12 @@
 # easyNIS 0.0.0.9000
 
+## Offline workflow vignette
+
+- Added an installed HTML walkthrough that executes the synthetic quickstart
+  during source build, explains its explicit policies and displays only the
+  reviewed CSV presentation. The knitr engine requires no Pandoc. Annual
+  support and scientific approval remain unchanged.
+
 ## Experimental table export
 
 - Added `nis_export_table()` to write a disclosure review's presentation to
