@@ -480,6 +480,43 @@ Final clean committed-head verification, independent review and hosted checks
 remain required before merge. No annual support or scientific/publication
 approval changes. The next acceptance work is disclosure-preserving rendering;
 regression-table review and larger unchecked cross-relation sums remain separate.
+The bounded correction merged in [PR #15](https://github.com/MSaadAsif/easyNIS/pull/15);
+its head and resulting main checks passed.
+
+The first NIS-020 increment adds `nis_export_table()` under
+[EXPORT.md](EXPORT.md). It writes only a rechecked disclosure review's
+presentation, to CSV or HTML with base R. Descriptive and regression tables are
+refused. Each review is recomputed from its retained results and recorded
+policy and must match exactly, so edits to the presentation, audit, provenance
+or table estimate columns are refused even when consistent across them. The
+retained results, including design data that supply suppression counts, are
+not authenticated. CSV
+writes whole numbers in full and other values with 17 significant digits, which
+any correctly rounding parser reads back exactly, with empty suppressed cells
+and no audit fields. HTML escapes caller text, records the
+experimental scope, count basis and policy, rounds only to caller-chosen
+significant digits, and contains no suppressed value. Output is staged and
+renamed; existing files are replaced only on request. Independent review of
+the first head reproduced an exported hidden value after a consistent
+multi-field relabel, a forged policy note and forged counts; each now has a
+failing-before regression. The focused suite passes 122 expectations covering infinite df, non-ASCII, comma, quote and newline
+labels, markup in labels and units, rounding, argument errors, extension
+mismatch, missing directories and replacement. The installed smoke exports the
+subtotal reproduction in both formats. Word output, regression-table export and
+spreadsheet formula neutralization remain open; annual support and scientific
+approval are unchanged.
+
+Independent current-head export review reproduced missing confidence levels
+when every row was suppressed and a level just below one displayed as 100
+percent. HTML now retains an exact separate confidence column on every row;
+interval suppression still hides all bounds. A failing-before public regression
+covers three confidence levels with exact and rounded displays. The focused
+export suite passes 150 expectations. Standalone notes explicitly identify
+unchecked larger combinations of declared margins. Final verification and
+refreshed independent review are required for this correction.
+The macOS CI run rejected the decimal near-one fixture after it parsed as one;
+the boundary fixture now uses machine epsilon to preserve a value below one
+without changing production validation or weakening the confidence case.
 
 ## Foundation and metadata
 

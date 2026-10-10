@@ -1,5 +1,23 @@
 # easyNIS 0.0.0.9000
 
+## Experimental table export
+
+- Added `nis_export_table()` to write a disclosure review's presentation to
+  CSV or HTML with base R. Unreviewed and regression tables are refused. The
+  review is recomputed from its retained results and recorded policy and must
+  match exactly, so edited presentations, audits, policies and table estimates
+  are rejected before writing. The retained results themselves are not
+  authenticated.
+- CSV values (17 significant digits, or whole numbers in full) parse back to
+  identical doubles and suppressed cells are empty.
+  HTML escapes caller text, rounds only when asked, shows no suppressed value
+  and records the experimental scope, count basis and disclosure policy.
+  Confidence levels remain exact and visible in a separate column, including
+  on suppressed rows. Notes identify unchecked larger declared-margin combinations.
+- Output is staged and renamed, and existing files are replaced only on
+  request. Word export, regression-table export and annual support are not
+  changed.
+
 ## Experimental disclosure review
 
 - Added `nis_disclosure_review()` for descriptive tables. Caller-declared
