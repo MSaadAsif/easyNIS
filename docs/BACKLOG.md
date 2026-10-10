@@ -613,6 +613,29 @@ required before this follow-up merges. Next larger acceptance work is
 regression-table disclosure review and a reproducible synthetic workflow report;
 annual metadata and licensed validation retain their external dependencies.
 
+## Offline synthetic workflow continuation
+
+PR #19 merged with all five head and resulting main jobs passing at `2572f5e`.
+The first NIS-021 increment adds an installed offline import-to-reviewed-export
+example and a fixed Markdown report under [WORKFLOW.md](WORKFLOW.md). Its
+explicit report whitelist includes versions, code/domain declarations, design
+fields, weights/estimand, df/confidence, outcome missingness and disclosure
+policy. Retained results, design data, local source paths and suppressed values
+are omitted. CSV and HTML contain only the reviewed presentation. The README
+now documents the executable quickstart and implemented tables/contrasts/exports.
+
+Independent hospital WR arithmetic checks the LOS mean 34/7, its SE and t
+interval after domain selection and row-specific outcome exclusion. A rare
+indicator demonstrates primary suppression. Installed verification runs the
+example twice and checks exact repeatability, sanitized metadata and reviewed
+exports. Precommit verification passes 1,927 package assertions, 60 metadata-tool
+assertions, all 36 merge-gate scenarios, source Status OK, a 79-entry tarball
+inspection and installed public workflows including both quickstart runs.
+Clean committed-head evidence, independent review and hosted checks remain
+required before merge. Formal vignettes and integrated
+pool/model examples remain NIS-021 acceptance work. Regression-table disclosure,
+annual evidence and scientific approval retain their separate gates.
+
 ## Foundation and metadata
 
 | ID | Work | Depends on | Acceptance criteria |

@@ -9,6 +9,7 @@ files. Evidence is kept in the reported `.audit/verify/` directory.
 - [Capability lookup](capabilities.md) covers the distinction between a target year and supported analysis.
 - [Survey design and domains](survey.md) covers experimental full-population preparation, domain accounting and independent synthetic variance checks.
 - [Numeric descriptive tables](tables.md) covers declared scalar rows, independent references, native results and per-row missingness.
+- [Offline synthetic workflow](workflow.md) covers the installed quickstart, independent inference, reviewed exports and sanitized report.
 
 Add recipes when the public API expands. Exercise all affected entry points;
 report an unavailable path as unverified, and retain its blocker in the backlog.
