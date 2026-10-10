@@ -570,12 +570,22 @@ text whole while units, labels and 17-digit estimates wrap; the 45-row table
 keeps every row on one page with repeated headers. The review also led to an
 officer 0.5.0 minimum, xml2 in Suggests, U+FFFF coverage and a stronger
 hidden-value test. Invalid UTF-8 labels still give R's encoding errors rather
-than guidance, as in HTML. Corrected precommit verification passes 1,900
-package assertions, 60 metadata-tool assertions, all 36 merge-gate scenarios,
-source Status OK, tarball inspection and the installed workflow, which
-compares Word and HTML cells for the subtotal reproduction. Clean
-committed-head verification, refreshed independent review and hosted checks
-are required before merge.
+than guidance, as in HTML.
+
+The refreshed review of `cb918e8` confirmed both repairs in Word renderings,
+including 45-row exact and three-digit tables with no row spanning pages, and
+found one blocking documentation error: a caller word longer than the
+24-character cap can still break when the table otherwise fits. EXPORT.md now
+says so and describes the proportional scaling used when even header and
+package text exceed the page. Tests now check row-property and cell-margin
+placement with XPath and that header and package columns keep their estimated
+widths, which previously surviving layout mutants would fail. The testthat
+floor is 3.1.7 for mocked bindings, the example checks the officer version,
+and test sources use escapes for noncharacters. Corrected precommit
+verification passes 1,912 package assertions, 60 metadata-tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and the
+installed workflow. Clean committed-head verification, refreshed independent
+review and hosted checks are required for the corrected head.
 Regression-table disclosure review and export remain open; annual support and
 scientific approval are unchanged.
 

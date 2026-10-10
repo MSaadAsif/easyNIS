@@ -55,7 +55,8 @@
 #'   utils::read.csv(csv)
 #'   html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, NULL,
 #'     FALSE)
-#'   if (requireNamespace("officer", quietly = TRUE)) {
+#'   if (requireNamespace("officer", quietly = TRUE) &&
+#'       utils::packageVersion("officer") >= "0.5.0") {
 #'     docx <- nis_export_table(review, tempfile(fileext = ".docx"), "docx", 3,
 #'       NULL, FALSE)
 #'     unlink(docx)
@@ -330,10 +331,11 @@ write_docx <- function(review, digits, target) {
 # column needs its 0.08 inch cell margins plus about 0.07 inch per character of
 # its longest word at 8 points. When everything fits, spare width is shared in
 # proportion. Otherwise header words and package text (statistic, estimand,
-# df, status, confidence level and `Suppressed`) keep their full width, and
-# caller labels, units and long estimates share the rest, wrapping within their
-# cells. Words count at most 24 characters, so one long unbroken label cannot
-# take most of the page.
+# df, status, confidence level and `Suppressed`) keep their estimated width,
+# and caller labels, units and long estimates share the rest, wrapping within
+# their cells; if even those exceed the page, every column scales down. Words
+# count at most 24 characters, so one long unbroken label cannot take most of
+# the page.
 docx_widths <- function(display) {
   longest <- function(x) min(24L, max(c(0L, nchar(unlist(strsplit(x, "\\s+"))))))
   fixed_text <- display$cells
@@ -341,8 +343,8 @@ docx_widths <- function(display) {
   fixed_text[, c(5:7, 9L)][fixed_text[, c(5:7, 9L)] != "Suppressed"] <- ""
   inches <- function(characters) 0.08 + 0.07 * pmax(4L, characters)
   need <- inches(apply(rbind(display$header, display$cells), 2L, longest))
-  floor <- inches(apply(rbind(display$header, fixed_text), 2L, longest))
+  minimum <- inches(apply(rbind(display$header, fixed_text), 2L, longest))
   if (sum(need) <= 10) return(need + (10 - sum(need)) * need / sum(need))
-  if (sum(floor) >= 10) return(10 * floor / sum(floor))
-  floor + (10 - sum(floor)) * (need - floor) / sum(need - floor)
+  if (sum(minimum) >= 10) return(10 * minimum / sum(minimum))
+  minimum + (10 - sum(minimum)) * (need - minimum) / sum(need - minimum)
 }

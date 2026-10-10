@@ -25,7 +25,7 @@ Suggests:
     arrow,
     officer (>= 0.5.0),
     survey,
-    testthat (>= 3.0.0),
+    testthat (>= 3.1.7),
     xml2
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
