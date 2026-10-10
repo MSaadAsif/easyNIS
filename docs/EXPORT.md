@@ -133,7 +133,7 @@ words and package text (statistic, estimand, df, `Suppressed`, status and
 confidence level) keep their estimated width, and caller labels and units and
 estimates, SEs, interval bounds and counts share the rest, wrapping and
 breaking words within their cells. If even header and package text exceed the
-page, for example a non-integer df beside a 17-digit confidence level, every
+page, every
 column is scaled down in proportion. Exact 17-digit values usually need this
 second case. A row taller than a page would still have to break. The layout
 was inspected visually after conversion to PDF by Microsoft Word for exact
@@ -165,7 +165,12 @@ text node in every XML part to be one of those strings and no exact hidden
 estimate, SE or bound, check escaped markup, the landscape page, unsplittable
 rows, an upper-case extension and an unchanged review, refuse a bell,
 vertical tab, U+FFFE and U+FFFF with an exact message and no file,
-accept tab and line breaks, reject a CSV policy, invalid digits, a mismatched
+accept tab and line breaks, convert a lone carriage return in labels and units
+to a line feed without changing the review, preserve the full text and identical
+column widths for caller words of 24, 25 and 120 characters, keep header words
+within their estimated widths when long caller words consume the spare width,
+and scale all columns proportionally when protected text exceeds ten inches,
+reject a CSV policy, invalid digits, a mismatched
 extension and an existing file, and give the install guidance without
 writing when officer is unavailable. The installed smoke compares Word and
 HTML cells for the subtotal reproduction.
