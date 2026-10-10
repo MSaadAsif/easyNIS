@@ -537,11 +537,34 @@ by OWASP were missing and that the empty-entry repair was untested. Both
 were fixed, and mutants removing each character class or the repair now fail
 the focused suite. `utils::read.csv()` splits a quoted carriage return, so that
 case is checked in the written bytes. The installed smoke refuses and then
-prefixes an invented `=HYPERLINK(...)` label and `@` id. Clean committed-head
-verification, refreshed independent review and hosted checks are required for
-the corrected head. Word output and
+prefixes an invented `=HYPERLINK(...)` label and `@` id. Word output and
 regression-table export remain open; annual support and scientific approval
 are unchanged.
+The formula-text increment merged in [PR #17](https://github.com/MSaadAsif/easyNIS/pull/17);
+the resulting main checks passed at `b164ee1`.
+
+The next NIS-020 increment adds Word output with `format = "docx"`. It uses
+the optional officer package, now in Suggests and the verification doctor;
+without it the call names `install.packages("officer")` and writes nothing.
+HTML and Word share one display builder, so the Word table has the HTML
+header, cells, suppression text and notes. Labels and units with control
+characters that XML cannot hold are refused with the column and row id;
+officer otherwise failed with a parser error. Tests compare every Word cell and
+note with the HTML export for exact and three-digit tables, search every XML
+part for hidden values and cover refusal, argument and missing-package paths.
+Visual inspection through Word's PDF conversion found that officer's default
+equal column widths broke words mid-word and split a row across pages. The
+document now uses landscape Letter with half-inch margins, an 8-point table
+style and widths proportional to each column's longest word after cell
+padding. Three-digit tables have no mid-word breaks; exact 17-digit values
+still wrap within their cells. Precommit Windows verification passes 1,896
+package assertions, 60 metadata-tool assertions, all 36 merge-gate scenarios,
+source Status OK, tarball inspection and the installed workflow, which now
+compares Word and HTML cells for the subtotal reproduction. Clean
+committed-head verification, independent review and hosted checks are
+required before merge.
+Regression-table disclosure review and export remain open; annual support and
+scientific approval are unchanged.
 
 ## Foundation and metadata
 

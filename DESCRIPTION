@@ -23,6 +23,7 @@ Imports:
     utils
 Suggests:
     arrow,
+    officer,
     survey,
     testthat (>= 3.0.0)
 Encoding: UTF-8

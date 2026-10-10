@@ -48,7 +48,7 @@ one original-primary sum per relation and primary pairs; do not report full
 subset certification. Source cases live in `tests/testthat/test-disclosure.R`;
 the contract is `docs/DISCLOSURE.md`.
 
-`nis_export_table()` writes a review's presentation to CSV or HTML. Read the
+`nis_export_table()` writes a review's presentation to CSV, HTML or Word. Read the
 CSV back with `utils::read.csv()` and compare every shown numeric value with
 `identical()`; suppressed cells must be empty and audit fields absent. Check
 that HTML escapes caller labels and units, records the policy notes, rounds
@@ -58,5 +58,10 @@ must name both cells and write nothing, `"prefix"` must read back with a
 leading `'`, and `"keep"` must write them unchanged.
 Confirm that descriptive and regression tables and modified reviews are
 refused, and that an existing file is replaced only with `overwrite = TRUE`.
-The installed smoke exports the subtotal reproduction in both formats. Source
+Read Word output back with `officer::docx_summary()` and compare every cell
+and note with the HTML export; search the unzipped XML for hidden values,
+convert it to PDF with Word when available and inspect the layout. A label
+with a control character must be refused, and a missing officer package must
+give install guidance without writing.
+The installed smoke exports the subtotal reproduction in all three formats. Source
 cases live in `tests/testthat/test-export.R`; the contract is `docs/EXPORT.md`.
