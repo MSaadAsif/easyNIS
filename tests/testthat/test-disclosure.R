@@ -243,6 +243,41 @@ test_that("suppressed sums, unweighted n differences and other codings are check
   expect_identical(review$audit$nonzero[review$audit$id %in% c("flag", "big")], c(5, 4))
 })
 
+test_that("two-level checks preserve distinct doubles with identical printed labels", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  for (reverse in c(FALSE, TRUE)) {
+    rows <- disclosure_base()
+    for (name in c("rare", "single", "safe", "missing")) rows[[name]] <- 1
+    rows$rare[c(1L, 41L, 81L)] <- 1 + .Machine$double.eps
+    rows$single[1:12] <- 1 + .Machine$double.eps
+    rows$safe[seq(1L, by = 18L, length.out = 11L)] <- 1 + .Machine$double.eps
+    rows$missing <- rows$rare
+    rows$missing[190:200] <- NA_real_
+    if (reverse) rows <- rows[rev(seq_len(nrow(rows))), ]
+    fields <- c("rare", "single", "safe", "missing")
+    for (field in fields) expect_length(unique(stats::na.omit(rows[[field]])), 2L)
+    table <- disclosure_table(session, rows, fields)
+    before <- table
+    review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+    expect_identical(review$audit$two_level_minimum, c(3, 12, 11, 3))
+    expect_identical(review$audit$hospitals_two_level, c(3, 1, 10, 3))
+    expect_identical(unname(review_status(review)),
+      c("suppressed_primary", "suppressed_primary", "shown", "suppressed_primary"))
+    expect_identical(unname(review_reasons(review)),
+      c("two_level", "hospitals_two_level", "", "two_level"))
+    expect_identical(table, before)
+    output <- tempfile(fileext = ".csv")
+    nis_export_table(review, output, "csv", NULL, "refuse", FALSE)
+    exported <- utils::read.csv(output)
+    unlink(output)
+    expect_true(all(is.na(exported[c(1, 2, 4),
+      c("estimate", "se", "lower", "upper", "unweighted_n")])))
+    expect_identical(exported$disclosure_status, review$presentation$disclosure_status)
+    expect_identical(as.double(exported$estimate[3L]), review$presentation$estimate[3L])
+  }
+})
+
 test_that("subtotals cannot restore a disclosive primary-hidden sum", {
   session <- nis_open()
   on.exit(nis_close(session))

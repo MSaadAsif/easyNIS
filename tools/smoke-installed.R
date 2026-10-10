@@ -274,6 +274,40 @@ stopifnot(abs(combined_estimate$estimate - 264) < 1e-12,
   abs(pooled_proportion$upper - (0.5 + stats::qnorm(0.95) * sqrt(972) / 216)) < 1e-12)
 cat("Installed six-year scalar totals, SEs, intervals and weighted pooled proportion passed independent values.\n")
 stopifnot(nrow(nis_supported_years(supported_only = TRUE)) == 0L)
+local({
+  session <- nis_open()
+  path <- tempfile(fileext = ".parquet")
+  output <- tempfile(fileext = ".csv")
+  on.exit({ nis_close(session); unlink(c(path, output)) })
+  rows <- nis_synthetic_data()$core[rep(1L, 200L), ]
+  rows$KEY_NIS <- sprintf("%06d", seq_len(200L))
+  rows$HOSP_NIS <- sprintf("%04d", (seq_len(200L) - 1L) %/% 20L + 1L)
+  rows$NIS_STRATUM <- rep(1:2, each = 100L)
+  rows$DISCWT <- 5
+  rows$rare <- rows$single <- rows$safe <- 1
+  rows$rare[c(1L, 41L, 81L)] <- 1 + .Machine$double.eps
+  rows$single[1:12] <- 1 + .Machine$double.eps
+  rows$safe[seq(1L, by = 18L, length.out = 11L)] <- 1 + .Machine$double.eps
+  DBI::dbWriteTable(session$connection, "invented", rows)
+  DBI::dbExecute(session$connection, paste0("COPY invented TO ",
+    DBI::dbQuoteString(session$connection, path), " (FORMAT PARQUET)"))
+  fields <- c("rare", "single", "safe")
+  design <- nis_survey_design(nis_import(session, path, 2022), fields, TRUE,
+    "hospital_wr", "fail")
+  table <- nis_descriptive_table(design, data.frame(id = fields, field = fields,
+    statistic = "mean", label = fields, unit = "score"), "fail", 8, 0.95,
+    "wr_unadjusted")
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  stopifnot(identical(review$audit$two_level_minimum, c(3, 12, 11)),
+    identical(review$audit$hospitals_two_level, c(3, 1, 10)),
+    identical(review$presentation$disclosure_status,
+      c("suppressed_primary", "suppressed_primary", "shown")))
+  nis_export_table(review, output, "csv", NULL, "refuse", FALSE)
+  exported <- utils::read.csv(output)
+  stopifnot(all(is.na(exported[1:2, c("estimate", "se", "lower", "upper", "unweighted_n")])),
+    is.finite(exported$estimate[3L]))
+})
+cat("Installed two-level review preserved exact doubles and suppressed count/hospital failures.\n")
 subtotal_review <- source(system.file("examples/disclosure-subtotals.R", package = "easyNIS"),
   local = new.env())$value
 subtotal_status <- stats::setNames(subtotal_review$presentation$disclosure_status,
