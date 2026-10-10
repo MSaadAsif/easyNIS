@@ -57,6 +57,11 @@ excluded from source packages and are checked separately in CI.
 
 ## Remaining acceptance work
 
+The parquet inventory receipt retains `writer_metadata`, the raw `created_by`
+footer string. It is a lead for tracing the writer, not authenticated conversion
+history. It does not establish source revisions, component joins, prefiltering,
+labels or special missing-value preservation; those statuses remain unverified.
+
 1. Save the official Core specifications for all six years and inspect the
    provisional registry against them. Audit Hospital, Severity, and Diagnosis
    and Procedure Groups specifications independently, including availability.
