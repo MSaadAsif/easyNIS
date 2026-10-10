@@ -5,7 +5,9 @@
 - Added `nis_export_table()` to write a disclosure review's presentation to
   CSV or HTML with base R. Unreviewed and regression tables are refused. The
   review is recomputed from its retained results and recorded policy and must
-  match exactly, so modified reviews are rejected before writing.
+  match exactly, so edited presentations, audits, policies and table estimates
+  are rejected before writing. The retained results themselves are not
+  authenticated.
 - CSV values (17 significant digits, or whole numbers in full) parse back to
   identical doubles and suppressed cells are empty.
   HTML escapes caller text, rounds only when asked, shows no suppressed value
