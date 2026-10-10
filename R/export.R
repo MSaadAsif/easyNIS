@@ -14,7 +14,8 @@
 #' @param digits `NULL` for exact values, required for CSV. For HTML and Word,
 #'   a whole number from 1 to 15 rounds the estimate, SE and interval to that
 #'   many significant digits. Counts, df and confidence levels are never
-#'   rounded.
+#'   rounded. Numeric text always uses a decimal point, independently of the
+#'   caller's `OutDec` option.
 #' @param formula_text For CSV, how to write text cells that begin with `=`,
 #'   `+`, `-`, `@`, their full-width forms, a tab, a carriage return or a line
 #'   feed, which spreadsheet programs can run as formulas: `"refuse"` stops without writing and names each cell,
@@ -212,7 +213,7 @@ presentation_display <- function(review, digits) {
       if (is.na(value)) return("NA")
       if (is.null(digits) || !is.finite(value)) return(exact_number(value))
       sub("\\.$", "", formatC(signif(value, digits), digits = digits, format = "fg",
-        flag = "#"))
+        flag = "#", decimal.mark = "."))
     }, character(1), USE.NAMES = FALSE)
   }
   rounded_exact <- function(x) ifelse(is.na(x), "NA", exact_number(x))

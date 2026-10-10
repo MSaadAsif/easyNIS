@@ -53,6 +53,8 @@ CSV back with `utils::read.csv()` and compare every shown numeric value with
 `identical()`; suppressed cells must be empty and audit fields absent. Check
 that HTML escapes caller labels and units, records the policy notes, rounds
 only to the requested significant digits and contains no suppressed value.
+Compare exact and rounded exports with `OutDec` set to a point and a comma.
+CSV/HTML bytes and Word cell text must match, with caller options unchanged.
 Give a label beginning with `=` and an id beginning with `@`: `"refuse"`
 must name both cells and write nothing, `"prefix"` must read back with a
 leading `'`, and `"keep"` must write them unchanged.
