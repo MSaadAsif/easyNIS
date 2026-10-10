@@ -2,11 +2,12 @@
 
 easyNIS is an R package in early development for reproducible workflows with the HCUP National Inpatient Sample. The planned workflow covers importing licensed files, annual differences, cohorts, survey-weighted results, models, and publication tables.
 
-**Status: experimental import, code matching, survey designs and scalar estimates implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and explicit cohort, design and inference policies. Annual adapters and scientific approval remain pending. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
+**Status: experimental import, cohorts, survey estimates, models, tables and reviewed descriptive-table exports implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and explicit cohort, design and inference policies. Annual adapters and scientific approval remain pending. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
 
 ## Install and try the development package
 
-Install the runtime dependencies in R with `install.packages(c("DBI", "duckdb"))`.
+Install the runtime and quickstart dependencies in R with
+`install.packages(c("DBI", "duckdb", "survey"))`.
 From a local checkout, run `R CMD INSTALL .` in a terminal. This package is not
 on CRAN. In R:
 
@@ -26,6 +27,28 @@ The fixture's slots and components are test choices, not verified annual layouts
 The examples run offline and do not read licensed files. Read the
 [fixture contract](inst/extdata/synthetic/README.md) and
 [contribution guide](CONTRIBUTING.md) for development checks.
+
+Run the installed offline import-to-export quickstart in R:
+
+```r
+outputs <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"))$value
+cat(readLines(outputs$report), sep = "\n")
+utils::read.csv(outputs$csv)
+browseURL(outputs$html)
+# Copy all three files to a directory you choose before ending the R session.
+# file.copy(unlist(outputs), "existing-output-directory", overwrite = FALSE)
+```
+
+It creates invented parquet data, declares an exact principal-diagnosis code
+set, constructs the full survey design, selects a domain, handles missing
+outcomes and reviews suppression before writing CSV and HTML. The Markdown
+report lists package/R versions, declarations, weights, df, confidence and
+missingness policy without raw records, suppressed values or local source
+paths. It checks the stay mean and SE against independent hospital-level
+arithmetic. Each run creates a new temporary output directory and removes its
+parquet file and connection. Read the [workflow contract](docs/WORKFLOW.md)
+for reference values and limits. The code assignments are invented test choices,
+not a clinical phenotype. Scientific approval remains pending.
 
 ## Start here
 
@@ -47,7 +70,9 @@ Only invented synthetic records belong in public examples, tests, and CI. HCUP r
 The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
 `nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
 `nis_code_set()`, `nis_flag_codes()`, `nis_select()`, `nis_survey_design()`, and
-`nis_domain()`, `nis_pool_design()`, `nis_estimate()`, and `nis_model()`.
+`nis_domain()`, `nis_pool_design()`, `nis_estimate()`, `nis_model()`,
+`nis_model_contrast()`, `nis_descriptive_table()`, `nis_regression_table()`,
+`nis_disclosure_review()` and `nis_export_table()`.
 The import API is experimental. Use `example(nis_import)` for an offline
 parquet demonstration. Structural checks preserve raw values and always report
 `analysis_ready = FALSE`. The full analysis example in the plan remains a
@@ -87,8 +112,16 @@ inference, complete-case accounting, factor contrasts and warnings. Family,
 missingness, df, confidence and variance are explicit. Read the
 [model contract](docs/MODELS.md) and run `example(nis_model)` offline.
 Bounded row-wise transformations and a Poisson log-exposure offset retain their
-[formula/scale contract](docs/MODEL-FORMULAS.md). Interpreted effects, broader
-diagnostics and scientific approval remain pending.
+[formula/scale contract](docs/MODEL-FORMULAS.md). Interpreted linear contrasts
+have an explicit [scale contract](docs/MODEL-CONTRASTS.md); scientific approval
+remains pending.
 Native prediction for offset models is unsupported; see the formula contract.
+
+Numeric tables retain unrounded inference and sample accounting. Descriptive
+tables can undergo an explicit experimental disclosure review, then export to
+CSV, HTML or Word. Word needs optional officer 0.5.0 or later. Regression-table
+disclosure review and export remain pending. Read the
+[table](docs/DESCRIPTIVE-TABLES.md), [disclosure](docs/DISCLOSURE.md) and
+[export](docs/EXPORT.md) contracts before interpreting or sharing results.
 
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
