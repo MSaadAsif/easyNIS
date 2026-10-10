@@ -537,11 +537,57 @@ by OWASP were missing and that the empty-entry repair was untested. Both
 were fixed, and mutants removing each character class or the repair now fail
 the focused suite. `utils::read.csv()` splits a quoted carriage return, so that
 case is checked in the written bytes. The installed smoke refuses and then
-prefixes an invented `=HYPERLINK(...)` label and `@` id. Clean committed-head
-verification, refreshed independent review and hosted checks are required for
-the corrected head. Word output and
+prefixes an invented `=HYPERLINK(...)` label and `@` id. Word output and
 regression-table export remain open; annual support and scientific approval
 are unchanged.
+The formula-text increment merged in [PR #17](https://github.com/MSaadAsif/easyNIS/pull/17);
+the resulting main checks passed at `b164ee1`.
+
+The next NIS-020 increment adds Word output with `format = "docx"`. It uses
+the optional officer package, now in Suggests and the verification doctor;
+without it the call names `install.packages("officer")` and writes nothing.
+HTML and Word share one display builder, so the Word table has the HTML
+header, cells, suppression text and notes. Labels and units with characters
+that XML cannot hold are refused with the column and row id; officer
+otherwise failed with a parser error. Tests compare every Word cell and note
+with the HTML export for exact and rounded tables, require every text node in
+every XML part to be a caption, header, cell or note string and cover refusal,
+argument and missing-package paths. Visual inspection through Word's PDF
+conversion found that officer's default equal column widths broke words
+mid-word. The first head moved to landscape Letter, an 8-point table style
+and widths proportional to each column's longest word.
+
+Independent review of that head (`135cd5a`) found two blocking problems.
+A 45-row table still split rows across pages, separating interval bounds from
+their rows, and the documentation understated mid-word breaks: exact tables
+broke headers, `Suppressed` and status text, and a long identifier label did
+the same in a three-digit table. Every row is now marked unsplittable and the
+test counts the marks. Cell margins are narrowed. When the longest words
+cannot fit, header and package text keep their width and caller text and
+estimates wrap; any word counts at most 24 characters. Word renderings of the
+three-digit table show no breaks; the exact table keeps all header and package
+text whole while units, labels and 17-digit estimates wrap; the 45-row table
+keeps every row on one page with repeated headers. The review also led to an
+officer 0.5.0 minimum, xml2 in Suggests, U+FFFF coverage and a stronger
+hidden-value test. Invalid UTF-8 labels still give R's encoding errors rather
+than guidance, as in HTML.
+
+The refreshed review of `cb918e8` confirmed both repairs in Word renderings,
+including 45-row exact and three-digit tables with no row spanning pages, and
+found one blocking documentation error: a caller word longer than the
+24-character cap can still break when the table otherwise fits. EXPORT.md now
+says so and describes the proportional scaling used when even header and
+package text exceed the page. Tests now check row-property and cell-margin
+placement with XPath and that header and package columns keep their estimated
+widths, which previously surviving layout mutants would fail. The testthat
+floor is 3.1.7 for mocked bindings, the example checks the officer version,
+and test sources use escapes for noncharacters. Corrected precommit
+verification passes 1,912 package assertions, 60 metadata-tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and the
+installed workflow. Clean committed-head verification, refreshed independent
+review and hosted checks are required for the corrected head.
+Regression-table disclosure review and export remain open; annual support and
+scientific approval are unchanged.
 
 ## Foundation and metadata
 

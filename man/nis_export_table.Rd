@@ -12,17 +12,19 @@ nis_export_table(review, path, format, digits, formula_text, overwrite)
 \item{path}{File path whose extension matches \code{format}. Its directory must
 exist.}
 
-\item{format}{\code{"csv"} or \code{"html"}.}
+\item{format}{\code{"csv"}, \code{"html"} or \code{"docx"}. Word output requires the
+optional officer package, version 0.5.0 or later.}
 
-\item{digits}{\code{NULL} for exact values, required for CSV. For HTML, a whole
-number from 1 to 15 rounds the estimate, SE and interval to that many
-significant digits. Counts, df and confidence levels are never rounded.}
+\item{digits}{\code{NULL} for exact values, required for CSV. For HTML and Word,
+a whole number from 1 to 15 rounds the estimate, SE and interval to that
+many significant digits. Counts, df and confidence levels are never
+rounded.}
 
 \item{formula_text}{For CSV, how to write text cells that begin with \code{=},
 \code{+}, \code{-}, \code{@}, their full-width forms, a tab, a carriage return or a line
 feed, which spreadsheet programs can run as formulas: \code{"refuse"} stops without writing and names each cell,
 \code{"prefix"} writes them with a leading \verb{'}, and \code{"keep"} writes them
-unchanged. Must be \code{NULL} for HTML.}
+unchanged. Must be \code{NULL} for HTML and Word.}
 
 \item{overwrite}{\code{TRUE} or \code{FALSE}. An existing file is replaced only when
 \code{TRUE}.}
@@ -31,7 +33,8 @@ unchanged. Must be \code{NULL} for HTML.}
 The normalized path, invisibly.
 }
 \description{
-Writes the presentation of one \code{\link[=nis_disclosure_review]{nis_disclosure_review()}} to CSV or HTML.
+Writes the presentation of one \code{\link[=nis_disclosure_review]{nis_disclosure_review()}} to CSV, HTML or
+Word.
 Only reviewed presentations can be exported. The review is recomputed from
 its retained results and recorded policy and must match exactly. The file is a candidate for human publication review and
 does not certify a manuscript.
@@ -40,8 +43,12 @@ does not certify a manuscript.
 CSV contains the 13 presentation columns with exact numeric values
 that \code{\link[utils:read.csv]{utils::read.csv()}} parses back to identical doubles; suppressed cells
 are empty. Text cells follow \code{formula_text}. HTML is a standalone escaped
-document whose notes record the experimental scope, count basis and disclosure policy. Suppressed values
-appear in neither format, and audit counts are never written. Output is
+document whose notes record the experimental scope, count basis and
+disclosure policy. Word contains the same table cells and notes as HTML
+on a landscape page; labels and units with control characters other than
+tab, carriage return and line feed, or U+FFFE or U+FFFF, are refused.
+Suppressed values appear
+in no format, and audit counts are never written. Output is
 written to a temporary file and renamed, so a failure leaves no partial
 file. Annual support and scientific approval remain pending.
 }
@@ -65,6 +72,12 @@ if (requireNamespace("survey", quietly = TRUE)) {
   utils::read.csv(csv)
   html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, NULL,
     FALSE)
+  if (requireNamespace("officer", quietly = TRUE) &&
+      utils::packageVersion("officer") >= "0.5.0") {
+    docx <- nis_export_table(review, tempfile(fileext = ".docx"), "docx", 3,
+      NULL, FALSE)
+    unlink(docx)
+  }
   nis_close(session)
   unlink(c(path, csv, html))
 }

@@ -319,6 +319,22 @@ nis_export_table(formula_review, formula_csv, "csv", NULL, "prefix", FALSE)
 formula_back <- utils::read.csv(formula_csv, stringsAsFactors = FALSE)
 stopifnot(identical(formula_back$id, "'@los"),
   identical(formula_back$label, paste0("'", formula_review$presentation$label)))
+export_docx <- nis_export_table(subtotal_review, file.path(export_dir, "subtotals.docx"),
+  "docx", 4, NULL, FALSE)
+docx_summary <- officer::docx_summary(officer::read_docx(export_docx))
+docx_cells <- docx_summary[docx_summary$content_type == "table cell", ]
+docx_cells <- docx_cells[order(docx_cells$row_id, docx_cells$cell_id), ]
+docx_rows <- unname(split(docx_cells$text, docx_cells$row_id))[-1L]
+html_rows <- regmatches(html_text, gregexpr("<tr>.*?</tr>", html_text))[[1L]][-1L]
+html_rows <- lapply(html_rows, function(row) {
+  gsub("&amp;", "&", gsub("</?td>", "", regmatches(row, gregexpr("<td>.*?</td>", row))[[1L]]),
+    fixed = TRUE)
+})
+stopifnot(length(docx_rows) == nrow(subtotal_review$presentation),
+  identical(docx_rows, html_rows),
+  identical(vapply(docx_rows[!subtotal_shown], `[[`, character(1), 5L),
+    rep("Suppressed", sum(!subtotal_shown))),
+  any(grepl("not analysis ready", docx_summary$text, fixed = TRUE)))
 unlink(export_dir, recursive = TRUE)
-cat("Installed CSV and HTML exports preserved shown values and suppression and handled formula text.\n")
+cat("Installed CSV, HTML and Word exports preserved shown values and suppression and handled formula text.\n")
 cat("Installed workflow passed; year support remains experimental.\n")

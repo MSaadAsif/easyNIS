@@ -18,9 +18,12 @@
   spreadsheet could run as a formula (`=`, `+`, `-`, `@`, their full-width
   forms, tab, carriage return or line feed): refuse, prefix with `'`, or keep
   unchanged.
+- `format = "docx"` writes the HTML table cells and notes to a landscape Word
+  document using the optional officer package (0.5.0 or later), with install
+  guidance when it is missing. Rows do not split across pages. Labels and
+  units with characters that Word cannot hold are refused.
 - Output is staged and renamed, and existing files are replaced only on
-  request. Word export, regression-table export and annual support are not
-  changed.
+  request. Regression-table export and annual support are not changed.
 
 ## Experimental disclosure review
 
