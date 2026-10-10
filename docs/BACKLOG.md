@@ -638,6 +638,31 @@ annual evidence and scientific approval retain their separate gates.
 
 ## Foundation and metadata
 
+The quickstart merged in [PR #20](https://github.com/MSaadAsif/easyNIS/pull/20)
+with all five reviewed-head and resulting main jobs passing. The next NIS-021
+increment adds an installed HTML vignette that executes the same quickstart
+with knitr, without Pandoc or network access. It explains the explicit domain,
+inference and disclosure policies and displays only reviewed CSV values,
+rounded to four decimal places with suppressed cells blank. The source
+build/check executes the vignette; installed verification requires discovery,
+rendered HTML, blank suppressed cells and absence of temporary source paths.
+
+Initial verification exposed R's generated `build/vignette.rds` index to the
+blanket RDS ban. The tarball gate now permits only that exact path with the
+exact expected public index object and requires the source, rendered HTML and
+extracted code. Five offline cases reject substituted records, private-path
+metadata, another RDS and missing HTML while accepting the expected index.
+The source check passed with Status OK and 87 tarball entries. The first
+installed assertion failed on knitr's padded header text; trimming the headers
+corrected it and the installed workflow passed. Full corrected-source
+verification passes 1,927 package assertions, 65 metadata/tarball-tool
+assertions, all 36 merge-gate scenarios, source Status OK, the 87-entry tarball
+inspection and installed workflows. Clean committed-head verification,
+independent review and hosted checks remain required before merge.
+No annual capability or scientific approval changes.
+Integrated pooling/model workflow documentation remains NIS-021 work;
+regression-table disclosure/export and annual evidence retain separate gates.
+
 | ID | Work | Depends on | Acceptance criteria |
 |---|---|---|---|
 | NIS-001 | Confirm written scope and public author metadata. | Plan review. | Shared-understanding confirmation, maintainer email, names, author roles; ORCIDs if provided. |
