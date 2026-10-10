@@ -50,6 +50,11 @@ parquet file and connection. Read the [workflow contract](docs/WORKFLOW.md)
 for reference values and limits. The code assignments are invented test choices,
 not a clinical phenotype. Scientific approval remains pending.
 
+The built source package also includes an offline walkthrough. Open it with
+`vignette("synthetic-workflow", package = "easyNIS")`. To build vignettes from
+a checkout, install knitr and run `R CMD build .`, then install the resulting
+tarball. A direct `R CMD INSTALL .` does not build vignettes.
+
 ## Start here
 
 - [Detailed development plan](docs/PLAN.md)

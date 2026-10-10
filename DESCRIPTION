@@ -23,11 +23,13 @@ Imports:
     utils
 Suggests:
     arrow,
+    knitr,
     officer (>= 0.5.0),
     survey,
     testthat (>= 3.1.7),
     xml2
 Encoding: UTF-8
+VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0

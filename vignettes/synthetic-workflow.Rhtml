@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+%\VignetteIndexEntry{Offline synthetic import-to-export workflow}
+%\VignetteEngine{knitr::knitr}
+%\VignetteEncoding{UTF-8}
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline synthetic import-to-export workflow</title>
+<style>
+body { max-width: 58em; margin: 2em auto; padding: 0 1em; font-family: sans-serif; line-height: 1.5; }
+pre { overflow-x: auto; background: #f5f5f5; padding: 1em; }
+table { border-collapse: collapse; display: block; overflow-x: auto; }
+td, th { padding: .4em; border: 1px solid #bbb; }
+</style>
+</head>
+<body>
+<h1>Offline synthetic import-to-export workflow</h1>
+<p>easyNIS is experimental. No licensed-data year is analysis ready, and no
+annual support, clinical validity or scientific approval is claimed here.
+All records, year labels and code assignments in this example are invented.</p>
+
+<h2>Run the installed example</h2>
+<p>Install DBI, duckdb and survey, then install easyNIS. This example needs no
+network or licensed files. It creates a local temporary parquet file, imports
+it and checks its structure. The complete invented population has 120
+discharges in four hospitals and two strata.</p>
+<p>The code set matches A001 exactly in principal diagnosis slot 1, without
+normalization. Missing codes count as no match. The full survey design is
+constructed before selecting the matching domain. The design uses hospital
+with-replacement variance, unscaled weights, no finite-population correction
+and rejection of singleton strata. Unknown domain membership fails.</p>
+<!--begin.rcode setup, include=FALSE
+knitr::opts_chunk$set(error = FALSE)
+end.rcode-->
+<!--begin.rcode run-example
+library(easyNIS)
+outputs <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"))$value
+end.rcode-->
+<p>The returned list contains paths named <code>report</code>, <code>csv</code>
+and <code>html</code>. In your own session, use <code>browseURL(outputs$html)</code>
+to open the HTML table. Copy all three files together to an existing directory
+before ending R, so the Markdown report's relative links keep working:</p>
+<pre>file.copy(unlist(outputs), "existing-output-directory", overwrite = FALSE)</pre>
+<p>The script closes its DuckDB connection and removes its input parquet file,
+including on error. An unsuccessful run removes its incomplete output directory.
+It preserves caller survey options; incompatible inference options cause an error.</p>
+
+<h2>Read the reviewed table</h2>
+<p>The stay row estimates mean LOS in days, excluding missing outcomes within
+the domain. Each hospital contributes 12 observed domain discharges, for 48
+in total. Independent hospital-level ratio arithmetic in the executable script
+checks mean 34/7, standard error approximately 0.3763 and a two-sided 95 percent
+Wald t interval with explicitly supplied df 2. These are fixture choices,
+not recommended analysis policies.</p>
+<p>Disclosure review suppresses raw counts 1 through 10, displays zero and
+requires two contributing hospitals. No additive margins are declared. The
+rare indicator row is suppressed. The display below reads only the reviewed
+CSV presentation; blank cells contain no suppressed numeric results.</p>
+<!--begin.rcode reviewed-table, results='asis', echo=TRUE
+reviewed <- utils::read.csv(outputs$csv, stringsAsFactors = FALSE)
+local({
+  old <- options(knitr.kable.NA = "")
+  on.exit(options(old))
+  knitr::kable(reviewed, format = "html", escape = TRUE, digits = 4,
+    caption = "Invented reviewed results. Display rounded to four decimal places.")
+})
+end.rcode-->
+<p>CSV preserves shown doubles with 17 significant digits, or whole numbers
+in full, and refuses formula-leading text. The separately exported HTML uses
+four significant digits for estimates, standard errors and intervals and
+includes disclosure notes. Display rounding does not change inference.
+The bounded disclosure procedure does not check all larger combinations of
+declared margins or undeclared relations. External publication needs human review.</p>
+
+<h2>Keep the declarations with the outputs</h2>
+<p>The Markdown report lists R and package versions, code and domain policies,
+design fields and methods, weight and estimand meaning, outcome missingness,
+variance, df, confidence, row definitions and disclosure policy. It omits raw
+records, suppressed results, audit counts, local source paths and retained
+design/provenance objects. This fixed report is not a general report generator
+or a guarantee that arbitrary caller labels are free of identifying text.</p>
+<p>Pooling, regression and Word have separate API contracts. They are not integrated into this
+single-year walkthrough. Regression-table disclosure/export, annual metadata,
+conversion provenance, performance and licensed validation remain separate gates.</p>
+<!--begin.rcode cleanup, include=FALSE
+unlink(dirname(outputs$report), recursive = TRUE)
+end.rcode-->
+</body>
+</html>

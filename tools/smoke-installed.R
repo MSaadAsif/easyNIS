@@ -369,4 +369,22 @@ stopifnot(!identical(workflow, workflow_repeat),
   identical(readLines(workflow_repeat$html), readLines(workflow$html)))
 unlink(c(dirname(workflow$report), dirname(workflow_repeat$report)), recursive = TRUE)
 cat("Installed offline quickstart passed independent WR inference, suppression, sanitized report and repeatability.\n")
+vignette <- utils::vignette("synthetic-workflow", package = "easyNIS")
+stopifnot(!is.null(vignette))
+vignette_path <- system.file("doc/synthetic-workflow.html", package = "easyNIS")
+stopifnot(nzchar(vignette_path), file.exists(vignette_path))
+vignette_html <- paste(readLines(vignette_path, encoding = "UTF-8"), collapse = "\n")
+stopifnot(grepl("Invented reviewed results", vignette_html, fixed = TRUE),
+  grepl("suppressed_primary", vignette_html, fixed = TRUE),
+  grepl("34/7", vignette_html, fixed = TRUE),
+  !grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|source_receipt", vignette_html))
+vignette_document <- xml2::read_html(vignette_path)
+hidden_row <- xml2::xml_find_all(vignette_document,
+  "//table//tr[td[contains(., 'suppressed_primary')]]")
+stopifnot(length(hidden_row) == 1L)
+headers <- trimws(xml2::xml_text(xml2::xml_find_all(vignette_document, "//table//th")))
+hidden_cells <- trimws(xml2::xml_text(xml2::xml_find_all(hidden_row, "td")))
+stopifnot(all(hidden_cells[match(c("estimate", "se", "lower", "upper", "unweighted_n"),
+  headers)] == ""))
+
 cat("Installed workflow passed; year support remains experimental.\n")
