@@ -636,6 +636,22 @@ required before merge. Formal vignettes and integrated
 pool/model examples remain NIS-021 acceptance work. Regression-table disclosure,
 annual evidence and scientific approval retain their separate gates.
 
+## Decimal formatting follow-up
+
+PR #22 merged with all five reviewed-head and resulting main jobs passing at
+`f99fb5c`. A public export regression then reproduced rounded HTML and Word
+using comma decimal marks under `OutDec = ","`, while exact values and CSV
+used points. Rounded whole numbers could retain a trailing comma. The shared
+display builder now requests a decimal point explicitly without changing
+caller options. Public tests compare CSV/HTML bytes and Word text under both
+options for exact and three-digit output, preserve the review and check the
+caller option. The installed smoke repeats the rounded HTML comparison.
+Precommit verification passes 1,942 package assertions, 65 tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and installed
+workflows. Both independent reviews found zero blockers. Clean committed-head
+verification and hosted checks are required before merge. Annual support and
+scientific approval are unchanged.
+
 ## Foundation and metadata
 
 The quickstart merged in [PR #20](https://github.com/MSaadAsif/easyNIS/pull/20)
