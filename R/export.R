@@ -157,17 +157,17 @@ html_lines <- function(review, digits) {
   rounded_exact <- function(x) ifelse(is.na(x), "NA", exact_number(x))
   shown <- presentation$disclosure_status == "shown"
   hidden <- function(text) ifelse(shown, text, "Suppressed")
-  interval <- paste0(rounded(presentation$lower), " to ", rounded(presentation$upper),
-    " (", sprintf("%.15g", 100 * presentation$confidence), "%)")
+  interval <- paste0(rounded(presentation$lower), " to ", rounded(presentation$upper))
   status <- c(shown = "Shown", suppressed_primary = "Suppressed (primary)",
     suppressed_complementary = "Suppressed (complementary)")[presentation$disclosure_status]
   cells <- cbind(escape_html(presentation$label), escape_html(presentation$statistic),
     escape_html(presentation$unit), escape_html(presentation$estimand),
     hidden(rounded(presentation$estimate)), hidden(rounded(presentation$se)),
     hidden(interval), rounded_exact(presentation$df),
-    hidden(rounded_exact(presentation$unweighted_n)), unname(status))
+    hidden(rounded_exact(presentation$unweighted_n)), unname(status),
+    rounded_exact(presentation$confidence))
   header <- c("Label", "Statistic", "Unit", "Estimand", "Estimate", "SE", "Interval",
-    "df", "Unweighted discharges", "Disclosure status")
+    "df", "Unweighted discharges", "Disclosure status", "Confidence level (0 to 1)")
   row <- function(x, tag) paste0("<tr>", paste0("<", tag, ">", x, "</", tag, ">",
     collapse = ""), "</tr>")
   policy <- review$provenance$policy
@@ -179,7 +179,7 @@ html_lines <- function(review, digits) {
       " inclusive; zero counts: ", escape_html(policy$zero),
       "; minimum contributing hospitals: ", exact_number(policy$min_hospitals),
       "; declared margins: ", length(policy$margins), "."),
-    "Complementary suppression is a bounded greedy procedure. Undeclared relations, other tables and external publications require human review.",
+    "Complementary suppression is a bounded greedy procedure. Larger combinations of declared margins remain unchecked. Undeclared relations, other tables and external publications require human review.",
     if (is.null(digits)) "Values are exact." else
       paste0("Estimates, SEs and intervals are rounded to ", digits,
         " significant digits; counts, df and confidence levels are exact."))
