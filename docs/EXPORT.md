@@ -126,11 +126,15 @@ cells are bold and repeat on each page, text columns are left aligned and
 numeric columns right aligned, and no row splits across pages. Column widths
 estimate 0.07 inch per character of each column's longest word, counting at
 most 24 characters. When the longest words fit in the 10-inch text width,
-the spare width is shared in proportion and no word breaks. Otherwise header
+the spare width is shared in proportion and no header or package word
+breaks; a caller word longer than about 24 characters, or one set in
+unusually wide letters, can still break within its cell. Otherwise header
 words and package text (statistic, estimand, df, `Suppressed`, status and
-confidence level) keep their full width, and caller labels and units and
+confidence level) keep their estimated width, and caller labels and units and
 estimates, SEs, interval bounds and counts share the rest, wrapping and
-breaking words within their cells. Exact 17-digit values usually need this
+breaking words within their cells. If even header and package text exceed the
+page, for example a non-integer df beside a 17-digit confidence level, every
+column is scaled down in proportion. Exact 17-digit values usually need this
 second case. A row taller than a page would still have to break. The layout
 was inspected visually after conversion to PDF by Microsoft Word for exact
 and three-digit tables and a 45-row table with long labels; other word

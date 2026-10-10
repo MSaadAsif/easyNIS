@@ -457,6 +457,24 @@ test_that("Word contains the HTML cells and notes and no hidden value", {
     expect_identical(lengths(gregexpr("<w:cantSplit/>", body, fixed = TRUE)),
       nrow(review$presentation) + 1L)
     expect_identical(lengths(gregexpr("<w:tr>|<w:tr ", body)), nrow(review$presentation) + 1L)
+    # Row properties come first in each row, and cell margins precede tblLook.
+    parsed <- xml2::read_xml(body)
+    namespaces <- xml2::xml_ns(parsed)
+    expect_true(all(xml2::xml_name(
+      xml2::xml_find_all(parsed, "//w:tbl/w:tr/*[1]", namespaces)) == "trPr"))
+    expect_identical(xml2::xml_name(xml2::xml_find_all(parsed,
+      "//w:tbl/w:tblPr/w:tblLook/preceding-sibling::*[1]", namespaces)), "tblCellMar")
+
+    # Header words and package text keep at least 0.08 inch plus 0.07 inch per
+    # character of their longest word (1440 twips per inch); widths fill 10 inches.
+    widths <- as.numeric(xml2::xml_attr(xml2::xml_find_all(parsed, "//w:tbl/w:tblGrid/w:gridCol",
+      namespaces), "w"))
+    expect_equal(sum(widths), 14400, tolerance = 20 / 14400)
+    package_text <- rbind(expected$header, do.call(rbind, expected$cells))
+    package_text[-1L, c(1L, 3L)] <- ""
+    package_text[-1L, c(5:7, 9L)][package_text[-1L, c(5:7, 9L)] != "Suppressed"] <- ""
+    longest <- apply(package_text, 2L, function(x) max(nchar(unlist(strsplit(x, "\\s+")))))
+    expect_true(all(widths >= 1440 * (0.08 + 0.07 * pmax(4, longest)) - 2))
   }
 })
 
@@ -469,8 +487,8 @@ test_that("Word export needs officer and text that a Word document can hold", {
     "hospital_wr", "fail")
   spec <- data.frame(id = c("bell", "plain", "space", "fffe", "ffff"), field = "stay",
     statistic = "mean", label = c("Stay\a", "Tab\there\r\nand line", "Stay", "Stay",
-      "Stay￿"),
-    unit = c("days", "days", "days\v", "days￾", "days"), stringsAsFactors = FALSE)
+      "Stay\uffff"),
+    unit = c("days", "days", "days\v", "days\ufffe", "days"), stringsAsFactors = FALSE)
   table <- nis_descriptive_table(design, spec, "fail", Inf, 0.95, "wr_unadjusted")
   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
   output <- tempfile(fileext = ".docx")

@@ -72,7 +72,8 @@ if (requireNamespace("survey", quietly = TRUE)) {
   utils::read.csv(csv)
   html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, NULL,
     FALSE)
-  if (requireNamespace("officer", quietly = TRUE)) {
+  if (requireNamespace("officer", quietly = TRUE) &&
+      utils::packageVersion("officer") >= "0.5.0") {
     docx <- nis_export_table(review, tempfile(fileext = ".docx"), "docx", 3,
       NULL, FALSE)
     unlink(docx)
