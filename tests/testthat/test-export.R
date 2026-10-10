@@ -383,15 +383,27 @@ docx_cells <- function(path) {
   list(header = rows[[1L]], cells = unname(rows[-1L]), paragraphs = paragraphs)
 }
 
+# Every XML part of the document, and the unescaped text of every w:t node in them.
 docx_xml <- function(path) {
   directory <- tempfile("docx-")
   dir.create(directory)
   on.exit(unlink(directory, recursive = TRUE))
   parts <- utils::unzip(path, exdir = directory)
   parts <- parts[grepl("[.](xml|rels)$", parts)]
-  paste(vapply(parts, function(part) {
+  xml <- vapply(parts, function(part) {
     paste(readLines(part, encoding = "UTF-8", warn = FALSE), collapse = "\n")
-  }, character(1)), collapse = "\n")
+  }, character(1), USE.NAMES = FALSE)
+  names(xml) <- basename(parts)
+  text <- unlist(lapply(xml, function(x) {
+    nodes <- regmatches(x, gregexpr("<w:t(?: [^>]*)?>[^<]*</w:t>", x, perl = TRUE))[[1L]]
+    nodes <- sub("^<w:t[^>]*>", "", sub("</w:t>$", "", nodes))
+    for (pair in list(c("&lt;", "<"), c("&gt;", ">"), c("&quot;", "\""), c("&apos;", "'"),
+                      c("&amp;", "&"))) {
+      nodes <- gsub(pair[[1L]], pair[[2L]], nodes, fixed = TRUE)
+    }
+    nodes
+  }), use.names = FALSE)
+  list(xml = xml, text = text)
 }
 
 test_that("Word contains the HTML cells and notes and no hidden value", {
@@ -420,21 +432,31 @@ test_that("Word contains the HTML cells and notes and no hidden value", {
     c("Rare <b>event</b>", rep("Suppressed", 4), "Suppressed (primary)"))
   expect_true(any(grepl("rounded to 3 significant digits", word$paragraphs, fixed = TRUE)))
 
-  nis_export_table(review, docx, "docx", NULL, NULL, TRUE)
-  xml <- docx_xml(docx)
-  expect_match(xml, "w:orient=\"landscape\"", fixed = TRUE)
-  expect_match(xml, "Rare &lt;b&gt;event&lt;/b&gt;", fixed = TRUE)
-  expect_false(grepl("<b>event", xml, fixed = TRUE))
   table <- review$table$data
   shown <- review$presentation$disclosure_status == "shown"
-  for (value in c(table$weighted_estimate[!shown], table$se[!shown], table$lower[!shown],
-                  table$upper[!shown])) {
-    expect_false(grepl(paste0(">", nis_test_exact(value), "<"), xml, fixed = TRUE),
-      info = nis_test_exact(value))
-    for (digits in c(3, 6, 15)) {
-      expect_false(grepl(formatC(value, digits = digits, format = "g"), xml, fixed = TRUE),
-        info = nis_test_exact(value))
+  hidden <- c(table$weighted_estimate[!shown], table$se[!shown], table$lower[!shown],
+    table$upper[!shown])
+  expect_true(length(hidden) > 0L)
+  for (digits in list(NULL, 3, 15)) {
+    nis_export_table(review, html, "html", digits, NULL, TRUE)
+    nis_export_table(review, docx, "docx", digits, NULL, TRUE)
+    expected <- html_cells(html)
+    document <- docx_xml(docx)
+    # Every text node in every part is a caption, header, cell or note string.
+    expect_true(all(document$text %in% c("easyNIS experimental descriptive table",
+      expected$header, unlist(expected$cells), expected$notes)))
+    tokens <- unlist(strsplit(document$text, "\\s+"))
+    for (value in hidden) {
+      expect_false(nis_test_exact(value) %in% tokens, info = nis_test_exact(value))
     }
+    body <- document$xml[["document.xml"]]
+    expect_match(body, "w:orient=\"landscape\"", fixed = TRUE)
+    expect_match(body, "Rare &lt;b&gt;event&lt;/b&gt;", fixed = TRUE)
+    expect_false(grepl("<b>event", body, fixed = TRUE))
+    # No row may split across pages.
+    expect_identical(lengths(gregexpr("<w:cantSplit/>", body, fixed = TRUE)),
+      nrow(review$presentation) + 1L)
+    expect_identical(lengths(gregexpr("<w:tr>|<w:tr ", body)), nrow(review$presentation) + 1L)
   }
 })
 
@@ -445,9 +467,10 @@ test_that("Word export needs officer and text that a Word document can hold", {
   on.exit(unlink(path), add = TRUE)
   design <- nis_survey_design(nis_import(session, path, 2022), "stay", TRUE,
     "hospital_wr", "fail")
-  spec <- data.frame(id = c("bell", "plain", "space", "fffe"), field = "stay",
-    statistic = "mean", label = c("Stay\a", "Tab\there\r\nand line", "Stay", "Stay"),
-    unit = c("days", "days", "days\v", "days￾"), stringsAsFactors = FALSE)
+  spec <- data.frame(id = c("bell", "plain", "space", "fffe", "ffff"), field = "stay",
+    statistic = "mean", label = c("Stay\a", "Tab\there\r\nand line", "Stay", "Stay",
+      "Stay￿"),
+    unit = c("days", "days", "days\v", "days￾", "days"), stringsAsFactors = FALSE)
   table <- nis_descriptive_table(design, spec, "fail", Inf, 0.95, "wr_unadjusted")
   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
   output <- tempfile(fileext = ".docx")
@@ -457,8 +480,8 @@ test_that("Word export needs officer and text that a Word document can hold", {
     tryCatch(nis_export_table(review, output, "docx", NULL, NULL, FALSE),
       error = conditionMessage),
     paste0("Word documents cannot contain control characters other than tab, ",
-      "carriage return and line feed: label in row 'bell', unit in row 'space', ",
-      "unit in row 'fffe'."))
+      "carriage return and line feed, or U+FFFE and U+FFFF: label in row 'bell', ",
+      "label in row 'ffff', unit in row 'space', unit in row 'fffe'."))
   expect_false(file.exists(output))
   html <- sub("docx$", "html", output)
   on.exit(unlink(html), add = TRUE)
@@ -468,7 +491,7 @@ test_that("Word export needs officer and text that a Word document can hold", {
   plain <- nis_descriptive_table(design, spec[2L, ], "fail", Inf, 0.95, "wr_unadjusted")
   plain <- nis_disclosure_review(plain, c(1, 10), "display", 2, list())
   nis_export_table(plain, output, "docx", NULL, NULL, FALSE)
-  # XML parsing normalizes a carriage return and line feed to one line feed.
+  # officer writes a carriage return and line feed as one line feed.
   expect_identical(docx_cells(output)$cells[[1L]][[1L]], "Tab\there\nand line")
 
   expect_error(nis_export_table(plain, output, "docx", NULL, "keep", TRUE),
@@ -483,7 +506,7 @@ test_that("Word export needs officer and text that a Word document can hold", {
   unlink(output)
   local_mocked_bindings(officer_available = function() FALSE)
   expect_error(nis_export_table(plain, output, "docx", NULL, NULL, FALSE),
-    "Word export needs the optional officer package. Install it with install.packages(\"officer\"), or export CSV or HTML.",
+    "Word export needs the optional officer package, version 0.5.0 or later. Install it with install.packages(\"officer\"), or export CSV or HTML.",
     fixed = TRUE)
   expect_false(file.exists(output))
   expect_identical(list.files(dirname(output), pattern = "^easyNIS-export-"), character())

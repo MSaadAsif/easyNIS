@@ -10,7 +10,7 @@
 #' @param path File path whose extension matches `format`. Its directory must
 #'   exist.
 #' @param format `"csv"`, `"html"` or `"docx"`. Word output requires the
-#'   optional officer package.
+#'   optional officer package, version 0.5.0 or later.
 #' @param digits `NULL` for exact values, required for CSV. For HTML and Word,
 #'   a whole number from 1 to 15 rounds the estimate, SE and interval to that
 #'   many significant digits. Counts, df and confidence levels are never
@@ -29,7 +29,8 @@
 #'   document whose notes record the experimental scope, count basis and
 #'   disclosure policy. Word contains the same table cells and notes as HTML
 #'   on a landscape page; labels and units with control characters other than
-#'   tab, carriage return and line feed are refused. Suppressed values appear
+#'   tab, carriage return and line feed, or U+FFFE or U+FFFF, are refused.
+#'   Suppressed values appear
 #'   in no format, and audit counts are never written. Output is
 #'   written to a temporary file and renamed, so a failure leaves no partial
 #'   file. Annual support and scientific approval remain pending.
@@ -108,7 +109,7 @@ nis_export_table <- function(review, path, format, digits, formula_text,
 
   if (format == "docx") {
     if (!officer_available()) {
-      stop("Word export needs the optional officer package. Install it with ",
+      stop("Word export needs the optional officer package, version 0.5.0 or later. Install it with ",
            "install.packages(\"officer\"), or export CSV or HTML.", call. = FALSE)
     }
     check_docx_text(review$presentation)
@@ -258,9 +259,14 @@ html_lines <- function(review, digits) {
     paste0("<li>", escape_html(display$notes), "</li>"), "</ul>", "</body>", "</html>")
 }
 
-officer_available <- function() requireNamespace("officer", quietly = TRUE)
+officer_available <- function() {
+  requireNamespace("officer", quietly = TRUE) &&
+    utils::packageVersion("officer") >= "0.5.0"
+}
 
-# Characters that XML 1.0, and therefore a Word document, cannot contain.
+# Characters that XML 1.0, and therefore a Word document, cannot contain:
+# control characters other than tab, carriage return and line feed, and the
+# noncharacters U+FFFE and U+FFFF.
 check_docx_text <- function(presentation) {
   disallowed <- c(1:8, 11:12, 14:31, 0xFFFE, 0xFFFF)
   invalid <- lapply(presentation[c("label", "unit")], function(x) {
@@ -273,7 +279,8 @@ check_docx_text <- function(presentation) {
       if (length(rows)) paste0(column, " in row '", rows, "'")
     }))
     stop("Word documents cannot contain control characters other than tab, ",
-      "carriage return and line feed: ", paste(cells, collapse = ", "), ".", call. = FALSE)
+      "carriage return and line feed, or U+FFFE and U+FFFF: ",
+      paste(cells, collapse = ", "), ".", call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -290,19 +297,52 @@ write_docx <- function(review, digits, target) {
   document <- officer::docx_set_paragraph_style(document, "easyNISTable", "easyNIS table",
     base_on = "Normal", fp_t = officer::fp_text_lite(font.size = 8))
   document <- officer::body_add_par(document, display$title, style = "Table Caption")
-  # Share the 10 inch landscape Letter text width, after Word's default 0.16 inch
-  # cell padding, by each column's longest word so words break only when the
-  # longest words cannot fit together.
-  words <- rbind(display$header, display$cells)
-  longest <- apply(words, 2L, function(x) max(4L, nchar(unlist(strsplit(x, "\\s+")))))
-  widths <- 0.16 + (10 - 0.16 * length(longest)) * longest / sum(longest)
   document <- officer::body_add_blocks(document, officer::block_list(officer::block_table(cells,
     properties = officer::prop_table(style = "table_template",
       layout = officer::table_layout("fixed"),
-      colwidths = officer::table_colwidths(widths),
+      colwidths = officer::table_colwidths(docx_widths(display)),
       stylenames = officer::table_stylenames(list("easyNIS table" = names(cells)))),
     alignment = c("l", "l", "l", "l", "r", "r", "r", "r", "r", "l", "r"))))
+  body <- officer::docx_body_xml(document)
+  # Narrow left and right cell margins to 0.04 inch, before tblLook as the
+  # schema orders table properties.
+  look <- xml2::xml_find_first(body, "//w:tbl/w:tblPr/w:tblLook")
+  xml2::xml_add_sibling(look, "w:tblCellMar", .where = "before")
+  margins <- xml2::xml_find_first(body, "//w:tbl/w:tblPr/w:tblCellMar")
+  for (side in c("w:left", "w:right")) {
+    xml2::xml_add_child(margins, side, "w:w" = "58", "w:type" = "dxa")
+  }
+  # Keep each row on one page so interval bounds stay with their row.
+  for (row in xml2::xml_find_all(body, "//w:tbl/w:tr")) {
+    properties <- xml2::xml_find_first(row, "w:trPr")
+    if (inherits(properties, "xml_missing")) {
+      xml2::xml_add_child(row, "w:trPr", .where = 0L)
+      properties <- xml2::xml_find_first(row, "w:trPr")
+    }
+    xml2::xml_add_child(properties, "w:cantSplit")
+  }
   for (note in display$notes) document <- officer::body_add_par(document, note)
   print(document, target = target)
   invisible(target)
+}
+
+# Column widths in inches sharing the 10 inch landscape Letter text width. Each
+# column needs its 0.08 inch cell margins plus about 0.07 inch per character of
+# its longest word at 8 points. When everything fits, spare width is shared in
+# proportion. Otherwise header words and package text (statistic, estimand,
+# df, status, confidence level and `Suppressed`) keep their full width, and
+# caller labels, units and long estimates share the rest, wrapping within their
+# cells. Words count at most 24 characters, so one long unbroken label cannot
+# take most of the page.
+docx_widths <- function(display) {
+  longest <- function(x) min(24L, max(c(0L, nchar(unlist(strsplit(x, "\\s+"))))))
+  fixed_text <- display$cells
+  fixed_text[, c(1L, 3L)] <- ""
+  fixed_text[, c(5:7, 9L)][fixed_text[, c(5:7, 9L)] != "Suppressed"] <- ""
+  inches <- function(characters) 0.08 + 0.07 * pmax(4L, characters)
+  need <- inches(apply(rbind(display$header, display$cells), 2L, longest))
+  floor <- inches(apply(rbind(display$header, fixed_text), 2L, longest))
+  if (sum(need) <= 10) return(need + (10 - sum(need)) * need / sum(need))
+  if (sum(floor) >= 10) return(10 * floor / sum(floor))
+  floor + (10 - sum(floor)) * (need - floor) / sum(need - floor)
 }
