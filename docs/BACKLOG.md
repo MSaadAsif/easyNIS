@@ -654,7 +654,7 @@ scientific approval are unchanged.
 
 The decimal increment merged in [PR #23](https://github.com/MSaadAsif/easyNIS/pull/23)
 after clean-head verification, independent specification and standards reviews
-with zero blockers and all five hosted jobs. Resulting main checks are pending.
+with zero blockers and all five hosted jobs. Resulting main checks also passed.
 
 ## Exact two-level disclosure follow-up
 
@@ -676,6 +676,26 @@ hosted checks are required before merge. This fixes experimental behavior and
 does not promote annual support or scientific approval.
 
 ## Foundation and metadata
+
+The exact-level fix merged in [PR #24](https://github.com/MSaadAsif/easyNIS/pull/24)
+after clean-head verification with 1,966 package and 65 tool assertions,
+independent specification/standards reviews with zero blockers and all five
+hosted jobs. Resulting main checks also passed.
+
+The NIS-005 inventory follow-up retains the raw parquet footer `created_by`
+string as `writer_metadata`. This provides a lead for tracing file creation
+without authenticating converter versions, release revisions, joins, filtering
+or missing/label preservation. Existing unknown and unverified statuses remain
+explicit. Invented-file tests exercise both the sourceable tool and real CLI,
+paths with spaces, two file/year-hint cases, footer counts, schema preservation,
+unchanged uncertainty statuses and absence of discharge values from receipts.
+Precommit verification passes 1,966 package assertions, 81 tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and installed
+workflows. Both independent reviews found zero blockers; a separate probe also
+preserves writer strings with commas, quotes, newlines and trailing spaces.
+Clean committed-head verification and hosted checks are required before merge.
+No private writer metadata or paths enter the public repository. Annual source
+snapshots and conversion history remain the next external dependencies.
 
 The quickstart merged in [PR #20](https://github.com/MSaadAsif/easyNIS/pull/20)
 with all five reviewed-head and resulting main jobs passing. The next NIS-021
