@@ -59,9 +59,19 @@ policy declarations and absence of local paths, and requires identical report
 and export contents across both runs. It removes generated artifacts afterward.
 Full verification also checks the installed example is in the source package.
 
+The installed `synthetic-workflow` HTML vignette executes the same quickstart
+during source build and displays only its reviewed CSV presentation, rounded
+to four decimal places with suppressed cells blank. It explains domain order,
+inference and disclosure declarations, output retention and remaining gates.
+The HTML engine uses knitr without Pandoc or a network connection. Source build
+and check both execute its code; the installed smoke requires the vignette
+index and HTML and checks for suppressed cells and absence of temporary paths.
+Open it with `vignette("synthetic-workflow", package = "easyNIS")` after
+installing the built tarball. Direct source installation does not build it.
+
 This increment demonstrates single-year descriptive inference. Pooling,
-regression and Word have separate executable examples and contracts; integrating
-them into a longer workflow and a formal vignette remains NIS-021 acceptance
+regression and Word have separate API contracts; integrating
+them into a longer workflow remains NIS-021 acceptance
 work. Regression-table disclosure/export, annual metadata, conversion history,
 performance and licensed validation remain separate gates. The example does
 not promote annual support, clinical validity or scientific approval.

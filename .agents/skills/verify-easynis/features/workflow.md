@@ -10,3 +10,8 @@ and matching primary suppression in HTML. Check report versions and explicit
 policies, relative links and absence of source paths, raw identifiers and
 retained result objects. Only invented data may be used. This example does
 not validate any annual capability or scientific policy.
+
+The source build/check executes `vignettes/synthetic-workflow.Rhtml` with the
+knitr HTML engine, without Pandoc. The installed smoke requires its vignette
+index and rendered HTML, confirms the reviewed table and blank suppressed
+cells, and rejects temporary source paths in the rendered walkthrough.
