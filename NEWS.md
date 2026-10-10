@@ -40,6 +40,9 @@
 
 ## Experimental disclosure review
 
+- Two-level disclosure counts now group by exact numeric values. Distinct
+  doubles with identical printed labels no longer merge and escape count or
+  hospital suppression.
 - Added `nis_disclosure_review()` for descriptive tables. Caller-declared
   ranges, zero policy, hospital minimum and additive margins drive primary and
   greedy complementary suppression from unweighted discharge counts. Rows on

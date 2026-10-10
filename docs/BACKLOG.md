@@ -652,6 +652,29 @@ workflows. Both independent reviews found zero blockers. Clean committed-head
 verification and hosted checks are required before merge. Annual support and
 scientific approval are unchanged.
 
+The decimal increment merged in [PR #23](https://github.com/MSaadAsif/easyNIS/pull/23)
+after clean-head verification, independent specification and standards reviews
+with zero blockers and all five hosted jobs. Resulting main checks are pending.
+
+## Exact two-level disclosure follow-up
+
+An independent public-call audit found that two distinct doubles, 1 and
+`1 + .Machine$double.eps`, were merged by numeric-to-text grouping. A level of
+three discharges across three hospitals and a level of twelve in one hospital
+both remained shown and exported. The review now groups by exact value
+positions, retaining its existing count and hospital policy. The public
+regression failed before the fix and passes after it, covering both failures,
+a safe eleven-discharge level, reversed row order, missing-outcome exclusion,
+unchanged input and suppressed CSV cells. Installed verification exercises
+the same count/hospital/safe cases through invented parquet inputs.
+Precommit verification passes 1,951 package assertions, 65 tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and installed
+workflows. Independent specification review found zero blockers, including
+additional negative-value cases and compatibility with constant/three-level
+outcomes. Clean committed-head verification, final independent reviews and
+hosted checks are required before merge. This fixes experimental behavior and
+does not promote annual support or scientific approval.
+
 ## Foundation and metadata
 
 The quickstart merged in [PR #20](https://github.com/MSaadAsif/easyNIS/pull/20)
