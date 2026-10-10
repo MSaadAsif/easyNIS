@@ -12,13 +12,18 @@
 #' @param digits `NULL` for exact values, required for CSV. For HTML, a whole
 #'   number from 1 to 15 rounds the estimate, SE and interval to that many
 #'   significant digits. Counts, df and confidence levels are never rounded.
+#' @param formula_text For CSV, how to write text cells that begin with `=`,
+#'   `+`, `-`, `@`, their full-width forms, a tab, a carriage return or a line
+#'   feed, which spreadsheet programs can run as formulas: `"refuse"` stops without writing and names each cell,
+#'   `"prefix"` writes them with a leading `'`, and `"keep"` writes them
+#'   unchanged. Must be `NULL` for HTML.
 #' @param overwrite `TRUE` or `FALSE`. An existing file is replaced only when
 #'   `TRUE`.
 #' @return The normalized path, invisibly.
 #' @details CSV contains the 13 presentation columns with exact numeric values
 #'   that [utils::read.csv()] parses back to identical doubles; suppressed cells
-#'   are empty. HTML is a standalone escaped document whose notes record the
-#'   experimental scope, count basis and disclosure policy. Suppressed values
+#'   are empty. Text cells follow `formula_text`. HTML is a standalone escaped
+#'   document whose notes record the experimental scope, count basis and disclosure policy. Suppressed values
 #'   appear in neither format, and audit counts are never written. Output is
 #'   written to a temporary file and renamed, so a failure leaves no partial
 #'   file. Annual support and scientific approval remain pending.
@@ -38,17 +43,21 @@
 #'   table <- nis_descriptive_table(design, specification, "fail", 2, 0.95,
 #'     "wr_unadjusted")
 #'   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
-#'   csv <- nis_export_table(review, tempfile(fileext = ".csv"), "csv", NULL, FALSE)
+#'   csv <- nis_export_table(review, tempfile(fileext = ".csv"), "csv", NULL,
+#'     "refuse", FALSE)
 #'   utils::read.csv(csv)
-#'   html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, FALSE)
+#'   html <- nis_export_table(review, tempfile(fileext = ".html"), "html", 3, NULL,
+#'     FALSE)
 #'   nis_close(session)
 #'   unlink(c(path, csv, html))
 #' }
-nis_export_table <- function(review, path, format, digits, overwrite) {
+nis_export_table <- function(review, path, format, digits, formula_text,
+                             overwrite) {
   if (base::missing(review) || base::missing(path) || base::missing(format) ||
-      base::missing(digits) || base::missing(overwrite)) {
-    stop("Supply `review`, `path`, `format`, `digits` and `overwrite` explicitly.",
-         call. = FALSE)
+      base::missing(digits) || base::missing(formula_text) ||
+      base::missing(overwrite)) {
+    stop("Supply `review`, `path`, `format`, `digits`, `formula_text` and ",
+         "`overwrite` explicitly.", call. = FALSE)
   }
   if (inherits(review, c("nis_descriptive_table", "nis_regression_table"))) {
     stop("Only a nis_disclosure_review can be exported; review the table first. ",
@@ -68,6 +77,14 @@ nis_export_table <- function(review, path, format, digits, overwrite) {
     stop("`digits` must be NULL for CSV, or NULL or a whole number from 1 to 15 for HTML.",
          call. = FALSE)
   }
+  if (format == "html" && !is.null(formula_text)) {
+    stop("`formula_text` must be NULL for HTML.", call. = FALSE)
+  }
+  if (format == "csv" && (!is.character(formula_text) || length(formula_text) != 1L ||
+      is.na(formula_text) || !formula_text %in% c("refuse", "prefix", "keep"))) {
+    stop("`formula_text` must be \"refuse\", \"prefix\" or \"keep\" for CSV.",
+         call. = FALSE)
+  }
   if (!is.logical(overwrite) || length(overwrite) != 1L || is.na(overwrite)) {
     stop("`overwrite` must be TRUE or FALSE.", call. = FALSE)
   }
@@ -78,7 +95,7 @@ nis_export_table <- function(review, path, format, digits, overwrite) {
     stop("`path` exists; set `overwrite = TRUE` to replace it.", call. = FALSE)
   }
 
-  lines <- if (format == "csv") csv_lines(review$presentation) else
+  lines <- if (format == "csv") csv_lines(review$presentation, formula_text) else
     html_lines(review, digits)
   staged <- tempfile("easyNIS-export-", tmpdir = directory, fileext = paste0(".", format))
   on.exit(if (file.exists(staged)) unlink(staged), add = TRUE)
@@ -122,14 +139,33 @@ exact_number <- function(x) {
   }, character(1), USE.NAMES = FALSE)
 }
 
-csv_lines <- function(presentation) {
+csv_lines <- function(presentation, formula_text) {
   quote <- function(x) {
     x <- enc2utf8(as.character(x))
     ifelse(is.na(x), "", paste0("\"", gsub("\"", "\"\"", x, fixed = TRUE), "\""))
   }
   numeric <- vapply(presentation, is.numeric, logical(1))
+  # Leading characters that spreadsheet programs can treat as a formula (OWASP),
+  # including full-width = + - @.
+  formula <- lapply(presentation[!numeric], function(x) {
+    x <- as.character(x)
+    !is.na(x) & grepl("^[-=+@\t\r\n\uff1d\uff0b\uff0d\uff20]", x)
+  })
+  if (formula_text == "refuse" && any(unlist(formula))) {
+    cells <- unlist(lapply(names(formula), function(column) {
+      rows <- presentation$id[formula[[column]]]
+      if (length(rows)) paste0(column, " in row '", rows, "'")
+    }))
+    stop("CSV text cells begin with a character that spreadsheets can run as a formula ",
+      "(=, +, -, @, their full-width forms, tab, carriage return or line feed): ",
+      paste(cells, collapse = ", "),
+      ". Change the text or set `formula_text` to \"prefix\" or \"keep\".", call. = FALSE)
+  }
   cells <- lapply(names(presentation), function(column) {
-    if (numeric[[column]]) exact_number(presentation[[column]]) else quote(presentation[[column]])
+    if (numeric[[column]]) return(exact_number(presentation[[column]]))
+    text <- as.character(presentation[[column]])
+    if (formula_text == "prefix") text <- ifelse(formula[[column]], paste0("'", text), text)
+    quote(text)
   })
   c(paste(quote(names(presentation)), collapse = ","),
     do.call(paste, c(cells, sep = ",")))

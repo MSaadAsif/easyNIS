@@ -53,6 +53,9 @@ CSV back with `utils::read.csv()` and compare every shown numeric value with
 `identical()`; suppressed cells must be empty and audit fields absent. Check
 that HTML escapes caller labels and units, records the policy notes, rounds
 only to the requested significant digits and contains no suppressed value.
+Give a label beginning with `=` and an id beginning with `@`: `"refuse"`
+must name both cells and write nothing, `"prefix"` must read back with a
+leading `'`, and `"keep"` must write them unchanged.
 Confirm that descriptive and regression tables and modified reviews are
 refused, and that an existing file is replaced only with `overwrite = TRUE`.
 The installed smoke exports the subtotal reproduction in both formats. Source

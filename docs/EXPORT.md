@@ -9,7 +9,7 @@ does not certify a manuscript or approve annual support.
 
 ## Interface
 
-`nis_export_table(review, path, format, digits, overwrite)`
+`nis_export_table(review, path, format, digits, formula_text, overwrite)`
 
 - `review` is an experimental `nis_disclosure_review`. Descriptive tables,
   regression tables and other objects are refused, so unreviewed values have
@@ -34,6 +34,10 @@ does not certify a manuscript or approve annual support.
   it is `NULL` for exact values or a whole number from 1 to 15 giving
   significant digits for the estimate, SE and interval bounds. Counts,
   degrees of freedom and confidence levels are never rounded.
+- `formula_text` must be `NULL` for HTML. For CSV it is `"refuse"`,
+  `"prefix"` or `"keep"` and controls text cells that begin with `=`, `+`,
+  `-`, `@`, their full-width forms, a tab, a carriage return or a line feed;
+  see below. It has no default.
 - `overwrite` is `TRUE` or `FALSE`. An existing file is replaced only when it
   is `TRUE`.
 
@@ -58,10 +62,27 @@ written. Text is quoted but `utils::read.csv()` still converts a label of
 `NA` to a missing value unless `na.strings` is changed.
 
 The CSV is a data interchange file and carries no policy notes. Keep it with
-the review provenance or the HTML export, which records the policy. Spreadsheet
-programs can interpret a label beginning with `=`, `+`, `-` or `@` as a
-formula; easyNIS writes labels unchanged, so caller labels must be reviewed
-before a CSV is opened in such a program.
+the review provenance or the HTML export, which records the policy.
+
+Spreadsheet programs can run a cell as a formula when it begins with `=`, `+`,
+`-` or `@`, their full-width forms (U+FF1D, U+FF0B, U+FF0D, U+FF20), a tab, a
+carriage return or a line feed, and a formula can fetch external content or
+start programs. The set follows the OWASP CSV injection guidance; other
+spreadsheet behavior is not tested. Every text column is checked, including caller ids, labels and units.
+Numeric columns are written as numbers and are not affected, so a negative
+estimate stays numeric. `formula_text` chooses the handling:
+
+- `"refuse"` stops before writing and names the column and row id of each
+  such cell, without repeating the text.
+- `"prefix"` writes each such cell with a leading `'`, which spreadsheet
+  programs display as text. The prefix changes the exported text: reading the
+  file back returns `'=...` rather than the caller's label.
+- `"keep"` writes the text unchanged, for files read only by data tools. The
+  caller then accepts the spreadsheet risk.
+
+Text that only contains these characters later, such as `Stay - days`, is
+unaffected. A quoted carriage return is valid CSV, but `utils::read.csv()`
+splits it into separate cells, which also shifts later rows.
 
 ## HTML
 
@@ -100,4 +121,8 @@ reviews (including a revealed suppressed value, a status relabeled
 consistently with revealed values, a forged policy, consistently changed
 counts and estimates, and factor statuses),
 argument errors, extension mismatch, a missing directory, refusal to replace
-an existing file and explicit replacement.
+an existing file and explicit replacement. Formula-text cases cover every
+leading character in labels under all three policies, plus `@` and full-width
+`@` ids and `-` and full-width `-` units, an exact refusal message that names
+every affected cell and no other, no file after refusal, internal hyphens,
+and rejection of a CSV policy for HTML.
