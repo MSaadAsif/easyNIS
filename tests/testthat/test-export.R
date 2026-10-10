@@ -529,3 +529,83 @@ test_that("Word export needs officer and text that a Word document can hold", {
   expect_false(file.exists(output))
   expect_identical(list.files(dirname(output), pattern = "^easyNIS-export-"), character())
 })
+
+test_that("Word caps long caller words without truncating their text", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  path <- write_invented_parquet(session, export_rows())
+  on.exit(unlink(path), add = TRUE)
+  design <- nis_survey_design(nis_import(session, path, 2022), "stay", TRUE,
+    "hospital_wr", "fail")
+  output <- tempfile(fileext = ".docx")
+  on.exit(unlink(output), add = TRUE)
+  widths <- list()
+  for (size in c(24L, 25L, 120L)) {
+    label <- strrep("x", size)
+    specification <- data.frame(id = "stay", field = "stay", statistic = "mean",
+      label = label, unit = label)
+    table <- nis_descriptive_table(design, specification, "fail", 8, 0.95,
+      "wr_unadjusted")
+    review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+    nis_export_table(review, output, "docx", 3, NULL, TRUE)
+    expect_identical(docx_cells(output)$cells[[1L]][c(1L, 3L)], rep(label, 2L))
+    document <- xml2::read_xml(docx_xml(output)$xml[["document.xml"]])
+    widths[[length(widths) + 1L]] <- as.integer(xml2::xml_attr(
+      xml2::xml_find_all(document, "//w:tbl/w:tblGrid/w:gridCol"), "w"))
+  }
+  # The public document has identical widths on either side of the word cap.
+  expect_identical(widths[[2L]], widths[[1L]])
+  expect_identical(widths[[3L]], widths[[1L]])
+  expect_equal(sum(widths[[1L]]), 14400, tolerance = 20 / 14400)
+  # These header words must fit even when caller words consume the spare width.
+  # Statistic: 9 characters, Interval: 8, Unweighted: 10, Disclosure: 10.
+  expect_true(all(widths[[1L]][c(2L, 7L, 9L, 10L)] >=
+    1440 * (0.08 + 0.07 * c(9L, 8L, 10L, 10L)) - 2))
+})
+
+test_that("Word converts a lone carriage return to a line feed", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  path <- write_invented_parquet(session, export_rows())
+  on.exit(unlink(path), add = TRUE)
+  design <- nis_survey_design(nis_import(session, path, 2022), "stay", TRUE,
+    "hospital_wr", "fail")
+  specification <- data.frame(id = "stay", field = "stay", statistic = "mean",
+    label = "Length\rof stay", unit = "hospital\rdays")
+  table <- nis_descriptive_table(design, specification, "fail", 8, 0.95,
+    "wr_unadjusted")
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  before <- review
+  output <- tempfile(fileext = ".docx")
+  on.exit(unlink(output), add = TRUE)
+  nis_export_table(review, output, "docx", 3, NULL, FALSE)
+  expect_identical(docx_cells(output)$cells[[1L]][c(1L, 3L)],
+    c("Length\nof stay", "hospital\ndays"))
+  expect_identical(review, before)
+})
+
+test_that("Word scales every column when protected text exceeds the page", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  # Exact binary values give stable long scientific strings across platforms.
+  # These are layout boundaries, not recommended inference choices.
+  review <- export_review(session, df = 2^400, confidence = 2^-400)
+  output <- tempfile(fileext = ".docx")
+  on.exit(unlink(output), add = TRUE)
+  nis_export_table(review, output, "docx", 3, NULL, FALSE)
+  cells <- docx_cells(output)$cells
+  expect_identical(nchar(cells[[1L]][c(8L, 11L)]), c(23L, 23L))
+  expect_identical(cells[[1L]][c(8L, 11L)],
+    sprintf("%.17g", c(2^400, 2^-400)))
+  expect_identical(cells[[1L]][5:7], rep("Suppressed", 3L))
+  document <- xml2::read_xml(docx_xml(output)$xml[["document.xml"]])
+  widths <- as.integer(xml2::xml_attr(
+    xml2::xml_find_all(document, "//w:tbl/w:tblGrid/w:gridCol"), "w"))
+  # Independent nominal widths from the displayed header/package words and
+  # 23-character df/confidence strings, including both 0.04-inch margins.
+  # They total 10.82 inches, so every column must shrink by 10 / 10.82.
+  nominal <- c(0.43, 0.78, 0.36, 1.62, 0.78, 0.78, 0.78, 1.69, 0.78, 1.13, 1.69)
+  expect_true(all(abs(widths - 1440 * nominal * 10 / 10.82) <= 1))
+  expect_true(all(widths < 1440 * nominal))
+  expect_true(abs(sum(widths) - 14400) <= 11)
+})
