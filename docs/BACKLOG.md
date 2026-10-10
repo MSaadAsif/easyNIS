@@ -487,8 +487,10 @@ The first NIS-020 increment adds `nis_export_table()` under
 [EXPORT.md](EXPORT.md). It writes only a rechecked disclosure review's
 presentation, to CSV or HTML with base R. Descriptive and regression tables are
 refused. Each review is recomputed from its retained results and recorded
-policy and must match exactly, so modified reviews are refused even when the
-edit is consistent across presentation, audit, table and provenance. CSV
+policy and must match exactly, so edits to the presentation, audit, provenance
+or table estimate columns are refused even when consistent across them. The
+retained results, including design data that supply suppression counts, are
+not authenticated. CSV
 writes whole numbers in full and other values with 17 significant digits, which
 any correctly rounding parser reads back exactly, with empty suppressed cells
 and no audit fields. HTML escapes caller text, records the

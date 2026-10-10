@@ -17,12 +17,16 @@ does not certify a manuscript or approve annual support.
   confidence columns must equal the retained `nis_estimate` results, and the
   review is recomputed from its table under its recorded policy. The complete
   recomputed review, including presentation, audit and provenance, must be
-  identical to the supplied one. A review edited in one field, or consistently
-  across fields, such as a relabeled status with revealed values, a changed
-  count or estimate, or a different recorded policy, is refused. Recomputation
-  cannot authenticate an object whose retained estimates were themselves
-  forged; it ensures the file matches what the review procedure produces from
-  the retained results.
+  identical to the supplied one. Edits to the presentation, audit, provenance
+  or the table's estimate columns, alone or consistently across them, such as
+  a relabeled status with revealed values, a changed count or estimate, or a
+  different recorded policy, are refused. Recomputation cannot authenticate
+  the retained results themselves, including their estimates and the survey
+  design data from which suppression counts are taken; an object whose
+  retained results were altered can still pass. The check ensures the file
+  matches what the review procedure produces from the retained results. Each
+  export repeats the complete disclosure review, so its cost grows with the
+  table and its margins.
 - `path` is one file path whose extension matches `format`
   (case-insensitive). Its directory must exist.
 - `format` is `"csv"` or `"html"`.
@@ -36,8 +40,8 @@ does not certify a manuscript or approve annual support.
 The file is written to a temporary file in the target directory and then
 renamed, so a failed call leaves no partial output and preserves an existing
 file. The existence check precedes the rename, so a file created at `path` by
-another process during the call can still be replaced. The call returns the normalized path invisibly. It never modifies the
-review.
+another process during the call can still be replaced. The call returns the
+normalized path invisibly. It never modifies the review.
 
 ## CSV
 
@@ -45,8 +49,9 @@ The CSV contains the 13 presentation columns in order, UTF-8 encoded, with
 `\n` line endings and a header row. Text columns are quoted, with embedded
 quotes doubled. Whole numbers up to 2^53 are written in full and other values
 with 17 significant digits, which identifies each double exactly for any
-correctly rounding parser, including `utils::read.csv()`. Infinite degrees of freedom are written as
-`Inf`. Suppressed cells are empty, and `disclosure_status` records whether the
+correctly rounding parser, including `utils::read.csv()`. Values are therefore
+long; a confidence level of 0.9 is written `0.90000000000000002`. Infinite
+degrees of freedom are written as `Inf`. Suppressed cells are empty, and `disclosure_status` records whether the
 row was shown or suppressed as primary or complementary. Audit counts, missing
 counts, supplied counts, hospital counts and weighted denominators are never
 written. Text is quoted but `utils::read.csv()` still converts a label of
