@@ -69,9 +69,57 @@ index and HTML and checks for suppressed cells and absence of temporary paths.
 Open it with `vignette("synthetic-workflow", package = "easyNIS")` after
 installing the built tarball. Direct source installation does not build it.
 
-This increment demonstrates single-year descriptive inference. Pooling,
-regression and Word have separate API contracts; integrating
-them into a longer workflow remains NIS-021 acceptance
-work. Regression-table disclosure/export, annual metadata, conversion history,
-performance and licensed validation remain separate gates. The example does
-not promote annual support, clinical validity or scientific approval.
+## Six-year pooling and model walkthrough
+
+`inst/examples/pooled-model-workflow.R` reuses the invented core builder in
+`inst/examples/workflow-fixture.R`; the single-year example uses its unchanged
+default fixture. Neither helper nor script is an exported package API.
+The pooled script constructs complete designs for invented labels 2017–2022
+before pooling and then selecting the same code-set domain. Raw identifiers
+repeat across years; the pooled design must have 24 year-specific hospitals,
+12 strata and native population df 12. The caller declares
+`average_annual_total`, weight divisor 6, missing exclusion, WR variance,
+interval df 12 and confidence 0.95. Raw supplied weights remain retained.
+The internal Gaussian identity model `LOS ~ 1` has no offset, transformations,
+exponentiation or causal interpretation. Its coefficient scale is days.
+
+For year index i from 1 to 6, supplied weights multiply by i and observed LOS
+adds i-1 days. Base observed hospital weights are W=(24,36,48,60) and totals
+T=(72,144,240,360). Year i therefore has i*W and i*(T+(i-1)*W). Every year has
+48 observed and 12 missing domain LOS outcomes. Combined observed weight is
+3528 and LOS total is 28896. Thus the pooled mean is 172/21 and average annual
+LOS total is 4816. The mean weights discharges across years, rather than
+averaging annual means.
+
+The two within-stratum differences of hospital residual totals for the mean
+are `12*i*(i-67/21)` and `12*i*(i+17/21)`. With sums i^2=91, i^3=441 and
+i^4=2275, the independent mean variance is
+`144*(2*2275 - 100/21*441 + (67^2+17^2)/21^2*91)/3528^2`.
+Its SE is approximately 0.1993771. Independent average annual total variance
+is `(288*2275 + 4032*441 + 15264*91)/36 = 106176`.
+The script checks both estimates, SEs and df-12 t bounds, and independently
+checks the model intercept/SE/bounds and 288 included/72 excluded outcomes.
+Absolute tolerance 1e-9 accommodates double accumulation for these deterministic
+totals up to 4816; it is not a general licensed-analysis tolerance.
+
+The rare indicator is nonzero only for three selected first-year discharges.
+The same explicit disclosure policy hides that row. CSV/HTML export only the
+reviewed descriptive presentation. The fixed report includes versions,
+code/domain/weight/inference declarations, model formula/family/scale and
+reference-check statements. It omits model coefficients, sample accounting,
+retained designs/provenance, raw records, suppressed results and local paths.
+This demonstrates model fitting without publishing unreviewed regression
+results. Regression-table disclosure review and export remain unsupported.
+
+The installed vignette executes both scripts and displays both reviewed CSVs.
+Installed smoke runs the pooled script twice, checks independent CSV references,
+explicit model/pool declarations and identical output bytes, and checks blank
+suppressed cells in both vignette tables. Generated artifacts are removed by
+verification. Users retain output by copying each script's three returned
+files together before ending R. Both scripts clean input files/connections on
+success or error and remove incomplete output directories.
+
+Word has a separate API contract. Annual metadata, conversion history,
+performance, licensed validation, regression-table disclosure/export and
+scientific approval retain their separate gates. No annual support, clinical
+validity, scientific approval or supported memory envelope is established.
