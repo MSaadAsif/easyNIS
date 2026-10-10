@@ -6,6 +6,10 @@
   during source build, explains its explicit policies and displays only the
   reviewed CSV presentation. The knitr engine requires no Pandoc. Annual
   support and scientific approval remain unchanged.
+- Extended the vignette with six-year invented pooling and a Gaussian identity
+  intercept model, independently checked against hospital WR arithmetic.
+  Its files contain only reviewed descriptive results and fixed declarations;
+  regression-table disclosure review and export remain unsupported.
 
 ## Experimental table export
 

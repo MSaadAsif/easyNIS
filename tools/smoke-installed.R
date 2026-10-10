@@ -368,6 +368,36 @@ stopifnot(!identical(workflow, workflow_repeat),
     readBin(workflow$csv, "raw", file.info(workflow$csv)$size)),
   identical(readLines(workflow_repeat$html), readLines(workflow$html)))
 unlink(c(dirname(workflow$report), dirname(workflow_repeat$report)), recursive = TRUE)
+pooled_workflow <- source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"),
+  local = new.env(parent = globalenv()))$value
+stopifnot(identical(names(pooled_workflow), c("report", "csv", "html")),
+  all(file.exists(unlist(pooled_workflow))))
+pooled_csv <- utils::read.csv(pooled_workflow$csv, stringsAsFactors = FALSE)
+pooled_report <- readLines(pooled_workflow$report, encoding = "UTF-8")
+pooled_mean_se <- sqrt(144 * (2 * 2275 - 100 / 21 * 441 +
+  (67^2 + 17^2) / 21^2 * 91)) / 3528
+stopifnot(identical(pooled_csv$disclosure_status, c("shown", "shown", "suppressed_primary")),
+  abs(pooled_csv$estimate[1L] - 172/21) < 1e-9,
+  abs(pooled_csv$se[1L] - pooled_mean_se) < 1e-9,
+  abs(pooled_csv$estimate[2L] - 4816) < 1e-9,
+  abs(pooled_csv$se[2L] - sqrt(106176)) < 1e-9,
+  all(pooled_csv$unweighted_n[1:2] == 288),
+  all(is.na(pooled_csv[3L, c("estimate", "se", "lower", "upper", "unweighted_n")])),
+  all(pooled_csv$df == 12), all(pooled_csv$confidence == 0.95),
+  !any(c("raw_supplied", "raw_missing", "hospitals", "weighted_denominator") %in% names(pooled_csv)),
+  any(grepl("Model: LOS ~ 1; Gaussian identity", pooled_report, fixed = TRUE)),
+  any(grepl("native annual weights divided by 6", pooled_report, fixed = TRUE)),
+  any(grepl("Model disclosure review and regression-table export are unsupported", pooled_report, fixed = TRUE)),
+  !any(grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|KEY_NIS|source_receipt", pooled_report)))
+pooled_repeat <- source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"),
+  local = new.env(parent = globalenv()))$value
+stopifnot(!identical(pooled_workflow, pooled_repeat))
+for (name in names(pooled_workflow)) {
+  stopifnot(identical(readBin(pooled_workflow[[name]], "raw", file.info(pooled_workflow[[name]])$size),
+    readBin(pooled_repeat[[name]], "raw", file.info(pooled_repeat[[name]])$size)))
+}
+unlink(c(dirname(pooled_workflow$report), dirname(pooled_repeat$report)), recursive = TRUE)
+cat("Installed six-year pooling/model workflow passed independent WR references and sanitized reviewed exports.\n")
 cat("Installed offline quickstart passed independent WR inference, suppression, sanitized report and repeatability.\n")
 vignette <- utils::vignette("synthetic-workflow", package = "easyNIS")
 stopifnot(!is.null(vignette))
@@ -379,12 +409,16 @@ stopifnot(grepl("Invented reviewed results", vignette_html, fixed = TRUE),
   grepl("34/7", vignette_html, fixed = TRUE),
   !grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|source_receipt", vignette_html))
 vignette_document <- xml2::read_html(vignette_path)
-hidden_row <- xml2::xml_find_all(vignette_document,
-  "//table//tr[td[contains(., 'suppressed_primary')]]")
-stopifnot(length(hidden_row) == 1L)
-headers <- trimws(xml2::xml_text(xml2::xml_find_all(vignette_document, "//table//th")))
-hidden_cells <- trimws(xml2::xml_text(xml2::xml_find_all(hidden_row, "td")))
-stopifnot(all(hidden_cells[match(c("estimate", "se", "lower", "upper", "unweighted_n"),
-  headers)] == ""))
+vignette_tables <- xml2::xml_find_all(vignette_document, "//table")
+stopifnot(length(vignette_tables) == 2L,
+  grepl("Invented pooled descriptive results", vignette_html, fixed = TRUE))
+for (table in vignette_tables) {
+  hidden_row <- xml2::xml_find_all(table, ".//tr[td[contains(., 'suppressed_primary')]]")
+  stopifnot(length(hidden_row) == 1L)
+  headers <- trimws(xml2::xml_text(xml2::xml_find_all(table, ".//th")))
+  hidden_cells <- trimws(xml2::xml_text(xml2::xml_find_all(hidden_row, "td")))
+  stopifnot(all(hidden_cells[match(c("estimate", "se", "lower", "upper", "unweighted_n"),
+    headers)] == ""))
+}
 
 cat("Installed workflow passed; year support remains experimental.\n")
