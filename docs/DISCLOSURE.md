@@ -58,6 +58,8 @@ observed values, such as a 1/2 coding, checks the smaller level count
 groups also have their contributing hospital counts checked when the group is
 nonempty. Hospitals are distinct native first-level cluster identifiers, so
 pooled reused IDs remain distinct by year.
+Two-level groups use exact numeric equality, preserving distinct doubles even
+when their printed labels match.
 
 A row with any disclosive check is a primary suppression. Its reasons list the
 failed checks.

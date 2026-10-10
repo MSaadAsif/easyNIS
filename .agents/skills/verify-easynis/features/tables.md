@@ -43,7 +43,12 @@ seven-discharge primary-hidden pair. Keep the same check for three original
 primary parts and for a pair without a shared relation. Exercise hospital-only
 and zero sums, a two-level group of 12 discharges in one hospital, and a
 declaration that forces a hidden zero independently of published values.
-That declaration must fail the whole review. Check the documented limit of
+That declaration must fail the whole review.
+Two-level outcomes that differ by one floating-point step must retain their
+separate count and hospital checks even if they print identically. Include a
+small level across hospitals, a larger level in one hospital and a safe level,
+reverse row order and exclude missing outcomes. CSV must hide suppressed values.
+Check the documented limit of
 one original-primary sum per relation and primary pairs; do not report full
 subset certification. Source cases live in `tests/testthat/test-disclosure.R`;
 the contract is `docs/DISCLOSURE.md`.
