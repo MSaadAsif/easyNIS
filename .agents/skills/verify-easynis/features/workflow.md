@@ -15,3 +15,12 @@ The source build/check executes `vignettes/synthetic-workflow.Rhtml` with the
 knitr HTML engine, without Pandoc. The installed smoke requires its vignette
 index and rendered HTML, confirms the reviewed table and blank suppressed
 cells, and rejects temporary source paths in the rendered walkthrough.
+
+The installed smoke also runs `examples/pooled-model-workflow.R` twice.
+Require six complete annual designs, 24 year-specific hospitals and 12 strata,
+pooling before domain selection, average annual weight divisor 6, independent
+mean 172/21 and total 4816 with WR SEs, and matching Gaussian intercept inference.
+Check 288 observed/72 missing model outcomes, a hidden rare descriptive row,
+fixed model-scale/pooling declarations, repeatable output bytes and no raw model
+results or local paths in artifacts. Both vignette tables must have blank
+suppressed numeric/count cells. Reference derivations are in docs/WORKFLOW.md.

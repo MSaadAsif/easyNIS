@@ -3,17 +3,9 @@
 # together to keep the report's relative links working.
 library(easyNIS)
 (function() {
-  core <- nis_synthetic_data(2022)$core[rep(1L, 120L),
-    c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS", "I10_DX1")]
-  core$KEY_NIS <- sprintf("%06d", seq_len(nrow(core)))
-  hospital <- rep(1:4, each = 30L)
-  core$HOSP_NIS <- sprintf("%04d", hospital)
-  core$NIS_STRATUM <- (hospital - 1L) %/% 2L + 1L
-  core$DISCWT <- hospital + 1
-  core$LOS <- rep(c(0, 2, 4), 40L) + hospital
-  core$LOS[as.vector(outer(c(1L, 3L, 5L), c(0L, 30L, 60L, 90L), "+"))] <- NA_real_
-  core$I10_DX1 <- rep(c("A001", "B001"), 60L)
-  core$rare <- as.integer(seq_len(nrow(core)) %in% c(1L, 3L, 5L))
+  fixture <- new.env(parent = baseenv())
+  sys.source(system.file("examples/workflow-fixture.R", package = "easyNIS"), fixture)
+  core <- fixture$workflow_fixture(2022)
   codes <- nis_code_set("A001", "ICD10CM", 2022,
     "invented-1", "synthetic-workflow.R invented declaration", "easyNIS example",
     match = "exact", normalize = FALSE)
