@@ -1,10 +1,9 @@
 # Experimental table export
 
-This is the first bounded NIS-020 increment. It writes the presentation of one
-`nis_disclosure_review` to CSV or HTML using base R only. Word output, which
-needs optional rendering packages and visual layout inspection, and export of
-regression tables, which have no disclosure review yet, remain separate
-increments. An exported file is a candidate for human publication review; it
+NIS-020 writes the presentation of one `nis_disclosure_review` to CSV or HTML
+using base R, or to Word using the optional officer package. Export of
+regression tables, which have no disclosure review yet, remains a separate
+increment. An exported file is a candidate for human publication review; it
 does not certify a manuscript or approve annual support.
 
 ## Interface
@@ -29,12 +28,12 @@ does not certify a manuscript or approve annual support.
   table and its margins.
 - `path` is one file path whose extension matches `format`
   (case-insensitive). Its directory must exist.
-- `format` is `"csv"` or `"html"`.
+- `format` is `"csv"`, `"html"` or `"docx"`.
 - `digits` must be `NULL` for CSV, which always writes exact values. For HTML
-  it is `NULL` for exact values or a whole number from 1 to 15 giving
+  and Word it is `NULL` for exact values or a whole number from 1 to 15 giving
   significant digits for the estimate, SE and interval bounds. Counts,
   degrees of freedom and confidence levels are never rounded.
-- `formula_text` must be `NULL` for HTML. For CSV it is `"refuse"`,
+- `formula_text` must be `NULL` for HTML and Word. For CSV it is `"refuse"`,
   `"prefix"` or `"keep"` and controls text cells that begin with `=`, `+`,
   `-`, `@`, their full-width forms, a tab, a carriage return or a line feed;
   see below. It has no default.
@@ -106,6 +105,29 @@ margins remain unchecked and that undeclared relations and
 other publications need human review, and whether values are exact or rounded
 to the stated significant digits.
 
+## Word
+
+Word output needs the officer package, which easyNIS suggests but does not
+import. Without it the call stops before writing and names
+`install.packages("officer")`, CSV and HTML. The document contains the HTML
+caption as a title, the same eleven header and body cells with the same
+`Suppressed` and status text, and the same notes as paragraphs. Values are
+written as text, so the document carries exactly the HTML cell text and no
+hidden value. Word cannot store control characters other than tab, carriage
+return and line feed; a label or unit containing one is refused, naming the
+column and row id, before writing. XML reading turns a carriage return and
+line feed into one line feed, and Word displays line breaks and tabs in a cell
+as white space.
+
+The page is US Letter landscape with half-inch margins. Table cells use an
+8-point paragraph style, header cells are bold, text columns are left aligned
+and numeric columns right aligned. Column widths share the 10-inch text width
+in proportion to each column's longest word after the default cell padding,
+so typical rounded tables have no mid-word breaks. Exact 17-digit values and
+long labels are wider than their share and wrap within their cells. The
+layout was inspected visually after conversion to PDF by Microsoft Word for
+exact and three-digit tables; other word processors are not tested.
+
 ## Acceptance cases
 
 Verification must use the installed public API on invented data. Cases cover
@@ -125,4 +147,12 @@ an existing file and explicit replacement. Formula-text cases cover every
 leading character in labels under all three policies, plus `@` and full-width
 `@` ids and `-` and full-width `-` units, an exact refusal message that names
 every affected cell and no other, no file after refusal, internal hyphens,
-and rejection of a CSV policy for HTML.
+and rejection of a CSV policy for HTML. Word cases compare every header, body
+cell and note with the HTML export for exact and rounded values, search every
+XML part of the document for hidden estimates, SEs and bounds, check escaped
+markup, the landscape page, an upper-case extension and an unchanged review,
+refuse a bell, vertical tab and U+FFFE with an exact message and no file,
+accept tab and line breaks, reject a CSV policy, invalid digits, a mismatched
+extension and an existing file, and give the install guidance without
+writing when officer is unavailable. The installed smoke compares Word and
+HTML cells for the subtotal reproduction.
