@@ -82,11 +82,46 @@ variance, df, confidence, row definitions and disclosure policy. It omits raw
 records, suppressed results, audit counts, local source paths and retained
 design/provenance objects. This fixed report is not a general report generator
 or a guarantee that arbitrary caller labels are free of identifying text.</p>
-<p>Pooling, regression and Word have separate API contracts. They are not integrated into this
-single-year walkthrough. Regression-table disclosure/export, annual metadata,
-conversion provenance, performance and licensed validation remain separate gates.</p>
+<h2>Pool six invented years and check a model</h2>
+<p>The next example constructs full designs for invented labels 2017 through
+2022, with reused raw identifiers and explicit year-specific hospital/stratum
+keys. In year index i from 1 to 6, weights multiply by i and observed LOS adds
+i-1 days. It pools before domain selection, with intent
+<code>average_annual_total</code> and native weight divisor 6. The pooled mean
+weights supplied discharges; it is not the arithmetic average of annual means.</p>
+<!--begin.rcode pooled-example
+pooled_outputs <- source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"))$value
+end.rcode-->
+<p>Independent hospital WR calculations check the mean 172/21, SE approximately
+0.1994, average annual LOS total 4816 and its variance 106176. The declared
+95 percent t intervals use df 12. An internal Gaussian identity model
+<code>LOS ~ 1</code> excludes missing outcomes and verifies its intercept and
+sandwich SE against the same independent mean reference. Its coefficient is
+on the response scale in days, with no offset, exponentiation or causal claim.
+The model and descriptive means each include 288 observed domain discharges
+and exclude 72 missing outcomes. These counts are invented fixture facts.</p>
+<!--begin.rcode pooled-reviewed-table, results='asis'
+pooled_reviewed <- utils::read.csv(pooled_outputs$csv, stringsAsFactors = FALSE)
+local({
+  old <- options(knitr.kable.NA = "")
+  on.exit(options(old))
+  knitr::kable(pooled_reviewed, format = "html", escape = TRUE, digits = 4,
+    caption = "Invented pooled descriptive results. Display rounded to four decimal places.")
+})
+end.rcode-->
+<p>The same explicit disclosure policy suppresses the rare row. Only reviewed
+descriptive values and a fixed declarations/version report are written.
+No runtime model coefficient, sample-accounting or retained design/provenance
+object is exported in these three files. The fixed invented counts above
+describe the fixture. Regression-table disclosure review and export are unsupported.
+Use <code>browseURL(pooled_outputs$html)</code> and copy all three returned
+files together before ending R, as for the single-year example.</p>
+<p>Word has a separate API contract. Annual metadata, conversion provenance,
+performance, licensed validation and scientific approval remain separate gates.
+Neither walkthrough establishes real-year validity or a supported memory limit.</p>
 <!--begin.rcode cleanup, include=FALSE
 unlink(dirname(outputs$report), recursive = TRUE)
+unlink(dirname(pooled_outputs$report), recursive = TRUE)
 end.rcode-->
 </body>
 </html>

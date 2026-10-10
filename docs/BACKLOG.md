@@ -663,6 +663,28 @@ No annual capability or scientific approval changes.
 Integrated pooling/model workflow documentation remains NIS-021 work;
 regression-table disclosure/export and annual evidence retain separate gates.
 
+The installed vignette increment merged in
+[PR #21](https://github.com/MSaadAsif/easyNIS/pull/21) after clean-head
+verification, independent specification/standards reviews with zero blockers
+and all five hosted jobs. The next NIS-021 increment integrates six invented
+annual designs, explicit average annual pooling, subsequent code-set domain
+selection and a Gaussian identity intercept model. Independent hospital WR
+arithmetic verifies mean 172/21, SE approximately 0.1993771, average annual
+LOS total 4816, variance 106176 and df-12 intervals. The model's intercept/SE
+and 288 observed/72 missing outcomes are checked internally. Only reviewed
+descriptive values and a fixed declarations/version report are exported;
+regression-table disclosure review/export remain unsupported.
+The shared invented core builder preserves the single-year fixture. Installed
+smoke and the expanded vignette exercise the real scripts, repeatability,
+year-specific keys, reference arithmetic, blank suppressed cells and sanitized
+reports. Precommit verification passes 1,927 package assertions, 65 tool
+assertions, all 36 merge-gate scenarios, source Status OK, an 89-entry tarball
+inspection and installed single-year/six-year workflows. Clean-head evidence,
+current independent review and hosted checks are required before merge.
+Annual metadata, conversion
+provenance, licensed validation and scientific/publication approval remain
+separate gates, and no annual capability is promoted.
+
 | ID | Work | Depends on | Acceptance criteria |
 |---|---|---|---|
 | NIS-001 | Confirm written scope and public author metadata. | Plan review. | Shared-understanding confirmation, maintainer email, names, author roles; ORCIDs if provided. |
