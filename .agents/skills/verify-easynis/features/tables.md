@@ -63,5 +63,9 @@ and note with the HTML export; search the unzipped XML for hidden values,
 convert it to PDF with Word when available and inspect the layout. A label
 with a control character must be refused, and a missing officer package must
 give install guidance without writing.
+Check that 24-, 25- and 120-character caller words retain their full text with
+identical column widths, and that header words keep their nominal widths.
+Exercise proportional scaling when protected text exceeds ten inches and lone
+carriage returns in labels and units without changing the caller's review.
 The installed smoke exports the subtotal reproduction in all three formats. Source
 cases live in `tests/testthat/test-export.R`; the contract is `docs/EXPORT.md`.
