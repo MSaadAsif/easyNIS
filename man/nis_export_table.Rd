@@ -13,7 +13,7 @@ nis_export_table(review, path, format, digits, formula_text, overwrite)
 exist.}
 
 \item{format}{\code{"csv"}, \code{"html"} or \code{"docx"}. Word output requires the
-optional officer package.}
+optional officer package, version 0.5.0 or later.}
 
 \item{digits}{\code{NULL} for exact values, required for CSV. For HTML and Word,
 a whole number from 1 to 15 rounds the estimate, SE and interval to that
@@ -46,7 +46,8 @@ are empty. Text cells follow \code{formula_text}. HTML is a standalone escaped
 document whose notes record the experimental scope, count basis and
 disclosure policy. Word contains the same table cells and notes as HTML
 on a landscape page; labels and units with control characters other than
-tab, carriage return and line feed are refused. Suppressed values appear
+tab, carriage return and line feed, or U+FFFE or U+FFFF, are refused.
+Suppressed values appear
 in no format, and audit counts are never written. Output is
 written to a temporary file and renamed, so a failure leaves no partial
 file. Annual support and scientific approval remain pending.

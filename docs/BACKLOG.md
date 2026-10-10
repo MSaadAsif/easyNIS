@@ -547,22 +547,35 @@ The next NIS-020 increment adds Word output with `format = "docx"`. It uses
 the optional officer package, now in Suggests and the verification doctor;
 without it the call names `install.packages("officer")` and writes nothing.
 HTML and Word share one display builder, so the Word table has the HTML
-header, cells, suppression text and notes. Labels and units with control
-characters that XML cannot hold are refused with the column and row id;
-officer otherwise failed with a parser error. Tests compare every Word cell and
-note with the HTML export for exact and three-digit tables, search every XML
-part for hidden values and cover refusal, argument and missing-package paths.
-Visual inspection through Word's PDF conversion found that officer's default
-equal column widths broke words mid-word and split a row across pages. The
-document now uses landscape Letter with half-inch margins, an 8-point table
-style and widths proportional to each column's longest word after cell
-padding. Three-digit tables have no mid-word breaks; exact 17-digit values
-still wrap within their cells. Precommit Windows verification passes 1,896
+header, cells, suppression text and notes. Labels and units with characters
+that XML cannot hold are refused with the column and row id; officer
+otherwise failed with a parser error. Tests compare every Word cell and note
+with the HTML export for exact and rounded tables, require every text node in
+every XML part to be a caption, header, cell or note string and cover refusal,
+argument and missing-package paths. Visual inspection through Word's PDF
+conversion found that officer's default equal column widths broke words
+mid-word. The first head moved to landscape Letter, an 8-point table style
+and widths proportional to each column's longest word.
+
+Independent review of that head (`135cd5a`) found two blocking problems.
+A 45-row table still split rows across pages, separating interval bounds from
+their rows, and the documentation understated mid-word breaks: exact tables
+broke headers, `Suppressed` and status text, and a long identifier label did
+the same in a three-digit table. Every row is now marked unsplittable and the
+test counts the marks. Cell margins are narrowed. When the longest words
+cannot fit, header and package text keep their width and caller text and
+estimates wrap; any word counts at most 24 characters. Word renderings of the
+three-digit table show no breaks; the exact table keeps all header and package
+text whole while units, labels and 17-digit estimates wrap; the 45-row table
+keeps every row on one page with repeated headers. The review also led to an
+officer 0.5.0 minimum, xml2 in Suggests, U+FFFF coverage and a stronger
+hidden-value test. Invalid UTF-8 labels still give R's encoding errors rather
+than guidance, as in HTML. Corrected precommit verification passes 1,900
 package assertions, 60 metadata-tool assertions, all 36 merge-gate scenarios,
-source Status OK, tarball inspection and the installed workflow, which now
+source Status OK, tarball inspection and the installed workflow, which
 compares Word and HTML cells for the subtotal reproduction. Clean
-committed-head verification, independent review and hosted checks are
-required before merge.
+committed-head verification, refreshed independent review and hosted checks
+are required before merge.
 Regression-table disclosure review and export remain open; annual support and
 scientific approval are unchanged.
 

@@ -107,26 +107,34 @@ to the stated significant digits.
 
 ## Word
 
-Word output needs the officer package, which easyNIS suggests but does not
-import. Without it the call stops before writing and names
-`install.packages("officer")`, CSV and HTML. The document contains the HTML
-caption as a title, the same eleven header and body cells with the same
-`Suppressed` and status text, and the same notes as paragraphs. Values are
-written as text, so the document carries exactly the HTML cell text and no
-hidden value. Word cannot store control characters other than tab, carriage
-return and line feed; a label or unit containing one is refused, naming the
-column and row id, before writing. XML reading turns a carriage return and
-line feed into one line feed, and Word displays line breaks and tabs in a cell
-as white space.
+Word output needs officer 0.5.0 or later, which easyNIS suggests but does not
+import, together with its xml2 dependency. Without it the call stops before
+writing and names `install.packages("officer")`, CSV and HTML. The document
+contains the HTML caption as a title, the same eleven header and body cells
+with the same `Suppressed` and status text, and the same notes as paragraphs.
+Values are written as text; every text node in the document is one of these
+caption, header, cell or note strings, so no hidden value is present. Word
+cannot store control characters other than tab, carriage return and line
+feed, or the noncharacters U+FFFE and U+FFFF; a label or unit containing one
+is refused, naming the column and row id, before writing. officer writes a
+carriage return, alone or before a line feed, as a line feed, and Word
+displays line breaks and tabs in a cell as white space.
 
 The page is US Letter landscape with half-inch margins. Table cells use an
-8-point paragraph style, header cells are bold, text columns are left aligned
-and numeric columns right aligned. Column widths share the 10-inch text width
-in proportion to each column's longest word after the default cell padding,
-so typical rounded tables have no mid-word breaks. Exact 17-digit values and
-long labels are wider than their share and wrap within their cells. The
-layout was inspected visually after conversion to PDF by Microsoft Word for
-exact and three-digit tables; other word processors are not tested.
+8-point paragraph style with 0.04-inch left and right cell margins, header
+cells are bold and repeat on each page, text columns are left aligned and
+numeric columns right aligned, and no row splits across pages. Column widths
+estimate 0.07 inch per character of each column's longest word, counting at
+most 24 characters. When the longest words fit in the 10-inch text width,
+the spare width is shared in proportion and no word breaks. Otherwise header
+words and package text (statistic, estimand, df, `Suppressed`, status and
+confidence level) keep their full width, and caller labels and units and
+estimates, SEs, interval bounds and counts share the rest, wrapping and
+breaking words within their cells. Exact 17-digit values usually need this
+second case. A row taller than a page would still have to break. The layout
+was inspected visually after conversion to PDF by Microsoft Word for exact
+and three-digit tables and a 45-row table with long labels; other word
+processors are not tested.
 
 ## Acceptance cases
 
@@ -148,10 +156,11 @@ leading character in labels under all three policies, plus `@` and full-width
 `@` ids and `-` and full-width `-` units, an exact refusal message that names
 every affected cell and no other, no file after refusal, internal hyphens,
 and rejection of a CSV policy for HTML. Word cases compare every header, body
-cell and note with the HTML export for exact and rounded values, search every
-XML part of the document for hidden estimates, SEs and bounds, check escaped
-markup, the landscape page, an upper-case extension and an unchanged review,
-refuse a bell, vertical tab and U+FFFE with an exact message and no file,
+cell and note with the HTML export for exact and rounded values, require every
+text node in every XML part to be one of those strings and no exact hidden
+estimate, SE or bound, check escaped markup, the landscape page, unsplittable
+rows, an upper-case extension and an unchanged review, refuse a bell,
+vertical tab, U+FFFE and U+FFFF with an exact message and no file,
 accept tab and line breaks, reject a CSV policy, invalid digits, a mismatched
 extension and an existing file, and give the install guidance without
 writing when officer is unavailable. The installed smoke compares Word and
