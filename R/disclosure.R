@@ -111,7 +111,9 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     value <- rows[[i]]$value
     hospital <- rows[[i]]$hospital
     nonzero <- value != 0
-    levels <- if (!rows[[i]]$binary && length(unique(value)) == 2L) split(hospital, value) else list()
+    levels <- if (!rows[[i]]$binary && length(unique(value)) == 2L) {
+      split(hospital, match(value, unique(value)))
+    } else list()
     data.frame(id = ids[[i]], field = fields[[i]], binary = rows[[i]]$binary,
       included = as.double(length(value)),
       missing = as.double(table$results[[i]]$sample$excluded_missing),
