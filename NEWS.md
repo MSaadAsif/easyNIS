@@ -3,9 +3,11 @@
 ## Experimental table export
 
 - Added `nis_export_table()` to write a disclosure review's presentation to
-  CSV or HTML with base R. Unreviewed and regression tables are refused, and a
-  modified review is rejected before writing.
-- CSV values parse back to identical doubles and suppressed cells are empty.
+  CSV or HTML with base R. Unreviewed and regression tables are refused. The
+  review is recomputed from its retained results and recorded policy and must
+  match exactly, so modified reviews are rejected before writing.
+- CSV values (17 significant digits, or whole numbers in full) parse back to
+  identical doubles and suppressed cells are empty.
   HTML escapes caller text, rounds only when asked, shows no suppressed value
   and records the experimental scope, count basis and disclosure policy.
 - Output is staged and renamed, and existing files are replaced only on
