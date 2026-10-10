@@ -19,8 +19,8 @@ number from 1 to 15 rounds the estimate, SE and interval to that many
 significant digits. Counts, df and confidence levels are never rounded.}
 
 \item{formula_text}{For CSV, how to write text cells that begin with \code{=},
-\code{+}, \code{-}, \code{@}, a tab or a carriage return, which spreadsheet programs can
-run as formulas: \code{"refuse"} stops without writing and names each cell,
+\code{+}, \code{-}, \code{@}, their full-width forms, a tab, a carriage return or a line
+feed, which spreadsheet programs can run as formulas: \code{"refuse"} stops without writing and names each cell,
 \code{"prefix"} writes them with a leading \verb{'}, and \code{"keep"} writes them
 unchanged. Must be \code{NULL} for HTML.}
 
@@ -39,8 +39,8 @@ does not certify a manuscript.
 \details{
 CSV contains the 13 presentation columns with exact numeric values
 that \code{\link[utils:read.csv]{utils::read.csv()}} parses back to identical doubles; suppressed cells
-are empty. Text cells follow \code{formula_text}. HTML is a standalone escaped document whose notes record the
-experimental scope, count basis and disclosure policy. Suppressed values
+are empty. Text cells follow \code{formula_text}. HTML is a standalone escaped
+document whose notes record the experimental scope, count basis and disclosure policy. Suppressed values
 appear in neither format, and audit counts are never written. Output is
 written to a temporary file and renamed, so a failure leaves no partial
 file. Annual support and scientific approval remain pending.

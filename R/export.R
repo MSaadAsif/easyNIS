@@ -13,8 +13,8 @@
 #'   number from 1 to 15 rounds the estimate, SE and interval to that many
 #'   significant digits. Counts, df and confidence levels are never rounded.
 #' @param formula_text For CSV, how to write text cells that begin with `=`,
-#'   `+`, `-`, `@`, a tab or a carriage return, which spreadsheet programs can
-#'   run as formulas: `"refuse"` stops without writing and names each cell,
+#'   `+`, `-`, `@`, their full-width forms, a tab, a carriage return or a line
+#'   feed, which spreadsheet programs can run as formulas: `"refuse"` stops without writing and names each cell,
 #'   `"prefix"` writes them with a leading `'`, and `"keep"` writes them
 #'   unchanged. Must be `NULL` for HTML.
 #' @param overwrite `TRUE` or `FALSE`. An existing file is replaced only when
@@ -22,8 +22,8 @@
 #' @return The normalized path, invisibly.
 #' @details CSV contains the 13 presentation columns with exact numeric values
 #'   that [utils::read.csv()] parses back to identical doubles; suppressed cells
-#'   are empty. Text cells follow `formula_text`. HTML is a standalone escaped document whose notes record the
-#'   experimental scope, count basis and disclosure policy. Suppressed values
+#'   are empty. Text cells follow `formula_text`. HTML is a standalone escaped
+#'   document whose notes record the experimental scope, count basis and disclosure policy. Suppressed values
 #'   appear in neither format, and audit counts are never written. Output is
 #'   written to a temporary file and renamed, so a failure leaves no partial
 #'   file. Annual support and scientific approval remain pending.
@@ -51,11 +51,13 @@
 #'   nis_close(session)
 #'   unlink(c(path, csv, html))
 #' }
-nis_export_table <- function(review, path, format, digits, formula_text, overwrite) {
+nis_export_table <- function(review, path, format, digits, formula_text,
+                             overwrite) {
   if (base::missing(review) || base::missing(path) || base::missing(format) ||
-      base::missing(digits) || base::missing(formula_text) || base::missing(overwrite)) {
-    stop("Supply `review`, `path`, `format`, `digits`, `formula_text` and `overwrite` explicitly.",
-         call. = FALSE)
+      base::missing(digits) || base::missing(formula_text) ||
+      base::missing(overwrite)) {
+    stop("Supply `review`, `path`, `format`, `digits`, `formula_text` and ",
+         "`overwrite` explicitly.", call. = FALSE)
   }
   if (inherits(review, c("nis_descriptive_table", "nis_regression_table"))) {
     stop("Only a nis_disclosure_review can be exported; review the table first. ",
@@ -80,7 +82,8 @@ nis_export_table <- function(review, path, format, digits, formula_text, overwri
   }
   if (format == "csv" && (!is.character(formula_text) || length(formula_text) != 1L ||
       is.na(formula_text) || !formula_text %in% c("refuse", "prefix", "keep"))) {
-    stop("`formula_text` must be \"refuse\", \"prefix\" or \"keep\" for CSV.", call. = FALSE)
+    stop("`formula_text` must be \"refuse\", \"prefix\" or \"keep\" for CSV.",
+         call. = FALSE)
   }
   if (!is.logical(overwrite) || length(overwrite) != 1L || is.na(overwrite)) {
     stop("`overwrite` must be TRUE or FALSE.", call. = FALSE)
@@ -142,10 +145,11 @@ csv_lines <- function(presentation, formula_text) {
     ifelse(is.na(x), "", paste0("\"", gsub("\"", "\"\"", x, fixed = TRUE), "\""))
   }
   numeric <- vapply(presentation, is.numeric, logical(1))
-  # Leading characters that spreadsheet programs can treat as a formula (OWASP).
+  # Leading characters that spreadsheet programs can treat as a formula (OWASP),
+  # including full-width = + - @.
   formula <- lapply(presentation[!numeric], function(x) {
     x <- as.character(x)
-    !is.na(x) & grepl("^[-=+@\t\r]", x)
+    !is.na(x) & grepl("^[-=+@\t\r\n\uff1d\uff0b\uff0d\uff20]", x)
   })
   if (formula_text == "refuse" && any(unlist(formula))) {
     cells <- unlist(lapply(names(formula), function(column) {
@@ -153,7 +157,8 @@ csv_lines <- function(presentation, formula_text) {
       if (length(rows)) paste0(column, " in row '", rows, "'")
     }))
     stop("CSV text cells begin with a character that spreadsheets can run as a formula ",
-      "(=, +, -, @, tab or carriage return): ", paste(cells, collapse = ", "),
+      "(=, +, -, @, their full-width forms, tab, carriage return or line feed): ",
+      paste(cells, collapse = ", "),
       ". Change the text or set `formula_text` to \"prefix\" or \"keep\".", call. = FALSE)
   }
   cells <- lapply(names(presentation), function(column) {

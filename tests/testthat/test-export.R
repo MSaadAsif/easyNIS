@@ -118,11 +118,15 @@ test_that("CSV text that a spreadsheet could run as a formula needs an explicit 
   on.exit(unlink(path), add = TRUE)
   design <- nis_survey_design(nis_import(session, path, 2022), c("all", "stay"), TRUE,
     "hospital_wr", "fail")
-  spec <- data.frame(id = c("@all", "stay", "plain", "tab", "cr"),
-    field = c("all", "stay", "stay", "stay", "stay"),
-    statistic = c("total", "mean", "mean", "mean", "mean"),
-    label = c("=1+1", "+cmd|' /C calc'!A0", "Stay - days", "\tTabbed", "\rReturned"),
-    unit = c("weighted discharges", "-days", "days", "days", "days"),
+  # Rows after "cr" also cover a line feed and full-width = + - @.
+  wide <- "\uff20wide"
+  spec <- data.frame(id = c("@all", "stay", "plain", "tab", "cr", "lf", wide, "plus"),
+    field = c("all", rep("stay", 7)),
+    statistic = c("total", rep("mean", 7)),
+    label = c("=1+1", "+cmd|' /C calc'!A0", "Stay - days", "\tTabbed", "\rReturned",
+      "\n=1+1", "\uff1d1+1", "\uff0bplus"),
+    unit = c("weighted discharges", "-days", "days", "days", "days", "days",
+      "\uff0ddays", "days"),
     stringsAsFactors = FALSE)
   table <- nis_descriptive_table(design, spec, "fail", Inf, 0.95, "wr_unadjusted")
   review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
@@ -133,13 +137,13 @@ test_that("CSV text that a spreadsheet could run as a formula needs an explicit 
 
   refused <- tryCatch(nis_export_table(review, output, "csv", NULL, "refuse", FALSE),
     error = conditionMessage)
-  expect_match(refused, "formula", fixed = TRUE)
-  for (cell in c("id in row '@all'", "label in row '@all'", "label in row 'stay'",
-                 "unit in row 'stay'", "label in row 'tab'", "label in row 'cr'")) {
-    expect_match(refused, cell, fixed = TRUE)
-  }
-  expect_false(grepl("plain", refused, fixed = TRUE))
-  expect_false(grepl("calc", refused, fixed = TRUE))
+  cells <- paste0(c("id", "id", rep("label", 7), "unit", "unit"), " in row '",
+    c("@all", wide, "@all", "stay", "tab", "cr", "lf", wide, "plus", "stay", wide), "'")
+  expect_identical(enc2utf8(refused), enc2utf8(paste0(
+    "CSV text cells begin with a character that spreadsheets can run as a formula ",
+    "(=, +, -, @, their full-width forms, tab, carriage return or line feed): ",
+    paste(cells, collapse = ", "),
+    ". Change the text or set `formula_text` to \"prefix\" or \"keep\".")))
   expect_false(file.exists(output))
 
   # utils::read.csv() splits a quoted carriage return, so compare file bytes.
@@ -150,8 +154,10 @@ test_that("CSV text that a spreadsheet could run as a formula needs an explicit 
   nis_export_table(review, output, "csv", NULL, "prefix", FALSE)
   written <- raw_text()
   for (cell in c("'@all", "'=1+1", "'+cmd|' /C calc'!A0", "Stay - days", "'\tTabbed",
-                 "'\rReturned", "'-days", "plain")) {
-    expect_true(grepl(starts(cell), written, fixed = TRUE), info = cell)
+                 "'\rReturned", "'-days", "plain", "'\n=1+1", paste0("'", wide),
+                 "'\uff1d1+1", "'\uff0bplus", "'\uff0ddays")) {
+    expect_true(grepl(enc2utf8(starts(cell)), written, fixed = TRUE, useBytes = TRUE),
+      info = cell)
   }
   expect_false(grepl("\"=1+1\"", written, fixed = TRUE))
   expect_false(grepl("\"\rReturned\"", written, fixed = TRUE))
@@ -164,8 +170,10 @@ test_that("CSV text that a spreadsheet could run as a formula needs an explicit 
 
   nis_export_table(review, output, "csv", NULL, "keep", TRUE)
   written <- raw_text()
-  for (cell in c("@all", "=1+1", "+cmd|' /C calc'!A0", "\tTabbed", "\rReturned", "-days")) {
-    expect_true(grepl(starts(cell), written, fixed = TRUE), info = cell)
+  for (cell in c("@all", "=1+1", "+cmd|' /C calc'!A0", "\tTabbed", "\rReturned", "-days",
+                 "\n=1+1", wide, "\uff1d1+1", "\uff0bplus", "\uff0ddays")) {
+    expect_true(grepl(enc2utf8(starts(cell)), written, fixed = TRUE, useBytes = TRUE),
+      info = cell)
   }
   expect_false(grepl("\"'", written, fixed = TRUE))
   expect_identical(review, before)
