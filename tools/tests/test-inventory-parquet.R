@@ -11,9 +11,11 @@ test_that("inventory retains writer metadata without authenticating conversion h
   con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   paths <- file.path(input, c("NIS_2022.parquet", "no-year.parquet"))
-  for (path in paths) {
+  codecs <- c("ZSTD", "SNAPPY")
+  for (index in seq_along(paths)) {
+    path <- paths[[index]]
     DBI::dbExecute(con, paste0("COPY (SELECT 1 AS invented_id, 'not-a-record' AS invented_text) TO ",
-      DBI::dbQuoteString(con, path), " (FORMAT PARQUET)"))
+      DBI::dbQuoteString(con, path), " (FORMAT PARQUET, COMPRESSION ", codecs[[index]], ")"))
   }
   writer <- vapply(paths, function(path) {
     DBI::dbGetQuery(con, paste0("SELECT created_by FROM parquet_file_metadata(",
@@ -22,6 +24,7 @@ test_that("inventory retains writer metadata without authenticating conversion h
   expect_output(inventory_tool$main(c(input, output)), "Inventoried 2 parquet files")
   receipt <- utils::read.csv(file.path(output, "file-inventory.csv"), stringsAsFactors = FALSE)
   expect_identical(receipt$writer_metadata, writer)
+  expect_identical(receipt$compression_metadata, codecs)
   expect_identical(receipt$year_hint, c(2022L, NA_integer_))
   expect_identical(receipt$rows_from_footer, c(1L, 1L))
   expect_identical(receipt$columns, c(2L, 2L))
@@ -32,6 +35,7 @@ test_that("inventory retains writer metadata without authenticating conversion h
   expect_identical(receipt$missing_reasons_preserved, rep("unverified", 2L))
   notes <- readLines(file.path(output, "README.md"))
   expect_true(any(grepl("not proof of the converter", notes, fixed = TRUE)))
+  expect_true(any(grepl("does not establish requested conversion settings", notes, fixed = TRUE)))
   schema <- utils::read.csv(file.path(output, "schemas.csv"), stringsAsFactors = FALSE)
   expect_identical(schema$column_name, rep(c("invented_id", "invented_text"), 2L))
   expect_false(any(grepl("not-a-record", unlist(lapply(list.files(output, full.names = TRUE),
@@ -44,4 +48,20 @@ test_that("inventory retains writer metadata without authenticating conversion h
   expect_true(any(grepl("Inventoried 2 parquet files", status, fixed = TRUE)))
   expect_identical(utils::read.csv(file.path(cli_output, "file-inventory.csv"),
     stringsAsFactors = FALSE), receipt)
+})
+
+test_that("inventory combines distinct codecs across column chunks", {
+  directory <- tempfile("invented mixed codecs ")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE))
+  input <- file.path(directory, "inputs")
+  dir.create(input)
+  arrow::write_parquet(data.frame(first = 1:4, second = 5:8, third = 9:12),
+    file.path(input, "mixed.parquet"), chunk_size = 2L,
+    compression = c(first = "zstd", second = "snappy", third = "zstd"))
+  output <- file.path(directory, "receipts")
+  expect_output(inventory_tool$main(c(input, output)), "Inventoried 1 parquet files")
+  receipt <- utils::read.csv(file.path(output, "file-inventory.csv"), stringsAsFactors = FALSE)
+  expect_identical(receipt$compression_metadata, "SNAPPY;ZSTD")
+  expect_identical(receipt$row_groups, 2L)
 })

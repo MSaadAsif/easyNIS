@@ -56,6 +56,9 @@ The receipt preserves the raw footer `created_by` string as `writer_metadata`;
 this identifies only what the file reports about its writer, not the converter
 or transformations. Keep its output in the ignored `local-validation/` folder. It does not confirm
 source counts, release revisions, conversion history, or annual support.
+The `compression_metadata` column lists distinct column-chunk codecs reported
+by the footer in sorted order, separated by semicolons. Compare this observation
+with declared conversion settings; neither authenticates the execution history.
 
 `tools/validate-local-parquet.R` runs the experimental importer and aggregate
 structural checks against the six annual input directories. Run it with an

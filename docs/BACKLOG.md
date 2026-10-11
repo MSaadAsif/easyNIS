@@ -677,6 +677,19 @@ does not promote annual support or scientific approval.
 
 ## Foundation and metadata
 
+The NIS-005 codec increment adds `compression_metadata` to the private inventory.
+It records distinct column-chunk codecs from parquet footers in sorted order,
+separated by semicolons. Declared conversion settings can differ from the
+observed codec; neither establishes execution history. Invented Zstandard and
+Snappy inputs exercise both the sourceable tool and its CLI, with uncertainty
+statuses and the exclusion of discharge values retained. No annual capability
+or conversion-preservation status changes. Precommit verification passes 1,966
+package assertions, 86 tool assertions, all 36 merge-gate scenarios, source
+Status OK, tarball inspection and installed workflows. Both independent
+reviewers found zero blockers, including separate empty-file and uncompressed
+boundary probes. Clean committed-head verification and hosted checks are
+required before merge.
+
 The exact-level fix merged in [PR #24](https://github.com/MSaadAsif/easyNIS/pull/24)
 after clean-head verification with 1,966 package and 65 tool assertions,
 independent specification/standards reviews with zero blockers and all five
