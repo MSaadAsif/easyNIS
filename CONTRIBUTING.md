@@ -52,6 +52,9 @@ For a private input inventory, install the optional developer dependencies DBI
 and duckdb, then run `Rscript tools/inventory-parquet.R <input-directory>
 local-validation/parquet-inventory` as one terminal command. The tool queries
 schemas and row counts from file footers and exports no discharge values.
+Year hints use complete `NIS_YYYY.parquet` filenames, case-insensitively;
+parent directories and partial filename matches supply no hint. Hints do not
+validate record years.
 The receipt preserves the raw footer `created_by` string as `writer_metadata`;
 this identifies only what the file reports about its writer, not the converter
 or transformations. Keep its output in the ignored `local-validation/` folder. It does not confirm
