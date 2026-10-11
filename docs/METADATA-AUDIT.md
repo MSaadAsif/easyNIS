@@ -57,6 +57,11 @@ excluded from source packages and are checked separately in CI.
 
 ## Remaining acceptance work
 
+The inventory's `year_hint` uses only complete `NIS_YYYY.parquet` filenames,
+case-insensitively. Parent directory names, filename prefixes and extra suffixes
+do not supply a hint. A hint is not an inspected or validated `YEAR` value and
+does not establish annual support.
+
 The parquet inventory receipt retains `writer_metadata`, the raw `created_by`
 footer string. It is a lead for tracing the writer, not authenticated conversion
 history. It does not establish source revisions, component joins, prefiltering,

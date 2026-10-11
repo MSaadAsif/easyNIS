@@ -675,6 +675,26 @@ outcomes. Clean committed-head verification, final independent reviews and
 hosted checks are required before merge. This fixes experimental behavior and
 does not promote annual support or scientific approval.
 
+## Inventory filename year-hint correction
+
+A public developer-tool regression reproduced year hints taken from a parent
+directory, a prefixed filename and a filename with an extra suffix. Uppercase
+filenames were inventoried but lost their hints. NIS-005 inventories now use
+only complete `NIS_YYYY.parquet` filenames, case-insensitively, in both file and
+schema receipts. An invented conflicting `YEAR` value confirms that hints are
+filename declarations rather than inspected discharge years. Receipt notes and
+the contributor guide state this boundary.
+
+The new cases fail twice on the old implementation and pass after the fix.
+Precommit verification passes 1,966 package assertions, 90 tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and installed
+workflows. Clean committed-head verification, independent review and all five
+hosted checks are required before merge. The next annual action remains saving
+official source snapshots and reviewing the bounded parquet-only input profile;
+unavailable upstream conversion history must remain unknown. Regression-table
+disclosure/export still needs its own justified contract. No annual capability
+or scientific approval is promoted.
+
 ## Foundation and metadata
 
 The NIS-005 codec increment adds `compression_metadata` to the private inventory.
