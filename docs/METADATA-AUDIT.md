@@ -61,6 +61,10 @@ The parquet inventory receipt retains `writer_metadata`, the raw `created_by`
 footer string. It is a lead for tracing the writer, not authenticated conversion
 history. It does not establish source revisions, component joins, prefiltering,
 labels or special missing-value preservation; those statuses remain unverified.
+The inventory also records `compression_metadata`, the distinct column-chunk
+codecs reported by each file, sorted and separated by semicolons. A converter's
+declared compression setting can differ from the file's observed codec. The
+receipt records the latter without inferring which settings or script ran.
 
 1. Save the official Core specifications for all six years and inspect the
    provisional registry against them. Audit Hospital, Severity, and Diagnosis
