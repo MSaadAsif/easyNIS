@@ -28,8 +28,9 @@ main <- function(args) {
       "SELECT DISTINCT compression FROM parquet_metadata(", quoted, ")"
     ))$compression
     if (nrow(footer) != 1L) stop("Expected one footer for ", relative_path)
-    year_match <- regexec("NIS_([0-9]{4})[.]parquet", relative_path)
-    year_parts <- regmatches(relative_path, year_match)[[1L]]
+    filename <- basename(path)
+    year_match <- regexec("^NIS_([0-9]{4})[.]parquet$", filename, ignore.case = TRUE)
+    year_parts <- regmatches(filename, year_match)[[1L]]
     year_hint <- if (length(year_parts) == 2L) as.integer(year_parts[2L]) else NA_integer_
     info <- file.info(path)
     inventories[[index]] <- data.frame(
@@ -62,7 +63,7 @@ main <- function(args) {
     paste("R version:", getRversion()),
     paste("DuckDB R package:", utils::packageVersion("duckdb")), "",
     "Only file footers and schemas were queried. No discharge values were read or exported.",
-    "Year hints come from directory names, not inspected YEAR values.",
+    "Year hints come only from complete NIS_YYYY.parquet filenames, case-insensitively, not directory names or inspected YEAR values.",
     "Footer counts are not independent source-count validation.",
     "writer_metadata is the unverified created_by footer string, not proof of the converter, source release or transformations.",
     "compression_metadata lists distinct reported column-chunk codecs in sorted order; it does not establish requested conversion settings.",

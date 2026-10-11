@@ -1,6 +1,34 @@
 inventory_tool <- new.env(parent = globalenv())
 sys.source(file.path("..", "inventory-parquet.R"), envir = inventory_tool)
 
+test_that("inventory year hints come only from complete parquet basenames", {
+  directory <- tempfile("invented year hints ")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE))
+  input <- file.path(directory, "inputs")
+  dir.create(input)
+  misleading <- file.path(input, "NIS_2020.parquet")
+  dir.create(misleading)
+  paths <- c(file.path(misleading, "no-year.parquet"),
+    file.path(input, c("NIS_2017.parquet", "nis_2018.PARQUET",
+      "prefixNIS_2019.parquet", "NIS_2021.parquet.copy.parquet")))
+  expected <- c(NA_integer_, 2017L, 2018L, NA_integer_, NA_integer_)
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  for (path in paths) {
+    DBI::dbExecute(con, paste0("COPY (SELECT 2022 AS YEAR) TO ",
+      DBI::dbQuoteString(con, path), " (FORMAT PARQUET)"))
+  }
+  output <- file.path(directory, "receipts")
+  expect_output(inventory_tool$main(c(input, output)), "Inventoried 5 parquet files")
+  receipt <- utils::read.csv(file.path(output, "file-inventory.csv"))
+  schema <- utils::read.csv(file.path(output, "schemas.csv"))
+  normalized <- normalizePath(paths, winslash = "/", mustWork = TRUE)
+  expect_identical(receipt$year_hint[match(normalized, receipt$path)], expected)
+  expect_identical(schema$year_hint[match(normalized, schema$path)], expected)
+  expect_identical(receipt$release_revision, rep("unknown", 5L))
+})
+
 test_that("inventory retains writer metadata without authenticating conversion history", {
   directory <- tempfile("invented inventory ")
   dir.create(directory)
