@@ -62,6 +62,10 @@ case-insensitively. Parent directory names, filename prefixes and extra suffixes
 do not supply a hint. A hint is not an inspected or validated `YEAR` value and
 does not establish annual support.
 
+Inventory schemas describe the columns and types stored in each file. Automatic
+Hive partition discovery is disabled, so folders such as `YEAR=2017` neither
+add columns nor override file column types. The importer uses the same policy.
+
 The parquet inventory receipt retains `writer_metadata`, the raw `created_by`
 footer string. It is a lead for tracing the writer, not authenticated conversion
 history. It does not establish source revisions, component joins, prefiltering,
