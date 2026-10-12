@@ -716,6 +716,28 @@ reviewed annual contracts remain the next metadata dependencies.
 
 ## Foundation and metadata
 
+### Inventory physical field names
+
+A developer-tool regression reproduced SQL name repair changing physical
+`field`, `FIELD`, `FIELD_1`, `field` columns into `field`, `FIELD_1`,
+`FIELD_1_1`, `field_2`. The NIS-005 inventory now takes top-level names from
+the parquet schema, preserving exact duplicates and case collisions. Types
+remain DuckDB interpretations in file order; nested descendants do not add
+top-level columns. Invented cases exercise differing types, a nested field
+followed by another column, positions, counts and the real CLI. The name
+assertion fails on the old implementation and all 39 focused assertions pass
+after the correction. Precommit Windows verification passes 1,966 package
+assertions, 104 tool assertions, all 36 merge-gate scenarios, source Status OK,
+tarball inspection and installed public workflows. Independent probes also
+cover deep structs, lists, maps, zero-row files, empty names and non-ASCII names.
+Clean committed-head evidence, final independent reviews and hosted checks
+are required before merge.
+
+Official source-byte acquisition remains blocked after alternate official-host
+and browser attempts. Annual source contracts, parquet-only conversion
+provenance and author scientific decisions retain their existing gates. The
+inventory correction changes no annual support or scientific approval.
+
 The NIS-005 codec increment adds `compression_metadata` to the private inventory.
 It records distinct column-chunk codecs from parquet footers in sorted order,
 separated by semicolons. Declared conversion settings can differ from the
