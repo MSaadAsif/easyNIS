@@ -1,6 +1,35 @@
 inventory_tool <- new.env(parent = globalenv())
 sys.source(file.path("..", "inventory-parquet.R"), envir = inventory_tool)
 
+test_that("inventory schemas describe file columns rather than partition folders", {
+  directory <- tempfile("invented partition folders ")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE))
+  input <- file.path(directory, "inputs")
+  nested <- file.path(input, "YEAR=2017", "invented_partition=west")
+  dir.create(nested, recursive = TRUE)
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  path <- file.path(nested, "NIS_2022.parquet")
+  DBI::dbExecute(con, paste0("COPY (SELECT 2022::INTEGER AS YEAR, ",
+    "1::INTEGER AS invented_id) TO ", DBI::dbQuoteString(con, path),
+    " (FORMAT PARQUET)"))
+  output <- file.path(directory, "receipts")
+  expect_output(inventory_tool$main(c(input, output)), "Inventoried 1 parquet files")
+  receipt <- utils::read.csv(file.path(output, "file-inventory.csv"))
+  schema <- utils::read.csv(file.path(output, "schemas.csv"))
+  expect_identical(receipt$columns, 2L)
+  expect_identical(receipt$year_hint, 2022L)
+  expect_identical(schema$column_name, c("YEAR", "invented_id"))
+  expect_identical(schema$column_type, c("INTEGER", "INTEGER"))
+  cli_output <- file.path(directory, "cli receipts")
+  status <- system2(file.path(R.home("bin"), "Rscript"),
+    c(shQuote(normalizePath(file.path("..", "inventory-parquet.R"))),
+      shQuote(input), shQuote(cli_output)), stdout = TRUE, stderr = TRUE)
+  expect_null(attr(status, "status"))
+  expect_identical(utils::read.csv(file.path(cli_output, "schemas.csv")), schema)
+})
+
 test_that("inventory year hints come only from complete parquet basenames", {
   directory <- tempfile("invented year hints ")
   dir.create(directory)
