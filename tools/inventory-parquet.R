@@ -19,7 +19,7 @@ main <- function(args) {
     relative_path <- substring(path, nchar(root) + 2L)
     quoted <- as.character(DBI::dbQuoteString(con, path))
     schema <- DBI::dbGetQuery(con, paste0(
-      "DESCRIBE SELECT * FROM read_parquet(", quoted, ")"
+      "DESCRIBE SELECT * FROM read_parquet(", quoted, ", hive_partitioning = false)"
     ))
     footer <- DBI::dbGetQuery(con, paste0(
       "SELECT num_rows, num_row_groups, created_by FROM parquet_file_metadata(", quoted, ")"
@@ -63,6 +63,7 @@ main <- function(args) {
     paste("R version:", getRversion()),
     paste("DuckDB R package:", utils::packageVersion("duckdb")), "",
     "Only file footers and schemas were queried. No discharge values were read or exported.",
+    "Schemas report file columns and types; directory partition names do not add or override fields.",
     "Year hints come only from complete NIS_YYYY.parquet filenames, case-insensitively, not directory names or inspected YEAR values.",
     "Footer counts are not independent source-count validation.",
     "writer_metadata is the unverified created_by footer string, not proof of the converter, source release or transformations.",
