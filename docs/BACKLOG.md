@@ -695,6 +695,25 @@ unavailable upstream conversion history must remain unknown. Regression-table
 disclosure/export still needs its own justified contract. No annual capability
 or scientific approval is promoted.
 
+## Inventory physical-schema correction
+
+A developer-tool regression reproduced automatic Hive partition discovery in
+folders such as `YEAR=2017/invented_partition=west`. The inventory fabricated
+a column from the directory name and changed a stored INTEGER `YEAR` to
+BIGINT. The schema query now disables partition discovery, matching the
+experimental importer and reporting only file columns and their stored types.
+Filename year hints and footer provenance retain their separate meanings.
+
+The invented sourceable-tool and real CLI case fails three assertions before
+the fix and passes afterward, checking exact column names/types, counts and
+filename hints. Existing ordinary-directory cases still pass. Precommit
+verification passes 1,966 package assertions, 97 tool assertions, all 36
+merge-gate scenarios, source Status OK, tarball inspection and installed public
+workflows. Clean committed-head verification, independent review and all five
+hosted checks are required before merge. The correction does not change annual
+support or scientific approval. Original official source-byte acquisition and
+reviewed annual contracts remain the next metadata dependencies.
+
 ## Foundation and metadata
 
 The NIS-005 codec increment adds `compression_metadata` to the private inventory.
