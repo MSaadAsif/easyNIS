@@ -65,6 +65,11 @@ does not establish annual support.
 Inventory schemas describe the columns and types stored in each file. Automatic
 Hive partition discovery is disabled, so folders such as `YEAR=2017` neither
 add columns nor override file column types. The importer uses the same policy.
+Top-level column names come from the physical parquet schema and retain exact
+duplicates and case collisions that SQL queries would rename. Positions and
+DuckDB-interpreted types follow file order. Nested children are not additional
+top-level columns. An inventory does not establish importability; the importer
+still refuses case-insensitive field collisions and nested fields.
 
 The parquet inventory receipt retains `writer_metadata`, the raw `created_by`
 footer string. It is a lead for tracing the writer, not authenticated conversion

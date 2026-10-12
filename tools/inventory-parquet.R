@@ -21,6 +21,22 @@ main <- function(args) {
     schema <- DBI::dbGetQuery(con, paste0(
       "DESCRIBE SELECT * FROM read_parquet(", quoted, ", hive_partitioning = false)"
     ))
+    physical <- DBI::dbGetQuery(con, paste0(
+      "SELECT name, num_children FROM parquet_schema(", quoted, ")"
+    ))
+    names <- character()
+    position <- 2L
+    while (position <= nrow(physical)) {
+      names <- c(names, physical$name[position])
+      pending <- 1L
+      while (pending > 0L) {
+        children <- physical$num_children[position]
+        pending <- pending - 1L + if (is.na(children)) 0L else children
+        position <- position + 1L
+      }
+    }
+    if (length(names) != nrow(schema)) stop("Schema column count mismatch for ", relative_path)
+    schema$column_name <- names
     footer <- DBI::dbGetQuery(con, paste0(
       "SELECT num_rows, num_row_groups, created_by FROM parquet_file_metadata(", quoted, ")"
     ))
@@ -64,6 +80,7 @@ main <- function(args) {
     paste("DuckDB R package:", utils::packageVersion("duckdb")), "",
     "Only file footers and schemas were queried. No discharge values were read or exported.",
     "Schemas report file columns and types; directory partition names do not add or override fields.",
+    "Top-level names come from the physical schema, retaining duplicates and case collisions; types use DuckDB's interpretation in file order.",
     "Year hints come only from complete NIS_YYYY.parquet filenames, case-insensitively, not directory names or inspected YEAR values.",
     "Footer counts are not independent source-count validation.",
     "writer_metadata is the unverified created_by footer string, not proof of the converter, source release or transformations.",
