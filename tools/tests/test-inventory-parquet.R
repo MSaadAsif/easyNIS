@@ -1,6 +1,35 @@
 inventory_tool <- new.env(parent = globalenv())
 sys.source(file.path("..", "inventory-parquet.R"), envir = inventory_tool)
 
+test_that("inventory retains physical top-level names despite SQL name repair", {
+  directory <- tempfile("invented field names ")
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE))
+  input <- file.path(directory, "inputs")
+  dir.create(input)
+  fields <- c("field", "FIELD", "FIELD_1", "field", "nested", "after")
+  values <- list(1:2, c(1.25, 2.5), c("first", "second"), c(TRUE, FALSE),
+    data.frame(child = 3:4), c(5, 6))
+  names(values) <- fields
+  path <- file.path(input, "NIS_2022.parquet")
+  arrow::write_parquet(do.call(arrow::Table$create, values), path)
+  output <- file.path(directory, "receipts")
+  expect_output(inventory_tool$main(c(input, output)), "Inventoried 1 parquet files")
+  schema <- utils::read.csv(file.path(output, "schemas.csv"))
+  expect_identical(schema$column_name, fields)
+  expect_identical(schema$position, seq_along(fields))
+  expect_identical(schema$column_type,
+    c("INTEGER", "DOUBLE", "VARCHAR", "BOOLEAN", "STRUCT(child INTEGER)", "DOUBLE"))
+  receipt <- utils::read.csv(file.path(output, "file-inventory.csv"))
+  expect_identical(receipt$columns, length(fields))
+  cli_output <- file.path(directory, "cli receipts")
+  status <- system2(file.path(R.home("bin"), "Rscript"),
+    c(shQuote(normalizePath(file.path("..", "inventory-parquet.R"))),
+      shQuote(input), shQuote(cli_output)), stdout = TRUE, stderr = TRUE)
+  expect_null(attr(status, "status"))
+  expect_identical(utils::read.csv(file.path(cli_output, "schemas.csv")), schema)
+})
+
 test_that("inventory schemas describe file columns rather than partition folders", {
   directory <- tempfile("invented partition folders ")
   dir.create(directory)
