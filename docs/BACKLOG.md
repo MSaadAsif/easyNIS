@@ -818,6 +818,41 @@ one wording suggestion corrected the manifest's validation note for non-Core
 sources. Clean-head verification, current independent review and hosted checks
 remain required before this acquisition increment merges.
 
+The broader acquisition merged in
+[PR #32](https://github.com/MSaadAsif/easyNIS/pull/32) after clean-head
+verification, current independent reviews with zero blockers and all six
+hosted jobs. All 47 references downloaded from the canonical official host.
+All 94 transferred body/header hashes and lengths match the remote receipts;
+the exact 23-layout inventory matches the original index, and every paired
+SAS DATA/INFILE/LRECL identity matches its layout. Programs were not executed.
+
+### Provisional component layout catalog
+
+The next NIS-006 increment shares layout structure validation across Core,
+Hospital, Severity and Diagnosis and Procedure Groups, retaining the stricter
+Core code-slot checks. An offline updater parses all 23 cached component
+layouts before atomically replacing the provisional catalog. Missing or invalid
+later files preserve the previous CSV. Source counts, record lengths, field
+counts, dataset identities, specification-filename revisions, structural-field
+presence, source URLs, MD5 and parse times are retained without synthesizing
+absent columns.
+
+The source bodies include YEAR/stratum/weight fields only in Core/Hospital;
+Hospital lacks KEY_NIS, while Severity and Diagnosis and Procedure Groups
+include both hospital and discharge identifiers. These structural facts do not
+authenticate a parquet component join, conversion history or missing reasons.
+The runtime consumes neither provisional registry. All 23 generated catalog
+identities/counts/lengths/MD5/URLs match a separate Python source inspection.
+Invented fixtures cover both guide eras, component identity/type requirements,
+absence preservation, offline repeatability and rollback, plus stricter Core
+slot rejection through the new updater. Precommit verification passes 1,966
+package assertions, 171 R tool assertions (127 layout assertions), all 36
+merge-gate scenarios, source Status OK, a 91-entry tarball inspection and
+installed public workflows. Independent review matches all 23 source rows,
+checks offline CLI output and confirms exact preservation of all six prior
+Core parser results. Both preliminary reviews found zero blockers. Clean-head
+verification, final review and hosted checks remain required before merge.
+
 ## Foundation and metadata
 
 ### Inventory physical field names
@@ -837,8 +872,9 @@ cover deep structs, lists, maps, zero-row files, empty names and non-ASCII names
 Clean committed-head evidence, final independent reviews and hosted checks
 are required before merge.
 
-Official source-byte acquisition remains blocked after alternate official-host
-and browser attempts. Annual source contracts, parquet-only conversion
+At the inventory correction, official source-byte acquisition remained blocked
+after alternate-host and browser attempts; the subsequent remote acquisition
+above obtained the original references. Annual source contracts, parquet-only conversion
 provenance and author scientific decisions retain their existing gates. The
 inventory correction changes no annual support or scientific approval.
 
