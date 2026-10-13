@@ -1,6 +1,8 @@
 """Offline public-response fixtures; no annual metadata is authenticated."""
 
 import hashlib
+import contextlib
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -103,6 +105,48 @@ class FetchTests(unittest.TestCase):
                 manifest = fetch_layouts.acquire(Path(temporary) / "new")
             self.assertEqual(len(manifest["attempts"]), 12)
             self.assertTrue(all(row["outcome"] == "http_error" for row in manifest["attempts"]))
+
+    def test_all_reference_inventory_matches_initial_year_scope(self):
+        sources = fetch_layouts.source_requests("all")
+        self.assertEqual(len(sources), 47)
+        self.assertEqual(sum(row["kind"] == "layout" for row in sources), 23)
+        self.assertEqual(sum(row["kind"] == "sas" for row in sources), 23)
+        self.assertEqual(sum(row["kind"] == "index" for row in sources), 1)
+        self.assertEqual(len({row["cache_filename"] for row in sources}), 47)
+        self.assertEqual({row["year"] for row in sources}, {None, 2017, 2018, 2019, 2020, 2021, 2022})
+        self.assertFalse(any(row["year"] == 2017 and row["component"] == "DX_PR_GRPS" for row in sources))
+        paths = {row["path"] for row in sources}
+        self.assertIn("/db/nation/nis/nisfilespecs.jsp", paths)
+        self.assertIn("/db/nation/nis/tools/stats/FileSpecifications_NIS_2017_Hospital.TXT", paths)
+        self.assertIn("/db/nation/nis/tools/stats/FileSpecifications_NIS_2019_DX_PR_GRPS_V2.TXT", paths)
+        self.assertIn("/db/nation/nis/tools/pgms/SASLoad_NIS_2019_Core_V2.SAS", paths)
+        self.assertIn("/db/nation/nis/tools/pgms/SASLoad_NIS_2020_Severity_V2.SAS", paths)
+
+    def test_all_profile_retains_each_document_and_failure_attempt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "new"
+            with patch.object(fetch_layouts.subprocess, "run", side_effect=self.response) as mock:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    manifest = fetch_layouts.acquire(directory, "all")
+            self.assertEqual(mock.call_count, 47)
+            self.assertEqual(manifest["profile"], "all")
+            self.assertEqual(len({row["body"]["file"] for row in manifest["attempts"]}), 47)
+            for row in manifest["attempts"]:
+                self.assertEqual((directory / row["body"]["file"]).read_bytes(), b"invented\r\n\xff\x00\n")
+            failed_directory = Path(temporary) / "failed"
+            with patch.object(fetch_layouts, "fetch", side_effect=lambda *args: {"outcome": "transport_error"}) as mock:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    failures = fetch_layouts.acquire(failed_directory, "all")
+            self.assertEqual(mock.call_count, 94)
+            self.assertEqual(len(failures["attempts"]), 94)
+            self.assertEqual(json.loads((failed_directory / "manifest.json").read_text()), failures)
+
+    def test_invalid_profile_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "new"
+            with self.assertRaises(ValueError):
+                fetch_layouts.acquire(directory, "later-years")
+            self.assertFalse(directory.exists())
 
 
 if __name__ == "__main__":
