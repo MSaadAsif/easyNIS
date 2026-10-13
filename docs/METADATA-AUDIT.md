@@ -55,6 +55,47 @@ does not consume this development registry. Parsing never changes
 `year-support.csv` or permits inference. The updater and its invented tests are
 excluded from source packages and are checked separately in CI.
 
+## Retrieve original response bytes on GitHub
+
+`tools/fetch-official-layouts.py` tries the canonical official host and then
+the alternate official `hcup-ts.ahrq.gov` host for each Core specification.
+It requires Python 3 and curl. Every request has a 20-second total limit,
+five-second connection limit and at most five HTTPS redirects. Run it with a
+new ignored output directory; existing directories are refused:
+
+```sh
+python -B -m unittest discover -s tools/tests -p test_fetch_official_layouts.py -v
+python -B tools/fetch-official-layouts.py .audit/official-layouts-new
+```
+
+The separate `Retrieve public official layouts` workflow runs these offline
+tests and retrieval on relevant pull requests or manual dispatch. It has no
+schedule, reads no licensed files, and has read-only repository permissions.
+After it reaches main, request an on-demand run with
+`gh workflow run official-layouts.yaml`. Its `official-core-response-bytes`
+artifact retains only this job's response bodies, raw response headers and
+JSON manifest for 14 days. Download a completed run with
+`gh run download RUN_ID -n official-core-response-bytes -D .audit/official-transfer-RUN_ID`.
+See GitHub's [artifact download instructions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
+
+The manifest records each requested/final URL, UTC start/completion times,
+HTTP status, curl exit/error and the byte lengths and SHA-256 hashes of saved
+bodies and headers. Failed HTTP responses and partial transport bodies remain
+evidence, with an explicit failure outcome. A successful HTTP 200 response
+ending on either official HTTPS host is marked `downloaded`; this says nothing
+about its content. HTML error pages can return 200. The artifact job can succeed
+even when every source request fails: inspect the manifest, rather than using
+the workflow conclusion as acquisition evidence.
+
+Before promoting a downloaded body into the ignored cache, verify its SHA-256
+and length after transfer and run `parse_core_layout()` for its declared year
+and revision. Preserve the body unchanged when copying it to the manifest's
+`cache_filename`; retain the manifest and headers alongside local evidence.
+Do not copy failed or unparsed bodies. Then run the cached-only updater.
+The fetcher never populates the cache or changes the registry, support matrix
+or conversion status. A parsed Core specification still needs human source
+review and the separate component/missing-value audit below.
+
 ## Remaining acceptance work
 
 The inventory's `year_hint` uses only complete `NIS_YYYY.parquet` filenames,
