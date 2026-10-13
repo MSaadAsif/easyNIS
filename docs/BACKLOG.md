@@ -714,6 +714,33 @@ hosted checks are required before merge. The correction does not change annual
 support or scientific approval. Original official source-byte acquisition and
 reviewed annual contracts remain the next metadata dependencies.
 
+## Official source retrieval continuation
+
+The next bounded NIS-006 action tests a remote network path for authentic
+Core specification bytes, following failed workstation and browser routes.
+The development-only fetcher requests the six fixed public Core URLs, tries
+the alternate official host after failure, limits request duration and HTTPS
+redirects, and records original response bodies/headers with URLs, HTTP results,
+UTC times, lengths and SHA-256 hashes. Existing output directories are refused.
+The separate GitHub job transfers these files as a short-lived artifact and
+runs offline byte-preservation, error, fallback and no-overwrite cases.
+
+Acceptance requires inspection of the actual remote manifest, verification
+of transferred hashes and parser checks before any body enters the ignored
+cache. A successful workflow or HTTP 200 is not a source-content validation.
+All-failure receipts remain useful evidence and must not populate the registry.
+The fetcher changes no annual support, licensed conversion history or scientific
+approval. Original bytes, source review and component/missing-value contracts
+remain the annual dependencies. See [METADATA-AUDIT.md](METADATA-AUDIT.md).
+Precommit Windows verification passes 1,966 package assertions, 104 R tool
+assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
+and installed public workflows. The separate Python suite passes six offline
+cases; an independent probe confirms all twelve failed requests retain exact
+binary partial bodies, headers, hashes and complete failure receipts. Both
+preliminary independent reviews found zero blockers. Clean committed-head
+verification, final independent review and hosted checks remain required
+before this increment merges; the remote acquisition result is still pending.
+
 ## Foundation and metadata
 
 ### Inventory physical field names
