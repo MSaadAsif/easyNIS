@@ -16,6 +16,15 @@ knitr HTML engine, without Pandoc. The installed smoke requires its vignette
 index and rendered HTML, confirms the reviewed table and blank suppressed
 cells, and rejects temporary source paths in the rendered walkthrough.
 
+The installed single-year drive also calls `nis_models()` with one shared
+intercept declaration and Gaussian LOS, logistic domain and Poisson exposure
+outcomes for every invented 2017–2022 label. Compare the individual fits and
+batch results exactly, and check all three coefficients/SEs against independent
+hospital WR arithmetic. Require separate sample rows, stable outcome ordering,
+pointwise provenance and `analysis_ready = FALSE`. Unit references additionally
+cover full/domain/pooled designs, outcome-specific missingness, year-specific
+keys, warning/alias retention and failed-batch rejection. No batch is published.
+
 The installed smoke also runs `examples/pooled-model-workflow.R` twice.
 Require six complete annual designs, 24 year-specific hospitals and 12 strata,
 pooling before domain selection, average annual weight divisor 6, independent

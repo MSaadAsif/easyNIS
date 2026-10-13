@@ -1,5 +1,13 @@
 # easyNIS 0.0.0.9000
 
+## Experimental outcome-model batches
+
+- Added `nis_models()` to declare outcome families and shared predictors once.
+  Each outcome retains its own complete-case sample, native fit, warnings and
+  numeric inference. A failed model identifies its outcome and rejects the
+  batch without partial results. Inference remains pointwise and unreviewed;
+  no annual support, scientific approval or regression export is added.
+
 ## Offline workflow vignette
 
 - Added an installed HTML walkthrough that executes the synthetic quickstart
