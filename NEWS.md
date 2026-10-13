@@ -17,6 +17,14 @@
   intact. Predicate expressions/fields and unknown counts are retained; globals,
   arbitrary functions, numeric logical coercion and malformed masks are refused.
 
+## Explicit analysis factors
+
+- Added `nis_factor()` to create a distinct factor from declared raw levels
+  and labels while preserving the source field and survey structure. Undeclared
+  observed values reject, source NA/NaN stay missing, and mappings are retained
+  as caller-declared/unverified provenance. No clinical or missing-code mapping
+  is inferred, and no contrast scheme or universal fitted reference is imposed.
+
 ## Offline workflow vignette
 
 - Added an installed HTML walkthrough that executes the synthetic quickstart

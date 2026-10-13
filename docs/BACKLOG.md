@@ -41,6 +41,24 @@ with exact native design/population/provenance parity for all six invented
 year labels before checking independent inference. Final clean-head evidence,
 independent review and hosted checks are required before merge.
 
+The compound-domain increment merged in
+[PR #36](https://github.com/MSaadAsif/easyNIS/pull/36) after clean-head verification,
+both final independent reviews and all five hosted checks. The next bounded
+NIS-010/016/021 usability increment creates caller-declared analysis factors in
+distinct new columns, preserving raw source fields, rows and native survey
+structure. Explicit one-to-one level/label declarations must reject undeclared
+observed values, keep NA/NaN missing and retain declaration provenance. This
+is not a canonical annual mapping or an inferred missing-code contract. See
+[ANALYSIS-FACTORS.md](ANALYSIS-FACTORS.md) for typing, contrast and acceptance
+limits. Full verification, independent review and hosted checks are required.
+Focused factor tests pass 104 assertions. Full precommit verification passes
+2,275 package assertions, 216 tool assertions, all 36 merge-gate cases, source
+Status OK, tarball inspection and installed workflows. Independent probes
+confirm typed category/missingness behavior and model coefficients/covariance
+on single-year/domain/pooled invented designs. Both preliminary reviews found
+zero blockers; final clean-head evidence, pinned review and hosted checks remain
+required before merge. No annual or scientific approval is changed.
+
 This priority does not promote annual capabilities or replace scientific choices.
 Legacy identifier/weight aliases, input completeness, global singleton adjustment,
 derived-variable meaning and disclosure/export differences require explicit
