@@ -155,4 +155,16 @@ the analysis. Existing model restrictions and policy guards apply. Read the
 [batch contract](docs/MODEL-BATCHES.md) for pointwise inference, failure handling
 and retained native results. This does not make licensed annual inputs ready.
 
+Declare categorical covariates without overwriting their raw source fields:
+
+```r
+analysis <- nis_factor(design, "group", "group_factor", c(0, 1),
+  c("Comparator", "Exposed"))
+```
+
+The [analysis-factor helper](docs/ANALYSIS-FACTORS.md) requires explicit levels
+and labels and rejects undeclared observed values. It records caller choices
+without approving clinical labels or missing-code meanings. Use the resulting
+field in model predictors and inspect the fitted factor coding and support.
+
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
