@@ -134,6 +134,55 @@ The fetcher never populates the cache or changes the registry, support matrix
 or conversion status. A parsed Core specification still needs human source
 review and the separate component/missing-value audit below.
 
+## Audit cached component layouts
+
+The broader retrieval run
+[38445718802](https://github.com/MSaadAsif/easyNIS/actions/runs/38445718802)
+received all 47 requested references from the canonical official host. All
+94 transferred body/header lengths and SHA-256 hashes match their remote
+receipts. The saved index's exact 23-layout link inventory matches the
+requested layouts. Every paired SAS program's DATA, INFILE name and LRECL
+match its layout's dataset and record length; the programs were not executed.
+Verified original reference bytes are cached under the ignored
+`docs/references/local/annual-documents/` directory.
+
+The component audit is strictly offline:
+
+```sh
+Rscript tools/update-component-metadata.R
+Rscript tools/update-component-metadata.R CACHE_DIRECTORY OUTPUT_CSV
+```
+
+All 23 listed initial-year layouts must exist and pass before the output CSV
+is staged and renamed. Missing files or invalid later components leave the
+previous CSV unchanged. The shared `parse_nis_layout()` reader checks each
+body's dataset/year, guide ranges, field numbering, names/types/precision,
+record positions and component-specific numeric structural fields.
+`parse_core_layout()` additionally retains its contiguous seven-character
+diagnosis/procedure slot checks; the component updater uses that stricter
+reader for Core files.
+
+`inst/metadata/component-layouts.csv` records provisional source counts,
+record lengths, column counts, dataset identities, specification-filename
+revisions, structural-field presence, canonical source links, MD5 and parse
+times. These are source-body facts, not inspected discharge values:
+
+| Component | YEAR | KEY_NIS | HOSP_NIS | NIS_STRATUM / DISCWT |
+| --- | --- | --- | --- | --- |
+| Core | Present | Present | Present | Present |
+| Hospital | Present | Absent | Present | Present |
+| Severity | Absent | Present | Present | Absent |
+| Diagnosis and Procedure Groups | Absent | Present | Present | Absent |
+
+Absent fields are not fabricated. Dataset/year labels in a specification row
+are distinct from a YEAR column in the data file. The shared keys and matching
+header counts do not prove the cardinality, completeness or provenance of a
+parquet join. Nor does a field's presence in a source specification establish
+that a conversion retained its values, labels or missing reasons. The runtime
+does not consume either provisional registry. SAS missing-value formats,
+field meanings/units and derived-tool versions require their own audits and
+author review before canonical transformations or annual support claims.
+
 ## Remaining acceptance work
 
 The inventory's `year_hint` uses only complete `NIS_YYYY.parquet` filenames,
@@ -159,9 +208,9 @@ codecs reported by each file, sorted and separated by semicolons. A converter's
 declared compression setting can differ from the file's observed codec. The
 receipt records the latter without inferring which settings or script ran.
 
-1. Review the saved official Core specifications and provisional registry
-   for all six years. Audit Hospital, Severity, and Diagnosis
-   and Procedure Groups specifications independently, including availability.
+1. Obtain author review of the saved source snapshots and provisional Core and
+   component catalogs, including documented availability and the V2
+   index/body naming discrepancy.
 2. Inspect official annual load formats and data-element notes for field-level
    special missing values, units, labels, applicability and revision corrections.
    The Core layout alone does not define those contracts.
