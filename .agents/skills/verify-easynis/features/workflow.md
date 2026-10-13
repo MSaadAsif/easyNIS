@@ -42,3 +42,12 @@ Check 288 observed/72 missing model outcomes, a hidden rare descriptive row,
 fixed model-scale/pooling declarations, repeatable output bytes and no raw model
 results or local paths in artifacts. Both vignette tables must have blank
 suppressed numeric/count cells. Reference derivations are in docs/WORKFLOW.md.
+
+The pooled example additionally composes `nis_factor()`, a bounded adult/code
+predicate and a shared-predictor LOS/event batch. Require 288/354 included and
+72/6 missing outcomes from 360 invented domain rows, independent GLM/WR matrix
+references for both links and unchanged scalar descriptive references. The
+repeat run starts from nondefault survey/contrast options and must restore them
+while producing identical bytes. Check fixed factor/batch/domain declarations
+in the report, absence of model coefficient/sample-accounting leakage, and the
+new walkthrough/migration text with the same two reviewed vignette tables.

@@ -27,6 +27,13 @@
 
 ## Offline workflow vignette
 
+- The six-year example now combines explicit factor declarations, compound
+  adult/code-flag domains and two outcome models with shared predictors.
+  Independent GLM and hospital-score WR references verify the internal batch;
+  caller options are restored, and only the existing reviewed descriptive
+  outputs plus fixed declarations are written. Workshop migration boundaries
+  remain explicit; no annual or scientific support is promoted.
+
 - Added an installed HTML walkthrough that executes the synthetic quickstart
   during source build, explains its explicit policies and displays only the
   reviewed CSV presentation. The knitr engine requires no Pandoc. Annual

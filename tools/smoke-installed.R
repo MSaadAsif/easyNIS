@@ -460,9 +460,19 @@ stopifnot(identical(pooled_csv$disclosure_status, c("shown", "shown", "suppresse
   any(grepl("Model: LOS ~ 1; Gaussian identity", pooled_report, fixed = TRUE)),
   any(grepl("native annual weights divided by 6", pooled_report, fixed = TRUE)),
   any(grepl("Model disclosure review and regression-table export are unsupported", pooled_report, fixed = TRUE)),
+  any(grepl("Internal outcome batch: LOS Gaussian identity and event quasibinomial logit", pooled_report, fixed = TRUE)),
+  any(grepl("AGE >= 18 & cohort after full-design pooling", pooled_report, fixed = TRUE)),
+  any(grepl("raw exposure is preserved and mapping is unverified", pooled_report, fixed = TRUE)),
+  any(grepl("caller options restored on exit", pooled_report, fixed = TRUE)),
+  !any(grepl("exposure_factorExposed|354", pooled_report)),
   !any(grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|KEY_NIS|source_receipt", pooled_report)))
+caller_policies <- options(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = TRUE,
+  contrasts = c("contr.sum", "contr.poly"))
+caller_policy_state <- options()[names(caller_policies)]
 pooled_repeat <- source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"),
   local = new.env(parent = globalenv()))$value
+stopifnot(identical(options()[names(caller_policy_state)], caller_policy_state))
+options(caller_policies)
 stopifnot(!identical(pooled_workflow, pooled_repeat))
 for (name in names(pooled_workflow)) {
   stopifnot(identical(readBin(pooled_workflow[[name]], "raw", file.info(pooled_workflow[[name]])$size),
@@ -478,6 +488,7 @@ stopifnot(nzchar(vignette_path), file.exists(vignette_path))
 vignette_html <- paste(readLines(vignette_path, encoding = "UTF-8"), collapse = "\n")
 stopifnot(grepl("Invented reviewed results", vignette_html, fixed = TRUE),
   grepl("suppressed_primary", vignette_html, fixed = TRUE),
+  grepl("Use explicit factors, compound domains and outcome batches", vignette_html, fixed = TRUE),
   grepl("34/7", vignette_html, fixed = TRUE),
   !grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|source_receipt", vignette_html))
 vignette_document <- xml2::read_html(vignette_path)
