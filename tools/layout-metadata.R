@@ -1,7 +1,8 @@
-# Development-only reader of public HCUP Core specifications. It does not
+# Development-only readers of public HCUP specifications. They do not
 # interpret missing values, authenticate conversions, or approve annual inputs.
-parse_core_layout <- function(lines, year) {
-  fail <- function(message) stop("Invalid Core layout for ", year, ": ", message,
+parse_nis_layout <- function(lines, year, component) {
+  component <- match.arg(component, c("Core", "Hospital", "Severity", "DX_PR_GRPS"))
+  fail <- function(message) stop("Invalid ", component, " layout for ", year, ": ", message,
                                 call. = FALSE)
   whole <- function(value) {
     if (anyNA(value) || any(!grepl("^[0-9]+$", value))) fail("invalid whole number.")
@@ -16,7 +17,7 @@ parse_core_layout <- function(lines, year) {
     if (length(matched) != 1L) fail(paste0("missing or repeated ", prefix))
     trimws(substring(matched, nchar(prefix) + 1L))
   }
-  dataset <- paste0("NIS_", year, "_CORE")
+  dataset <- paste0("NIS_", year, "_", toupper(component))
   if (!identical(header("Data Set Name:"), dataset)) fail("wrong dataset.")
   count <- whole(header("Number of Observations:"))
   record_length <- whole(header("Total Record Length:"))
@@ -65,22 +66,34 @@ parse_core_layout <- function(lines, year) {
       tail(fields$end, 1L) != record_length) fail("noncontiguous record positions.")
   if (any(fields$decimals >= fields$end - fields$start + 1L) ||
       any(fields$type == "Char" & fields$decimals != 0L)) fail("invalid decimal precision.")
-  required <- c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
+  required <- switch(component,
+    Core = c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT"),
+    Hospital = c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"),
+    Severity = c("HOSP_NIS", "KEY_NIS"),
+    DX_PR_GRPS = c("HOSP_NIS", "KEY_NIS"))
   if (!all(required %in% fields$name) ||
       any(fields$type[match(required, fields$name)] != "Num") ||
       any(fields$decimals[match(setdiff(required, "DISCWT"), fields$name)] != 0L)) {
     fail("missing or invalid structural fields.")
   }
+  list(dataset = dataset, records = count, record_length = record_length, fields = fields)
+}
+
+parse_core_layout <- function(lines, year) {
+  layout <- parse_nis_layout(lines, year, "Core")
+  fields <- layout$fields
   slots <- function(prefix) {
     selected <- fields[grepl(paste0("^", prefix, "[0-9]+$"), fields$name), , drop = FALSE]
     if (!nrow(selected) || !identical(selected$name, paste0(prefix, seq_len(nrow(selected)))) ||
         any(selected$type != "Char") || any(selected$end - selected$start + 1L != 7L)) {
-      fail(paste0("invalid coding slots: ", prefix))
+      stop("Invalid Core layout for ", year, ": invalid coding slots: ", prefix,
+           call. = FALSE)
     }
     nrow(selected)
   }
-  list(dataset = dataset, records = count, record_length = record_length,
-       fields = fields, diagnosis_slots = slots("I10_DX"), procedure_slots = slots("I10_PR"))
+  layout$diagnosis_slots <- slots("I10_DX")
+  layout$procedure_slots <- slots("I10_PR")
+  layout
 }
 
 update_layout_metadata <- function(years = 2017:2022,
@@ -130,5 +143,42 @@ update_layout_metadata <- function(years = 2017:2022,
   registry <- do.call(rbind, rows)
   utils::write.csv(registry, staged, row.names = FALSE)
   if (!file.rename(staged, output)) stop("Could not replace layout registry.", call. = FALSE)
+  invisible(registry)
+}
+
+update_component_metadata <- function(
+    cache = "docs/references/local/annual-documents",
+    output = "inst/metadata/component-layouts.csv") {
+  parsed <- format(Sys.time(), tz = "UTC", usetz = TRUE)
+  rows <- list()
+  for (year in 2017:2022) {
+    revision <- if (year %in% c(2019L, 2020L)) "V2" else "unspecified"
+    suffix <- if (revision == "V2") "_V2" else ""
+    for (component in c("Core", "Hospital", "Severity", "DX_PR_GRPS")) {
+      if (year == 2017L && component == "DX_PR_GRPS") next
+      filename <- paste0("FileSpecifications_NIS_", year, "_", component, suffix, ".TXT")
+      path <- file.path(cache, filename)
+      if (!file.exists(path)) stop("Missing cached specification: ", filename, call. = FALSE)
+      lines <- readLines(path, warn = FALSE)
+      layout <- if (component == "Core") parse_core_layout(lines, year) else
+        parse_nis_layout(lines, year, component)
+      fields <- layout$fields$name
+      rows[[length(rows) + 1L]] <- data.frame(
+        year = year, component = component, dataset_name = layout$dataset,
+        specification_revision = revision, source_records = layout$records,
+        source_columns = nrow(layout$fields), source_record_length = layout$record_length,
+        has_YEAR = "YEAR" %in% fields, has_KEY_NIS = "KEY_NIS" %in% fields,
+        has_HOSP_NIS = "HOSP_NIS" %in% fields, has_NIS_STRATUM = "NIS_STRATUM" %in% fields,
+        has_DISCWT = "DISCWT" %in% fields,
+        source = paste0("https://hcup-us.ahrq.gov/db/nation/nis/tools/stats/", filename),
+        parsed_utc = parsed, source_md5 = unname(tools::md5sum(path)),
+        review_status = "provisional", stringsAsFactors = FALSE)
+    }
+  }
+  registry <- do.call(rbind, rows)
+  staged <- tempfile(tmpdir = dirname(output))
+  on.exit(unlink(staged), add = TRUE)
+  utils::write.csv(registry, staged, row.names = FALSE)
+  if (!file.rename(staged, output)) stop("Could not replace component registry.", call. = FALSE)
   invisible(registry)
 }

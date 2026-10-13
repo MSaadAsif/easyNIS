@@ -1,7 +1,8 @@
 source(file.path("..", "layout-metadata.R"), local = TRUE)
 
-invented_layout <- function(year = 2022L, revision = "unspecified", legacy = FALSE) {
-  dataset <- paste0("NIS_", year, "_CORE", if (revision == "V2") "_V2" else "")
+invented_layout <- function(year = 2022L, revision = "unspecified", legacy = FALSE,
+                            component = "Core") {
+  dataset <- paste0("NIS_", year, "_", toupper(component), if (revision == "V2") "_V2" else "")
   ranges <- if (legacy) list(c(1,3), c(5,8), c(10,35), c(37,39), c(41,69),
                             c(71,73), c(75,77), c(79,79), c(81,84)) else
     list(c(1,3), c(5,8), c(10,35), c(37,40), c(42,70),
@@ -14,14 +15,20 @@ invented_layout <- function(year = 2022L, revision = "unspecified", legacy = FAL
   guide <- vapply(seq_along(ranges), function(i) {
     paste0(sprintf("%2d-%3d    ", ranges[[i]][1L], ranges[[i]][2L]), descriptions[i])
   }, character(1))
-  names <- c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "I10_DX1", "I10_PR1")
-  widths <- c(4L, 10L, 5L, 4L, 11L, 7L, 7L)
+  names <- switch(component,
+    Core = c("YEAR", "KEY_NIS", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "I10_DX1", "I10_PR1"),
+    Hospital = c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"),
+    Severity = c("HOSP_NIS", "KEY_NIS", "TEST_SCORE"),
+    DX_PR_GRPS = c("HOSP_NIS", "KEY_NIS", "TEST_VERSION", "TEST_GROUP"))
+  widths <- unname(c(YEAR = 4L, KEY_NIS = 10L, HOSP_NIS = 5L, NIS_STRATUM = 4L,
+    DISCWT = 11L, I10_DX1 = 7L, I10_PR1 = 7L, TEST_SCORE = 2L,
+    TEST_VERSION = 6L, TEST_GROUP = 1L)[names])
   ends <- cumsum(widths)
   starts <- ends - widths + 1L
   rows <- vapply(seq_along(names), function(i) {
     values <- c("NIS", as.character(year), dataset, as.character(i), names[i],
-                as.character(starts[i]), as.character(ends[i]), if (i == 5L) "7" else "",
-                if (i <= 5L) "Num" else "Char")
+                as.character(starts[i]), as.character(ends[i]), if (names[i] == "DISCWT") "7" else "",
+                if (names[i] %in% c("I10_DX1", "I10_PR1", "TEST_VERSION")) "Char" else "Num")
     line <- strrep(" ", 100L)
     for (j in seq_along(values)) {
       substring(line, ranges[[j]][1L], ranges[[j]][2L]) <-
@@ -30,7 +37,7 @@ invented_layout <- function(year = 2022L, revision = "unspecified", legacy = FAL
     line
   }, character(1))
   c(paste("Data Set Name:", dataset), "Number of Observations: 12",
-    paste("Total Record Length:", sum(widths)), "Total Number of Data Elements: 7", guide, rows)
+    paste("Total Record Length:", sum(widths)), paste("Total Number of Data Elements:", length(names)), guide, rows)
 }
 
 test_that("column guides handle both formatting eras using invented facts", {
@@ -178,4 +185,93 @@ test_that("V2 specification filenames retain unsuffixed dataset identities", {
   expect_identical(refreshed$source_md5, result$source_md5)
   expect_identical(refreshed$dataset_name, result$dataset_name)
   expect_identical(refreshed$specification_revision, result$specification_revision)
+})
+
+invented_component_cache <- function(directory) {
+  dir.create(directory)
+  for (year in 2017:2022) {
+    for (component in c("Core", "Hospital", "Severity", "DX_PR_GRPS")) {
+      if (year == 2017L && component == "DX_PR_GRPS") next
+      suffix <- if (year %in% c(2019L, 2020L)) "_V2" else ""
+      filename <- paste0("FileSpecifications_NIS_", year, "_", component, suffix, ".TXT")
+      lines <- invented_layout(year, legacy = year == 2017L, component = component)
+      if (component == "Hospital") {
+        lines <- sub("Number of Observations: 12", "Number of Observations: 2", lines, fixed = TRUE)
+      }
+      writeLines(lines, file.path(directory, filename))
+    }
+  }
+}
+
+test_that("component readers retain source fields across both guide eras", {
+  for (legacy in c(FALSE, TRUE)) {
+    for (component in c("Hospital", "Severity", "DX_PR_GRPS")) {
+      lines <- invented_layout(2018L, legacy = legacy, component = component)
+      layout <- parse_nis_layout(lines, 2018L, component)
+      expect_identical(layout$dataset, paste0("NIS_2018_", toupper(component)))
+      expect_identical(layout$records, 12L)
+      expect_identical("YEAR" %in% layout$fields$name, component == "Hospital")
+      expect_error(parse_nis_layout(lines, 2019L, component), "wrong dataset")
+      expect_error(parse_nis_layout(lines, 2018L, "Core"), "wrong dataset")
+    }
+  }
+  bad <- invented_layout(component = "Severity")
+  expect_error(parse_nis_layout(sub("KEY_NIS", "KEY_BAD", bad, fixed = TRUE), 2022L, "Severity"),
+               "structural fields")
+  row <- grep("^NIS ", bad)[2L]
+  substring(bad[row], 84L, 87L) <- "Char"
+  expect_error(parse_nis_layout(bad, 2022L, "Severity"), "structural fields")
+  expect_error(parse_nis_layout(bad, 2022L, "unknown"), "arg")
+})
+
+test_that("complete cached component metadata is provisional and preserves absent fields", {
+  directory <- tempfile()
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  cache <- file.path(directory, "cache")
+  invented_component_cache(cache)
+  output <- file.path(directory, "components.csv")
+  result <- update_component_metadata(cache, output)
+  expect_identical(nrow(result), 23L)
+  expect_identical(table(result$year) |> as.integer(), c(3L, 4L, 4L, 4L, 4L, 4L))
+  expect_false(any(result$year == 2017L & result$component == "DX_PR_GRPS"))
+  expect_true(all(result$review_status == "provisional"))
+  expect_true(all(result$source_records[result$component == "Hospital"] == 2L))
+  expect_true(all(result$source_records[result$component != "Hospital"] == 12L))
+  expect_identical(result$has_YEAR, result$component %in% c("Core", "Hospital"))
+  expect_identical(result$has_KEY_NIS, result$component != "Hospital")
+  expect_true(all(result$has_HOSP_NIS))
+  expect_identical(result$has_NIS_STRATUM, result$component %in% c("Core", "Hospital"))
+  expect_identical(result$has_DISCWT, result$component %in% c("Core", "Hospital"))
+  expect_identical(result$specification_revision == "V2", result$year %in% c(2019L, 2020L))
+  expect_true(all(grepl("^https://hcup-us.ahrq.gov/", result$source)))
+  expect_identical(result$source_md5, unname(tools::md5sum(file.path(cache, basename(result$source)))))
+  refreshed <- update_component_metadata(cache, output)
+  expect_identical(refreshed[names(refreshed) != "parsed_utc"], result[names(result) != "parsed_utc"])
+  expect_equal(utils::read.csv(output)$source_records, result$source_records)
+  expect_identical(list.files(directory), c("cache", "components.csv"))
+})
+
+test_that("incomplete or damaged component caches preserve previous registry bytes", {
+  directory <- tempfile()
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  cache <- file.path(directory, "cache")
+  invented_component_cache(cache)
+  output <- file.path(directory, "components.csv")
+  writeLines("previous registry", output)
+  old <- readBin(output, "raw", n = file.info(output)$size)
+  last <- file.path(cache, "FileSpecifications_NIS_2022_DX_PR_GRPS.TXT")
+  writeLines(invented_layout(2021L, component = "DX_PR_GRPS"), last)
+  expect_error(update_component_metadata(cache, output), "wrong dataset")
+  expect_identical(readBin(output, "raw", n = file.info(output)$size), old)
+  unlink(last)
+  expect_error(update_component_metadata(cache, output), "Missing cached specification")
+  expect_identical(readBin(output, "raw", n = file.info(output)$size), old)
+  writeLines(invented_layout(2022L, component = "DX_PR_GRPS"), last)
+  core <- file.path(cache, "FileSpecifications_NIS_2017_Core.TXT")
+  writeLines(sub("I10_DX1", "I10_DX2", invented_layout(2017L, legacy = TRUE), fixed = TRUE), core)
+  expect_error(update_component_metadata(cache, output), "coding slots")
+  expect_identical(readBin(output, "raw", n = file.info(output)$size), old)
+  expect_identical(list.files(directory), c("cache", "components.csv"))
 })
