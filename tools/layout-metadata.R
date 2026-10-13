@@ -1,6 +1,6 @@
 # Development-only reader of public HCUP Core specifications. It does not
 # interpret missing values, authenticate conversions, or approve annual inputs.
-parse_core_layout <- function(lines, year, revision = "unspecified") {
+parse_core_layout <- function(lines, year) {
   fail <- function(message) stop("Invalid Core layout for ", year, ": ", message,
                                 call. = FALSE)
   whole <- function(value) {
@@ -16,8 +16,8 @@ parse_core_layout <- function(lines, year, revision = "unspecified") {
     if (length(matched) != 1L) fail(paste0("missing or repeated ", prefix))
     trimws(substring(matched, nchar(prefix) + 1L))
   }
-  dataset <- paste0("NIS_", year, "_CORE", if (revision == "V2") "_V2" else "")
-  if (!identical(header("Data Set Name:"), dataset)) fail("wrong dataset or revision.")
+  dataset <- paste0("NIS_", year, "_CORE")
+  if (!identical(header("Data Set Name:"), dataset)) fail("wrong dataset.")
   count <- whole(header("Number of Observations:"))
   record_length <- whole(header("Total Record Length:"))
   field_count <- whole(header("Total Number of Data Elements:"))
@@ -109,12 +109,13 @@ update_layout_metadata <- function(years = 2017:2022,
       on.exit(unlink(staged), add = TRUE)
       status <- download(url, staged)
       if (!identical(status, 0L)) stop("Official layout download failed for ", year, call. = FALSE)
-      parse_core_layout(readLines(staged, warn = FALSE), year, revision)
+      parse_core_layout(readLines(staged, warn = FALSE), year)
       if (!file.rename(staged, path)) stop("Could not cache validated layout.", call. = FALSE)
     }
-    layout <- parse_core_layout(readLines(path, warn = FALSE), year, revision)
+    layout <- parse_core_layout(readLines(path, warn = FALSE), year)
     data.frame(
-      year = year, documented_revision = revision, core_records = layout$records,
+      year = year, specification_revision = revision, dataset_name = layout$dataset,
+      core_records = layout$records,
       core_columns = nrow(layout$fields), core_record_length = layout$record_length,
       diagnosis_slots = layout$diagnosis_slots, procedure_slots = layout$procedure_slots,
       discharge_key = "KEY_NIS", hospital_key = "HOSP_NIS", stratum = "NIS_STRATUM",
