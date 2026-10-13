@@ -1,5 +1,14 @@
 # Offline synthetic workflow
 
+The installed yearly drive uses `nis_factor()` to create an explicit analysis
+factor while retaining the raw character field and native cluster information.
+Its fitted coefficients/covariance and factor-support counts must exactly match
+the existing separate factor construction for every invented year label. Require
+caller-declared/unverified mapping provenance and unchanged population/domains.
+Unit references additionally cover numeric/logical/character mappings, exact
+numeric categories, NA/NaN, unknown-value rejection, unused levels, pooled keys,
+caller contrast schemes, independent WR models and unchanged raw/design state.
+
 Run `tools/verify.ps1`. The installed smoke sources
 `system.file("examples/synthetic-workflow.R", package = "easyNIS")` twice in
 fresh environments. Both calls must produce new output directories with
