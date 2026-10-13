@@ -741,6 +741,44 @@ preliminary independent reviews found zero blockers. Clean committed-head
 verification, final independent review and hosted checks remain required
 before this increment merges; the remote acquisition result is still pending.
 
+The retrieval increment merged in [PR #30](https://github.com/MSaadAsif/easyNIS/pull/30)
+after clean verification, current independent specification/standards reviews
+with zero blockers and all six hosted jobs. The remote runner retrieved all
+six original public Core bodies from the canonical official host. Every
+transferred body/header length and SHA-256 matches its remote receipt.
+
+### Core specification filename and dataset identity
+
+Original-byte parsing exposed a synthetic-fixture assumption: the 2019/2020
+specification filenames contain `_V2`, but their dataset headers and field-row
+filenames do not. The initial updater rejected these sources. A failing-before
+invented updater regression reproduces the complete download/cache/registry
+path. The correction separates `specification_revision` (requested filename)
+from `dataset_name` (validated header/row identity). The ambiguous development
+column `documented_revision` is removed; runtime APIs do not consume this CSV.
+Wrong datasets/years and all previous structural checks remain enforced.
+The official index's suffixed V2 dataset names differ from the specification
+bodies; the registry records the latter and does not resolve licensed-release
+identity from that discrepancy.
+
+All six transferred bodies now pass parsing. Only after parser and transfer
+checks were complete were unchanged bodies copied into the ignored cache.
+The cached-only updater writes the first six-year provisional Core registry,
+including source URLs, MD5 values and parse times. It establishes no licensed
+conversion revision, special missing-value meaning or annual analysis support.
+The saved sources document 40 diagnosis and 25 procedure slots in all six
+Core specifications; fixture dimensions remain invented test choices.
+The next annual acceptance steps are component specifications, load-format/
+data-element missing-value contracts, conversion comparison and author review.
+Precommit Windows verification passes 1,966 package assertions, 114 R tool
+assertions (including 70 layout cases), all 36 merge-gate scenarios, source
+Status OK, a 90-entry tarball inspection and installed public workflows.
+Independent checks reproduce both old-parser failures, match every public
+registry fact to original bytes, and preserve the prior CSV after later-year
+cache corruption. Both preliminary reviews found zero blockers. Clean-head
+verification, final independent review and hosted checks are required before
+the parser/registry increment merges.
+
 ## Foundation and metadata
 
 ### Inventory physical field names
