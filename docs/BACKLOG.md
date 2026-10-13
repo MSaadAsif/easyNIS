@@ -23,6 +23,24 @@ inspection and installed workflows. Both preliminary reviews found zero
 blockers. Clean committed-head evidence, final independent review and hosted
 checks remain required before merge. No annual support is promoted.
 
+The model-batch increment merged in
+[PR #35](https://github.com/MSaadAsif/easyNIS/pull/35) after clean-head verification,
+both final independent reviews and all five hosted checks. The next bounded
+NIS-013/021 usability increment allows compound `nis_domain()` predicates over
+retained fields after constructing the full design. It must preserve exact native
+subsetting/PSU information, raw columns, full-population accounting, existing
+string-field histories and explicit FALSE/unknown counts. Formula environments,
+globals and arbitrary functions must not affect results. See [SURVEY.md](SURVEY.md)
+for the grammar, source-type/missingness limits and acceptance cases. Focused
+predicate/survey tests pass 133 assertions without failures, warnings or skips.
+Full verification, independent review and hosted checks remain required.
+Precommit verification passes 2,171 package assertions, 216 tool assertions,
+all 36 merge-gate cases, source Status OK, tarball inspection and installed
+workflows. The installed drive compares predicate and logical-column domains
+with exact native design/population/provenance parity for all six invented
+year labels before checking independent inference. Final clean-head evidence,
+independent review and hosted checks are required before merge.
+
 This priority does not promote annual capabilities or replace scientific choices.
 Legacy identifier/weight aliases, input completeness, global singleton adjustment,
 derived-variable meaning and disclosure/export differences require explicit

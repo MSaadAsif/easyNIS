@@ -43,6 +43,12 @@ exercise_year <- function(year) {
   design <- nis_survey_design(data, c("LOS", "domain", "exposure", "contrast_x", "support_group"), full_population = TRUE,
     method = "hospital_wr", singleton = "fail")
   domain <- nis_domain(design, "domain", "fail")
+  predicate_domain <- nis_domain(design, ~ domain & LOS >= 0, "fail")
+  stopifnot(identical(predicate_domain$design, domain$design),
+    identical(predicate_domain$population, design$population),
+    identical(predicate_domain$provenance, design$provenance),
+    identical(predicate_domain$domains[[1L]]$fields, c("domain", "LOS")),
+    identical(predicate_domain$domains[[1L]]$predicate, "domain & LOS >= 0"))
   total <- survey::svytotal(~LOS, domain$design)
   stopifnot(design$population$discharges == nrow(core),
     domain$population$hospitals == 4L, domain$domains[[1L]]$included == 6L,

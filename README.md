@@ -105,6 +105,10 @@ for a native `survey` design. `nis_domain()` selects logical domains after
 construction. Population, method, singleton and domain missingness declarations
 are explicit. Read the [experimental design contract](docs/SURVEY.md) and run
 `example(nis_survey_design)` offline. Annual inference approval remains pending.
+Compound domains can use retained fields directly, for example
+`nis_domain(design, ~ AGE >= 18 & cohort, missing = "exclude")` after full-design
+construction. Predicates support bounded comparisons and logical operators;
+missing-value meanings and clinical cohorts remain caller declarations.
 
 `nis_pool_design()` combines complete single-year designs with explicit estimand
 intent and year-specific design keys. Read the [experimental pooling contract](docs/POOLING.md).

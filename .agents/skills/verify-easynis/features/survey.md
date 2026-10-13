@@ -1,5 +1,13 @@
 # Experimental survey design and domains
 
+The installed yearly drive compares `nis_domain(design, ~ domain & LOS >= 0,
+"fail")` with the existing logical-column selection, requiring identical native
+PSU/design structure and untouched population/provenance for every invented
+2017–2022 label. Independent total/mean WR checks then use that equivalent domain.
+Predicate unit cases separately exercise unknown handling, factors/sentinels,
+pooled year keys, repeated/empty selections and rejection of globals, arbitrary
+functions, numeric logical coercion, matrices and custom-class fields.
+
 The installed public workflow constructs a complete invented-year design and
 then subsets logical domains. It checks an independently calculated weighted
 total and variance with hospitals absent from the domain.
