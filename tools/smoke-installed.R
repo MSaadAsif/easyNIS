@@ -153,11 +153,23 @@ exercise_year <- function(year) {
       fit$sample$included == sum(keep), fit$sample$excluded_missing == sum(!keep),
       inherits(fit$native, "svyglm"), identical(fit$provenance$analysis_ready, FALSE))
   }
+  factored <- nis_factor(design, "support_group", "declared_support", c("A", "B", "EMPTY"),
+    c("A", "B", "EMPTY"))
+  declared_fit <- nis_model(factored, LOS ~ declared_support, "gaussian", "exclude",
+    2, 0.95, "wr_unadjusted")
+  stopifnot(identical(factored$design$variables$support_group, core$support_group),
+    identical(factored$population, design$population),
+    identical(factored$domains, design$domains),
+    identical(factored$design$cluster, design$design$cluster),
+    identical(factored$provenance$analysis_transforms[[1L]]$mapping_status, "caller_declared_unverified"))
   design$design$variables$support_group <- factor(core$support_group,
     levels = c("A", "B", "EMPTY"))
   support_fit <- nis_model(design, LOS ~ support_group, "gaussian", "exclude",
     2, 0.95, "wr_unadjusted")
   support <- support_fit$diagnostics$factor_support$support_group
+  stopifnot(identical(declared_fit$diagnostics$factor_support$declared_support, support),
+    identical(unname(stats::coef(declared_fit$native)), unname(stats::coef(support_fit$native))),
+    identical(unname(stats::vcov(declared_fit$native)), unname(stats::vcov(support_fit$native))))
   stopifnot(identical(support$level, c("A", "B", "EMPTY")),
     identical(as.numeric(support[1L, -1L]), c(6, 6, 18, 2)),
     identical(as.numeric(support[2L, -1L]), c(6, 6, 18, 2)),
