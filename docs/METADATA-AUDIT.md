@@ -8,9 +8,14 @@ For example, the field-name range is 41–69 in 2017 and 42–70 in 2022.
 The previous updater applied the latter range to every year. The new reader uses
 each specification's column guide.
 
-Direct download still timed out in this continuation. No source-byte snapshot,
-checksum, or installed annual registry was produced. Web inspection informs the
-parser; it does not replace the required saved source and author review.
+Workstation downloads timed out in earlier continuations. On 2026-10-13,
+[retrieval run 38441703963](https://github.com/MSaadAsif/easyNIS/actions/runs/38441703963)
+received all six original Core specification bodies from the canonical official
+HTTPS host. After artifact transfer, every body/header length and SHA-256
+matched its remote receipt. Original bodies, raw HTTP headers and acquisition
+receipts remain in ignored local evidence; parsed Core facts are recorded in
+`inst/metadata/modern-layouts.csv` with provisional review status. Human source
+review and separate component, missing-value and conversion audits remain pending.
 
 ## Run the updater
 
@@ -31,13 +36,25 @@ cached files and performs no network requests. The expected filenames are
 `FileSpecifications_NIS_YEAR_Core.TXT`, with `_V2` before `.TXT` for 2019
 and 2020, as listed on the official
 [file specifications page](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
-The absence of a suffix is recorded as `unspecified`, rather than inferred V1.
+The absence of a suffix is recorded as `unspecified`, rather than inferred V1,
+in `specification_revision`. This field describes the requested specification
+filename, not an authenticated revision of a licensed data conversion.
 
-The reader checks the dataset and revision header, row years and filenames,
+The reader checks the dataset header, row years and dataset filenames,
 header counts, column guides, sequential field numbers, unique names, record
 positions, decimal precision, required numeric structural fields, and contiguous
 seven-character diagnosis and procedure slots. Labels and missing-value meanings
-are not extracted. These checks validate the specification's internal structure;
+are not extracted. In both official V2 specifications, the dataset header and
+row filenames are `NIS_2019_CORE` or `NIS_2020_CORE`, without `_V2`.
+`dataset_name` retains this identity separately from `specification_revision`.
+The official [specifications index](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp)
+lists suffixed V2 dataset names for those years. This registry preserves the
+downloaded specification body's header/row identity; it does not resolve that
+difference or establish the filename of a licensed source/conversion.
+The earlier parser appended `_V2` to the expected dataset and rejected both
+valid sources. The corrected parser requires the exact unsuffixed Core dataset
+for the requested year; invented suffixed or wrong-year datasets are refused.
+These checks validate the specification's internal structure;
 they do not establish the correctness of every published fact.
 
 A download must pass parsing before it enters the cache. An invalid existing
@@ -88,8 +105,9 @@ even when every source request fails: inspect the manifest, rather than using
 the workflow conclusion as acquisition evidence.
 
 Before promoting a downloaded body into the ignored cache, verify its SHA-256
-and length after transfer and run `parse_core_layout()` for its declared year
-and revision. Preserve the body unchanged when copying it to the manifest's
+and length after transfer and run `parse_core_layout()` for its declared year.
+The revision suffix belongs to the specification filename. Preserve the body
+unchanged when copying it to the manifest's
 `cache_filename`; retain the manifest and headers alongside local evidence.
 Do not copy failed or unparsed bodies. Then run the cached-only updater.
 The fetcher never populates the cache or changes the registry, support matrix
@@ -121,8 +139,8 @@ codecs reported by each file, sorted and separated by semicolons. A converter's
 declared compression setting can differ from the file's observed codec. The
 receipt records the latter without inferring which settings or script ran.
 
-1. Save the official Core specifications for all six years and inspect the
-   provisional registry against them. Audit Hospital, Severity, and Diagnosis
+1. Review the saved official Core specifications and provisional registry
+   for all six years. Audit Hospital, Severity, and Diagnosis
    and Procedure Groups specifications independently, including availability.
 2. Inspect official annual load formats and data-element notes for field-level
    special missing values, units, labels, applicability and revision corrections.
