@@ -853,6 +853,38 @@ checks offline CLI output and confirms exact preservation of all six prior
 Core parser results. Both preliminary reviews found zero blockers. Clean-head
 verification, final review and hosted checks remain required before merge.
 
+The component catalog merged in
+[PR #33](https://github.com/MSaadAsif/easyNIS/pull/33) after clean-head
+verification, final independent specification/standards review with zero
+blockers and all five hosted checks. The next bounded NIS-006 increment audits
+cached SAS INPUT assignments and used INVALUE mappings without executing SAS
+or inspecting discharge values. All 5,091 assignments across the 23 saved
+pairs match layout identities, field order, positions, widths, decimals and
+types. Local receipts retain literal missing tokens with year/component/format
+keys and both source hashes/URLs; they supply no clinical interpretation or
+conversion-preservation claim.
+
+Invented cases cover custom numeric, character and plain numeric informats,
+literal special missing tokens, malformed/undefined/duplicate definitions,
+identity/position/width/precision/type mismatch, a complete 23-pair batch,
+paths with spaces, the real CLI, existing-output preservation and late failure
+without partial publication. Shared invented layout fixtures retain the
+existing parser cases. Independent review reproduced case-variant declaration
+bypasses and quote-insensitive comment removal that fabricated a literal raw
+token. Keyword discovery now detects case variants, unsupported format-name
+variants fail, and a quote-aware scanner preserves comments/semicolons inside
+quoted text while rejecting unterminated constructs. Regressions cover both
+findings. The offline tool suite passes 216 assertions without
+failures, warnings or skips. Full verification, clean committed-head evidence,
+independent review and hosted checks are required before merging this increment.
+Corrected precommit verification passes 1,966 package assertions, 216 tool
+assertions, all 36 merge-gate scenarios, source Status OK, tarball inspection
+and installed public workflows. Independent corrected-source review matches
+all 23 pairs, 5,091 fields and 364 literal mappings with zero remaining
+blockers; final review must bind the committed head and clean verification.
+Next: inspect data-element notes for meanings/units/applicability and obtain
+author review; conversion provenance and scientific approval remain separate.
+
 ## Foundation and metadata
 
 ### Inventory physical field names
