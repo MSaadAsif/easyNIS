@@ -29,11 +29,47 @@ retained; downstream native inference requires its own exclusion policy.
 
 ## Domains and accounting
 
-`nis_domain(design, field, missing)` accepts only a retained logical indicator.
+`nis_domain(design, field, missing)` accepts a retained plain logical indicator
+or a bounded one-sided predicate formula, for example:
+
+```r
+domain <- nis_domain(design, ~ AGE >= 18 & cohort & !is.na(outcome),
+  missing = "exclude")
+```
+
+Every referenced field must already be retained in the full or pooled design.
+This selects after construction; it is not a filter on the source Parquet files.
+The formula accepts comparisons `==`, `!=`, `<`, `<=`, `>`, `>=`, logical `&`,
+`|`, `!`, parentheses and `is.na`. `%in%` accepts a literal scalar or `c()` of
+literal constants on its right side. Negative numeric constants are permitted.
+Numeric, logical, character and standard factor fields are supported; other
+classed fields, matrices and observed numeric infinities are refused. Logical
+operators require logical operands, so numeric flags need an explicit comparison
+such as `flag == 1`. A predicate must reference at least one retained field and
+return one plain logical value per supplied discharge.
+
+Predicates use fixed base operators and exact retained field names; formula
+environments/terms metadata, globals, caller functions, indexing, namespaces,
+arithmetic, assignments and sample-dependent functions are unsupported. A field
+with spaces is quoted with R backticks. No text is parsed as code. Warnings from
+invalid comparisons, such as ordering an unordered factor, reject the call.
+
 Choose `missing = "fail"` or `"exclude"`. Exclusion records unknown indicators
 separately from FALSE rows. Repeated domains retain their sequential accounting.
 Empty domains are allowed to describe an empty selection, without an inference
 claim. The original wrapper and full-population accounting are preserved.
+Missingness concerns the final evaluated predicate, using base R meanings:
+`FALSE & NA` is FALSE, `TRUE & NA` is unknown, `is.na()` explicitly tests missing
+values and `%in%` returns TRUE/FALSE even for NA (matching NA if declared in the
+constant set). Raw negative sentinels and factor labels are not decoded or
+recoded. Filtering numeric outcomes with special missing codes requires a
+separately reviewed field contract; `is.na()` does not discover those codes.
+
+String-field domain history keeps its existing `field` declaration. Predicate
+history records the expression and referenced `fields`, followed by the same
+supplied/included/FALSE/unknown accounting and explicit missingness policy.
+No temporary indicator column is inserted. Raw columns, original population,
+constructor provenance, caller formulas/options and earlier results are unchanged.
 
 The native subsetting method retains original PSU information, including
 hospitals with no domain members. Rebuilding a design from just the selected
@@ -70,3 +106,7 @@ identifiers, accept valid zero estimates and variances, reject invalid weights
 and singleton/conflicting mappings, and preserve nondefault caller options.
 Scientific approval by Saad and Ali, annual metadata, licensed reference
 validation, model reports and export safeguards remain separate gates.
+Compound-predicate tests additionally prove exact native subsetting/PSU parity,
+independent WR total/mean variance with absent-domain hospitals, pooled year
+keys, repeated/empty domains, raw sentinels/factor labels, unknown counts, literal
+membership, fixed-function evaluation and rejection of unsafe formulas or masks.

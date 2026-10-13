@@ -8,6 +8,15 @@
   batch without partial results. Inference remains pointwise and unreviewed;
   no annual support, scientific approval or regression export is added.
 
+## Experimental compound domains
+
+- `nis_domain()` accepts bounded one-sided logical predicates over retained
+  fields after full-design construction. Comparisons, literal membership and
+  explicit missing tests combine flags without manual native-design edits.
+  Native PSU subsetting, original population accounting and raw values remain
+  intact. Predicate expressions/fields and unknown counts are retained; globals,
+  arbitrary functions, numeric logical coercion and malformed masks are refused.
+
 ## Offline workflow vignette
 
 - Added an installed HTML walkthrough that executes the synthetic quickstart

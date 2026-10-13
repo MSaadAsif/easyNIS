@@ -9,8 +9,11 @@ nis_domain(design, field, missing)
 \arguments{
 \item{design}{A result of \code{\link[=nis_survey_design]{nis_survey_design()}} or \code{\link[=nis_domain]{nis_domain()}}.}
 
-\item{field}{Exact name of a retained logical domain column. Numeric 0/1
-vectors are refused; declare a logical indicator explicitly.}
+\item{field}{Exact name of a retained logical domain column, or a one-sided
+formula combining retained fields, literal constants, comparisons,
+\code{&}, \code{|}, \code{!}, parentheses, \code{is.na} and membership in literal constants
+with \code{\%in\%}. For example, \code{~ AGE >= 18 & cohort}. Numeric 0/1 flags are
+not coerced to logical. Global variables and arbitrary functions are refused.}
 
 \item{missing}{Explicitly choose \code{"fail"} to reject unknown indicators or
 \code{"exclude"} to exclude them and record their count.}
