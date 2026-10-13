@@ -183,6 +183,44 @@ does not consume either provisional registry. SAS missing-value formats,
 field meanings/units and derived-tool versions require their own audits and
 author review before canonical transformations or annual support claims.
 
+## Audit cached SAS field assignments and missing tokens
+
+From the repository root, run the offline auditor with a new local directory:
+
+```sh
+Rscript tools/audit-sas-loads.R
+Rscript tools/audit-sas-loads.R CACHE_DIRECTORY NEW_OUTPUT_DIRECTORY
+```
+
+The default output is ignored `.audit/sas-load-audit/`. The auditor compares
+all 23 saved SAS programs with their paired layouts before publishing three
+CSV files together. It refuses an existing output directory. An invalid or
+missing later source leaves no partial output and preserves earlier receipts.
+No SAS program is executed and no discharge file is read.
+
+`fields.csv` records field names, positions, informats, widths, precision and
+types. `mappings.csv` records each used custom informat's literal raw token
+and SAS missing token, keyed by year/component/informat. `references.csv`
+records both canonical source URLs, MD5 hashes, counts and provisional status.
+Field rows join mappings through year/component/informat. Character informats
+and the plain `1.` numeric informat have no custom mapping rows; this does not
+establish absence of missing values in those fields.
+
+The reader accepts the observed INPUT/INVALUE grammar, checks dataset/ASCII
+identity and record length, and requires every INPUT assignment to match its
+layout in order, position, width, precision and type. Undefined custom formats,
+duplicate definitions/tokens and unsupported assignment/mapping syntax fail.
+It is a text auditor of these statements, not a general SAS parser or proof
+of what running an edited program would do. Other SAS statements, labels,
+units, field applicability and external data-element notes require separate
+inspection.
+
+The saved 23 pairs contain 5,091 matching field assignments. Their literal
+missing-code mappings are retained as source facts; the tool does not assign
+clinical meanings, apply recoding, infer conversion preservation or change
+annual capabilities. Author review and field-level interpretation remain
+required before canonical transformations.
+
 ## Remaining acceptance work
 
 The inventory's `year_hint` uses only complete `NIS_YYYY.parquet` filenames,
