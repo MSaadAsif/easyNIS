@@ -98,7 +98,7 @@ end.rcode-->
 <code>LOS ~ 1</code> excludes missing outcomes and verifies its intercept and
 sandwich SE against the same independent mean reference. Its coefficient is
 on the response scale in days, with no offset, exponentiation or causal claim.
-The model and descriptive means each include 288 observed domain discharges
+The LOS intercept model and descriptive mean each include 288 observed domain discharges
 and exclude 72 missing outcomes. These counts are invented fixture facts.</p>
 <!--begin.rcode pooled-reviewed-table, results='asis'
 pooled_reviewed <- utils::read.csv(pooled_outputs$csv, stringsAsFactors = FALSE)
@@ -116,6 +116,37 @@ object is exported in these three files. The fixed invented counts above
 describe the fixture. Regression-table disclosure review and export are unsupported.
 Use <code>browseURL(pooled_outputs$html)</code> and copy all three returned
 files together before ending R, as for the single-year example.</p>
+<h2>Use explicit factors, compound domains and outcome batches</h2>
+<p>The same executable example adds an analysis factor with <code>nis_factor()</code>,
+preserving the raw logical exposure and recording Comparator/Exposed labels as
+caller-declared and unverified. After full-design pooling, a compound
+<code>nis_domain(analysis, ~ AGE &gt;= 18 &amp; cohort, "fail")</code> selects adults
+matching the invented code flag. All invented cohort members are adults, so the
+independent descriptive references above stay unchanged.</p>
+<p>A named family map fits LOS with Gaussian identity and an invented event with
+quasibinomial logit through <code>nis_models()</code>, sharing
+<code>~ exposure_factor</code>. Complete cases are separate: LOS includes 288
+and excludes 72, while event includes 354 and excludes 6, from 360 invented
+domain rows. Separate GLM coefficients and hospital-score WR covariance check
+both models across every original year-specific PSU, with zero contributions
+from excluded rows. Intervals remain pointwise; no multiplicity correction,
+odds/risk interpretation or causal claim is inferred.</p>
+<p>The script explicitly chooses treatment contrasts, lonely-PSU rejection and
+no domain adjustment for this fixture, and restores caller options even when
+they differ. These are training choices, not recommendations for licensed data.
+Factor level order alone does not certify a fitted reference; inspect actual
+factor coding, support and convergence in each retained model.</p>
+<p>Only the reviewed descriptive CSV/HTML and fixed declarations/version report
+are returned. Batch coefficients, covariance, sample counts, retained mappings,
+raw records and source paths remain internal. The extra model checks add no
+table to this vignette and make no annual support claim.</p>
+<h2>Review migration boundaries before licensed use</h2>
+<p>Existing identifier/weight aliases, singleton adjustments, clinical code sets,
+derived-variable versions and special missing codes require explicit review.
+The recorded 2017 conversion fails YEAR integrity checks; do not bypass that
+rejection. Grouped baseline comparisons and regression-table disclosure/export
+remain separate capabilities. Read the workshop migration section of
+<code>docs/WORKFLOW.md</code> in a source checkout before adapting the template.</p>
 <p>Word has a separate API contract. Annual metadata, conversion provenance,
 performance, licensed validation and scientific approval remain separate gates.
 Neither walkthrough establishes real-year validity or a supported memory limit.</p>

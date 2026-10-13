@@ -2,6 +2,10 @@
 # Copy the returned report/CSV/HTML files together before ending the R session.
 library(easyNIS)
 (function() {
+  # Explicit invented-example choices, restored on exit; not licensed-data policy.
+  previous <- options(survey.lonely.psu = "fail", survey.adjust.domain.lonely = FALSE,
+    contrasts = c("contr.treatment", "contr.poly"))
+  on.exit(options(previous), add = TRUE)
   fixture <- new.env(parent = baseenv())
   sys.source(system.file("examples/workflow-fixture.R", package = "easyNIS"), fixture)
   codes <- nis_code_set("A001", "ICD10CM", 2017:2022,
@@ -9,10 +13,17 @@ library(easyNIS)
     match = "exact", normalize = FALSE)
   session <- nis_open()
   paths <- character()
-  on.exit({ nis_close(session); unlink(paths) })
+  on.exit({ nis_close(session); unlink(paths) }, add = TRUE)
   annual <- lapply(seq_along(2017:2022), function(i) {
     year <- 2016L + i
     core <- fixture$workflow_fixture(year, multiplier = i, shift = i - 1)
+    hospital <- as.integer(core$HOSP_NIS)
+    core$AGE <- 16 + seq_len(nrow(core)) %% 65
+    cohort_rows <- core$I10_DX1 == "A001"
+    core$AGE[cohort_rows] <- 18 + seq_len(sum(cohort_rows)) %% 60
+    core$exposure <- hospital %% 2L == 1L
+    core$event <- as.integer(seq_len(nrow(core)) %% 7L < hospital + 1L)
+    core$event[7L] <- NA_integer_
     if (i > 1L) core$rare <- 0L
     path <- tempfile(fileext = ".parquet")
     paths <<- c(paths, path)
@@ -23,18 +34,70 @@ library(easyNIS)
     stopifnot(nis_validate(imported)$structural_errors == 0)
     flagged <- nis_flag_codes(imported, "cohort", codes,
       "principal_diagnosis", "no_match", slots = 1)
-    nis_survey_design(flagged, c("cohort", "LOS", "rare"), TRUE, "hospital_wr", "fail")
+    nis_survey_design(flagged, c("cohort", "LOS", "rare", "AGE", "exposure", "event"),
+      TRUE, "hospital_wr", "fail")
   })
-  pooled <- nis_pool_design(annual, c("cohort", "LOS", "rare"), "average_annual_total")
+  pooled <- nis_pool_design(annual, c("cohort", "LOS", "rare", "AGE", "exposure", "event"),
+    "average_annual_total")
   stopifnot(pooled$population$hospitals == 24L, pooled$population$strata == 12L,
     pooled$population$degrees_of_freedom == 12)
-  domain <- nis_domain(pooled, "cohort", "fail")
+  analysis <- nis_factor(pooled, "exposure", "exposure_factor", c(FALSE, TRUE),
+    c("Comparator", "Exposed"))
+  domain <- nis_domain(analysis, ~ AGE >= 18 & cohort, "fail")
   spec <- data.frame(id = c("stay", "total", "rare"), field = c("LOS", "LOS", "rare"),
     statistic = c("mean", "total", "total"),
     label = c("Invented pooled stay", "Invented average annual LOS", "Invented rare indicator"),
     unit = c("days", "weighted discharge-days per year", "weighted discharges per year"))
   table <- nis_descriptive_table(domain, spec, "exclude", 12, 0.95, "wr_unadjusted")
   model <- nis_model(domain, LOS ~ 1, "gaussian", "exclude", 12, 0.95, "wr_unadjusted")
+  families <- c(LOS = "gaussian", event = "quasibinomial")
+  batch <- nis_models(domain, families, ~ exposure_factor,
+    "exclude", 12, 0.95, "wr_unadjusted")
+  stopifnot(identical(batch$sample$raw_included, c(288, 354)),
+    identical(batch$sample$raw_missing, c(72, 6)),
+    identical(analysis$design$variables$exposure, pooled$design$variables$exposure),
+    identical(domain$population, pooled$population))
+
+  # Separate GLM coefficients and hospital-score WR covariance, not survey fits.
+  population <- analysis$design$variables
+  weights <- population$DISCWT / 6
+  eligible <- population$cohort & population$AGE >= 18
+  hospital <- paste(population$YEAR, population$HOSP_NIS, sep = ":")
+  strata <- paste(population$YEAR, population$NIS_STRATUM, sep = ":")
+  for (field in names(families)) {
+    keep <- eligible & !is.na(population[[field]])
+    family <- if (families[[field]] == "gaussian") stats::gaussian() else stats::quasibinomial()
+    reference <- stats::glm(stats::reformulate("exposure_factor", field),
+      data = population[keep, ], family = family, weights = weights[keep] / base::mean(weights[keep]),
+      control = stats::glm.control(epsilon = 1e-10, maxit = 50L))
+    model_matrix <- stats::model.matrix(reference)
+    mu <- stats::fitted(reference)
+    derivative <- family$mu.eta(reference$linear.predictors)
+    bread <- solve(crossprod(model_matrix,
+      model_matrix * (weights[keep] * derivative^2 / family$variance(mu))))
+    score <- matrix(0, nrow(population), ncol(model_matrix))
+    score[keep, ] <- model_matrix * (weights[keep] * (population[[field]][keep] - mu) *
+      derivative / family$variance(mu))
+    totals <- rowsum(score, hospital)
+    mapping <- strata[match(rownames(totals), hospital)]
+    meat <- matrix(0, ncol(model_matrix), ncol(model_matrix))
+    for (stratum in unique(mapping)) {
+      values <- totals[mapping == stratum, , drop = FALSE]
+      centered <- sweep(values, 2L, colMeans(values))
+      meat <- meat + nrow(values) / (nrow(values) - 1L) * crossprod(centered)
+    }
+    covariance <- bread %*% meat %*% bread
+    result <- batch$models[[field]]
+    tolerance <- if (field == "LOS") 1e-10 else 1e-7
+    stopifnot(max(abs(stats::coef(result$native) - stats::coef(reference))) < 1e-8,
+      max(abs(stats::vcov(result$native) - covariance)) < tolerance,
+      max(abs(result$coefficients$lower - (stats::coef(reference) -
+        stats::qt(0.975, 12) * sqrt(diag(covariance))))) < tolerance,
+      result$sample$included == sum(keep),
+      abs(result$sample$weighted_denominator - sum(weights[keep])) < 1e-9,
+      isTRUE(result$diagnostics$converged), !isTRUE(result$diagnostics$boundary),
+      length(result$diagnostics$warnings) == 0L)
+  }
 
   # Independent hospital WR arithmetic: base hospital weights W=(24,36,48,60)
   # and totals T=(72,144,240,360). Year i has i*W and i*(T+(i-1)*W).
@@ -85,7 +148,7 @@ library(easyNIS)
     "Code set: A001 ICD10CM; valid labels 2017 through 2022; version invented-1; author easyNIS example.",
     "Code source: pooled-model-workflow.R invented declaration.",
     "Exact principal diagnosis match, slot 1 (I10_DX1); normalization FALSE; missing codes use no_match.",
-    "Domain: cohort == TRUE after full-design pooling; unknown values fail.",
+    "Domain: AGE >= 18 & cohort after full-design pooling; unknown values fail; all invented cohort members are adults.",
     "Design: hospital_wr; HOSP_NIS, NIS_STRATUM, DISCWT; singleton fail; no FPC; year-specific hospital/stratum keys.",
     "Pool intent: average_annual_total; native annual weights divided by 6; raw weights retained.",
     "Pooled mean is weighted across supplied discharges, not an arithmetic average of annual means.",
@@ -93,6 +156,11 @@ library(easyNIS)
     "Variance: wr_unadjusted; interval df 12; confidence 0.95; two-sided Wald t intervals.",
     "Model: LOS ~ 1; Gaussian identity; coefficient/response scale days; no offset, exponentiation or causal interpretation.",
     "The internal model intercept and sandwich SE match independent hospital WR ratio arithmetic.",
+    "Analysis factor: exposure_factor declares raw FALSE/TRUE as Comparator/Exposed; raw exposure is preserved and mapping is unverified.",
+    "Internal outcome batch: LOS Gaussian identity and event quasibinomial logit; shared predictors exposure_factor; separate complete-case samples.",
+    "Fixture-only options: lonely PSU fail, domain adjustment FALSE, treatment contrasts; caller options restored on exit.",
+    "Independent GLM coefficients and hospital-score WR covariance verify the batch; inference is pointwise with no multiplicity correction.",
+    "No clinical meaning, odds/risk interpretation, causal claim or annual validity is inferred from the invented exposure/event labels.",
     "Rows: pooled LOS mean; average annual LOS total; average annual rare indicator total.",
     "Disclosure: suppress raw counts 1 through 10; display zero; minimum 2 contributing hospitals; no declared margins.",
     "Bounded disclosure requires human review of undeclared relations, larger margin combinations and external publications.",

@@ -59,6 +59,25 @@ on single-year/domain/pooled invented designs. Both preliminary reviews found
 zero blockers; final clean-head evidence, pinned review and hosted checks remain
 required before merge. No annual or scientific approval is changed.
 
+The analysis-factor increment merged in
+[PR #37](https://github.com/MSaadAsif/easyNIS/pull/37) after clean-head verification,
+both final independent reviews and all five hosted checks. The next NIS-021
+increment composes factors, compound adult/code-flag domains and a shared
+LOS/event outcome batch in the installed six-year example. Existing reviewed
+descriptive outputs/scalar references must remain unchanged. Independent GLM
+and hospital-score WR matrix references must verify both links and their separate
+288/354-case samples. The example must restore nondefault caller options and
+export only fixed declarations and existing reviewed descriptive values.
+[WORKFLOW.md](WORKFLOW.md) documents the template and unresolved migration gates.
+Full verification, independent review and hosted checks remain required.
+Precommit verification passes 2,275 package assertions, 216 tool assertions,
+source Status OK and installed workflows. Independent closed-form group/delta
+references also reproduce both models. Reviewed CSV/HTML bytes match the prior
+example, and injected early/late failures restore options, close connections and
+remove temporary inputs/incomplete outputs. Both preliminary reviews found zero
+blockers. Final clean-head verification, pinned reviews and hosted checks remain
+required before merge.
+
 This priority does not promote annual capabilities or replace scientific choices.
 Legacy identifier/weight aliases, input completeness, global singleton adjustment,
 derived-variable meaning and disclosure/export differences require explicit
