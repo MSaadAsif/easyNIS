@@ -44,14 +44,14 @@ test_that("column guides handle both formatting eras using invented facts", {
     expect_identical(layout$diagnosis_slots, 1L)
     expect_identical(layout$procedure_slots, 1L)
   }
-  expect_identical(parse_core_layout(invented_layout(2019L, "V2"), 2019L, "V2")$dataset,
-                   "NIS_2019_CORE_V2")
+  expect_identical(parse_core_layout(invented_layout(2019L), 2019L)$dataset,
+                   "NIS_2019_CORE")
 })
 
-test_that("wrong years, revisions and incomplete headers cannot create registry facts", {
+test_that("wrong datasets, years and incomplete headers cannot create registry facts", {
   lines <- invented_layout()
   expect_error(parse_core_layout(lines, 2021L), "wrong dataset")
-  expect_error(parse_core_layout(invented_layout(2019L), 2019L, "V2"), "wrong dataset")
+  expect_error(parse_core_layout(invented_layout(2019L, "V2"), 2019L), "wrong dataset")
   expect_error(parse_core_layout(c(lines, lines[1L]), 2022L), "repeated")
   expect_error(parse_core_layout(lines[-2L], 2022L), "missing")
   expect_error(parse_core_layout(sub("Observations: 12", "Observations: 1.2", lines), 2022L),
@@ -137,7 +137,7 @@ test_that("validated cache refresh is offline and remains provisional", {
   result <- update_layout_metadata(2022L, cache, output, download = download)
   expect_identical(result$review_status, "provisional")
   expect_identical(result$core_records, 12L)
-  expect_identical(result$documented_revision, "unspecified")
+  expect_identical(result$specification_revision, "unspecified")
   expect_match(result$source_md5, "^[a-f0-9]{32}$")
   expect_true(file.exists(file.path(cache, "FileSpecifications_NIS_2022_Core.TXT")))
   expect_equal(utils::read.csv(output)$core_records, 12L)
@@ -150,4 +150,32 @@ test_that("validated cache refresh is offline and remains provisional", {
   old <- readLines(output)
   expect_error(update_layout_metadata(2022L, cache, output, TRUE, no_download), "Invalid Core")
   expect_identical(readLines(output), old)
+})
+
+test_that("V2 specification filenames retain unsuffixed dataset identities", {
+  directory <- tempfile()
+  dir.create(directory)
+  on.exit(unlink(directory, recursive = TRUE), add = TRUE)
+  requested <- character()
+  download <- function(url, path) {
+    requested <<- c(requested, url)
+    year <- if (grepl("2019", url, fixed = TRUE)) 2019L else 2020L
+    writeLines(invented_layout(year), path)
+    0L
+  }
+  result <- update_layout_metadata(c(2019L, 2020L), file.path(directory, "cache"),
+    file.path(directory, "registry.csv"), download = download)
+  expect_identical(result$year, c(2019L, 2020L))
+  expect_identical(result$specification_revision, c("V2", "V2"))
+  expect_identical(result$dataset_name, c("NIS_2019_CORE", "NIS_2020_CORE"))
+  expect_true(all(grepl("_Core_V2.TXT", requested, fixed = TRUE)))
+  expect_identical(result$review_status, c("provisional", "provisional"))
+  expect_identical(result$core_records, c(12L, 12L))
+  expect_false("documented_revision" %in% names(result))
+  refreshed <- update_layout_metadata(c(2019L, 2020L), file.path(directory, "cache"),
+    file.path(directory, "registry.csv"), cached_only = TRUE,
+    download = function(...) stop("Unexpected network request"))
+  expect_identical(refreshed$source_md5, result$source_md5)
+  expect_identical(refreshed$dataset_name, result$dataset_name)
+  expect_identical(refreshed$specification_revision, result$specification_revision)
 })
