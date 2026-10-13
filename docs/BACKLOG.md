@@ -4,6 +4,33 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ## Initial implementation progress
 
+### Workshop readiness priority, 2026-10-14
+
+Saad prioritized a simpler practical workflow for analysts beginning topics on
+Saturday 2026-10-17 with 2017–2022 converted Parquet files. The first usability
+increment addresses repeated outcome-model formulas: declare exact outcome
+families and shared predictors once, retain each native fit and outcome-specific
+sample, and reject a failing batch without partial results. See
+[MODEL-BATCHES.md](MODEL-BATCHES.md) for its bounded NIS-016/021 acceptance cases.
+It must pass independent numerical references, installed public calls, full
+verification, independent review and protected CI before merging.
+
+The first implementation passes 141 focused assertions and independent
+hospital-score WR references for all three model links on full/domain/pooled
+invented designs. Full precommit verification passes 2,107 package assertions,
+216 tool assertions, all 36 merge-gate cases, source Status OK, tarball
+inspection and installed workflows. Both preliminary reviews found zero
+blockers. Clean committed-head evidence, final independent review and hosted
+checks remain required before merge. No annual support is promoted.
+
+This priority does not promote annual capabilities or replace scientific choices.
+Legacy identifier/weight aliases, input completeness, global singleton adjustment,
+derived-variable meaning and disclosure/export differences require explicit
+review. Practical readiness needs an executable install-to-analysis-to-export
+workflow and licensed input evidence; a shorter model call alone does not meet
+that goal. Next increments should address analyst-facing setup and remaining
+end-to-end blockers with the existing validation gates.
+
 | ID | State on 2026-10-08 | Remaining acceptance work |
 |---|---|---|
 | NIS-001 | Saad authorized implementation and supplied public maintainer metadata. | Ali's full preferred public name and optional ORCID. |

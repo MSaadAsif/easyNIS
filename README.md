@@ -136,4 +136,19 @@ disclosure review and export remain pending. Read the
 [table](docs/DESCRIPTIVE-TABLES.md), [disclosure](docs/DISCLOSURE.md) and
 [export](docs/EXPORT.md) contracts before interpreting or sharing results.
 
+For several outcomes sharing the same predictors, declare families once:
+
+```r
+batch <- nis_models(design,
+  c(binary = "quasibinomial", stay = "gaussian"), ~ exposure + age,
+  missing = "exclude", df = 6, confidence = 0.95, variance = "wr_unadjusted")
+batch$sample # Separate complete-case accounting for each outcome.
+batch$models$binary$coefficients
+```
+
+The names above are illustrative retained fields, and df must be chosen for
+the analysis. Existing model restrictions and policy guards apply. Read the
+[batch contract](docs/MODEL-BATCHES.md) for pointwise inference, failure handling
+and retained native results. This does not make licensed annual inputs ready.
+
 The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
