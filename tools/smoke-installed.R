@@ -112,8 +112,15 @@ exercise_year <- function(year) {
     !any(c("raw_missing", "raw_supplied", "analysis_hospitals", "weighted_denominator") %in%
       names(review$presentation)),
     identical(review$provenance$analysis_ready, FALSE))
+  model_batch <- nis_models(design,
+    c(LOS = "gaussian", domain = "quasibinomial", exposure = "quasipoisson"),
+    ~ 1, "exclude", 2, 0.95, "wr_unadjusted")
+  stopifnot(identical(names(model_batch$models), c("LOS", "domain", "exposure")),
+    identical(model_batch$sample$outcome, c("LOS", "domain", "exposure")),
+    identical(model_batch$provenance$interval_scope, "pointwise"),
+    identical(model_batch$provenance$analysis_ready, FALSE))
   for (family in c("gaussian", "quasibinomial", "quasipoisson")) {
-    field <- if (family == "quasibinomial") "domain" else "LOS"
+    field <- switch(family, gaussian = "LOS", quasibinomial = "domain", quasipoisson = "exposure")
     outcome <- as.double(core[[field]])
     keep <- !is.na(outcome)
     denominator <- sum(core$DISCWT[keep])
@@ -131,6 +138,8 @@ exercise_year <- function(year) {
       quasipoisson = 1 / mean)
     fit <- nis_model(design, stats::reformulate("1", field), family, "exclude",
       2, 0.95, "wr_unadjusted")
+    stopifnot(identical(model_batch$models[[field]]$coefficients, fit$coefficients),
+      identical(model_batch$models[[field]]$sample, fit$sample))
     se <- sqrt(variance) * derivative
     stopifnot(abs(fit$coefficients$estimate - coefficient) < 1e-8,
       abs(fit$coefficients$se - se) < 1e-7,
@@ -148,7 +157,7 @@ exercise_year <- function(year) {
     identical(as.numeric(support[2L, -1L]), c(6, 6, 18, 2)),
     identical(as.numeric(support[3L, -1L]), c(0, 0, 0, 0)))
   cat("Invented year", year, "passed installed factor support counts.\n")
-  cat("Invented year", year, "passed all three model links against independent intercept references.\n")
+  cat("Invented year", year, "passed single/batch model links against independent intercept references.\n")
   for (kind in c("transformed_gaussian", "offset_poisson")) {
     keep <- !is.na(core$LOS)
     y <- if (kind == "transformed_gaussian") log1p(core$LOS) else core$LOS
