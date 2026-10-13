@@ -2,6 +2,12 @@ name: Retrieve public official layouts
 
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: Public references to retrieve
+        type: choice
+        options: [core, all]
+        default: all
   pull_request:
     paths:
       - '.github/workflows/official-layouts.yaml'
@@ -14,7 +20,7 @@ permissions:
 jobs:
   retrieve:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,11 +29,13 @@ jobs:
       - name: Test byte preservation and failure receipts offline
         run: python -B -m unittest discover -s tools/tests -p 'test_fetch_official_layouts.py' -v
       - name: Retrieve bounded public sources
-        run: python -B tools/fetch-official-layouts.py .audit/official-layouts
+        env:
+          REFERENCE_PROFILE: ${{ inputs.profile || 'all' }}
+        run: python -B tools/fetch-official-layouts.py .audit/official-layouts --profile "$REFERENCE_PROFILE"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: official-core-response-bytes
+          name: official-nis-response-bytes
           path: .audit/official-layouts/
           include-hidden-files: true
           if-no-files-found: error

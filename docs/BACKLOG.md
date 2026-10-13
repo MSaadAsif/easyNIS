@@ -771,13 +771,52 @@ Core specifications; fixture dimensions remain invented test choices.
 The next annual acceptance steps are component specifications, load-format/
 data-element missing-value contracts, conversion comparison and author review.
 Precommit Windows verification passes 1,966 package assertions, 114 R tool
-assertions (including 70 layout cases), all 36 merge-gate scenarios, source
+assertions (including 70 layout assertions), all 36 merge-gate scenarios, source
 Status OK, a 90-entry tarball inspection and installed public workflows.
 Independent checks reproduce both old-parser failures, match every public
 registry fact to original bytes, and preserve the prior CSV after later-year
 cache corruption. Both preliminary reviews found zero blockers. Clean-head
 verification, final independent review and hosted checks are required before
 the parser/registry increment merges.
+
+The Core parser/registry increment merged in
+[PR #31](https://github.com/MSaadAsif/easyNIS/pull/31) after clean-head
+verification, independent specification/standards reviews with zero blockers
+and all five hosted platform/R jobs.
+
+### Component layouts and SAS reference acquisition
+
+The next bounded NIS-006 action extends original-byte acquisition to an explicit
+`all` profile: the official specification index, 23 initial-year component
+layouts and their 23 SAS load reference programs. Core, Hospital and Severity
+are requested for every 2017–2022 year; Diagnosis and Procedure Groups is
+requested only for 2018–2022, following the official index. No component absence
+is inferred from a failed request. The default CLI `core` profile remains six
+Core specifications. Each receipt identifies year, component, kind and intended
+filename; opaque response bodies, headers and transfer hashes are retained.
+
+Relevant pull requests and manual dispatch can run the broader job, with at
+most 94 bounded requests and a 35-minute job limit. There is no schedule or
+background agent restart. The fetcher neither executes SAS reference programs
+nor copies them into package implementation. Source bodies remain outside the
+package and automatic cache/registry admission. Core parser and annual support
+are unchanged by this acquisition increment.
+
+Acceptance requires independent target/availability review, offline preservation
+and failure coverage, completed remote manifest inspection and transferred
+body/header hash verification. Content/identity inspection is separate from
+HTTP success; component joins, missing-reason interpretations, licensed
+conversion provenance and author approval require subsequent evidence.
+Precommit verification passes 1,966 package assertions, 114 R tool assertions,
+all 36 merge-gate scenarios, source Status OK, tarball inspection and installed
+public workflows. Nine Python cases and an independent 94-attempt probe verify
+distinct document bodies/headers, metadata, transfer hashes, fallback and
+complete failure receipts. All 23 layout URLs match the official index links;
+the 2019 SAS index confirms all four V2 paths. Other annual SAS paths still
+need remote content confirmation. Both preliminary reviews found zero blockers;
+one wording suggestion corrected the manifest's validation note for non-Core
+sources. Clean-head verification, current independent review and hosted checks
+remain required before this acquisition increment merges.
 
 ## Foundation and metadata
 
