@@ -125,8 +125,11 @@ nis_survey_design <- function(data, columns, full_population, method, singleton)
 #' from each domain's included, excluded and unknown discharge counts.
 #'
 #' @param design A result of [nis_survey_design()] or [nis_domain()].
-#' @param field Exact name of a retained logical domain column. Numeric 0/1
-#'   vectors are refused; declare a logical indicator explicitly.
+#' @param field Exact name of a retained logical domain column, or a one-sided
+#'   formula combining retained fields, literal constants, comparisons,
+#'   `&`, `|`, `!`, parentheses, `is.na` and membership in literal constants
+#'   with `%in%`. For example, `~ AGE >= 18 & cohort`. Numeric 0/1 flags are
+#'   not coerced to logical. Global variables and arbitrary functions are refused.
 #' @param missing Explicitly choose `"fail"` to reject unknown indicators or
 #'   `"exclude"` to exclude them and record their count.
 #' @return A new `nis_survey` with the native domain `design` and appended
@@ -138,16 +141,24 @@ nis_domain <- function(design, field, missing) {
   if (!inherits(design, "nis_survey")) {
     stop("`design` must come from nis_survey_design().", call. = FALSE)
   }
-  check_string(field, "field")
-  if (!field %in% names(design$design$variables)) {
-    stop("Domain field was not retained in the design.", call. = FALSE)
-  }
   if (base::missing(missing)) stop("Choose an explicit domain `missing` policy.", call. = FALSE)
   check_string(missing, "missing")
   missing <- match.arg(missing, c("fail", "exclude"))
-  indicator <- design$design$variables[[field]]
-  if (!is.logical(indicator)) {
-    stop("Domain indicators must be logical; numeric coding is not inferred.", call. = FALSE)
+  if (inherits(field, "formula")) {
+    predicate <- domain_predicate(field, design$design$variables)
+    indicator <- predicate$indicator
+    declaration <- list(predicate = predicate$expression, fields = predicate$fields)
+  } else {
+    check_string(field, "field")
+    if (!field %in% names(design$design$variables)) {
+      stop("Domain field was not retained in the design.", call. = FALSE)
+    }
+    indicator <- design$design$variables[[field]]
+    if (!is.logical(indicator) || is.object(indicator) || !is.null(dim(indicator)) ||
+        length(indicator) != nrow(design$design$variables)) {
+      stop("Domain indicators must be plain logical vectors; numeric coding is not inferred.", call. = FALSE)
+    }
+    declaration <- list(field = field)
   }
   unknown <- sum(is.na(indicator))
   if (missing == "fail" && unknown > 0L) {
@@ -157,8 +168,8 @@ nis_domain <- function(design, field, missing) {
   keep <- !is.na(indicator) & indicator
   result <- design
   result$design <- design$design[keep, ]
-  result$domains <- c(design$domains, list(list(field = field, missing = missing,
+  result$domains <- c(design$domains, list(c(declaration, list(missing = missing,
     supplied = length(indicator), included = sum(keep),
-    excluded_false = sum(!indicator, na.rm = TRUE), unknown = unknown)))
+    excluded_false = sum(!indicator, na.rm = TRUE), unknown = unknown))))
   result
 }
