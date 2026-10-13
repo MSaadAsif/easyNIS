@@ -75,7 +75,7 @@ excluded from source packages and are checked separately in CI.
 ## Retrieve original response bytes on GitHub
 
 `tools/fetch-official-layouts.py` tries the canonical official host and then
-the alternate official `hcup-ts.ahrq.gov` host for each Core specification.
+the alternate official `hcup-ts.ahrq.gov` host for each requested reference.
 It requires Python 3 and curl. Every request has a 20-second total limit,
 five-second connection limit and at most five HTTPS redirects. Run it with a
 new ignored output directory; existing directories are refused:
@@ -83,16 +83,33 @@ new ignored output directory; existing directories are refused:
 ```sh
 python -B -m unittest discover -s tools/tests -p test_fetch_official_layouts.py -v
 python -B tools/fetch-official-layouts.py .audit/official-layouts-new
+python -B tools/fetch-official-layouts.py .audit/annual-documents-new --profile all
 ```
+
+The default `core` profile requests the six Core specifications. The explicit
+`all` profile requests the official specifications index, 23 component layouts
+and their 23 SAS load programs: Core, Hospital and Severity for 2017–2022,
+and Diagnosis and Procedure Groups for 2018–2022. This follows the component
+list on the [official index](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp),
+which omits Diagnosis and Procedure Groups for 2017; a failed request is never
+treated as evidence of component absence. SAS path forms follow the official
+[load-program index](https://hcup-us.ahrq.gov/db/nation/sasloadprog.jsp?db=NIS&year=2019).
+The fetcher records `year`, `component`, `kind` and the intended reference
+filename (`cache_filename`) per attempt. Sources remain opaque `.body` files.
+It never executes SAS programs or incorporates their implementation into easyNIS.
 
 The separate `Retrieve public official layouts` workflow runs these offline
 tests and retrieval on relevant pull requests or manual dispatch. It has no
 schedule, reads no licensed files, and has read-only repository permissions.
 After it reaches main, request an on-demand run with
-`gh workflow run official-layouts.yaml`. Its `official-core-response-bytes`
+`gh workflow run official-layouts.yaml -f profile=all` (or `profile=core`).
+Relevant pull requests use `all`, and manual dispatch defaults to `all`.
+At most 94 attempts of 20 seconds each fit within its 35-minute job limit.
+Its `official-nis-response-bytes`
 artifact retains only this job's response bodies, raw response headers and
 JSON manifest for 14 days. Download a completed run with
-`gh run download RUN_ID -n official-core-response-bytes -D .audit/official-transfer-RUN_ID`.
+`gh run download RUN_ID -n official-nis-response-bytes -D .audit/official-transfer-RUN_ID`.
+The original Core-only run used the artifact name `official-core-response-bytes`.
 See GitHub's [artifact download instructions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
 
 The manifest records each requested/final URL, UTC start/completion times,
@@ -104,12 +121,15 @@ about its content. HTML error pages can return 200. The artifact job can succeed
 even when every source request fails: inspect the manifest, rather than using
 the workflow conclusion as acquisition evidence.
 
-Before promoting a downloaded body into the ignored cache, verify its SHA-256
-and length after transfer and run `parse_core_layout()` for its declared year.
+Before interpreting a downloaded body, verify its SHA-256 and length after
+transfer. For Core cache admission, run `parse_core_layout()` for its declared year.
 The revision suffix belongs to the specification filename. Preserve the body
 unchanged when copying it to the manifest's
 `cache_filename`; retain the manifest and headers alongside local evidence.
-Do not copy failed or unparsed bodies. Then run the cached-only updater.
+Do not copy failed or unparsed Core bodies. Then run the cached-only updater.
+Other component layouts, index HTML and SAS programs require their own source
+inspection; they are not inputs to the Core parser or cached-only updater.
+Their acquisition alone does not create a join or missing-value contract.
 The fetcher never populates the cache or changes the registry, support matrix
 or conversion status. A parsed Core specification still needs human source
 review and the separate component/missing-value audit below.
