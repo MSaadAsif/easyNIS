@@ -1,4 +1,4 @@
-"""Retrieve public Core specification response bytes; never update the registry."""
+"""Retrieve public NIS reference response bytes; never update annual registries."""
 
 import argparse
 from datetime import datetime, timezone
@@ -45,23 +45,53 @@ def fetch(url, directory, stem):
     return receipt
 
 
-def acquire(directory):
-    directory.mkdir(parents=True, exist_ok=False)
-    manifest = {"scope": "public 2017-2022 NIS Core specifications only",
-                "created_utc": utc_now(), "attempts": [],
-                "limitation": "Response bytes require parser and human source review; "
-                              "no annual support or conversion history is established."}
-    manifest_path = directory / "manifest.json"
+def source_requests(profile):
+    if profile not in ("core", "all"):
+        raise ValueError("Choose the core or all reference profile.")
+    sources = []
+    if profile == "all":
+        sources.append({"year": None, "component": "index", "kind": "index",
+                        "cache_filename": "nisfilespecs.jsp",
+                        "path": "/db/nation/nis/nisfilespecs.jsp"})
     for year in range(2017, 2023):
         suffix = "_V2" if year in (2019, 2020) else ""
-        filename = f"FileSpecifications_NIS_{year}_Core{suffix}.TXT"
+        components = ("Core",) if profile == "core" else ("Core", "Hospital", "Severity", "DX_PR_GRPS")
+        for component in components:
+            if year == 2017 and component == "DX_PR_GRPS":
+                continue
+            for kind in (("layout",) if profile == "core" else ("layout", "sas")):
+                if kind == "layout":
+                    filename = f"FileSpecifications_NIS_{year}_{component}{suffix}.TXT"
+                    path = f"/db/nation/nis/tools/stats/{filename}"
+                else:
+                    filename = f"SASLoad_NIS_{year}_{component}{suffix}.SAS"
+                    path = f"/db/nation/nis/tools/pgms/{filename}"
+                sources.append({"year": year, "component": component, "kind": kind,
+                                "cache_filename": filename, "path": path})
+    return sources
+
+
+def acquire(directory, profile="core"):
+    sources = source_requests(profile)
+    directory.mkdir(parents=True, exist_ok=False)
+    scope = ("public 2017-2022 NIS Core specifications only" if profile == "core" else
+             "public 2017-2022 NIS references and official specification index")
+    manifest = {"scope": scope,
+                "profile": profile,
+                "created_utc": utc_now(), "attempts": [],
+                "limitation": "Response bytes require source-specific validation and human review; "
+                              "no annual support or conversion history is established."}
+    manifest_path = directory / "manifest.json"
+    for source in sources:
         for host in HOSTS:
-            url = f"https://{host}/db/nation/nis/tools/stats/{filename}"
-            receipt = fetch(url, directory, f"{year}-{host}")
-            receipt.update(year=year, cache_filename=filename)
+            url = f"https://{host}{source['path']}"
+            stem = (f"{source['year']}-{host}" if profile == "core" else
+                    f"{source['year']}-{source['component']}-{source['kind']}-{host}")
+            receipt = fetch(url, directory, stem)
+            receipt.update({key: value for key, value in source.items() if key != "path"})
             manifest["attempts"].append(receipt)
             manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-            print(f"{year} {host}: {receipt['outcome']}", flush=True)
+            print(f"{source['cache_filename']} {host}: {receipt['outcome']}", flush=True)
             if receipt["outcome"] == "downloaded":
                 break
     return manifest
@@ -70,4 +100,6 @@ def acquire(directory):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path, help="new ignored output directory")
-    acquire(parser.parse_args().output)
+    parser.add_argument("--profile", choices=("core", "all"), default="core")
+    args = parser.parse_args()
+    acquire(args.output, args.profile)
