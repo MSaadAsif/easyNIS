@@ -123,3 +123,67 @@ Word has a separate API contract. Annual metadata, conversion history,
 performance, licensed validation, regression-table disclosure/export and
 scientific approval retain their separate gates. No annual support, clinical
 validity, scientific approval or supported memory envelope is established.
+
+## Six-year workshop template
+
+The installed `examples/pooled-model-workflow.R` composes the analysis helpers
+into the existing six-year workflow. Run it with:
+
+```r
+outputs <- source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"))$value
+browseURL(outputs$html)
+```
+
+Only invented data are used. Annual cores additionally include numeric AGE,
+logical exposure and a zero/one event; every invented code-positive cohort row
+is adult, and one eligible event is missing per year. Narrow full-population
+projections are pooled before selection. `nis_factor()` declares Comparator and
+Exposed in a new field while retaining raw exposure. `nis_domain()` selects
+`AGE >= 18 & cohort`. `nis_models()` shares `~ exposure_factor` across Gaussian
+LOS and quasibinomial event outcomes. Their complete-case samples are 288 and
+354 from 360 domain rows, with 72 and 6 exclusions respectively. No common
+complete-case mask across outcomes is imposed.
+
+The script temporarily declares treatment contrasts and the existing fail/no
+adjustment variance policy, restoring caller options on success or error.
+Those choices apply only to this invented example. Independent `stats::glm`
+coefficients and canonical-link hospital-score sandwiches use all 24 original
+year-specific PSUs, assigning zero scores to ineligible/missing rows. Bread
+uses weighted derivatives/variances; the meat centers hospital scores within
+each of 12 strata with `m/(m-1)`. Gaussian absolute covariance/interval tolerance
+is `1e-10`; logistic tolerance is `1e-7`, following the existing IRLS-reference
+justification in [MODELS.md](MODELS.md). Coefficients use `1e-8`. These are small
+fixture tolerances, not bounds for licensed analyses.
+
+The earlier scalar mean/total and intercept references remain unchanged. Only
+the existing reviewed descriptive CSV/HTML and fixed declarations report are
+written; no batch estimates, covariance, sample accounting, retained mappings
+or local source paths are exported. Inference is pointwise with no multiplicity
+correction. Labels imply no clinical validity, causal effect or effect scale.
+
+## Adapting an analyst workflow
+
+This is a training template. Licensed-data readiness still requires the input,
+metadata, inference, disclosure and scientific evidence in [SUPPORT.md](SUPPORT.md).
+
+| Task | Current interface | Review boundary |
+| --- | --- | --- |
+| Keep analysis memory focused | Declare narrow columns in `nis_survey_design()` after lazy import/flags. | Full design remains eager; no verified large-data memory envelope. |
+| Establish categorical covariates | `nis_factor()` preserves raw fields and declares levels/labels. | No clinical dictionary, special-missing recoding or universal reference is inferred. |
+| Combine cohort criteria | `nis_domain()` evaluates a bounded predicate after full-design construction. | Raw sentinels retain their source values; caller policies and phenotype validity need review. |
+| Fit several outcomes | `nis_models()` shares predictor/inference declarations with separate samples and diagnostics. | Pointwise inference, no automatic multiplicity correction, no causal interpretation. |
+| Retain reproducible outputs | Use explicit disclosure review and descriptive CSV/HTML/Word adapters. | Grouped baseline comparisons and regression disclosure/export remain separate work. |
+
+Review legacy names such as HOSPID/TRENDWT against the actual conversion profile
+before mapping them to HOSP_NIS/DISCWT. Existing global singleton adjustment
+settings are not equivalent to the current fail/no-adjustment contract; do not
+copy one policy into another analysis without scientific review. Verify full
+population coverage before domain selection, year-specific pooled keys, derived
+classification versions, charge units/base year, code-set provenance and lost
+labels or missing reasons. The recorded 2017 input still fails YEAR integrity;
+assigning a filename year or dropping a row is not an authenticated correction.
+
+No licensed annual capability is promoted by this example. It does not replace
+independent analyst usability testing, licensed numerical references, Saad/Ali's
+scientific review or release approval. Keep study outputs and private receipts
+ignored, and review what may be shared before publishing.
