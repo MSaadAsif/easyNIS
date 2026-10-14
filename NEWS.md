@@ -1,5 +1,11 @@
 # easyNIS 0.0.0.9000
 
+## Input-check walkthrough
+
+- Added an installed invented example and input guide distinguishing rejected
+  imports, structural errors and unverified analysis readiness. Existing
+  diagnostics remain unchanged; no aliases, years or missing codes are repaired.
+
 ## Experimental outcome-model batches
 
 - Added `nis_models()` to declare outcome families and shared predictors once.
