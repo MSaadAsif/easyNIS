@@ -5,6 +5,51 @@ library(easyNIS)
 if (normalizePath(find.package("easyNIS")) != normalizePath(file.path(args, "easyNIS"))) {
   stop("The workflow must use the newly installed source package.")
 }
+exercise_input_checks <- function(fail = FALSE) {
+  env <- new.env(parent = globalenv())
+  sessions <- list()
+  connections <- list()
+  paths <- character()
+  env$nis_open <- function(...) {
+    session <- easyNIS::nis_open(...)
+    sessions[[length(sessions) + 1L]] <<- session
+    connections[[length(connections) + 1L]] <<- session$connection
+    session
+  }
+  env$tempfile <- function(...) {
+    path <- base::tempfile(...)
+    paths <<- c(paths, path)
+    path
+  }
+  calls <- 0L
+  env$nis_validate <- function(...) {
+    calls <<- calls + 1L
+    if (fail && calls == 3L) stop("Injected input walkthrough failure")
+    easyNIS::nis_validate(...)
+  }
+  result <- tryCatch(source(system.file("examples/input-checks.R", package = "easyNIS"),
+    local = env)$value, error = identity)
+  stopifnot(length(sessions) == 1L, length(paths) >= 2L,
+    !any(file.exists(paths)), sessions[[1L]]$closed,
+    is.null(sessions[[1L]]$connection), !DBI::dbIsValid(connections[[1L]]))
+  if (fail) {
+    stopifnot(inherits(result, "error"),
+      identical(conditionMessage(result), "Injected input walkthrough failure"))
+  } else {
+    stopifnot(identical(names(result), c("case", "import", "structural_errors", "analysis_ready", "check")),
+      identical(result$case, c("canonical", "legacy_aliases", "wrong_year")),
+      identical(result$import, c("accepted", "accepted", "rejected")),
+      identical(result$structural_errors, c(FALSE, TRUE, NA)),
+      identical(result$analysis_ready, c(FALSE, FALSE, NA)),
+      identical(result$check, c("metadata_unverified", "required_field_absent", "invalid_year")),
+      !any(grepl("[A-Za-z]:[/\\\\]|/tmp/|Rtmp|source_receipt", unlist(result))))
+  }
+  result
+}
+input_checks <- exercise_input_checks()
+stopifnot(identical(input_checks, exercise_input_checks()))
+invisible(exercise_input_checks(fail = TRUE))
+cat("Installed input walkthrough passed statuses, repeatability, privacy and success/error cleanup.\n")
 exercise_year <- function(year) {
   fixture <- nis_synthetic_data(year)
   core <- fixture$core

@@ -163,6 +163,10 @@ correction. Labels imply no clinical validity, causal effect or effect scale.
 
 ## Adapting an analyst workflow
 
+Begin with the [input-check guide](INPUT-CHECKS.md) and installed
+`examples/input-checks.R` walkthrough to distinguish import rejection,
+structural failure and unverified metadata before adapting the analysis template.
+
 This is a training template. Licensed-data readiness still requires the input,
 metadata, inference, disclosure and scientific evidence in [SUPPORT.md](SUPPORT.md).
 

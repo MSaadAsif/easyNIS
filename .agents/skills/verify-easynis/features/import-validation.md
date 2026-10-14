@@ -11,6 +11,8 @@ without treating the result as validated annual analysis.
 - Distinguish selected-out fields, unverified absence and aggregate SQL NULLs.
 - Reject flag names that reuse omitted source columns or flag definitions.
 - Report structural validity and experimental analysis status separately.
+- Run the installed input-check walkthrough for clean structure, missing
+  canonical fields and rejected mixed YEAR without automatic corrections.
 - Close the session and remove invented files after success or errors.
 
 ## How to get to it (user POV)
@@ -28,6 +30,9 @@ Preconditions: run the doctor; the full verification command installs the source
   rejection for every label 2017 through 2022.
 - Inspect `package-tests.csv` and `check.log` for join, schema, key precision,
   failure cleanup and offline help-example checks.
+- Require the installed input walkthrough's exact three status rows, no
+  validation status on rejected import, repeatability and path-free summary.
+  Inspect success and injected-error checks for closed sessions and removed files.
 - For a bug, add a public-call regression case with invented data that fails
   before the fix and passes afterwards. Preserve the before/after evidence.
 

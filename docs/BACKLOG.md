@@ -6,6 +6,22 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+The next bounded NIS-021/033 onboarding increment reuses `nis_import()` and
+`nis_validate()` in an installed invented input-check walkthrough and
+[input guide](INPUT-CHECKS.md). Acceptance: distinguish rejected mixed YEAR
+(no validation report), accepted input missing canonical design fields, and
+structurally clean input with unverified annual/conversion metadata. Preserve
+FALSE readiness, explicit caller declarations and component/field-state meanings;
+do not map aliases, repair years or export diagnostics. Installed smoke must
+assert exact statuses, repeatability, privacy and cleanup on success and injected
+failure. Full verification, independent review and protected CI precede merge.
+Corrected precommit verification passes 2,275 package assertions, 216 tool
+assertions, source Status OK and installed workflows. The cleanup smoke retains
+the native connection handle to confirm it is invalid after the owned session
+clears its handle. Independent execution reproduces statuses and success/error
+cleanup with zero review blockers. Clean committed-head evidence, final pinned
+review and hosted checks remain required before merge.
+
 Saad prioritized a simpler practical workflow for analysts beginning topics on
 Saturday 2026-10-17 with 2017–2022 converted Parquet files. The first usability
 increment addresses repeated outcome-model formulas: declare exact outcome
