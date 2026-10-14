@@ -4,7 +4,15 @@
 \alias{nis_flag_codes}
 \title{Add an experimental code-set flag without filtering discharges}
 \usage{
-nis_flag_codes(data, name, codes, scope, missing, slots = NULL)
+nis_flag_codes(
+  data,
+  name,
+  codes,
+  scope,
+  missing,
+  slots = NULL,
+  special_missing = "reject"
+)
 }
 \arguments{
 \item{data}{A relation returned by \code{\link[=nis_import]{nis_import()}}.}
@@ -23,6 +31,13 @@ or \code{"unknown_if_any_missing"}. Unknown flags are NA, not observed negatives
 
 \item{slots}{Optional unique positive integer slot numbers. They must be
 present and compatible with the selected scope. \code{NULL} uses observed slots.}
+
+\item{special_missing}{Defaults to \code{"reject"}, retaining strict syntax
+rejection. Explicit \code{"hcup_character"} recognizes lowercase \code{invl} and
+\code{incn} after ASCII trimming in 2017-2022 source slots. These quality states
+yield unknown unless another selected slot matches, regardless of the
+blank/NULL \code{missing} policy. Other malformed values still fail. Raw values
+and distinct invalid/inconsistent meanings are preserved in provenance.}
 }
 \value{
 A new \code{nis_data} relation with a logical flag and its provenance.
