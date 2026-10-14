@@ -9,6 +9,9 @@ then adds a flag while keeping the discharge population intact.
 - Add a flag through `nis_flag_codes()` without losing discharges.
 - Compare collected flags with independently calculated R expectations.
 - Reject malformed codes and incompatible scope/applicability.
+- Opt in to documented character quality markers without changing default
+  rejection, raw reasons or positive/unknown precedence. Check short-prefix
+  safety, selected diagnosis/procedure slots, all blank policies and exact case.
 
 ## How to get to it (user POV)
 

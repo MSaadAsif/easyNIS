@@ -6,6 +6,25 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+The next bounded NIS-009/011/033 increment adds explicit opt-in handling for
+documented HCUP character quality markers in selected diagnosis/procedure slots.
+Default strict rejection remains unchanged. Lowercase `invl`/`incn` stay raw and
+distinct; opted-in flags are unknown unless another selected slot positively
+matches, regardless of the blank policy. Other malformed/case aliases still fail.
+See [CHARACTER-MISSING.md](CHARACTER-MISSING.md) for primary sources, scope and
+acceptance. No source correction, scientific approval or annual promotion is
+implied. Full verification, independent review and protected CI precede merge.
+
+Focused invented cases pass 89 assertions. Independent review also exercised
+24 exhaustive scope/policy/normalization grids and 18 old/current default
+comparisons. Review exposed a connection-collation bypass for uppercase aliases;
+a public regression fails before the fix and passes with byte-exact marker
+comparison. The initial full run passed 2,387 package and 216 tool assertions,
+source Status OK and installed workflows. Corrected full verification passes
+2,391 package and 216 tool assertions, source Status OK and installed workflows.
+Both independent preliminary reviews have zero remaining blockers; clean-head
+verification, final pinned review and hosted checks remain required before merge.
+
 The next bounded NIS-013/022 increment removes full-discharge data-frame
 deduplication from hospital/stratum validation. Acceptance: retain the first
 exact mapping per hospital, compare every row and preserve conflict/singleton

@@ -24,6 +24,12 @@
 #'   or `"unknown_if_any_missing"`. Unknown flags are NA, not observed negatives.
 #' @param slots Optional unique positive integer slot numbers. They must be
 #'   present and compatible with the selected scope. `NULL` uses observed slots.
+#' @param special_missing Defaults to `"reject"`, retaining strict syntax
+#'   rejection. Explicit `"hcup_character"` recognizes lowercase `invl` and
+#'   `incn` after ASCII trimming in 2017-2022 source slots. These quality states
+#'   yield unknown unless another selected slot matches, regardless of the
+#'   blank/NULL `missing` policy. Other malformed values still fail. Raw values
+#'   and distinct invalid/inconsistent meanings are preserved in provenance.
 #' @return A new `nis_data` relation with a logical flag and its provenance.
 #'   The original relation, source values, and complete discharge population
 #'   are preserved. Clinical and analysis approval are not implied.
@@ -44,8 +50,16 @@
 #' nis_collect(flagged, "condition", limit = 3)
 #' nis_close(session)
 #' unlink(path)
-nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
+nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL,
+                           special_missing = "reject") {
   check_relation(data)
+  check_string(special_missing, "special_missing")
+  if (!special_missing %in% c("reject", "hcup_character")) {
+    stop("`special_missing` must be reject or hcup_character.", call. = FALSE)
+  }
+  if (special_missing == "hcup_character" && !data$year %in% 2017:2022) {
+    stop("HCUP character missing markers are limited to declared 2017-2022 inputs.", call. = FALSE)
+  }
   check_string(name, "name")
   if (tolower(name) %in% tolower(c(data$schema$column_name,
                                   data$import_schema$column_name, names(data$flags)))) {
@@ -99,6 +113,11 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
   malformed <- paste0("(", fields, " IS NOT NULL AND ", trimmed,
     " != '' AND NOT regexp_full_match(", candidates, ", ",
     DBI::dbQuoteString(con, pattern), "))")
+  quality_missing <- paste0("COALESCE(encode(", trimmed,
+    ") IN (encode('invl'), encode('incn')), FALSE)")
+  if (special_missing == "hcup_character") {
+    malformed <- paste0("(", malformed, " AND NOT ", quality_missing, ")")
+  }
   bad_rows <- query_count(con, paste0("SELECT COUNT(*) AS n FROM ", sql_name(con, data$view),
                                      " WHERE ", paste(malformed, collapse = " OR ")))
   if (bad_rows > 0) {
@@ -116,6 +135,9 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
     } else paste0("(", paste(paste0("COALESCE(starts_with(", field, ", ", literals,
                                        "), FALSE)"), collapse = " OR "), ")")
   }, character(1))
+  if (special_missing == "hcup_character") {
+    slot_matches <- paste0("(", slot_matches, " AND NOT ", quality_missing, ")")
+  }
   positive <- paste(slot_matches, collapse = " OR ")
   missing_fields <- paste0("(", fields, " IS NULL OR ", trimmed, " = '')")
   unknown <- switch(missing,
@@ -123,6 +145,9 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
     unknown_if_all_missing = paste(missing_fields, collapse = " AND "),
     unknown_if_any_missing = paste(missing_fields, collapse = " OR ")
   )
+  if (special_missing == "hcup_character") {
+    unknown <- paste0("(", unknown, " OR ", paste(quality_missing, collapse = " OR "), ")")
+  }
   outside <- "FALSE"
   if (!identical(codes$valid_quarters, 1:4)) {
     require_fields(data$schema, "DQTR", "relation")
@@ -148,5 +173,13 @@ nis_flag_codes <- function(data, name, codes, scope, missing, slots = NULL) {
     slot_policy = if (is.null(slots)) "observed_available" else "explicit_common_slots",
     slots = selected, annual_slot_metadata = "unverified"
   )
+  if (special_missing == "hcup_character") {
+    result$flags[[name]]$special_missing <- list(
+      policy = special_missing, years = 2017:2022,
+      values = c(invalid = "invl", inconsistent = "incn"),
+      matching = "ASCII_trim_then_exact_lowercase",
+      flag_rule = "unknown_unless_positive"
+    )
+  }
   result
 }
