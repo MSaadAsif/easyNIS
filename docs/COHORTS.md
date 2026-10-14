@@ -6,6 +6,13 @@ slots. They do not certify annual layouts, clinical code sets, or analysis
 readiness. No clinical code sets are bundled. The capability roadmap remains
 at target status for every year.
 
+Documented character quality markers require explicit opt-in:
+`special_missing = "hcup_character"`. Default strict rejection is unchanged.
+Lowercase invalid/inconsistent markers remain raw; without another positive
+selected-slot match they yield unknown regardless of blank/NULL policy. See
+[CHARACTER-MISSING.md](CHARACTER-MISSING.md) for source evidence, exact-case
+recognition, reason provenance, scope and scientific limits.
+
 ## Declare the set
 
 Provide character codes, coding system, explicit valid years, version, source,

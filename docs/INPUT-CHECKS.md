@@ -51,6 +51,12 @@ the original identifier or weight meaning, year and transformation; easyNIS
 does not infer that HOSPID or TRENDWT is an appropriate replacement. In
 particular, a filename year cannot repair mixed or invalid YEAR values.
 
+A code-syntax rejection can also reflect documented lowercase HCUP character
+quality markers. Review [CHARACTER-MISSING.md](CHARACTER-MISSING.md) before
+explicitly opting in with `special_missing = "hcup_character"` when flagging.
+This preserves invalid/inconsistent reasons and unknowns; it does not repair
+arbitrary malformed codes, authenticate a conversion or resolve YEAR integrity.
+
 `fields` distinguishes `present`, `user_omitted` after `nis_select()`, and
 `unverified_absent`. Absent-field NULL counts are unknown, not zero. For present
 fields, `record_nulls` counts SQL NULLs only; it does not decode special missing

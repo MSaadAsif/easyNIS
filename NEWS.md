@@ -1,5 +1,12 @@
 # easyNIS 0.0.0.9000
 
+## Explicit character quality markers
+
+- `nis_flag_codes()` can explicitly recognize HCUP's lowercase invalid and
+  inconsistent character markers while preserving raw values and reason
+  provenance. Quality markers yield unknown unless another selected slot
+  matches. Default strict rejection and scientific/annual gates remain unchanged.
+
 ## Hospital/stratum validation
 
 - Replaced full-discharge data-frame deduplication with exact vector matching

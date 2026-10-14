@@ -50,6 +50,29 @@ input_checks <- exercise_input_checks()
 stopifnot(identical(input_checks, exercise_input_checks()))
 invisible(exercise_input_checks(fail = TRUE))
 cat("Installed input walkthrough passed statuses, repeatability, privacy and success/error cleanup.\n")
+(function() {
+  session <- nis_open()
+  path <- tempfile(fileext = ".parquet")
+  on.exit({ nis_close(session); unlink(path) }, add = TRUE)
+  core <- nis_synthetic_data()$core
+  core$I10_DX1 <- rep(c("invl", "incn", "I10", "J00"), 3L)
+  DBI::dbWriteTable(session$connection, "quality_fixture", core)
+  DBI::dbExecute(session$connection, paste0("COPY quality_fixture TO ",
+    DBI::dbQuoteString(session$connection, path), " (FORMAT PARQUET)"))
+  data <- nis_import(session, path, 2022)
+  codes <- nis_code_set("I", "ICD10CM", 2022, "invented-1", "invented example", "example", match = "prefix")
+  refusal <- tryCatch(nis_flag_codes(data, "quality_flag", codes, "principal_diagnosis", "no_match"),
+    nis_structure_error = identity)
+  stopifnot(inherits(refusal, "nis_structure_error"), refusal$check == "invalid_code_syntax")
+  flagged <- nis_flag_codes(data, "quality_flag", codes, "principal_diagnosis", "no_match",
+    special_missing = "hcup_character")
+  rows <- nis_collect(flagged, c("KEY_NIS", "I10_DX1", "quality_flag"), limit = 12)
+  expected <- rep(c(NA, NA, TRUE, FALSE), 3L)[match(rows$KEY_NIS, core$KEY_NIS)]
+  stopifnot(identical(rows$quality_flag, expected),
+    identical(rows$I10_DX1, core$I10_DX1[match(rows$KEY_NIS, core$KEY_NIS)]),
+    identical(flagged$flags$quality_flag$special_missing$values, c(invalid = "invl", inconsistent = "incn")))
+})()
+cat("Installed explicit character quality markers preserved raw reasons and unknown flags.\n")
 exercise_year <- function(year) {
   fixture <- nis_synthetic_data(year)
   core <- fixture$core
