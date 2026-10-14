@@ -25,6 +25,15 @@ missingness and nondefault option preservation. It does not certify annual
 conversions or promote scientific approval. Read `docs/SURVEY.md` for the
 method contract, inference limits and unbenchmarked eager-memory behavior.
 
+Hospital-map coverage includes interleaved/shuffled repeated hospitals and
+first/middle/late stratum conflicts. Full verification retains native design,
+domain, model and pooled reference checks after vector-based mapping validation.
+The developer benchmark harness prepares a fixed invented input and runs the
+requested installed library with accounting assertions. Follow the SURVEY.md
+recipe for separate profiling and alternating fresh-process measurements;
+retain failed exits and refuse existing destinations. This is outside normal CI
+and does not establish licensed performance or a memory envelope.
+
 The installed workflow also pools all six complete invented-year designs after
 their DuckDB sessions close. It verifies 24 separate year/hospital PSUs and
 12 year/strata, plus independently calculated combined and average annual
