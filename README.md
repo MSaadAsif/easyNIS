@@ -28,6 +28,10 @@ The examples run offline and do not read licensed files. Read the
 [fixture contract](inst/extdata/synthetic/README.md) and
 [contribution guide](CONTRIBUTING.md) for development checks.
 
+Before adapting the quickstart below to licensed files, follow the [input-check guide](docs/INPUT-CHECKS.md).
+Its installed invented walkthrough distinguishes rejected imports, structural
+errors and unverified analysis readiness without mapping aliases or correcting years.
+
 Run the installed offline import-to-export quickstart in R:
 
 ```r
