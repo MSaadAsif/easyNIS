@@ -6,6 +6,30 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+The next bounded NIS-013/022 increment removes full-discharge data-frame
+deduplication from hospital/stratum validation. Acceptance: retain the first
+exact mapping per hospital, compare every row and preserve conflict/singleton
+rejections, raw rows/types/order, native design and population/inference output.
+Verify shuffled/repeated hospitals, first/middle/late conflicts and existing
+exact/BIGINT/domain/pooled references. Profile the actual eager path, compare
+identical configured workloads with repeated measurements and count failures;
+keep licensed measurements private and do not claim a six-year memory envelope.
+Full verification, independent review and protected CI precede merge.
+
+Hospital-map focused tests pass 96 assertions; initial full precommit verification
+passes 2,302 package assertions, 216 tool assertions, source Status OK and installed
+workflows. Independent old/new probes preserve native design, population and
+provenance with zero correctness blockers. Five alternating fresh-process runs
+on the same invented seven-million-row input complete without failures; native
+preparation medians are 27.04 seconds before and 22.03 seconds after, with
+non-overlapping ranges. Separate profiles identify mapping deduplication before
+and native survey construction as the remaining limiter. A public developer
+harness reproduces the invented workload/accounting checks; its prepare/run path
+was executed successfully. Updated full verification also passes the same gates,
+and independent review accepts the bounded measurement. Final pinned independent
+review and hosted checks remain required. No memory envelope or annual support
+is promoted; see [SURVEY.md](SURVEY.md) for the bounded measurement and context.
+
 The next bounded NIS-021/033 onboarding increment reuses `nis_import()` and
 `nis_validate()` in an installed invented input-check walkthrough and
 [input guide](INPUT-CHECKS.md). Acceptance: distinguish rejected mixed YEAR
@@ -21,6 +45,13 @@ the native connection handle to confirm it is invalid after the owned session
 clears its handle. Independent execution reproduces statuses and success/error
 cleanup with zero review blockers. Clean committed-head evidence, final pinned
 review and hosted checks remain required before merge.
+
+The input-check walkthrough merged in
+[PR #39](https://github.com/MSaadAsif/easyNIS/pull/39) after successful clean-head
+verification, both final independent reviews and all five PR/main hosted jobs.
+The six-year workshop composition likewise merged in
+[PR #38](https://github.com/MSaadAsif/easyNIS/pull/38). These complete bounded
+invented onboarding/workflow increments, not licensed analyst readiness.
 
 Saad prioritized a simpler practical workflow for analysts beginning topics on
 Saturday 2026-10-17 with 2017–2022 converted Parquet files. The first usability
