@@ -22,6 +22,50 @@ integer64 weights are converted through exact strings to doubles below 2^53.
 Larger BIGINT weights are refused. Tiny weights whose reciprocals overflow are
 also refused. Raw collected columns remain unchanged.
 
+Hospital/stratum validation retains each hospital's first observed mapping and
+checks every discharge against it with exact character matching. It rejects a
+conflict wherever it occurs, including after long runs of repeated hospitals.
+This avoids row-wise data-frame deduplication across the full discharge set.
+Native survey construction, row order, raw identifiers, population accounting
+and statistical policies remain unchanged.
+
+### Reproduce preparation measurements
+
+The developer tool `tools/benchmark-survey-preparation.R` creates a fixed,
+entirely invented seven-million-row input with four shards. It measures the
+actual eager preparation and checks row, weight, hospital, stratum and df
+accounting. It refuses existing fixture/output destinations and writes success
+only after all assertions pass. Run it in fresh R processes:
+
+```text
+Rscript tools/benchmark-survey-preparation.R prepare <baseline-library> .audit/preparation-fixture
+Rscript tools/benchmark-survey-preparation.R run <baseline-library> .audit/preparation-fixture .audit/baseline-1
+Rscript tools/benchmark-survey-preparation.R run <candidate-library> .audit/preparation-fixture .audit/candidate-1
+```
+
+Replace the library placeholders with installed package-library directories.
+Quote paths containing spaces.
+Alternate baseline/candidate at least five times, changing output suffixes;
+keep the same fixture, two-GB DuckDB bound and four threads. Retain exit status,
+errors and success artifacts, compare medians/ranges, and inspect the saved
+constructor and session versions. Profile separately from measured runs.
+Generation is outside the timed stages. This narrow invented workload does not
+measure full analysis/export, system RAM/disk peaks or licensed-year readiness;
+object sizes are not peak process memory. No supported memory envelope follows.
+Failed runs retain their directories for inspection; choose new destinations
+when retrying rather than overwriting the evidence.
+
+On one Windows workstation (16 logical processors, approximately 40 GB RAM),
+five alternating fresh-process runs per implementation measured a native
+preparation median of 27.04 seconds before and 22.03 seconds after this change.
+Ranges were 26.27–27.28 and 21.81–23.16 seconds, with zero failures. Both used the
+same fixed invented input, R 4.6.1, survey 4.5, DuckDB 1.5.5 and the configuration
+above. Pre-run system CPU activity ranged from 3% to 29%; this was a desktop
+measurement rather than an isolated machine. Separate profiling attributed the
+removed work to row-wise mapping deduplication; native survey construction
+dominates the remaining sampled work. This measures narrow preparation only,
+with full analysis/export and licensed six-year validation still outstanding.
+
 Provide explicit analysis `columns`. Structural fields are included, while
 unrequested wide code columns are omitted from design memory. Collection is
 eager and has no verified large-data memory envelope. Missing outcomes are

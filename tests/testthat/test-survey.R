@@ -159,3 +159,37 @@ test_that("design declarations, structural rejection and exact large identifiers
   nis_close(session)
   expect_error(prepare_invented_design(data, "AGE"), "closed")
 })
+
+test_that("hospital mapping checks every row regardless of discharge order", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  paths <- character()
+  on.exit(unlink(paths), add = TRUE)
+  core <- nis_synthetic_data()$core
+  core$HOSP_NIS <- rep(c("01", "1", "02", "2"), each = 3L)
+  core$NIS_STRATUM <- rep(c("01", "1"), each = 6L)
+  import_core <- function(rows) {
+    path <- write_invented_parquet(session, rows)
+    paths <<- c(paths, path)
+    nis_import(session, path, 2022)
+  }
+  orders <- list(seq_len(12L), 12:1,
+    c(1L, 4L, 7L, 10L, 2L, 5L, 8L, 11L, 3L, 6L, 9L, 12L))
+  for (order in orders) {
+    rows <- core[order, ]
+    design <- prepare_invented_design(import_core(rows), "LOS")
+    expect_identical(design$design$variables$HOSP_NIS, rows$HOSP_NIS)
+    expect_identical(design$design$variables$NIS_STRATUM, rows$NIS_STRATUM)
+    expect_identical(design$population$hospitals, 4L)
+    expect_identical(design$population$strata, 2L)
+    reference <- survey::svydesign(ids = ~HOSP_NIS, strata = ~NIS_STRATUM,
+      weights = ~DISCWT, data = rows, nest = TRUE)
+    expect_equal(design$design$cluster, reference$cluster, ignore_attr = TRUE)
+    expect_equal(design$design$fpc, reference$fpc)
+    for (position in c(1L, 6L, 12L)) {
+      conflicting <- rows
+      conflicting$NIS_STRATUM[position] <- "99"
+      expect_error(prepare_invented_design(import_core(conflicting), "LOS"), "multiple strata")
+    }
+  }
+})

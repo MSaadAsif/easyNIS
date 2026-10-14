@@ -87,9 +87,10 @@ nis_survey_design <- function(data, columns, full_population, method, singleton)
   }
   hospital <- as.character(rows$HOSP_NIS)
   stratum <- as.character(rows$NIS_STRATUM)
-  pairs <- unique(data.frame(hospital = hospital, stratum = stratum,
-                             stringsAsFactors = FALSE))
-  if (anyDuplicated(pairs$hospital)) {
+  first_hospital <- !duplicated(hospital)
+  pairs <- data.frame(hospital = hospital[first_hospital],
+                      stratum = stratum[first_hospital], stringsAsFactors = FALSE)
+  if (any(stratum != pairs$stratum[match(hospital, pairs$hospital)])) {
     stop("A hospital occurs in multiple strata; review the supplied mapping.", call. = FALSE)
   }
   hospitals_per_stratum <- table(pairs$stratum)

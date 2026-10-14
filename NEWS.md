@@ -1,5 +1,11 @@
 # easyNIS 0.0.0.9000
 
+## Hospital/stratum validation
+
+- Replaced full-discharge data-frame deduplication with exact vector matching
+  against each hospital's first observed stratum. Every row is still checked;
+  conflicting mappings, singleton policies and native survey behavior are unchanged.
+
 ## Input-check walkthrough
 
 - Added an installed invented example and input guide distinguishing rejected
