@@ -70,6 +70,25 @@ one original-primary sum per relation and primary pairs; do not report full
 subset certification. Source cases live in `tests/testthat/test-disclosure.R`;
 the contract is `docs/DISCLOSURE.md`.
 
+The same function reviews one unchanged `nis_regression_table()` with
+`margins = list()`. Count every checked group by hand from the invented rows:
+the model's included rows and, for a zero/one response, events and nonevents;
+each fitted model-matrix column's two levels (with four outcome cells) or its
+nonzero and zero-valued rows; and every fitted factor or logical level,
+including the reference and zero-count levels. Use distinct native hospital IDs,
+including pooled reused IDs, against `min_hospitals`. Confirm a failed column
+also hides the intercept, a failed factor hides its terms and their marginal
+terms, a model failure hides every row and `unweighted_n`, and repeated terms
+share status. Exercise the equal-weight one-binary-predictor logistic table
+with each cell at 10 and 11 under `c(1, 10)`, both zero policies, a domain and
+an average annual pool. Altered table values, declarations or class, nonempty
+margins and export must be refused; caller objects must stay unchanged.
+Presentation must hold only declared, inference and policy columns, with `NA`
+for every hidden value and no audit counts. The installed smoke reviews a
+small factor level and a logistic slope. Source cases live in
+`tests/testthat/test-regression-disclosure.R`; the contract is
+`docs/REGRESSION-DISCLOSURE.md`.
+
 `nis_export_table()` writes a review's presentation to CSV, HTML or Word. Read the
 CSV back with `utils::read.csv()` and compare every shown numeric value with
 `identical()`; suppressed cells must be empty and audit fields absent. Check
@@ -80,8 +99,8 @@ CSV/HTML bytes and Word cell text must match, with caller options unchanged.
 Give a label beginning with `=` and an id beginning with `@`: `"refuse"`
 must name both cells and write nothing, `"prefix"` must read back with a
 leading `'`, and `"keep"` must write them unchanged.
-Confirm that descriptive and regression tables and modified reviews are
-refused, and that an existing file is replaced only with `overwrite = TRUE`.
+Confirm that descriptive and regression tables, regression reviews and
+modified reviews are refused, and that an existing file is replaced only with `overwrite = TRUE`.
 Read Word output back with `officer::docx_summary()` and compare every cell
 and note with the HTML export; search the unzipped XML for hidden values,
 convert it to PDF with Word when available and inspect the layout. A label
