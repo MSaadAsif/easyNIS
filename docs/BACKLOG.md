@@ -40,12 +40,15 @@ count was unchecked. The follow-up on
 one helper applying the descriptive row rule to each checked group's own
 values, adds the model missing check (a failure suppresses every row and
 `unweighted_n`, as the descriptive row is suppressed) and adds a consistency
-test against descriptive reviews of seven probe groups. Numeric predictors
-with three or more values stay uncrossed, a group's multi-valued response is
-checked only for nonzero rows (as a descriptive mean is), and the retained
-model frame is trusted; all are documented limitations. Focused invented cases
-pass 300 assertions with hand-counted references; descriptive code is
-unchanged. Precommit verification passes 2,820 package assertions, 216 tool
+test against descriptive reviews of seven probe groups. Review of `df4cb87`
+found that a shifted response such as `I(y + 1)` moved zeros past those checks;
+each raw source field of a transformed response is now also checked, and the
+consistency test covers ten probe groups. Numeric predictors with three or
+more values stay uncrossed, a group's multi-valued response is checked only for
+nonzero rows (as a descriptive mean is), and the retained model frame and
+sample counts are trusted; all are documented limitations. Focused invented
+cases pass 319 assertions with hand-counted references; descriptive code is
+unchanged. Precommit verification passes 2,839 package assertions, 216 tool
 assertions, source Status OK and installed workflows. The intercept,
 lower-order, joint-crossing and group rules suppress more than the first draft
 and need Saad and Ali's policy review. Regression-table export remains held

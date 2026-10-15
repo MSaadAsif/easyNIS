@@ -67,9 +67,11 @@
 #'   receives the descriptive row checks on its own included response values:
 #'   its size, its nonzero rows, its zero-valued rows when its values are all
 #'   zero/one or otherwise its smaller level when it has two values, each with
-#'   hospitals when nonempty. A two-valued response is first recoded to
-#'   zero/one. The groups are the model sample, which also checks its excluded
-#'   missing count against the range; each fitted model-matrix column's two
+#'   hospitals when nonempty. They apply to the fitted response, recoded to
+#'   zero/one when it has two values, and for a transformed response also to
+#'   each raw source field. The groups are the model sample, which also checks
+#'   its count of rows excluded for missingness against the range; each fitted
+#'   model-matrix column's two
 #'   levels, or its nonzero and zero-valued rows (a constant column other than
 #'   the intercept forms its nonzero group and, when nonzero everywhere, its
 #'   zero-valued group); every fitted level of each factor or logical
@@ -82,7 +84,8 @@
 #'   term containing its predictors and the lower-order terms within those
 #'   terms. Rows repeating a term share its status. Suppressed rows have `NA`
 #'   inference and `aliased` values. Numeric predictors with three or more
-#'   values are not crossed, and the retained fitted model frame is trusted.
+#'   values are not crossed, and the retained fitted model frame and sample
+#'   counts are trusted.
 #'   Differencing across models, disclosive weights, offsets and continuous
 #'   extremes are not checked.
 #' @export
@@ -455,43 +458,52 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     response <- as.double(response == max(values))
   }
   binary_response <- all(response %in% c(0, 1))
+  # A transformed response such as I(y + 1) can move zeros, so the raw source
+  # fields of the response are also checked with their descriptive values.
+  responses <- c(list(fitted = response), fit$sources)
   records <- list()
   record <- function(scope, target, check, level, value, outcome, count, hospitals,
-                     failed) {
+                     failed, source = NA_character_) {
     records[[length(records) + 1L]] <<- list(scope = scope, target = target, check = check,
-      level = level, value = value, outcome = outcome, count = as.double(count),
-      hospitals = as.double(hospitals), count_failed = failed,
+      level = level, value = value, outcome = outcome, source = source,
+      count = as.double(count), hospitals = as.double(hospitals), count_failed = failed,
       hospitals_failed = count > 0 && !is.na(hospitals) && hospitals < min_hospitals)
   }
   # Applies the descriptive row checks to the response values of one group of
   # rows: its size and, when nonempty, its nonzero rows and either its
   # zero-valued rows (own values zero/one) or its smaller level (two other
-  # values). Nonempty groups also need enough contributing hospitals.
+  # values), for the fitted response and each raw source field. Nonempty
+  # groups also need enough contributing hospitals.
   check_group <- function(scope, target, name, rows, level = NA_character_, value = NA_real_) {
-    prefix <- if (scope == "model") "" else paste0(name, "_")
-    y <- response[rows]
     h <- hospital[rows]
     distinct <- function(members) length(unique(h[members]))
     record(scope, target, name, level, value, NA_character_, length(rows), length(unique(h)),
       disclosive(length(rows)))
     # An empty group fails or passes on its zero count alone.
     if (!length(rows)) return(invisible())
-    nonzero <- y != 0
-    record(scope, target, paste0(prefix, "nonzero"), level, value, "nonzero", sum(nonzero),
-      distinct(nonzero), disclosive(sum(nonzero)))
-    if (all(y %in% c(0, 1))) {
-      record(scope, target, paste0(prefix, "zero_valued"), level, value, "zero_valued",
-        sum(!nonzero), distinct(!nonzero), disclosive(sum(!nonzero)))
-    } else if (length(unique(y)) == 2L) {
-      levels <- split(seq_along(y), match(y, unique(y)))
-      record(scope, target, paste0(prefix, "two_level"), level, value, "two_level",
-        min(lengths(levels)), min(vapply(levels, distinct, integer(1))),
-        in_range(min(lengths(levels))))
+    for (k in seq_along(responses)) {
+      source <- if (k == 1L) NA_character_ else names(responses)[[k]]
+      prefix <- paste0(if (scope == "model") "" else paste0(name, "_"),
+        if (k == 1L) "" else "source_")
+      y <- responses[[k]][rows]
+      nonzero <- y != 0
+      record(scope, target, paste0(prefix, "nonzero"), level, value, "nonzero", sum(nonzero),
+        distinct(nonzero), disclosive(sum(nonzero)), source)
+      if (all(y %in% c(0, 1))) {
+        record(scope, target, paste0(prefix, "zero_valued"), level, value, "zero_valued",
+          sum(!nonzero), distinct(!nonzero), disclosive(sum(!nonzero)), source)
+      } else if (length(unique(y)) == 2L) {
+        levels <- split(seq_along(y), match(y, unique(y)))
+        record(scope, target, paste0(prefix, "two_level"), level, value, "two_level",
+          min(lengths(levels)), min(vapply(levels, distinct, integer(1))),
+          in_range(min(lengths(levels))), source)
+      }
     }
   }
   every_row <- seq_len(nrow(x))
   check_group("model", NA_character_, "included", every_row)
-  # As in a descriptive row, excluded missing outcomes are checked against the range.
+  # As in a descriptive row, rows excluded for missingness in any model field are
+  # checked against the range.
   missing <- as.double(table$sample$excluded_missing)
   record("model", NA_character_, "missing", NA_character_, NA_real_, NA_character_, missing,
     NA_real_, in_range(missing))
@@ -559,7 +571,7 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
   field <- function(name, type) vapply(records, function(r) r[[name]], type)
   groups <- data.frame(scope = field("scope", ""), target = field("target", ""),
     check = field("check", ""), level = field("level", ""), value = field("value", 0),
-    outcome = field("outcome", ""), count = field("count", 0),
+    outcome = field("outcome", ""), source = field("source", ""), count = field("count", 0),
     hospitals = field("hospitals", 0), count_failed = field("count_failed", TRUE),
     hospitals_failed = field("hospitals_failed", TRUE), stringsAsFactors = FALSE)
   failures <- function(scope, target = NA_character_) {
@@ -683,6 +695,19 @@ regression_review_fit <- function(table) {
   column_variables <- lapply(attr(x, "assign"), function(j) {
     if (j == 0L) character() else term_variables[[j]]
   })
-  list(matrix = x, frame = frame, response = response, hospital = hospital,
+  # A named outcome is the fitted response itself; a transformed response also
+  # returns its raw source fields with descriptive value semantics.
+  fields <- if (identical(model$provenance$modeled_scale, "named_outcome")) character() else
+    model$provenance$response_fields
+  if (!is.character(fields) || !all(fields %in% names(model$design$variables))) inconsistent()
+  sources <- lapply(fields, function(field) {
+    value <- model$design$variables[[field]]
+    if (inherits(value, "integer64")) value <- as.double(as.character(value))
+    value <- as.double(value)
+    if (length(value) != nrow(x) || anyNA(value)) inconsistent()
+    value
+  })
+  names(sources) <- fields
+  list(matrix = x, frame = frame, response = response, hospital = hospital, sources = sources,
     levels = levels, term_variables = term_variables, column_variables = column_variables)
 }

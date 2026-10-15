@@ -83,9 +83,11 @@ declarations exactly; altered objects are refused. Each checked group
 receives the descriptive row checks on its own included response values:
 its size, its nonzero rows, its zero-valued rows when its values are all
 zero/one or otherwise its smaller level when it has two values, each with
-hospitals when nonempty. A two-valued response is first recoded to
-zero/one. The groups are the model sample, which also checks its excluded
-missing count against the range; each fitted model-matrix column's two
+hospitals when nonempty. They apply to the fitted response, recoded to
+zero/one when it has two values, and for a transformed response also to
+each raw source field. The groups are the model sample, which also checks
+its count of rows excluded for missingness against the range; each fitted
+model-matrix column's two
 levels, or its nonzero and zero-valued rows (a constant column other than
 the intercept forms its nonzero group and, when nonzero everywhere, its
 zero-valued group); every fitted level of each factor or logical
@@ -98,7 +100,8 @@ columns such as the intercept. A failed factor or cell suppresses every
 term containing its predictors and the lower-order terms within those
 terms. Rows repeating a term share its status. Suppressed rows have \code{NA}
 inference and \code{aliased} values. Numeric predictors with three or more
-values are not crossed, and the retained fitted model frame is trusted.
+values are not crossed, and the retained fitted model frame and sample
+counts are trusted.
 Differencing across models, disclosive weights, offsets and continuous
 extremes are not checked.
 }

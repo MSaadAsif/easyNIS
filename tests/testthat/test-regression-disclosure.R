@@ -931,8 +931,18 @@ regression_probe <- function(name) {
   rows$g <- rep(c(1, 2), each = 50L)
   b <- rep(c(0, 1, 2), length.out = 50L)
   probe <- list(columns = c("y", "g"), formula = y ~ group, family = "gaussian",
-    missing = "fail")
-  if (name %in% c("A1", "A3")) {
+    missing = "fail", zero = "display")
+  if (name == "T2") {
+    # Raw group A is 1, 2, 1 at rows 1-3 (hospitals 1-3) and otherwise zero; the
+    # fitted I(y + 1) moves every zero to one.
+    rows$y <- c(c(1, 2, 1), rep(0, 47L), b)
+    probe$formula <- I(y + 1) ~ group
+  } else if (name == "Q1") {
+    # Raw group A is all zero, which the zero policy hides; I(y + 2) is all two.
+    rows$y <- c(rep(0, 50L), b)
+    probe$formula <- I(y + 2) ~ group
+    probe$zero <- "suppress"
+  } else if (name %in% c("A1", "A3")) {
     # Group A is 0/1 with zeros at rows 1-3; group B cycles 0, 1, 2.
     rows$y <- c(rep(c(0, 1), c(3L, 47L)), b)
     if (name == "A3") probe$family <- "quasipoisson"
@@ -952,9 +962,10 @@ regression_probe <- function(name) {
       rows$y[1:3] <- NA
       probe$missing <- "exclude"
     } else {
+      # Rows 1, 30 and 60 (hospitals 1, 2 and 4) hold 1, 2 and 1; T1 fits I(y + 1).
       rows$y <- 0
       rows$y[c(1, 30, 60)] <- c(1, 2, 1)
-      probe$family <- "quasipoisson"
+      if (name == "T1") probe$formula <- I(y + 1) ~ 1 else probe$family <- "quasipoisson"
     }
   }
   c(list(rows = rows), probe)
@@ -963,7 +974,8 @@ regression_probe <- function(name) {
 regression_probe_review <- function(session, probe) {
   regression_review(regression_fit(session, probe$rows, probe$columns, probe$formula,
     probe$family, group = if ("g" %in% probe$columns) c("A", "B"),
-    sex = if ("s" %in% probe$columns) c("F", "M"), missing = probe$missing))
+    sex = if ("s" %in% probe$columns) c("F", "M"), missing = probe$missing),
+    zero = if (is.null(probe$zero)) "display" else probe$zero)
 }
 
 # The descriptive review of the same field, restricted to the same group, under
@@ -973,7 +985,8 @@ regression_probe_descriptive <- function(session, probe) {
   if (!all(probe$rows$in_group)) design <- nis_domain(design, "in_group", "fail")
   table <- nis_descriptive_table(design, data.frame(id = "y", field = "y", statistic = "mean",
     label = "Invented mean", unit = "outcome"), "exclude", 8, 0.95, "wr_unadjusted")
-  nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  nis_disclosure_review(table, c(1, 10), if (is.null(probe$zero)) "display" else probe$zero, 2,
+    list())
 }
 
 test_that("each checked group receives the descriptive row checks on its own values", {
@@ -1016,7 +1029,8 @@ test_that("regression reviews suppress whenever the descriptive review of the gr
   session <- nis_open()
   on.exit(nis_close(session))
   expected <- c(A1 = "zero_valued", A2 = "two_level", A3 = "zero_valued", A5 = "zero_valued",
-    M1 = "missing", N1b = "nonzero", P13 = "two_level")
+    M1 = "missing", N1b = "nonzero", P13 = "two_level", T1 = "nonzero", T2 = "nonzero",
+    Q1 = "nonzero")
   for (name in names(expected)) {
     probe <- regression_probe(name)
     descriptive <- regression_probe_descriptive(session, probe)
@@ -1026,4 +1040,34 @@ test_that("regression reviews suppress whenever the descriptive review of the gr
     expect_identical(review$audit$rows$disclosure_status[review$audit$rows$term == "(Intercept)"],
       "suppressed", info = name)
   }
+})
+
+test_that("a shifted response also checks its raw source field", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  t1 <- regression_probe_review(session, regression_probe("T1"))
+  # The fitted I(y + 1) is nonzero on all 100 rows; raw y is nonzero on 3.
+  expect_identical(regression_counts(t1, "model", nonzero = TRUE),
+    c(included = 100, nonzero = 100, source_nonzero = 3))
+  expect_identical(regression_counts(t1, "model", value = "hospitals", nonzero = TRUE),
+    c(included = 4, nonzero = 4, source_nonzero = 3))
+  expect_identical(t1$audit$groups$source[t1$audit$groups$check == "source_nonzero"], "y")
+  expect_identical(regression_reasons(t1), c("(Intercept)" = "model:source_nonzero"))
+  expect_identical(t1$presentation$unweighted_n, NA_real_)
+  t2 <- regression_probe_review(session, regression_probe("T2"))
+  expect_identical(regression_counts(t2, "factor", "group", nonzero = TRUE),
+    c("level:A" = 50, "level_nonzero:A" = 50, "level_source_nonzero:A" = 3,
+      "level:B" = 50, "level_nonzero:B" = 50, "level_source_nonzero:B" = 33))
+  expect_identical(regression_reasons(t2), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_source_nonzero;factor:group"))
+  q1 <- regression_probe_review(session, regression_probe("Q1"))
+  expect_identical(regression_counts(q1, "factor", "group", nonzero = TRUE),
+    c("level:A" = 50, "level_nonzero:A" = 50, "level_source_nonzero:A" = 0,
+      "level_source_zero_valued:A" = 50, "level:B" = 50, "level_nonzero:B" = 50,
+      "level_source_nonzero:B" = 33))
+  expect_identical(regression_reasons(q1), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_source_nonzero;factor:group"))
+  q1_display <- regression_review(regression_fit(session, regression_probe("Q1")$rows,
+    c("y", "g"), I(y + 2) ~ group, group = c("A", "B")))
+  expect_identical(unname(regression_status(q1_display)), c("shown", "shown"))
 })
