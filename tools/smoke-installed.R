@@ -73,6 +73,65 @@ cat("Installed input walkthrough passed statuses, repeatability, privacy and suc
     identical(flagged$flags$quality_flag$special_missing$values, c(invalid = "invl", inconsistent = "incn")))
 })()
 cat("Installed explicit character quality markers preserved raw reasons and unknown flags.\n")
+exercise_grouped <- function(session, year) {
+  core <- nis_synthetic_data(year)$core[rep(1L, 200), ]
+  core$KEY_NIS <- sprintf("%06d", 1:200)
+  core$HOSP_NIS <- sprintf("%04d", (seq_len(200) - 1L) %% 10L + 1L)
+  core$NIS_STRATUM <- rep(rep(1:2, each = 5L), length.out = 200)
+  core$DISCWT <- 5
+  core$group_source <- rep(c("one", "two"), each = 100)
+  core$T <- 1L
+  core$a <- as.integer(c(1:100 <= 40, 1:100 <= 45))
+  core$b <- as.integer(c(1:100 > 40, 1:100 > 45 & 1:100 <= 97))
+  core$c <- as.integer(c(rep(FALSE, 100), 1:100 > 97))
+  paths <- c(tempfile(fileext = ".parquet"), tempfile(fileext = ".csv"),
+    tempfile(fileext = ".csv"), tempfile(fileext = ".html"), tempfile(fileext = ".html"))
+  on.exit(unlink(paths), add = TRUE)
+  DBI::dbWriteTable(session$connection, "grouped_invented", core, overwrite = TRUE)
+  DBI::dbExecute(session$connection, paste0("COPY grouped_invented TO ",
+    DBI::dbQuoteString(session$connection, paths[[1]]), " (FORMAT PARQUET)"))
+  design <- nis_survey_design(nis_import(session, paths[[1]], year),
+    c("group_source", "T", "a", "b", "c"), TRUE, "hospital_wr", "fail")
+  factored <- nis_factor(design, "group_source", "group", c("one", "two", "unused"),
+    c("one", "two", "unused"))
+  spec <- data.frame(id = c("T", "a", "b", "c"), field = c("T", "a", "b", "c"),
+    statistic = "total", label = c("=Total <&>", "A", "B", "C"), unit = "count")
+  table <- nis_descriptive_table(factored, spec, "fail", 8, 0.95, "wr_unadjusted",
+    by = "group", group_missing = "fail")
+  margins <- list(list(total = "g1.T", parts = c("g1.a", "g1.b")),
+    list(total = "g2.T", parts = c("g2.a", "g2.b", "g2.c")))
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, margins)
+  stopifnot(identical(table$provenance$grouping$unused_levels, "unused"),
+    identical(review$presentation$disclosure_status,
+      c(rep("shown", 5), "suppressed_complementary", "shown", "suppressed_primary")))
+  refused <- tryCatch({
+    nis_export_table(review, paths[[2]], "csv", NULL, "refuse", FALSE); FALSE
+  }, error = function(e) grepl("formula", conditionMessage(e), fixed = TRUE))
+  stopifnot(refused, !file.exists(paths[[2]]))
+  for (path in paths[2:3]) nis_export_table(review, path, "csv", NULL, "prefix", FALSE)
+  for (path in paths[4:5]) nis_export_table(review, path, "html", NULL, NULL, FALSE)
+  classes <- ifelse(vapply(review$presentation, is.numeric, logical(1)), "numeric", "character")
+  csv <- utils::read.csv(paths[[2]], colClasses = classes, check.names = FALSE)
+  hidden <- review$presentation$disclosure_status != "shown"
+  stopifnot(identical(names(csv), c("id", "label", "statistic", "unit", "estimand", "estimate",
+    "se", "lower", "upper", "df", "confidence", "unweighted_n", "disclosure_status")),
+    identical(csv$disclosure_status, review$presentation$disclosure_status),
+    identical(csv$label[[1]], "'=Total <&> | group = one"))
+  for (column in c("estimate", "se", "lower", "upper", "unweighted_n")) {
+    stopifnot(all(is.na(csv[[column]][hidden])),
+      identical(csv[[column]][!hidden], review$presentation[[column]][!hidden]))
+  }
+  html <- xml2::read_html(paths[[4]])
+  cells <- lapply(xml2::xml_find_all(html, "//tbody/tr"), function(row) {
+    xml2::xml_text(xml2::xml_find_all(row, "td"))
+  })
+  for (i in which(hidden)) stopifnot(identical(cells[[i]][c(5:7, 9)], rep("Suppressed", 4)))
+  stopifnot(identical(cells[[1]][[1]], "=Total <&> | group = one"),
+    !any(grepl("count_identity|margin_count|predicate|group_source|.parquet", readLines(paths[[4]]))),
+    identical(readLines(paths[[2]]), readLines(paths[[3]])),
+    identical(readLines(paths[[4]]), readLines(paths[[5]])))
+}
+
 exercise_year <- function(year) {
   fixture <- nis_synthetic_data(year)
   core <- fixture$core
@@ -223,19 +282,7 @@ exercise_year <- function(year) {
   }
   factored <- nis_factor(design, "support_group", "declared_support", c("A", "B", "EMPTY"),
     c("A", "B", "EMPTY"))
-  grouped_table <- nis_descriptive_table(factored,
-    data.frame(id = "los", field = "LOS", statistic = "mean", label = "LOS", unit = "days"),
-    "exclude", 2, 0.95, "wr_unadjusted", by = "declared_support", group_missing = "fail")
-  grouped_review_refused <- tryCatch({
-    nis_disclosure_review(grouped_table, c(1, 10), "display", 1, list()); FALSE
-  }, error = function(e) grepl("Grouped descriptive tables", conditionMessage(e), fixed = TRUE))
-  grouped_export_path <- tempfile(fileext = ".csv")
-  grouped_export_refused <- tryCatch({
-    nis_export_table(grouped_table, grouped_export_path, "csv", NULL, "refuse", FALSE); FALSE
-  }, error = function(e) grepl("Only a nis_disclosure_review", conditionMessage(e), fixed = TRUE))
-  stopifnot(identical(grouped_table$data$id, c("g1.los", "g2.los")),
-    identical(grouped_table$provenance$grouping$unused_levels, "EMPTY"),
-    grouped_review_refused, grouped_export_refused, !file.exists(grouped_export_path))
+  exercise_grouped(session, year)
   declared_fit <- nis_model(factored, LOS ~ declared_support, "gaussian", "exclude",
     2, 0.95, "wr_unadjusted")
   stopifnot(identical(factored$design$variables$support_group, core$support_group),
@@ -256,7 +303,7 @@ exercise_year <- function(year) {
     identical(as.numeric(support[2L, -1L]), c(6, 6, 18, 2)),
     identical(as.numeric(support[3L, -1L]), c(0, 0, 0, 0)))
   cat("Invented year", year, "passed installed factor support counts.\n")
-  cat("Invented year", year, "passed grouped numeric API and disclosure/export refusal.\n")
+  cat("Invented year", year, "passed grouped joint disclosure and CSV/HTML exports.\n")
   cat("Invented year", year, "passed single/batch model links against independent intercept references.\n")
   for (kind in c("transformed_gaussian", "offset_poisson")) {
     keep <- !is.na(core$LOS)

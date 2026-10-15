@@ -18,10 +18,20 @@ Optional numeric grouping uses an exact factor field and an explicit missing-gro
 policy. Check ordered observed levels and unused-level provenance, independent WR
 references including hospitals with no group members, outcome-specific missing
 counts, standalone domain parity, preexisting domains and pooled reused IDs.
-Review and CSV/HTML/Word exports must reject a grouped numeric table before
-returning or writing. The installed smoke covers grouped construction and review/
-export refusal. Source cases live in `tests/testthat/test-descriptive-table.R`;
-the smoke path is `tools/smoke-installed.R`.
+Review the complete grouped constructor result in one call and export its
+presentation to CSV/HTML and supported Word. Verify repeated field statistics
+share suppression within a domain while a safe other group stays shown.
+Exercise independent unequal group partitions, cross-group protected pairs,
+nested margins, group-specific binary scales, missingness and whole-table n
+differences. Hospital unions count shared hospitals once and retain pooled
+year-specific IDs. Reject inconsistent grouping provenance and retained group
+membership. Internal identity keys, domain history and audit counts must stay
+out of presentation and exports. Unreviewed numeric objects still refuse export.
+Source cases live in `tests/testthat/test-grouped-disclosure.R` and
+`tests/testthat/test-descriptive-table.R`. The installed six-year smoke path in
+`tools/smoke-installed.R` uses factor -> grouped table -> one joint review ->
+CSV/HTML, checking primary/complementary suppression, exact visible values,
+formula defense, escaped text and repeatable output.
 
 The full installed smoke runs this path for all six invented year labels.
 

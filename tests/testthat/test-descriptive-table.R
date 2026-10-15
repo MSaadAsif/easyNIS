@@ -245,10 +245,10 @@ test_that("grouped numeric tables use ordered factor domains and retain native e
         unname(ref), tolerance = 1e-12)
     }
   }
-  expect_error(nis_disclosure_review(result, c(1, 10), "display", 1, list()),
-    "Grouped descriptive tables")
+  expect_s3_class(nis_disclosure_review(result, c(1, 10), "display", 1, list()),
+    "nis_disclosure_review")
   expect_error(nis_disclosure_review(result, c(1, 10), "display", 1,
-    list(list(total = "g1.mean", parts = c("g2.mean")))), "Grouped descriptive tables")
+    list(list(total = "g1.mean", parts = c("g2.mean")))), "does not equal")
   expect_error(nis_descriptive_table(factored, spec, "exclude", 2, 0.95,
     "wr_unadjusted", by = "group `field", group_missing = "fail"), "missing membership")
   expect_error(nis_descriptive_table(factored, spec, "exclude", 2, 0.95,
