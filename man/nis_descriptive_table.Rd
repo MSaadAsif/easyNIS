@@ -4,7 +4,16 @@
 \alias{nis_descriptive_table}
 \title{Calculate an experimental numeric descriptive table}
 \usage{
-nis_descriptive_table(design, specification, missing, df, confidence, variance)
+nis_descriptive_table(
+  design,
+  specification,
+  missing,
+  df,
+  confidence,
+  variance,
+  by = NULL,
+  group_missing = NULL
+)
 }
 \arguments{
 \item{design}{An experimental \code{\link[=nis_survey_design]{nis_survey_design()}}, \code{\link[=nis_pool_design]{nis_pool_design()}} or
@@ -22,6 +31,12 @@ applying the policy separately to each declared field.}
 \item{confidence}{Numeric scalar strictly between zero and one.}
 
 \item{variance}{Explicitly choose \code{"wr_unadjusted"}.}
+
+\item{by}{Optional exact retained standard factor field. Group rows follow
+its observed factor-level order; unused declared levels produce no rows.}
+
+\item{group_missing}{With \code{by}, explicitly choose \code{"fail"} or \code{"exclude"}
+for missing group membership. This policy is required only when grouping.}
 }
 \value{
 A \code{nis_descriptive_table} list with declaration columns and numeric
