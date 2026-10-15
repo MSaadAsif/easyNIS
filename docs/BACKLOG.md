@@ -14,7 +14,7 @@ grouped review/export criterion is complete.
 The next bounded NIS-019 increment reviews one regression table under the
 caller's explicit suppression policy. See
 [REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md) for model, coefficient-column,
-factor-level, joint-cell and response-value checks and their conservative
+factor-level, joint-cell and response-split checks and their conservative
 intercept and lower-order suppression. Independent review of `a057116` found
 unchecked factor-by-factor cells (a 3-row reference cell disclosed by a shown
 intercept) and all-zero non-intercept columns that bypassed the zero policy.
@@ -22,17 +22,21 @@ Review of `f06a51b` found a 1/2-coded response that skipped outcome cells and
 an additive model saturated by an empty cell. Broader rules now treat every
 two-valued response as binary, cross all factor, logical and two-valued
 predictors jointly (refusing crossings over 10000 cells) and check both empty
-groups of constant non-intercept columns. Numeric predictors with three or more
-values stay uncrossed, and the retained model frame is trusted; both are
-documented limitations. Regression-table export remains refused and is the
-following NIS-020 increment. Focused invented cases pass 232 assertions with
+groups of constant non-intercept columns. Review of `78c0760` found that a
+response with three or more values had no response checks; every group of
+such a response now checks its nonzero-response rows, matching the descriptive
+`nonzero` rule, and every column group is split by response. Numeric
+predictors with three or more values stay uncrossed, splits of a multi-valued
+response beyond nonzero are unchecked, and the retained model frame is trusted;
+all are documented limitations. Regression-table export remains refused and is
+the following NIS-020 increment. Focused invented cases pass 259 assertions with
 hand-counted references; 27 old/new ordinary and grouped descriptive reviews
-serialize identically. Precommit verification passes 2,752 package assertions,
+serialize identically. Precommit verification passes 2,779 package assertions,
 216 tool assertions, source Status OK and installed workflows. The intercept,
-lower-order and joint-crossing rules suppress more than the first draft and
-need Saad and Ali's policy review. Clean-head verification, independent review
-and protected hosted checks remain required. No scientific or annual
-support is promoted.
+lower-order, joint-crossing and response-split rules suppress more than the
+first draft and need Saad and Ali's policy review. Clean-head verification,
+independent review and protected hosted checks remain required. No scientific
+or annual support is promoted.
 
 Numeric factor grouping merged in
 [PR #43](https://github.com/MSaadAsif/easyNIS/pull/43); all five resulting main

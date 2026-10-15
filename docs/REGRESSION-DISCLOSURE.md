@@ -20,8 +20,9 @@ describe those discharges. The review therefore checks bounded unweighted
 analysis-sample groups: the model sample; each fitted model-matrix column's
 levels, or its nonzero and zero-valued rows; each fitted factor or logical
 level; and every cell of the joint crossing of all factor, logical and
-two-valued numeric predictors in the model. With a two-valued response, each
-of these groups is also split by response value. The caller's explicit policy
+two-valued numeric predictors in the model. Each of these groups is also
+split by response: into event and nonevent rows for a two-valued response, or
+otherwise into its rows with a nonzero response. The caller's explicit policy
 applies throughout. It does not check every group a fitted
 model implicitly depends on; see the limitations.
 
@@ -55,9 +56,20 @@ their coding (1/2, 0/2 or a transformed 0/1 outcome). The event is the value 1
 (or `TRUE`) for a logical or zero/one response and otherwise the upper value;
 the other value is the nonevent.
 
+Every checked group below is split by response, and each split is itself a
+checked group with the same range, zero and hospital policies and the same
+consequences as its parent group. For a binary response the splits are the
+event and nonevent rows (`<check>_events`, `<check>_nonevents`). Any other
+response is checked like a descriptive field: the split is the rows with a
+nonzero response (`<check>_response_nonzero`). Its zero-valued complement is
+not checked, as in the descriptive review, so a strictly positive outcome is
+not suppressed for having no zero values. Other splits of a multi-valued
+response are not checked.
+
 1. Model checks. The included count and its hospitals. For a binary response,
-   the event and nonevent counts and their hospitals. Any failure suppresses
-   every row (`model:<check>`).
+   the event and nonevent counts, otherwise the nonzero-response count
+   (`response_nonzero`), with their hospitals. Any failure suppresses every
+   row (`model:<check>`).
 2. Coefficient column checks, using every fitted model-matrix column,
    declared or not:
    - The intercept has no checks of its own. Any other constant column checks
@@ -72,6 +84,8 @@ the other value is the nonevent.
      `lower_level_nonevents`, `upper_level_events`, `upper_level_nonevents`).
    - A column with three or more distinct values checks its nonzero count and,
      when present, its zero-valued count (`nonzero`, `zero_valued`).
+   Every column group is split by response as described above; the
+   two-valued column names show the binary case.
    A failure suppresses that column's rows (`column:<check>`, or
    `column:hospitals_<check>` for a hospital failure). It also suppresses the
    rows of every constant column (`reference:<term>`), even when the failed
@@ -120,8 +134,9 @@ These conservative choices were recorded while implementing the contract:
 - `nis_model()` refuses character predictors, so only factor and logical
   predictors arise. A fitted frame whose factor or logical predictors or levels
   differ from the retained `factors` is refused.
-- The response is the fitted model response, so a transformed Gaussian
-  response is binary only when its transformed values are zero or one.
+- The response is the fitted model response, so a transformed response
+  follows the binary rule above on its transformed values: `log1p(y)` with `y`
+  in {0, 1} has two distinct values and is binary.
 
 Independent review of the first implementation added these checks:
 
@@ -152,6 +167,15 @@ time, these broader rules replace them:
 - A constant nonzero column other than the intercept checks its zero-valued
   count, mirroring the all-zero case.
 
+A third review found that a response with three or more distinct values had
+no response checks at all: in `y ~ group` with group A holding three `y = 1`
+values among zeros and group B adding 2s, the intercept recovered the 3-row
+total, and `y ~ 1` with 3 of 100 nonzero values was shown although the
+descriptive review of the same field suppresses it (`nonzero`). One fractional
+value also turned a 0/1 response non-binary and disabled its checks. Every
+group of a non-binary response now checks its nonzero-response rows, and every
+column group, not only two-valued columns, is split by response.
+
 ## Result
 
 The result keeps the `nis_disclosure_review` class, with `presentation`,
@@ -172,6 +196,10 @@ outcome, count, hospitals and failures) and `rows` (each declared row's reasons
 and status). `nis_export_table()` refuses regression reviews.
 
 ## Limitations
+
+For a multi-valued response only the nonzero-response rows of each group are
+checked. A small count of any particular nonzero value, a small zero-valued
+group within a group, or extreme response values can still be revealed.
 
 The bounded checks do not address differencing across separately fitted models
 or tables, weights that are themselves disclosive, offsets, continuous-predictor
@@ -204,7 +232,11 @@ factor-by-continuous interaction; factor-by-factor and 0/1-by-0/1
 interactions with a small reference cell; a small non-reference cell only; a
 three-way interaction; factor by logical and factor by a non-0/1 two-valued
 numeric predictor; an additive model saturated by an empty cell; a 1/2-coded
-response matching its 0/1 coding; an empty interaction cell, an all-zero
+response matching its 0/1 coding; a three-valued response with a small
+nonzero group under Gaussian and quasipoisson fits; a sparse `y ~ 1` response
+also suppressed by the descriptive review; a 0/1 response with one fractional
+value; a strictly positive response that stays shown; a joint cell failing
+only on hospitals; an empty interaction cell, an all-zero
 indicator and an all-one indicator under both zero policies; a crossing over
 10000 cells refused; a count of exactly one; outcome
 and predictor missingness that excludes a whole hospital; a two-valued non-0/1
