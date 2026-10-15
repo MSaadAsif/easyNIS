@@ -100,8 +100,8 @@ columns such as the intercept. A failed factor or cell suppresses every
 term containing its predictors and the lower-order terms within those
 terms. Rows repeating a term share its status. Suppressed rows have \code{NA}
 inference and \code{aliased} values. Numeric predictors with three or more
-values are not crossed, and the retained fitted model frame and sample
-counts are trusted.
+values are not crossed. The retained fitted model frame, sample counts,
+response-field provenance and design variables are trusted.
 Differencing across models, disclosive weights, offsets and continuous
 extremes are not checked.
 }

@@ -88,8 +88,11 @@ join the group name and the split, for example `level_zero_valued` or
 
 1. Model sample. The group rule applies to all included rows (`included`). The
    count of rows excluded for missingness in any model field (`missing`) is
-   checked against the range only. This is stricter than a descriptive row,
-   which counts only missing outcomes. Any failure suppresses every row and
+   checked against the range only. This combined count differs from a
+   descriptive row's count of missing outcomes: when predictors are also
+   missing, a combined count above the range can pass while the outcome-only
+   count would fail, and it is the combined count that `unweighted_n` and the
+   supplied count reveal. Any failure suppresses every row and
    `unweighted_n` (`model:<check>`); a failed missing check suppresses the
    rows, as the descriptive review suppresses its row, because `unweighted_n`
    and the supplied count together reveal it.
@@ -230,8 +233,11 @@ example, in `event ~ group * x` with `x` in {0, 1, 2}, if group A has only
 intercept recovers the 3-row cell, while every checked group passes. Joint
 cells of additively combined predictors are checked (item 4), but other
 coefficients remain model-based combinations of groups that are not all
-enumerated. The retained fitted model frame, model matrix and sample counts
-(`excluded_missing` and `supplied`) are trusted: they must match the table's
+enumerated. The missing-outcome count alone is not checked when other model
+fields are also missing; only the combined excluded count is. The retained
+fitted model frame, model matrix, sample counts (`excluded_missing` and
+`supplied`), the provenance `modeled_scale` and `response_fields`, and the
+retained design variables used for raw source-field checks are trusted: they must match the table's
 coefficients, but a deliberately forged internal frame or sample count is not
 recomputed from the retained design and is not detected. A
 domain or complete-case exclusion that removes a declared factor level
