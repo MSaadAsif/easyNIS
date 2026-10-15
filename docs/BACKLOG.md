@@ -6,6 +6,19 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+**Hold on regression export (NIS-020).** Regression-table disclosure review
+merged in [PR #45](https://github.com/MSaadAsif/easyNIS/pull/45) at `c77ac7c` on a
+VERIFIED receipt, while a concurrent independent review of the same head
+(`a8c7e3f`) found one blocking leak: response binary/two-level status is decided
+from the whole response, so a group whose own values are 0/1 within a
+multi-valued response gets only a nonzero check and a shown coefficient can
+reveal a 3-row count that the descriptive review of the same field suppresses.
+The missing-outcome count is also unchecked. A follow-up PR on
+`claude/easynis-regression-disclosure-groups` applies the descriptive row rule
+to every checked group. Do not merge regression-table export until that
+follow-up merges; its exporter must recompute the corrected review. Two writers
+also shared the main checkout; parallel writers need separate worktrees.
+
 Grouped joint disclosure review merged in
 [PR #44](https://github.com/MSaadAsif/easyNIS/pull/44); all five resulting main
 jobs passed at `2d12519c5f1288d4ebd39ef930ad45a24bcbc9dd`. NIS-035's bounded
