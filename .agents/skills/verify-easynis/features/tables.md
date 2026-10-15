@@ -74,6 +74,8 @@ The same function reviews one unchanged `nis_regression_table()` with
 `margins = list()`. Every checked group receives the descriptive row checks on
 its own response values: size, nonzero rows, and zero-valued rows when the
 group's own values are 0/1 or its smaller level when it has two other values.
+A transformed response such as `I(y + 1)` must also check its raw source field,
+so a shift cannot move zeros past the nonzero and zero-policy checks.
 Count every group by hand from the invented rows: the model's included rows
 and excluded missing count; each fitted model-matrix column's two levels or its
 nonzero and zero-valued rows; every fitted factor or logical level, including
@@ -83,8 +85,9 @@ predictors, interacting or additive. A two-valued response such as 1/2 is
 recoded to 0/1 and must match its 0/1 coding. For several probe groups, review
 the same field restricted to the group with the descriptive review and confirm
 the regression review suppresses whenever it does: a 0/1 or 1/2 group inside a
-multi-valued response, a 0/1 joint cell, three missing outcomes and a sparse
-`y ~ 1` response. A strictly positive response must stay shown, and all-zero
+multi-valued response, a 0/1 joint cell, three missing outcomes, a sparse
+`y ~ 1` response, its shifted `I(y + 1) ~ 1` and grouped forms, and an all-zero
+raw group behind `I(y + 2)` under `zero = "suppress"`. A strictly positive response must stay shown, and all-zero
 and all-one non-intercept columns must follow the zero policy. Use distinct native hospital IDs,
 including pooled reused IDs, against `min_hospitals`. Confirm a failed column
 also hides the intercept, a failed factor hides its terms and their marginal

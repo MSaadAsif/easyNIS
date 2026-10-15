@@ -19,7 +19,8 @@ level or interaction cell containing a few discharges yields coefficients that
 describe those discharges, much as a descriptive mean of that group would.
 
 The review therefore applies one rule: each checked group receives the
-descriptive row checks on its own response values. The checked groups are the
+descriptive row checks on its own response values, both the fitted response
+and, for a transformed response, each raw source field. The checked groups are the
 model sample, each fitted model-matrix column's groups, each fitted factor or
 logical level and every cell of the joint crossing of all factor, logical and
 two-valued numeric predictors. The caller's explicit policy applies
@@ -50,14 +51,23 @@ distinct native first-level cluster identifiers among those rows, so pooled
 reused identifiers remain distinct by year. Two values are distinct only under
 exact numeric equality.
 
-The response is the fitted model response, so a transformed response is
-checked on its transformed values. A response with exactly two distinct values
-that are not 0/1 (for example 1/2, 0/2 or -1/1) is first recoded to 0/1, with
-the upper value as 1. Every coding of a two-valued outcome therefore receives
-the same checks as its 0/1 coding.
+The fitted model response is checked on its fitted values. A fitted response
+with exactly two distinct values that are not 0/1 (for example 1/2, 0/2 or
+-1/1) is first recoded to 0/1, with the upper value as 1. Every coding of a
+two-valued outcome therefore receives the same checks as its 0/1 coding.
 
-For a group of rows with response values `y`, the descriptive row checks of
-[DISCLOSURE.md](DISCLOSURE.md) are applied to `y` restricted to the group:
+A transformed response, such as `I(y + 1)`, `I(y - 5)` or `log1p(y)`, can move
+zeros or merge values, so each raw source field named by the model
+(`response_fields` in its provenance) is also checked. Its values are taken
+from the retained design variables over the same fitted rows, with the
+descriptive value semantics of [DISCLOSURE.md](DISCLOSURE.md) (logical values
+as 0/1, no recoding). Its splits are named with `source_`, for example
+`source_nonzero` or `level_source_zero_valued`, and the audit records the field
+in `source`. A named outcome is its own source field, so it is checked once.
+
+For a group of rows and each response vector `y` above, the descriptive row
+checks of [DISCLOSURE.md](DISCLOSURE.md) are applied to `y` restricted to the
+group:
 
 - its size, under the range and zero policies;
 - when nonempty, its rows with a nonzero response (`nonzero`), under the range
@@ -76,9 +86,10 @@ join the group name and the split, for example `level_zero_valued` or
 `cell_nonzero`; for the model sample the splits are plain `nonzero`,
 `zero_valued` and `two_level`.
 
-1. Model sample. The group rule applies to all included rows (`included`). As
-   in a descriptive row, the excluded missing-outcome count (`missing`) is
-   checked against the range only. Any failure suppresses every row and
+1. Model sample. The group rule applies to all included rows (`included`). The
+   count of rows excluded for missingness in any model field (`missing`) is
+   checked against the range only. This is stricter than a descriptive row,
+   which counts only missing outcomes. Any failure suppresses every row and
    `unweighted_n` (`model:<check>`); a failed missing check suppresses the
    rows, as the descriptive review suppresses its row, because `unweighted_n`
    and the supplied count together reveal it.
@@ -140,7 +151,7 @@ These conservative choices were recorded while implementing the contract:
 - `nis_model()` refuses character predictors, so only factor and logical
   predictors arise. A fitted frame whose factor or logical predictors or levels
   differ from the retained `factors` is refused.
-- Recoding a two-valued response to 0/1 checks both levels under the zero
+- Recoding a two-valued fitted response to 0/1 checks both levels under the zero
   policy. This covers the descriptive `two_level` check of a group with both
   values and also checks a group lacking one value.
 
@@ -172,6 +183,12 @@ Four independent reviews each found an unchecked group.
    consistency test reviews the same field restricted to each probe group with
    the descriptive review and requires the regression review to suppress
    whenever the descriptive review does.
+5. The group rule ran only on the fitted response. A shifted response such as
+   `I(y + 1)` moved every zero to a nonzero value, so `I(y + 1) ~ 1` published
+   a 3-discharge sum that `y ~ 1` and the descriptive review of `y` suppress,
+   and `I(y + 2) ~ group` showed an all-zero group under `zero = "suppress"`.
+   Each raw source field of a transformed response is now also checked, and
+   the consistency test covers these probes.
 
 ## Result
 
@@ -189,16 +206,19 @@ per-group counts, hospital counts and reasons stay in the local audit and are
 never presentation columns. The audit is a list: `sample` (supplied, included
 and missing rows, hospitals and whether the possibly recoded response is
 zero/one), `groups` (one row per checked group with its scope, target, check,
-level or column value, response split, count, hospitals and failures) and
+level or column value, response split, raw source field when applicable,
+count, hospitals and failures) and
 `rows` (each declared row's reasons and status). `nis_export_table()` refuses
 regression reviews.
 
 ## Limitations
 
-The group rule checks the same response splits as a descriptive row and no
-others. For a group with three or more distinct response values, only its
-nonzero rows are checked: a small count of one particular value, or extreme
-response values, can still be revealed, as for a descriptive mean.
+For the fitted response and each raw source field, the group rule checks the
+same splits as a descriptive row of that field and no others. For a group with
+three or more distinct values, only its nonzero rows are checked: a small count
+of one particular value, or extreme response values, can still be revealed, as
+for a descriptive mean. A response built from several source fields, such as
+`I(y1 + y2)`, checks each field separately, not their combinations.
 
 The bounded checks do not address differencing across separately fitted models
 or tables, weights that are themselves disclosive, offsets, continuous-predictor
@@ -210,9 +230,10 @@ example, in `event ~ group * x` with `x` in {0, 1, 2}, if group A has only
 intercept recovers the 3-row cell, while every checked group passes. Joint
 cells of additively combined predictors are checked (item 4), but other
 coefficients remain model-based combinations of groups that are not all
-enumerated. The retained fitted model frame and model matrix are trusted: they
-must match the table's coefficients, but a deliberately forged internal frame
-is not compared with the retained design variables and is not detected. A
+enumerated. The retained fitted model frame, model matrix and sample counts
+(`excluded_missing` and `supplied`) are trusted: they must match the table's
+coefficients, but a deliberately forged internal frame or sample count is not
+recomputed from the retained design and is not detected. A
 domain or complete-case exclusion that removes a declared factor level
 entirely leaves it out of the fitted levels, so it is not checked, and its
 absence from the table is visible to a reader who knows the declared levels.
@@ -236,7 +257,9 @@ numeric predictor; an additive model saturated by an empty cell; a 1/2-coded
 response matching its 0/1 coding; a three-valued response with a small
 nonzero group under Gaussian and quasipoisson fits; a 0/1 or 1/2 group inside a
 multi-valued response (Gaussian and quasipoisson) and a 0/1 joint cell inside
-one; a sparse `y ~ 1` response; three missing outcomes; a consistency test that
+one; a sparse `y ~ 1` response; three missing outcomes; a shifted `I(y + 1)`
+response, alone and by group, and an all-zero raw group behind `I(y + 2)`
+under `zero = "suppress"`; a consistency test that
 the regression review suppresses whenever the descriptive review of the same
 field restricted to the same group does; a 0/1 response with one fractional
 value; a strictly positive response that stays shown; a joint cell failing
