@@ -23,6 +23,10 @@
 #'   `disclosure_status`. Hospital counts use distinct native first-level
 #'   cluster IDs among included observations. `analysis_ready` is always FALSE.
 #'   If any row fails, the call errors without returning a partial table.
+#' @param by Optional exact retained standard factor field. Group rows follow
+#'   its observed factor-level order; unused declared levels produce no rows.
+#' @param group_missing With `by`, explicitly choose `"fail"` or `"exclude"`
+#'   for missing group membership. This policy is required only when grouping.
 #' @export
 #' @examples
 #' if (requireNamespace("survey", quietly = TRUE)) {
@@ -46,7 +50,8 @@
 #'   nis_close(session)
 #'   unlink(path)
 #' }
-nis_descriptive_table <- function(design, specification, missing, df, confidence, variance) {
+nis_descriptive_table <- function(design, specification, missing, df, confidence, variance,
+                                  by = NULL, group_missing = NULL) {
   if (base::missing(missing) || base::missing(df) || base::missing(confidence) ||
       base::missing(variance)) {
     stop("Choose explicit `missing`, `df`, `confidence` and `variance` policies.",
@@ -85,6 +90,68 @@ nis_descriptive_table <- function(design, specification, missing, df, confidence
   if (any(!specification$field %in% fields)) {
     stop("Every specification field must exactly match a retained design column.",
          call. = FALSE)
+  }
+  if (is.null(by)) {
+    if (!is.null(group_missing)) stop("`group_missing` requires `by`.", call. = FALSE)
+  } else {
+    check_string(by, "by")
+    if (!by %in% fields) stop("Grouping field must exactly match a retained design column.", call. = FALSE)
+    group <- design$design$variables[[by]]
+    if (!identical(class(group), "factor") || !is.null(dim(group))) {
+      stop("`by` must name an exact retained standard unordered factor.", call. = FALSE)
+    }
+    extra_attributes <- setdiff(names(attributes(group)), c("levels", "class", "names"))
+    if (length(extra_attributes)) {
+      stop("`by` must be a standard factor without additional attributes.", call. = FALSE)
+    }
+    group_levels <- levels(group)
+    if (!is.character(group_levels) || is.object(group_levels) ||
+        !is.null(dim(group_levels)) || !is.null(attributes(group_levels)) || anyNA(group_levels) ||
+        any(!nzchar(trimws(group_levels))) || anyDuplicated(group_levels)) {
+      stop("Grouping factor levels must be unique, nonmissing, nonblank plain character labels.",
+           call. = FALSE)
+    }
+    if (any(!is.na(group) & is.na(as.character(group)))) {
+      stop("Grouping factor contains invalid level codes.", call. = FALSE)
+    }
+    if (base::missing(group_missing) || is.null(group_missing)) {
+      stop("Choose explicit `group_missing = \"fail\"` or `\"exclude\"` when grouping.", call. = FALSE)
+    }
+    check_string(group_missing, "group_missing")
+    if (!group_missing %in% c("fail", "exclude")) {
+      stop("`group_missing` must be exactly \"fail\" or \"exclude\".", call. = FALSE)
+    }
+    unknown <- sum(is.na(group))
+    if (group_missing == "fail" && unknown > 0L) {
+      stop("Grouping field contains missing membership; choose exclusion or resolve it.", call. = FALSE)
+    }
+    observed <- group_levels[group_levels %in% as.character(group[!is.na(group)])]
+    unused <- group_levels[!group_levels %in% observed]
+    if (!length(observed)) stop("Grouping field has no observed groups.", call. = FALSE)
+    grouped <- lapply(seq_along(observed), function(g) {
+      level <- observed[[g]]
+      predicate <- stats::as.formula(call("~", call("==", as.name(by), level)), env = baseenv())
+      domain <- nis_domain(design, predicate, group_missing)
+      part <- nis_descriptive_table(domain, specification, missing, df, confidence, variance)
+      part$data$id <- paste0("g", g, ".", part$data$id)
+      part$data$label <- paste0(part$data$label, " | ", by, " = ", level)
+      names(part$results) <- part$data$id
+      list(data = part$data, results = part$results)
+    })
+    data <- do.call(rbind, lapply(grouped, `[[`, "data"))
+    rownames(data) <- NULL
+    results <- unlist(lapply(grouped, `[[`, "results"), recursive = FALSE)
+    declarations <- data[, c("id", "field", "statistic", "label", "unit"), drop = FALSE]
+    provenance <- list(declarations = declarations,
+      policies = list(missing = missing, df = df, confidence = confidence,
+                      variance = variance, interval_scope = "pointwise"),
+      constructor = design$provenance, population = design$population,
+      domains = design$domains,
+      grouping = list(field = by, observed_levels = observed, unused_levels = unused,
+        unknown = as.double(unknown), missing = group_missing),
+      scope = "experimental_numeric_descriptive_table", analysis_ready = FALSE)
+    return(structure(list(data = data, results = results, provenance = provenance),
+      class = "nis_descriptive_table"))
   }
   estimates <- lapply(seq_len(nrow(specification)), function(i) {
     nis_estimate(design, specification$field[[i]], specification$statistic[[i]],

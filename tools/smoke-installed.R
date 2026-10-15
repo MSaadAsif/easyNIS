@@ -223,6 +223,19 @@ exercise_year <- function(year) {
   }
   factored <- nis_factor(design, "support_group", "declared_support", c("A", "B", "EMPTY"),
     c("A", "B", "EMPTY"))
+  grouped_table <- nis_descriptive_table(factored,
+    data.frame(id = "los", field = "LOS", statistic = "mean", label = "LOS", unit = "days"),
+    "exclude", 2, 0.95, "wr_unadjusted", by = "declared_support", group_missing = "fail")
+  grouped_review_refused <- tryCatch({
+    nis_disclosure_review(grouped_table, c(1, 10), "display", 1, list()); FALSE
+  }, error = function(e) grepl("Grouped descriptive tables", conditionMessage(e), fixed = TRUE))
+  grouped_export_path <- tempfile(fileext = ".csv")
+  grouped_export_refused <- tryCatch({
+    nis_export_table(grouped_table, grouped_export_path, "csv", NULL, "refuse", FALSE); FALSE
+  }, error = function(e) grepl("Only a nis_disclosure_review", conditionMessage(e), fixed = TRUE))
+  stopifnot(identical(grouped_table$data$id, c("g1.los", "g2.los")),
+    identical(grouped_table$provenance$grouping$unused_levels, "EMPTY"),
+    grouped_review_refused, grouped_export_refused, !file.exists(grouped_export_path))
   declared_fit <- nis_model(factored, LOS ~ declared_support, "gaussian", "exclude",
     2, 0.95, "wr_unadjusted")
   stopifnot(identical(factored$design$variables$support_group, core$support_group),
@@ -243,6 +256,7 @@ exercise_year <- function(year) {
     identical(as.numeric(support[2L, -1L]), c(6, 6, 18, 2)),
     identical(as.numeric(support[3L, -1L]), c(0, 0, 0, 0)))
   cat("Invented year", year, "passed installed factor support counts.\n")
+  cat("Invented year", year, "passed grouped numeric API and disclosure/export refusal.\n")
   cat("Invented year", year, "passed single/batch model links against independent intercept references.\n")
   for (kind in c("transformed_gaussian", "offset_poisson")) {
     keep <- !is.na(core$LOS)

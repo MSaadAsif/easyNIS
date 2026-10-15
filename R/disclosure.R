@@ -72,6 +72,9 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       !is.list(table$results) || !identical(names(table$results), table$data$id)) {
     stop("`table` must be a nis_descriptive_table result.", call. = FALSE)
   }
+  if (!is.null(table$provenance$grouping)) {
+    stop("Grouped descriptive tables are not supported by disclosure review.", call. = FALSE)
+  }
   if (base::missing(suppress) || base::missing(zero) || base::missing(min_hospitals) ||
       base::missing(margins)) {
     stop("Choose explicit `suppress`, `zero`, `min_hospitals` and `margins` policies.",

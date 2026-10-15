@@ -14,9 +14,16 @@ proportion units, malformed declarations, infinite outcomes and a failing row.
 Verify a failed row rejects the complete call and leaves caller inputs/options
 unchanged. Disclosure status must remain `unreviewed`.
 
-The full installed smoke runs this path for all six invented year labels. Source
-cases live in `tests/testthat/test-descriptive-table.R`; the smoke path is
-`tools/smoke-installed.R`.
+Optional numeric grouping uses an exact factor field and an explicit missing-group
+policy. Check ordered observed levels and unused-level provenance, independent WR
+references including hospitals with no group members, outcome-specific missing
+counts, standalone domain parity, preexisting domains and pooled reused IDs.
+Review and CSV/HTML/Word exports must reject a grouped numeric table before
+returning or writing. The installed smoke covers grouped construction and review/
+export refusal. Source cases live in `tests/testthat/test-descriptive-table.R`;
+the smoke path is `tools/smoke-installed.R`.
+
+The full installed smoke runs this path for all six invented year labels.
 
 `nis_regression_table()` selects exact existing coefficient rows from one
 `nis_model()` and requires `scale = "link"`. Keep repeated terms under distinct
