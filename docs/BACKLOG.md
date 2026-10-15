@@ -14,15 +14,21 @@ grouped review/export criterion is complete.
 The next bounded NIS-019 increment reviews one regression table under the
 caller's explicit suppression policy. See
 [REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md) for model, coefficient-column,
-factor-level and level-by-outcome checks and their conservative intercept and
-lower-order suppression. Regression-table export remains refused and is the
-following NIS-020 increment. Focused invented cases pass 172 assertions with
-hand-counted references; 27 old/new ordinary and grouped descriptive reviews
-serialize identically. Precommit verification passes 2,692 package assertions,
-216 tool assertions, source Status OK and installed workflows. The intercept and
-lower-order rules suppress more than the first draft and need Saad and Ali's
-policy review. Clean-head verification, independent review and protected hosted
-checks remain required. No scientific or annual support is promoted.
+factor-level, interaction-cell and level-by-outcome checks and their conservative
+intercept and lower-order suppression. Independent review of `a057116` found
+unchecked factor-by-factor cells (a 3-row reference cell disclosed by a shown
+intercept) and all-zero non-intercept columns that bypassed the zero policy;
+both are fixed, with hand-counted probes, a count-of-one edge and a missing
+exclusion that drops a whole hospital. Additively combined predictors remain
+uncrossed, a documented limitation. Regression-table export remains refused and
+is the following NIS-020 increment. Focused invented cases pass 205 assertions
+with hand-counted references; 27 old/new ordinary and grouped descriptive
+reviews serialize identically. Precommit verification passes 2,725 package
+assertions, 216 tool assertions, source Status OK and installed workflows. The
+intercept, lower-order and crossing rules suppress more than the first draft
+and need Saad and Ali's policy review. Clean-head verification, independent
+review and protected hosted checks remain required. No scientific or annual
+support is promoted.
 
 Numeric factor grouping merged in
 [PR #43](https://github.com/MSaadAsif/easyNIS/pull/43); all five resulting main

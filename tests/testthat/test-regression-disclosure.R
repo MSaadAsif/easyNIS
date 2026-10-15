@@ -1,12 +1,12 @@
-# Equal-weight invented rows. Row i belongs to hospital (i - 1) %% 4 + 1, so any
-# run of four or more consecutive rows spans all four hospitals. Hospitals 1-2
-# form stratum 1 and hospitals 3-4 stratum 2.
-regression_rows <- function(n, year = 2022L, first_key = 0L) {
+# Equal-weight invented rows. Row i belongs to hospital (i - 1) %% h + 1, so any
+# run of h or more consecutive rows spans all h hospitals. The first half of
+# the hospitals form stratum 1 and the rest stratum 2. By default h = 4.
+regression_rows <- function(n, year = 2022L, first_key = 0L, hospitals = 4L) {
   rows <- nis_synthetic_data(year)$core[rep(1L, n), ]
   rows$KEY_NIS <- sprintf("%06d", first_key + seq_len(n))
-  hospital <- (seq_len(n) - 1L) %% 4L + 1L
+  hospital <- (seq_len(n) - 1L) %% hospitals + 1L
   rows$HOSP_NIS <- sprintf("%04d", hospital)
-  rows$NIS_STRATUM <- as.integer(hospital > 2L) + 1L
+  rows$NIS_STRATUM <- as.integer(hospital > hospitals / 2) + 1L
   rows$DISCWT <- 5
   rownames(rows) <- NULL
   rows
@@ -21,12 +21,17 @@ regression_design <- function(session, rows, columns) {
     "hospital_wr", "fail")
 }
 
-regression_fit <- function(session, rows, columns, formula, family = "gaussian", group = NULL) {
+# `group` and `sex` label raw codes 1, 2, ... in fields `g` and `s`.
+regression_fit <- function(session, rows, columns, formula, family = "gaussian", group = NULL,
+                           sex = NULL, missing = "fail") {
   design <- regression_design(session, rows, columns)
   if (!is.null(group)) {
     design <- nis_factor(design, "g", "group", seq_along(group), group)
   }
-  nis_model(design, formula, family, "fail", 8, 0.95, "wr_unadjusted")
+  if (!is.null(sex)) {
+    design <- nis_factor(design, "s", "sex", seq_along(sex), sex)
+  }
+  nis_model(design, formula, family, missing, 8, 0.95, "wr_unadjusted")
 }
 
 regression_spec <- function(fit, terms = fit$coefficients$term, id = terms) {
@@ -145,12 +150,14 @@ test_that("zero-count fitted levels and zero cells follow the zero policy", {
   expect_identical(regression_counts(display, "factor", "flag", "hospitals"),
     c("level:FALSE" = 4, "level:TRUE" = 0))
   expect_identical(regression_counts(display, "column", "x"), c(nonzero = 27, zero_valued = 13))
-  expect_identical(regression_counts(display, "column", "flagTRUE"), stats::setNames(numeric(), character()))
+  # The all-zero flagTRUE column checks its zero nonzero count.
+  expect_identical(regression_counts(display, "column", "flagTRUE"), c(nonzero = 0))
   expect_identical(unname(regression_status(display)), c("shown", "shown", "shown"))
   expect_identical(display$presentation$aliased, c(FALSE, FALSE, TRUE))
   suppressed <- regression_review(fit, zero = "suppress")
   expect_identical(regression_reasons(suppressed),
-    c("(Intercept)" = "factor:flag", x = "", flagTRUE = "factor:flag"))
+    c("(Intercept)" = "reference:flagTRUE;factor:flag", x = "",
+      flagTRUE = "column:nonzero;factor:flag"))
   expect_identical(suppressed$presentation$aliased, c(NA, FALSE, NA))
 
   cells <- regression_rows(60L)
@@ -427,11 +434,16 @@ test_that("altered regression tables, margins and policies are refused", {
     function(x) { x$provenance$declarations$label[[1L]] <- "Relabeled"; x },
     function(x) { x$data$raw_included <- x$data$raw_included + 1; x },
     function(x) { x$factors <- list(extra = 1); x },
-    function(x) { x$model$coefficients$estimate[[2L]] <- 0; x$data$estimate[[2L]] <- 0; x },
     function(x) { class(x) <- c("other", "nis_regression_table"); x },
     function(x) { x$extra <- 1; x })) {
     expect_error(nis_disclosure_review(altered(change), c(1, 10), "display", 2, list()), unchanged)
   }
+  # A consistent forgery passes the table rebuild but not the retained fit.
+  forged <- table
+  forged$model$coefficients$estimate[[2L]] <- 0
+  forged$data$estimate[[2L]] <- 0
+  expect_error(nis_disclosure_review(forged, c(1, 10), "display", 2, list()),
+    "retained model's fit, coefficients or factors are internally inconsistent")
   expect_error(nis_disclosure_review(structure(list(), class = "nis_regression_table"),
     c(1, 10), "display", 2, list()), unchanged)
   for (margins in list(list(list(total = "x", parts = "(Intercept)")), NULL, list(list()))) {
@@ -500,4 +512,142 @@ test_that("intercept-only, transformed and offset models use their fitted rows",
   expect_identical(regression_counts(offset, "column", "x"), c(nonzero = 27, zero_valued = 13))
   expect_identical(offset$audit$rows$term, c("(Intercept)", "x"))
   expect_identical(unname(regression_status(offset)), c("shown", "shown"))
+})
+
+test_that("interaction cells, including the reference cell, are crossed and checked", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  # Cells A/F, A/M, B/F, B/M in consecutive blocks over six hospitals; events
+  # are the even rows, which lie in hospitals 2, 4 and 6.
+  logistic <- function(sizes) {
+    rows <- regression_rows(sum(sizes), hospitals = 6L)
+    rows$g <- rep(c(1, 1, 2, 2), sizes)
+    rows$s <- rep(c(1, 2, 1, 2), sizes)
+    rows$event <- as.double(seq_len(sum(sizes)) %% 2L == 0L)
+    regression_fit(session, rows, c("event", "g", "s"), event ~ group * sex, "quasibinomial",
+      group = c("A", "B"), sex = c("F", "M"))
+  }
+  small <- regression_review(logistic(c(3, 50, 50, 50)))
+  expect_identical(regression_counts(small, "model"), c(included = 153, events = 76, nonevents = 77))
+  expect_identical(regression_counts(small, "cross", "group:sex"),
+    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
+      "cell:B:F" = 50, "cell_events:B:F" = 25, "cell_nonevents:B:F" = 25,
+      "cell:A:M" = 50, "cell_events:A:M" = 25, "cell_nonevents:A:M" = 25,
+      "cell:B:M" = 50, "cell_events:B:M" = 25, "cell_nonevents:B:M" = 25))
+  expect_identical(regression_counts(small, "cross", "group:sex", "hospitals"),
+    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
+      "cell:B:F" = 6, "cell_events:B:F" = 3, "cell_nonevents:B:F" = 3,
+      "cell:A:M" = 6, "cell_events:A:M" = 3, "cell_nonevents:A:M" = 3,
+      "cell:B:M" = 6, "cell_events:B:M" = 3, "cell_nonevents:B:M" = 3))
+  # Every marginal group is safe; only the crossed reference cell fails.
+  expect_identical(regression_counts(small, "factor", c("group", "sex")),
+    c("level:A" = 53, "level_events:A" = 26, "level_nonevents:A" = 27,
+      "level:B" = 100, "level_events:B" = 50, "level_nonevents:B" = 50,
+      "level:F" = 53, "level_events:F" = 26, "level_nonevents:F" = 27,
+      "level:M" = 100, "level_events:M" = 50, "level_nonevents:M" = 50))
+  expect_identical(regression_reasons(small), c("(Intercept)" = "cross:group:sex",
+    groupB = "cross:group:sex", sexM = "cross:group:sex", "groupB:sexM" = "cross:group:sex"))
+  expect_true(all(is.na(small$presentation$estimate)))
+  safe <- regression_review(logistic(c(22, 50, 50, 50)))
+  expect_identical(regression_counts(safe, "cross", "group:sex")[1:3],
+    c("cell:A:F" = 22, "cell_events:A:F" = 11, "cell_nonevents:A:F" = 11))
+  expect_identical(unname(regression_status(safe)), rep("shown", 4L))
+
+  # Two-valued numeric predictors are crossed the same way.
+  rows <- regression_rows(93L)
+  rows$a <- rep(c(0, 1, 0, 1), c(3, 30, 30, 30))
+  rows$b <- rep(c(0, 0, 1, 1), c(3, 30, 30, 30))
+  rows$y <- 1 + rows$a + rows$b + regression_noise(93L)
+  numeric <- regression_review(regression_fit(session, rows, c("y", "a", "b"), y ~ a * b))
+  expect_identical(regression_counts(numeric, "column", c("a", "b", "a:b")),
+    c(lower_level = 33, upper_level = 60, lower_level = 33, upper_level = 60,
+      lower_level = 63, upper_level = 30))
+  expect_identical(regression_counts(numeric, "cross", "a:b"),
+    c("cell:0:0" = 3, "cell:1:0" = 30, "cell:0:1" = 30, "cell:1:1" = 30))
+  expect_identical(unname(regression_reasons(numeric)), rep("cross:a:b", 4L))
+})
+
+test_that("empty interaction cells and all-zero indicators follow the zero policy", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- regression_rows(120L)
+  rows$g <- rep(c(1, 1, 2), each = 40L)
+  rows$s <- rep(c(1, 2, 1), each = 40L)
+  rows$y <- 1 + rows$g + rows$s + regression_noise(120L)
+  fit <- regression_fit(session, rows, c("y", "g", "s"), y ~ group * sex,
+    group = c("A", "B"), sex = c("F", "M"))
+  expect_identical(fit$coefficients$aliased, c(FALSE, FALSE, FALSE, TRUE))
+  display <- regression_review(fit)
+  expect_identical(regression_counts(display, "cross", "group:sex"),
+    c("cell:A:F" = 40, "cell:B:F" = 40, "cell:A:M" = 40, "cell:B:M" = 0))
+  expect_identical(regression_counts(display, "cross", "group:sex", "hospitals"),
+    c("cell:A:F" = 4, "cell:B:F" = 4, "cell:A:M" = 4, "cell:B:M" = 0))
+  expect_identical(regression_counts(display, "column", "groupB:sexM"), c(nonzero = 0))
+  expect_identical(unname(regression_status(display)), rep("shown", 4L))
+  expect_identical(display$presentation$aliased, c(FALSE, FALSE, FALSE, TRUE))
+  hidden <- regression_review(fit, zero = "suppress")
+  expect_identical(regression_reasons(hidden),
+    c("(Intercept)" = "reference:groupB:sexM;cross:group:sex", groupB = "cross:group:sex",
+      sexM = "cross:group:sex", "groupB:sexM" = "column:nonzero;cross:group:sex"))
+  expect_identical(hidden$presentation$aliased, rep(NA, 4L))
+
+  # `site` is 1 only on rows whose outcome is missing, so it is all zero in the
+  # analysis sample. Rows 5 and 20 had x = 0; rows 10 and 15 did not.
+  rows <- regression_rows(40L)
+  rows$x <- rep(c(-1, 0, 2), length.out = 40L)
+  rows$y <- 1 + 0.5 * rows$x + regression_noise(40L)
+  rows$site <- as.double(seq_len(40L) %in% c(5, 10, 15, 20))
+  rows$y[rows$site == 1] <- NA
+  site_fit <- regression_fit(session, rows, c("y", "x", "site"), y ~ x + site, missing = "exclude")
+  shown <- regression_review(site_fit)
+  expect_identical(shown$audit$sample[c("supplied", "included", "missing")],
+    data.frame(supplied = 40, included = 36, missing = 4))
+  expect_identical(regression_counts(shown, "column", c("x", "site")),
+    c(nonzero = 25, zero_valued = 11, nonzero = 0))
+  expect_identical(unname(regression_status(shown)), rep("shown", 3L))
+  expect_identical(regression_reasons(regression_review(site_fit, zero = "suppress")),
+    c("(Intercept)" = "reference:site", x = "", site = "column:nonzero"))
+})
+
+test_that("a count of exactly one is the lower edge of the range", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- regression_rows(40L)
+  rows$x <- rep(c(-1, 0, 2), length.out = 40L)
+  rows$solo <- as.double(seq_len(40L) == 7L)
+  rows$y <- 1 + 0.5 * rows$x + rows$solo + regression_noise(40L)
+  fit <- regression_fit(session, rows, c("y", "x", "solo"), y ~ x + solo)
+  inside <- regression_review(fit, min_hospitals = 1)
+  expect_identical(regression_counts(inside, "column", "solo"), c(lower_level = 39, upper_level = 1))
+  expect_identical(regression_counts(inside, "column", "solo", "hospitals"),
+    c(lower_level = 4, upper_level = 1))
+  expect_identical(regression_reasons(inside),
+    c("(Intercept)" = "reference:solo", x = "", solo = "column:upper_level"))
+  outside <- regression_review(fit, suppress = c(2, 10), min_hospitals = 1)
+  expect_identical(unname(regression_status(outside)), rep("shown", 3L))
+})
+
+test_that("missing exclusions, including a whole hospital, leave only fitted rows", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  # Eight hospitals; hospital 8 holds rows 8, 16, ..., 64 and loses every
+  # outcome. Rows 1 and 2 lose x. Zero x rows (i %% 3 == 2) lost: 2, 8, 32, 56.
+  rows <- regression_rows(64L, hospitals = 8L)
+  hospital <- (seq_len(64L) - 1L) %% 8L + 1L
+  rows$x <- rep(c(-1, 0, 2), length.out = 64L)
+  rows$y <- 1 + 0.5 * rows$x + regression_noise(64L)
+  rows$y[hospital == 8L] <- NA
+  rows$x[1:2] <- NA
+  fit <- regression_fit(session, rows, c("y", "x"), y ~ x, missing = "exclude")
+  review <- regression_review(fit)
+  expect_identical(review$audit$sample, data.frame(supplied = 64, included = 54, missing = 10,
+    hospitals = 7, binary_response = FALSE))
+  expect_identical(regression_counts(review, "model", value = "hospitals"), c(included = 7))
+  expect_identical(regression_counts(review, "column", "x"), c(nonzero = 37, zero_valued = 17))
+  expect_identical(regression_counts(review, "column", "x", "hospitals"),
+    c(nonzero = 7, zero_valued = 7))
+  expect_identical(review$presentation$unweighted_n, c(54, 54))
+  expect_identical(regression_reasons(regression_review(fit, min_hospitals = 8)),
+    c("(Intercept)" = "model:hospitals_included;reference:x",
+      x = "model:hospitals_included;column:hospitals_nonzero;column:hospitals_zero_valued"))
 })

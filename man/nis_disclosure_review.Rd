@@ -87,11 +87,15 @@ model-matrix column with two distinct values checks both levels, and with a
 binary response their four level-by-outcome cells; a column with more
 values checks its nonzero and any zero-valued count. Every fitted level of
 each factor or logical predictor, including the reference and zero-count
-levels, is checked, with outcome cells for a binary response. A failed
-column suppresses its rows and constant columns such as the intercept. A
-failed factor suppresses every term containing it and the lower-order terms
-within those terms. Rows repeating a term share its status. Suppressed rows
-have \code{NA} inference and \code{aliased} values. Differencing across models,
+levels, is checked, with outcome cells for a binary response. Constant
+columns other than the intercept check their nonzero count. Each term
+crossing two or more factor, logical or two-valued predictors checks every
+cell of the crossing, including empty and reference cells. A failed column
+suppresses its rows and constant columns such as the intercept. A failed
+factor or cell suppresses every term containing its predictors and the
+lower-order terms within those terms. Rows repeating a term share its
+status. Suppressed rows have \code{NA} inference and \code{aliased} values.
+Additively combined predictors are not crossed. Differencing across models,
 disclosive weights, offsets and continuous extremes are not checked.
 }
 \examples{
