@@ -2,10 +2,13 @@
 
 This is the first bounded NIS-019 increment. It reviews one
 `nis_descriptive_table` and produces a presentation table with primary and
-complementary suppression. Regression tables and grouped comparisons remain
+complementary suppression. Regression tables and grouped disclosure remain
 separate increments; [EXPORT.md](EXPORT.md) writes the presentation to CSV or
-HTML. The review assists a human
-publication check; it does not certify a manuscript or approve annual support.
+HTML. Grouped descriptive tables are rejected before disclosure computation because
+current additive count identity is field-based and cannot safely distinguish
+group domains. Export also refuses grouped numeric tables. A future grouped
+disclosure increment must define and validate domain-aware count identity. The
+review assists a human publication check; it does not certify a manuscript or approve annual support.
 
 ## Policy source
 
