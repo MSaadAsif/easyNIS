@@ -1,7 +1,7 @@
 # Experimental numeric descriptive tables
 
-This is the bounded first NIS-018 contract. Regression tables, grouped-table
-comparisons, disclosure review and rendering remain separate increments.
+This is the bounded NIS-018 numeric contract. Regression tables, grouped
+comparisons, grouped disclosure and rendering remain separate increments.
 
 `nis_descriptive_table(design, specification, missing, df, confidence, variance)`
 calculates explicitly requested scalar statistics on one existing experimental
@@ -44,6 +44,23 @@ The original `nis_estimate` objects are retained in `results`, named by row ID,
 including native estimates/designs and complete source/domain provenance.
 The table also retains the declarations and inference policies in provenance.
 
+Optional `by` accepts only an exact retained standard unordered factor.
+`group_missing` must explicitly choose `fail` or `exclude`; supplying it without
+`by` is an error. Observed levels follow the factor's declared order. Empty and
+all-missing group selections fail, and unused declared levels create no rows.
+Grouping provenance records the field, observed and unused levels, unknown
+membership count and policy. Each group is selected through `nis_domain()` on
+the supplied current design, preserving full-population and PSU information.
+Grouped IDs use `g1.`, `g2.` and so on before each declared ID; labels append
+`| field = level`. Outcome missingness remains independent within each group.
+Each estimate retains its native domain result and complete domain history. A
+failure anywhere rejects the whole grouped call.
+
+Grouped tables remain numeric analysis objects. Disclosure review and every
+export refuse them until count identity can distinguish domains while retaining
+repeated statistics within each domain. No overall row or between-group
+inference is produced.
+
 These are internal numeric tables with disclosure status `unreviewed` and
 `analysis_ready = FALSE`. They do not apply suppression, serialize results,
 approve publication or promote annual support. [DISCLOSURE.md](DISCLOSURE.md)
@@ -57,3 +74,7 @@ results, repeated fields with different statistics, exact quoted names,
 single-year/domain/pooled interpretations, year-specific hospital counts,
 declaration failures and caller-state preservation. Native results must remain
 available and table values must exactly preserve their numeric values.
+Grouped verification also compares independent hospital WR means, proportions
+and totals when hospitals contribute no group observations; checks exact domain
+parity, factor order, unused and missing groups, pooled reused IDs and current
+domains; and confirms review/export rejection before writing.

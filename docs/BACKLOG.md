@@ -6,6 +6,23 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+The next bounded NIS-035 increment adds numeric factor grouping to
+`nis_descriptive_table()`. Groups use full-design domains, declared factor order
+and explicit missing-membership policy, while outcome exclusions remain per
+field. Acceptance covers independent hospital WR means/proportions/totals,
+zero-group hospitals, current domains, pooled reused IDs, exact literal labels,
+default compatibility and whole-call rejection. Grouped disclosure and exports
+explicitly refuse until domain-aware count identity is independently verified.
+Precommit verification passes 2,450 package assertions, 216 tool assertions,
+source Status OK and installed public workflows. Independent source probes
+confirm default compatibility and pooled arithmetic; preliminary specification
+and standards reviews have no unresolved findings. Final clean-head verification,
+independent review and protected hosted checks remain required.
+
+The quality-marker workflow merged in
+[PR #42](https://github.com/MSaadAsif/easyNIS/pull/42); all five resulting main
+jobs passed. No scientific or annual support is promoted.
+
 The next bounded NIS-021 workshop composition uses explicit character-quality
 handling in the existing six-year installed workflow. Replace two invented
 noncohort codes per annual fixture with lowercase quality markers; preserve
@@ -1220,6 +1237,7 @@ separate gates, and no annual capability is promoted.
 |---|---|---|---|
 | NIS-033 | Define verified parquet input profiles. | 005–006; before 007 is finalized. | Source-preserving and legacy merged profiles distinguished; identifier/weight aliases verified against year/provenance; prefiltered input and lost missing/label information reported. |
 | NIS-034 | Verify derived-variable and model-scale provenance. | 010–011, 016–018. | Versioned supplied comorbidity/classification fields; unsupported POA-dependent scoring refused; broad disposition labels preserved; charges/cost/base-year and transformed-outcome interpretations explicit. |
+| NIS-035 | Add bounded grouped numeric descriptive tables. | 018. | Exact factor grouping, explicit missing policy, factor-order/unused-level provenance, independent hospital WR means/proportions/totals with empty group PSUs, current-domain and pooled parity; grouped disclosure and exports explicitly refuse pending domain-aware count identity. |
 
 NIS-033 and the v1 metadata/model safeguards in NIS-034 are release requirements. New scoring algorithms, cost-conversion helpers, and additional model families remain later capabilities with separate validation gates.
 

@@ -1,5 +1,14 @@
 # easyNIS 0.0.0.9000
 
+## Experimental grouped numeric descriptives
+
+- Added optional factor-based `by` grouping to `nis_descriptive_table()` with
+  explicit missing-group policy, observed factor order, unused-level provenance,
+  and native estimates selected through `nis_domain()`.
+- Grouped results remain numeric-only. Disclosure review and exports refuse them
+  pending domain-aware disclosure count identity; no group comparisons or
+  overall rows are added.
+
 ## Explicit character quality markers
 
 - The installed six-year workflow demonstrates opt-in quality markers and
