@@ -71,11 +71,15 @@
 #'   binary response their four level-by-outcome cells; a column with more
 #'   values checks its nonzero and any zero-valued count. Every fitted level of
 #'   each factor or logical predictor, including the reference and zero-count
-#'   levels, is checked, with outcome cells for a binary response. A failed
-#'   column suppresses its rows and constant columns such as the intercept. A
-#'   failed factor suppresses every term containing it and the lower-order terms
-#'   within those terms. Rows repeating a term share its status. Suppressed rows
-#'   have `NA` inference and `aliased` values. Differencing across models,
+#'   levels, is checked, with outcome cells for a binary response. Constant
+#'   columns other than the intercept check their nonzero count. Each term
+#'   crossing two or more factor, logical or two-valued predictors checks every
+#'   cell of the crossing, including empty and reference cells. A failed column
+#'   suppresses its rows and constant columns such as the intercept. A failed
+#'   factor or cell suppresses every term containing its predictors and the
+#'   lower-order terms within those terms. Rows repeating a term share its
+#'   status. Suppressed rows have `NA` inference and `aliased` values.
+#'   Additively combined predictors are not crossed. Differencing across models,
 #'   disclosive weights, offsets and continuous extremes are not checked.
 #' @export
 #' @examples
@@ -466,12 +470,16 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     check("model", NA_character_, "nonevents", !event, outcome = "nonevent")
   }
   terms <- colnames(x)
+  intercept <- attr(x, "assign") == 0L
   constant <- logical(length(terms))
   for (j in seq_along(terms)) {
     column <- x[, j]
     values <- sort(unique(column))
     constant[[j]] <- length(values) == 1L
-    if (length(values) == 2L) {
+    if (length(values) == 1L && !intercept[[j]]) {
+      # An all-zero column, such as an empty interaction cell, has a zero count.
+      check("column", terms[[j]], "nonzero", column != 0)
+    } else if (length(values) == 2L) {
       check_cells("column", terms[[j]], "lower_level", column == values[[1L]], value = values[[1L]])
       check_cells("column", terms[[j]], "upper_level", column == values[[2L]], value = values[[2L]])
     } else if (length(values) > 2L) {
@@ -483,6 +491,31 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     observed <- as.character(fit$frame[[variable]])
     for (level in fit$levels[[variable]]) {
       check_cells("factor", variable, "level", observed == level, level = level)
+    }
+  }
+  # Interaction coefficients describe the cells of their crossed predictors,
+  # including the reference cell behind the intercept and empty cells.
+  crossable <- function(variable) {
+    variable %in% names(fit$levels) ||
+      (is.numeric(fit$frame[[variable]]) && length(unique(fit$frame[[variable]])) == 2L)
+  }
+  crossings <- unique(Filter(function(v) length(v) > 1L,
+    lapply(fit$term_variables, function(v) v[vapply(v, crossable, logical(1))])))
+  for (crossing in crossings) {
+    coded <- lapply(crossing, function(variable) {
+      value <- fit$frame[[variable]]
+      labels <- if (variable %in% names(fit$levels)) fit$levels[[variable]] else
+        as.character(sort(unique(value)))
+      codes <- if (variable %in% names(fit$levels)) match(as.character(value), labels) else
+        match(value, sort(unique(value)))
+      list(labels = labels, codes = codes)
+    })
+    cells <- expand.grid(lapply(coded, function(v) seq_along(v$labels)))
+    for (k in seq_len(nrow(cells))) {
+      members <- Reduce(`&`, lapply(seq_along(coded), function(v) coded[[v]]$codes == cells[k, v]))
+      label <- paste(vapply(seq_along(coded), function(v) coded[[v]]$labels[[cells[k, v]]],
+        character(1)), collapse = ":")
+      check_cells("cross", paste(crossing, collapse = ":"), "cell", members, level = label)
     }
   }
   groups <- do.call(rbind, groups)
@@ -498,22 +531,30 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
   failed_factors <- names(fit$levels)[vapply(names(fit$levels), function(variable) {
     length(failures("factor", variable)) > 0L
   }, logical(1), USE.NAMES = FALSE)]
-  # A failed factor also protects the lower-order terms of every term containing
-  # it: the intercept, and main effects that an interaction makes level-specific.
-  factor_columns <- lapply(failed_factors, function(variable) {
-    containing <- Filter(function(v) variable %in% v, fit$term_variables)
+  failed_crossings <- Filter(function(crossing) {
+    length(failures("cross", paste(crossing, collapse = ":"))) > 0L
+  }, crossings)
+  # A failed predictor also protects the lower-order terms of every term
+  # containing it: the intercept, and main effects that an interaction makes
+  # level-specific.
+  protected_by <- function(variables) {
+    containing <- Filter(function(v) any(variables %in% v), fit$term_variables)
     vapply(fit$column_variables, function(v) {
       any(vapply(containing, function(s) all(v %in% s), logical(1)))
     }, logical(1))
-  })
+  }
+  factor_columns <- lapply(failed_factors, protected_by)
+  crossing_columns <- lapply(failed_crossings, protected_by)
   # Reasons belong to fitted columns, so rows repeating a term share one identity.
   # Constant columns describe the reference groups of every other column.
   column_reasons <- lapply(seq_along(terms), function(j) {
     c(paste0("model:", model_failed, recycle0 = TRUE),
-      if (!constant[[j]]) paste0("column:", failures("column", terms[[j]]), recycle0 = TRUE),
-      if (constant[[j]]) paste0("reference:", failed_columns, recycle0 = TRUE),
+      paste0("column:", failures("column", terms[[j]]), recycle0 = TRUE),
+      if (constant[[j]]) paste0("reference:", setdiff(failed_columns, terms[[j]]), recycle0 = TRUE),
       paste0("factor:", failed_factors[vapply(factor_columns, function(x) x[[j]], logical(1))],
-        recycle0 = TRUE))
+        recycle0 = TRUE),
+      paste0("cross:", vapply(failed_crossings, paste, character(1), collapse = ":")[
+        vapply(crossing_columns, function(x) x[[j]], logical(1))], recycle0 = TRUE))
   })
   data <- table$data
   at <- match(data$term, terms)
@@ -546,7 +587,7 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
     count_basis = "unweighted included model analysis discharges",
     table_kind = "regression",
-    procedure = "model sample, fitted model-matrix columns and factor levels; failed columns suppress constant columns and failed factors their marginal terms; no margins",
+    procedure = "model sample, fitted model-matrix columns, factor levels and interaction cells; failed columns suppress constant columns and failed factors or cells their marginal terms; no margins",
     table = table$provenance, scope = "experimental_disclosure_review",
     analysis_ready = FALSE)
   structure(list(presentation = presentation, audit = audit, table = table,
@@ -558,6 +599,11 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
 regression_review_fit <- function(table) {
   refuse <- function() {
     stop("`table` must be an unchanged nis_regression_table result.", call. = FALSE)
+  }
+  # The table matches its model, but the retained fit disagrees with itself.
+  inconsistent <- function() {
+    stop("The retained model's fit, coefficients or factors are internally inconsistent; ",
+         "refit the model and rebuild the table.", call. = FALSE)
   }
   if (!identical(class(table), "nis_regression_table") || !is.list(table) ||
       !identical(names(table), c("data", "model", "factors", "sample", "diagnostics", "provenance")) ||
@@ -575,9 +621,9 @@ regression_review_fit <- function(table) {
       !identical(model$coefficients$term, names(estimates)) ||
       !identical(model$coefficients$estimate, unname(estimates)) ||
       nrow(x) != length(hospital) || nrow(frame) != nrow(x) ||
-      nrow(x) != model$sample$included || length(attr(x, "assign")) != ncol(x)) refuse()
+      nrow(x) != model$sample$included || length(attr(x, "assign")) != ncol(x)) inconsistent()
   response <- stats::model.response(frame)
-  if (!is.null(dim(response)) || length(response) != nrow(x) || anyNA(response)) refuse()
+  if (!is.null(dim(response)) || length(response) != nrow(x) || anyNA(response)) inconsistent()
   predictors <- setdiff(names(frame)[-1L], c("(weights)", "(offset)"))
   categorical <- predictors[vapply(frame[predictors], function(v) {
     is.factor(v) || is.character(v) || is.logical(v)
@@ -587,7 +633,7 @@ regression_review_fit <- function(table) {
     if (is.logical(v)) c("FALSE", "TRUE") else levels(factor(v))
   })
   if (!identical(as.character(names(model$factors)), categorical) ||
-      !identical(unname(levels), unname(lapply(model$factors, function(f) f$levels)))) refuse()
+      !identical(unname(levels), unname(lapply(model$factors, function(f) f$levels)))) inconsistent()
   incidence <- attr(attr(frame, "terms"), "factors")
   term_variables <- if (length(incidence)) lapply(seq_len(ncol(incidence)), function(j) {
     rownames(incidence)[incidence[, j] > 0]
