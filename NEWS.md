@@ -4,9 +4,10 @@
 
 - `nis_disclosure_review()` now accepts one unchanged `nis_regression_table()`
   result with `margins = list()`. Unweighted model, fitted-column and
-  factor-level counts, interaction cells crossing factor, logical or two-valued
-  predictors, and outcome cells for binary responses decide which coefficients
-  are shown. All-zero non-intercept columns follow the zero policy. Failed
+  factor-level counts, joint cells crossing all factor, logical and two-valued
+  predictors, and response-value cells for any two-valued response decide
+  which coefficients are shown. Constant non-intercept columns follow the zero
+  policy. Failed
   columns also hide constant columns, and failed factors or cells hide their
   terms and marginal terms. Altered tables are
   refused. Descriptive reviews are unchanged, and `nis_export_table()` still

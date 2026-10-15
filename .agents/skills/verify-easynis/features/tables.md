@@ -76,14 +76,18 @@ the model's included rows and, for a zero/one response, events and nonevents;
 each fitted model-matrix column's two levels (with four outcome cells) or its
 nonzero and zero-valued rows; every fitted factor or logical level,
 including the reference and zero-count levels; and every cell, including
-empty and reference cells, of factor, logical or two-valued predictors crossed
-in an interaction. All-zero non-intercept columns must follow the zero policy. Use distinct native hospital IDs,
+empty and reference cells, of the joint crossing of all factor, logical and
+two-valued predictors, interacting or additive. Any two-valued response, such
+as 1/2, must get the same response-value cells as its 0/1 coding. All-zero and
+all-one non-intercept columns must follow the zero policy. Use distinct native hospital IDs,
 including pooled reused IDs, against `min_hospitals`. Confirm a failed column
 also hides the intercept, a failed factor hides its terms and their marginal
 terms, a model failure hides every row and `unweighted_n`, and repeated terms
 share status. Exercise the equal-weight one-binary-predictor logistic table
 with each cell at 10 and 11 under `c(1, 10)`, a count of exactly 1, both zero
-policies, a small reference cell in `event ~ group * sex`, missing exclusions
+policies, a small reference cell in `event ~ group * sex`, a small
+non-reference cell, a three-way crossing, an additive `event ~ group + sex`
+saturated by an empty cell, missing exclusions
 that drop a whole hospital, a domain and an average annual pool. Altered table values, declarations or class, nonempty
 margins and export must be refused; caller objects must stay unchanged.
 Presentation must hold only declared, inference and policy columns, with `NA`

@@ -382,8 +382,12 @@ test_that("presentation keeps only declared, inference and policy columns", {
   expect_identical(review$table, table)
   expect_identical(regression_counts(review, "column", c("x_copy", "s_copy")),
     c(nonzero = 40, zero_valued = 20, lower_level = 54, upper_level = 6))
-  expect_identical(regression_reasons(review), c("(Intercept)" = "reference:s;reference:s_copy",
-    x = "", x_copy = "", s = "column:upper_level", s_copy = "column:upper_level"))
+  # The two-valued s and s_copy are also crossed; their off-diagonal cells are empty.
+  expect_identical(regression_counts(review, "cross", "s:s_copy"),
+    c("cell:0:0" = 54, "cell:1:0" = 0, "cell:0:1" = 0, "cell:1:1" = 6))
+  expect_identical(regression_reasons(review),
+    c("(Intercept)" = "reference:s;reference:s_copy;cross:s:s_copy", x = "", x_copy = "",
+      s = "column:upper_level;cross:s:s_copy", s_copy = "column:upper_level;cross:s:s_copy"))
   out <- review$presentation
   expect_identical(names(out), c("id", "term", "label", "unit", "estimate", "se", "statistic",
     "p_value", "lower", "upper", "aliased", "coefficient_scale", "family", "link", "df",
@@ -650,4 +654,141 @@ test_that("missing exclusions, including a whole hospital, leave only fitted row
   expect_identical(regression_reasons(regression_review(fit, min_hospitals = 8)),
     c("(Intercept)" = "model:hospitals_included;reference:x",
       x = "model:hospitals_included;column:hospitals_nonzero;column:hospitals_zero_valued"))
+})
+
+test_that("any two-valued response checks its response-value cells", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  # Group A is rows 1-50 with the upper response at rows 1-3 (hospitals 1-3);
+  # group B is rows 51-100 with the upper response at rows 76-100.
+  coded <- function(lower, upper) {
+    rows <- regression_rows(100L)
+    rows$g <- rep(c(1, 2), each = 50L)
+    rows$y <- ifelse(seq_len(100L) %in% c(1:3, 76:100), upper, lower)
+    regression_review(regression_fit(session, rows, c("y", "g"), y ~ group, group = c("A", "B")))
+  }
+  two <- coded(1, 2)
+  expect_identical(two$audit$sample$binary_response, TRUE)
+  expect_identical(regression_counts(two, "model"), c(included = 100, events = 28, nonevents = 72))
+  expect_identical(regression_counts(two, "factor", "group"),
+    c("level:A" = 50, "level_events:A" = 3, "level_nonevents:A" = 47,
+      "level:B" = 50, "level_events:B" = 25, "level_nonevents:B" = 25))
+  expect_identical(regression_reasons(two), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_events;factor:group"))
+  expect_true(all(is.na(two$presentation$estimate)))
+  binary <- coded(0, 1)
+  expect_identical(binary$audit$groups[c("check", "level", "count", "hospitals")],
+    two$audit$groups[c("check", "level", "count", "hospitals")])
+  expect_identical(regression_reasons(binary), regression_reasons(two))
+})
+
+test_that("factor and two-valued predictors are crossed jointly, even additively", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  # Blocks of cells over six hospitals; events are the even rows.
+  cells_fit <- function(sizes, formula) {
+    rows <- regression_rows(sum(sizes), hospitals = 6L)
+    rows$g <- rep(c(1, 1, 2, 2), sizes)
+    rows$s <- rep(c(1, 2, 1, 2), sizes)
+    rows$event <- as.double(seq_len(sum(sizes)) %% 2L == 0L)
+    regression_fit(session, rows, c("event", "g", "s"), formula, "quasibinomial",
+      group = c("A", "B"), sex = c("F", "M"))
+  }
+  # An empty B/M cell makes the additive fit saturated: the intercept is the
+  # logit of the 3-row A/F cell.
+  additive <- regression_review(cells_fit(c(3, 50, 50, 0), event ~ group + sex))
+  expect_identical(regression_counts(additive, "cross", "group:sex")[c(1:3, 10:12)],
+    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
+      "cell:B:M" = 0, "cell_events:B:M" = 0, "cell_nonevents:B:M" = 0))
+  expect_identical(regression_counts(additive, "factor", "group"),
+    c("level:A" = 53, "level_events:A" = 26, "level_nonevents:A" = 27,
+      "level:B" = 50, "level_events:B" = 25, "level_nonevents:B" = 25))
+  expect_identical(unname(regression_reasons(additive)), rep("cross:group:sex", 3L))
+  # Only the non-reference B/M cell is small: rows 151-153 in hospitals 1-3,
+  # whose single event (row 152) lies in hospital 2.
+  corner <- regression_review(cells_fit(c(50, 50, 50, 3), event ~ group * sex))
+  expect_identical(regression_counts(corner, "cross", "group:sex")[10:12],
+    c("cell:B:M" = 3, "cell_events:B:M" = 1, "cell_nonevents:B:M" = 2))
+  expect_identical(regression_counts(corner, "cross", "group:sex", "hospitals")[10:12],
+    c("cell:B:M" = 3, "cell_events:B:M" = 1, "cell_nonevents:B:M" = 2))
+  expect_identical(regression_reasons(corner), c(
+    "(Intercept)" = "reference:groupB:sexM;cross:group:sex",
+    groupB = "cross:group:sex", sexM = "cross:group:sex",
+    "groupB:sexM" = paste0("column:upper_level;column:upper_level_events;",
+      "column:upper_level_nonevents;column:hospitals_upper_level_events;cross:group:sex")))
+
+  # Three-way crossing of two factors and a logical predictor: only A/F/FALSE
+  # is small, and every marginal column group has at least 30 rows.
+  sizes <- c(3, rep(30, 7L))
+  rows <- regression_rows(sum(sizes))
+  rows$g <- rep(c(1, 2, 1, 2, 1, 2, 1, 2), sizes)
+  rows$s <- rep(c(1, 1, 2, 2, 1, 1, 2, 2), sizes)
+  rows$flag <- rep(c(FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, TRUE), sizes)
+  rows$y <- 1 + rows$g + rows$s + rows$flag + regression_noise(sum(sizes))
+  three <- regression_review(regression_fit(session, rows, c("y", "g", "s", "flag"),
+    y ~ group * sex * flag, group = c("A", "B"), sex = c("F", "M")))
+  expect_identical(regression_counts(three, "cross", "group:sex:flag"),
+    c("cell:A:F:FALSE" = 3, "cell:B:F:FALSE" = 30, "cell:A:M:FALSE" = 30, "cell:B:M:FALSE" = 30,
+      "cell:A:F:TRUE" = 30, "cell:B:F:TRUE" = 30, "cell:A:M:TRUE" = 30, "cell:B:M:TRUE" = 30))
+  expect_identical(regression_counts(three, "column", c("groupB:sexM:flagTRUE")),
+    c(lower_level = 183, upper_level = 30))
+  expect_identical(unname(regression_reasons(three)), rep("cross:group:sex:flag", 8L))
+
+  # Factor by logical with a small non-reference B/TRUE cell (rows 91-93).
+  sizes <- c(30, 30, 30, 3)
+  rows <- regression_rows(sum(sizes))
+  rows$g <- rep(c(1, 2, 1, 2), sizes)
+  rows$flag <- rep(c(FALSE, FALSE, TRUE, TRUE), sizes)
+  rows$y <- 1 + rows$g + rows$flag + regression_noise(sum(sizes))
+  logical <- regression_review(regression_fit(session, rows, c("y", "g", "flag"),
+    y ~ group * flag, group = c("A", "B")))
+  expect_identical(regression_counts(logical, "cross", "group:flag"),
+    c("cell:A:FALSE" = 30, "cell:B:FALSE" = 30, "cell:A:TRUE" = 30, "cell:B:TRUE" = 3))
+  expect_identical(regression_reasons(logical), c(
+    "(Intercept)" = "reference:groupB:flagTRUE;cross:group:flag", groupB = "cross:group:flag",
+    flagTRUE = "cross:group:flag", "groupB:flagTRUE" = "column:upper_level;cross:group:flag"))
+
+  # Factor by a 2/5 numeric predictor with a small non-reference A/5 cell.
+  sizes <- c(30, 30, 3, 30)
+  rows <- regression_rows(sum(sizes))
+  rows$g <- rep(c(1, 2, 1, 2), sizes)
+  rows$dose <- rep(c(2, 2, 5, 5), sizes)
+  rows$y <- 1 + rows$g + 0.3 * rows$dose + regression_noise(sum(sizes))
+  dose <- regression_review(regression_fit(session, rows, c("y", "g", "dose"),
+    y ~ group * dose, group = c("A", "B")))
+  expect_identical(regression_counts(dose, "column", c("dose", "groupB:dose")),
+    c(lower_level = 60, upper_level = 33, nonzero = 60, zero_valued = 33))
+  expect_identical(regression_counts(dose, "cross", "group:dose"),
+    c("cell:A:2" = 30, "cell:B:2" = 30, "cell:A:5" = 3, "cell:B:5" = 30))
+  expect_identical(unname(regression_reasons(dose)), rep("cross:group:dose", 4L))
+})
+
+test_that("an indicator equal to one on every row has an empty zero-valued group", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- regression_rows(40L)
+  rows$x <- rep(c(-1, 0, 2), length.out = 40L)
+  rows$y <- 1 + 0.5 * rows$x + regression_noise(40L)
+  rows$one <- 1
+  fit <- regression_fit(session, rows, c("y", "x", "one"), y ~ x + one)
+  display <- regression_review(fit)
+  expect_identical(regression_counts(display, "column", "one"), c(nonzero = 40, zero_valued = 0))
+  expect_identical(unname(regression_status(display)), rep("shown", 3L))
+  expect_identical(display$presentation$aliased, c(FALSE, FALSE, TRUE))
+  expect_identical(regression_reasons(regression_review(fit, zero = "suppress")),
+    c("(Intercept)" = "reference:one", x = "", one = "column:zero_valued"))
+})
+
+test_that("joint crossings larger than 10000 cells are refused", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  rows <- regression_rows(100L)
+  fields <- paste0("b", 1:14)
+  for (k in seq_along(fields)) {
+    rows[[fields[[k]]]] <- as.double(sin(seq_len(100L) * k * 1.7 + k) > 0)
+  }
+  rows$y <- regression_noise(100L) + rows$b1
+  fit <- regression_fit(session, rows, c("y", fields),
+    stats::reformulate(fields, response = "y"))
+  expect_error(regression_review(fit), "more than 10000 cells")
 })

@@ -17,9 +17,12 @@ cell counts. The design-based standard errors that easyNIS publishes do not
 determine them exactly but can still reveal them. A factor level, reference
 level or interaction cell containing a few discharges yields coefficients that
 describe those discharges. The review therefore checks bounded unweighted
-analysis-sample groups: the model sample, each fitted column's levels, each
-fitted factor level and the cells of predictors crossed in an interaction,
-using the caller's explicit policy. It does not check every group a fitted
+analysis-sample groups: the model sample; each fitted model-matrix column's
+levels, or its nonzero and zero-valued rows; each fitted factor or logical
+level; and every cell of the joint crossing of all factor, logical and
+two-valued numeric predictors in the model. With a two-valued response, each
+of these groups is also split by response value. The caller's explicit policy
+applies throughout. It does not check every group a fitted
 model implicitly depends on; see the limitations.
 
 ## Interface
@@ -46,7 +49,11 @@ and zero policy; each nonempty group also needs at least `min_hospitals`
 contributing hospitals. Two values are distinct only under exact numeric
 equality.
 
-A response is binary when it is logical or every included value is 0 or 1.
+A response is binary when it is logical, every included value is 0 or 1, or
+it has exactly two distinct included values under exact equality, whatever
+their coding (1/2, 0/2 or a transformed 0/1 outcome). The event is the value 1
+(or `TRUE`) for a logical or zero/one response and otherwise the upper value;
+the other value is the nonevent.
 
 1. Model checks. The included count and its hospitals. For a binary response,
    the event and nonevent counts and their hospitals. Any failure suppresses
@@ -54,9 +61,11 @@ A response is binary when it is logical or every included value is 0 or 1.
 2. Coefficient column checks, using every fitted model-matrix column,
    declared or not:
    - The intercept has no checks of its own. Any other constant column checks
-     its nonzero count, so an all-zero column, such as an empty interaction
-     cell or an indicator that is zero for every analysis row, has a zero
-     count under the zero policy (`nonzero`).
+     its nonzero count, and a constant nonzero column also its zero-valued
+     count. An all-zero column, such as an empty interaction cell or an
+     indicator that is zero for every analysis row, has a zero `nonzero`
+     count, and an indicator equal to one on every row has a zero
+     `zero_valued` count, so both follow the zero policy.
    - A column with exactly two distinct values checks both level counts
      (`lower_level`, `upper_level`). With a binary response, it also checks the
      four level-by-outcome cells (`lower_level_events`,
@@ -76,14 +85,17 @@ A response is binary when it is logical or every included value is 0 or 1.
    term: the intercept, and a main effect that an interaction with the
    predictor makes level-specific (`factor:<variable>`). Factor levels come
    from the retained fit; no reference group is inferred from labels.
-4. Interaction cells. For each model term containing two or more factor,
-   logical or two-valued numeric predictors, every cell of the full crossing
-   of those predictors' fitted levels or values is checked, including the
-   reference cell and empty cells, with level-by-outcome cells for a binary
+4. Joint cells. When the model has two or more factor, logical or
+   two-valued numeric predictors, every cell of the full joint crossing of
+   all of them is checked, whether they interact or enter additively. Cells
+   use fitted factor levels and the observed two values, and include the
+   reference cell and empty cells, with cell-by-response cells for a binary
    response (`cell`, `cell_events`, `cell_nonevents`). A failing cell
-   suppresses the rows of every term containing any of those predictors and
-   the lower-order terms within them, including the intercept
-   (`cross:<variables>`).
+   suppresses the rows of every term containing any crossed predictor and the
+   lower-order terms within them, including the intercept
+   (`cross:<variables>`). A crossing of more than 10000 cells is refused
+   rather than reviewed. Numeric predictors with three or more distinct values
+   are not crossed.
 5. Repeated terms. Rows declaring the same coefficient name share one fitted
    column, so they receive the same reasons and status.
 
@@ -117,12 +129,28 @@ Independent review of the first implementation added these checks:
   intercept is the logit of the reference cell, so a 3-row reference cell was
   disclosed although every marginal level and column passed. Two-valued
   numeric predictors are crossed as well, because a 0/1 interaction has the
-  same structure. Predictors entering only additively are not crossed.
+  same structure.
 - Only the intercept is exempt among constant columns (item 2), so an aliased
   all-zero row no longer reveals an empty group under `zero = "suppress"`.
 - A table that matches its retained model, but whose retained fit,
   coefficients or factors are internally inconsistent, is refused with a
   separate message from an altered table.
+
+A second review found further unchecked cells. Rather than add cases one at a
+time, these broader rules replace them:
+
+- Every two-valued response is binary (see above). A Gaussian `y ~ group`
+  with `y` coded 1/2 and three upper values in group A revealed a 3-count cell
+  that the same data coded 0/1 suppressed.
+- All factor, logical and two-valued numeric predictors are crossed jointly
+  (item 4), not only those sharing an interaction term. An empty B/M cell made
+  the additive `event ~ group + sex` saturated, so its intercept was exactly
+  the logit of a 3-row A/F cell. Joint crossing suppresses more than
+  necessary in additive models with many categorical predictors, and empty
+  joint cells under `zero = "suppress"` hide every crossed term; both are
+  accepted as conservative. The 10000-cell refusal bounds the work.
+- A constant nonzero column other than the intercept checks its zero-valued
+  count, mirroring the all-zero case.
 
 ## Result
 
@@ -148,10 +176,16 @@ and status). `nis_export_table()` refuses regression reviews.
 The bounded checks do not address differencing across separately fitted models
 or tables, weights that are themselves disclosive, offsets, continuous-predictor
 extremes, or information recoverable from covariance matrices beyond the
-published standard errors. In a model whose predictors enter additively, the
-intercept and other coefficients are model-based combinations of the groups:
-the cells of additively combined predictors, such as the reference-by-reference
-cell behind an additive intercept, are not crossed or checked. A domain or
+published standard errors. Numeric predictors with three or more distinct
+values are never crossed, so an interaction with one can expose a cell. For
+example, in `event ~ group * x` with `x` in {0, 1, 2}, if group A has only
+`x = 0` (3 rows) and `x = 1` (50 rows), the fit is saturated within A and its
+intercept recovers the 3-row cell, while every checked group passes. Joint
+cells of additively combined predictors are checked (item 4), but other
+coefficients remain model-based combinations of groups that are not all
+enumerated. The retained fitted model frame and model matrix are trusted: they
+must match the table's coefficients, but a deliberately forged internal frame
+is not compared with the retained design variables and is not detected. A domain or
 complete-case exclusion that removes a declared factor level entirely leaves it
 out of the fitted levels, so it is not checked, and its absence from the table
 is visible to a reader who knows the declared levels. Groups are checked only
@@ -167,8 +201,12 @@ the equal-weight one-binary-predictor logistic case with each of the four cells
 just inside and outside the range; a small reference level and a small
 non-reference level; zero-count fitted levels under both zero policies; a
 factor-by-continuous interaction; factor-by-factor and 0/1-by-0/1
-interactions with a small reference cell; an empty interaction cell and an
-all-zero indicator under both zero policies; a count of exactly one; outcome
+interactions with a small reference cell; a small non-reference cell only; a
+three-way interaction; factor by logical and factor by a non-0/1 two-valued
+numeric predictor; an additive model saturated by an empty cell; a 1/2-coded
+response matching its 0/1 coding; an empty interaction cell, an all-zero
+indicator and an all-one indicator under both zero policies; a crossing over
+10000 cells refused; a count of exactly one; outcome
 and predictor missingness that excludes a whole hospital; a two-valued non-0/1
 column; a continuous
 column with few nonzero values; minimum hospitals for model, column and factor
