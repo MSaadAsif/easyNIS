@@ -2,7 +2,8 @@
 
 NIS-020 writes the presentation of one `nis_disclosure_review` to CSV or HTML
 using base R, or to Word using the optional officer package. Export of
-regression tables, which have no disclosure review yet, remains a separate
+regression tables and their disclosure reviews
+([REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md)) remains a separate
 increment. An exported file is a candidate for human publication review; it
 does not certify a manuscript or approve annual support.
 
@@ -17,9 +18,9 @@ This does not provide overall rows, between-group tests or a table-combining API
 
 `nis_export_table(review, path, format, digits, formula_text, overwrite)`
 
-- `review` is an experimental `nis_disclosure_review`. Descriptive tables,
-  regression tables and other objects are refused, so unreviewed values have
-  no export path. Before writing, the table's estimate, SE, interval, df and
+- `review` is an experimental `nis_disclosure_review` of a descriptive table.
+  Descriptive tables, regression tables, regression reviews and other objects
+  are refused, so unreviewed values have no export path. Before writing, the table's estimate, SE, interval, df and
   confidence columns must equal the retained `nis_estimate` results, and the
   review is recomputed from its table under its recorded policy. The complete
   recomputed review, including presentation, audit and provenance, must be
@@ -159,7 +160,7 @@ formats, commas, quotes and newlines in CSV text, rounding to significant
 digits without changing the review, the absence of hidden values from HTML,
 exact visible confidence levels even when every row is suppressed, including
 levels close to one that would round to 100 percent, refusal of unreviewed
-descriptive tables, regression tables and modified
+descriptive tables, regression tables, regression reviews and modified
 reviews (including a revealed suppressed value, a status relabeled
 consistently with revealed values, a forged policy, consistently changed
 counts and estimates, and factor statuses),

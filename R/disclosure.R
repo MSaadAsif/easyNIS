@@ -1,12 +1,14 @@
-#' Review an experimental descriptive table for disclosure
+#' Review an experimental descriptive or regression table for disclosure
 #'
 #' Applies caller-declared primary and complementary suppression to one
-#' [nis_descriptive_table()] using unweighted included discharge counts and
+#' [nis_descriptive_table()], or coefficient suppression to one
+#' [nis_regression_table()], using unweighted included discharge counts and
 #' contributing hospitals. Only `presentation` is an export candidate. The
 #' review assists a human publication check and does not certify a manuscript.
 #'
 #' @param table One experimental [nis_descriptive_table()] constructor result,
-#'   optionally grouped by a retained factor.
+#'   optionally grouped by a retained factor, or one unchanged
+#'   [nis_regression_table()] result.
 #' @param suppress Whole-number vector `c(lower, upper)` with
 #'   `1 <= lower <= upper`. Checked counts in this inclusive range are
 #'   disclosive. `c(1, 10)` reproduces the DUA range recorded in the package
@@ -19,16 +21,24 @@
 #' @param margins A list, possibly empty, of additive relations. Each is a list
 #'   with exactly a `total` row ID and distinct `parts` row IDs, declaring
 #'   total = sum(parts) in raw counts. The relation must hold exactly.
+#'   Regression reviews require `list()`.
 #' @return A `nis_disclosure_review` list with `presentation`, `audit`, the
 #'   unchanged `table` and `provenance`. `presentation` contains `id`, `label`,
 #'   `statistic`, `unit`, `estimand`, `estimate`, `se`, `lower`, `upper`, `df`,
 #'   `confidence`, `unweighted_n` and `disclosure_status` (`shown`,
 #'   `suppressed_primary` or `suppressed_complementary`). Suppressed rows have
 #'   `NA` values. `audit` and `table` contain raw counts and must stay local.
-#' @details Every row checks included, missing and nonzero discharge counts.
-#'   Binary fields also check zero-valued discharges, and other two-valued
-#'   fields check their smaller level. Nonempty groups also check their
-#'   contributing hospitals. Margins compare nonzero counts for binary rows and
+#'   A regression review instead has `presentation` columns `id`, `term`,
+#'   `label`, `unit`, `estimate`, `se`, `statistic`, `p_value`, `lower`,
+#'   `upper`, `aliased`, `coefficient_scale`, `family`, `link`, `df`,
+#'   `confidence`, `unweighted_n` and `disclosure_status` (`shown` or
+#'   `suppressed`), an `audit` list of `sample`, `groups` and `rows`, and
+#'   `provenance$table_kind = "regression"`.
+#' @details In a descriptive table, every row checks included, missing and
+#'   nonzero discharge counts. Binary fields also check zero-valued discharges,
+#'   and other two-valued fields check their smaller level. Nonempty groups
+#'   also check their contributing hospitals. Margins compare nonzero counts
+#'   for binary rows and
 #'   included counts otherwise. Complementary suppression repeats until rows on
 #'   a suppressed field are all suppressed, no single margin recovers one
 #'   suppressed row or a disclosive or single-hospital suppressed sum, no
@@ -51,6 +61,32 @@
 #'   search over all subsets or nonnegative/whole-number constraints. Undeclared
 #'   relations and external tables require human review. Annual support and
 #'   scientific approval remain pending.
+#'
+#'   A regression table must match its retained model's coefficient table and
+#'   declarations exactly; altered objects are refused. Counts come from the
+#'   model's included analysis rows. The model checks its included count and,
+#'   for a binary (logical, zero/one or any two-valued) response, its event
+#'   and nonevent counts, otherwise its nonzero-response count; a failure
+#'   suppresses every row and `unweighted_n`. Each fitted
+#'   model-matrix column with two distinct values checks both levels, and with a
+#'   binary response their four level-by-outcome cells; a column with more
+#'   values checks its nonzero and any zero-valued count. Every fitted level of
+#'   each factor or logical predictor, including the reference and zero-count
+#'   levels, is checked. Every checked group also checks its event and
+#'   nonevent cells for a binary response, or otherwise its rows with a nonzero
+#'   response; other splits of a multi-valued response are not checked. A
+#'   constant column other than the intercept checks its nonzero group (for
+#'   an all-zero column, its zero group is the model sample), and also its
+#'   zero-valued group when every value is nonzero. All factor, logical and two-valued numeric predictors are crossed
+#'   jointly, interacting or not, and every cell is checked, including empty
+#'   and reference cells; crossings over 10000 cells are refused. A failed column
+#'   suppresses its rows and constant columns such as the intercept. A failed
+#'   factor or cell suppresses every term containing its predictors and the
+#'   lower-order terms within those terms. Rows repeating a term share its
+#'   status. Suppressed rows have `NA` inference and `aliased` values.
+#'   Numeric predictors with three or more values are not crossed, and the
+#'   retained fitted model frame is trusted. Differencing across models,
+#'   disclosive weights, offsets and continuous extremes are not checked.
 #' @export
 #' @examples
 #' if (requireNamespace("survey", quietly = TRUE)) {
@@ -75,9 +111,10 @@
 #'   unlink(path)
 #' }
 nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins) {
-  if (!inherits(table, "nis_descriptive_table") || !is.data.frame(table$data) ||
-      !is.list(table$results) || !identical(names(table$results), table$data$id)) {
-    stop("`table` must be a nis_descriptive_table result.", call. = FALSE)
+  regression <- inherits(table, "nis_regression_table")
+  if (!regression && (!inherits(table, "nis_descriptive_table") || !is.data.frame(table$data) ||
+      !is.list(table$results) || !identical(names(table$results), table$data$id))) {
+    stop("`table` must be a nis_descriptive_table or nis_regression_table result.", call. = FALSE)
   }
   if (base::missing(suppress) || base::missing(zero) || base::missing(min_hospitals) ||
       base::missing(margins)) {
@@ -97,6 +134,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     stop("`min_hospitals` must be one positive whole number.", call. = FALSE)
   }
   min_hospitals <- as.double(min_hospitals)
+  if (regression) return(regression_disclosure_review(table, suppress, zero, min_hospitals, margins))
   ids <- table$data$id
   margins <- check_margins(margins, ids)
   in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
@@ -399,4 +437,256 @@ check_margins <- function(margins, ids) {
     }
     list(total = relation$total, parts = unname(relation$parts))
   })
+}
+
+regression_disclosure_review <- function(table, suppress, zero, min_hospitals, margins) {
+  if (!identical(margins, list())) {
+    stop("Regression reviews require `margins = list()`; coefficients are not additive counts.",
+         call. = FALSE)
+  }
+  fit <- regression_review_fit(table)
+  x <- fit$matrix
+  hospital <- fit$hospital
+  in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
+  disclosive <- function(count) in_range(count) | (zero == "suppress" & count == 0)
+  response <- fit$response
+  # Any two-valued response carries outcome cells, whatever its coding; the
+  # upper value is the event unless the response is logical or zero/one.
+  binary <- is.logical(response) || all(response %in% c(0, 1)) ||
+    length(unique(response)) == 2L
+  event <- if (!binary) NULL else if (all(response %in% c(0, 1))) {
+    as.double(response) == 1
+  } else response == max(response)
+  # Like a descriptive field, a multi-valued response checks its nonzero rows.
+  response_nonzero <- if (binary) NULL else as.double(response) != 0
+  groups <- list()
+  # Records one unweighted group; nonempty groups also need enough hospitals.
+  check <- function(scope, target, name, members, level = NA_character_,
+                    value = NA_real_, outcome = NA_character_) {
+    count <- as.double(sum(members))
+    hospitals <- as.double(length(unique(hospital[members])))
+    groups[[length(groups) + 1L]] <<- data.frame(scope = scope, target = target,
+      check = name, level = level, value = value, outcome = outcome, count = count,
+      hospitals = hospitals, count_failed = disclosive(count),
+      hospitals_failed = count > 0 && hospitals < min_hospitals, stringsAsFactors = FALSE)
+  }
+  # Each group also checks its response cells: event and nonevent rows for a
+  # binary response, otherwise rows with a nonzero response.
+  check_cells <- function(scope, target, name, members, level = NA_character_, value = NA_real_) {
+    check(scope, target, name, members, level, value)
+    if (binary) {
+      check(scope, target, paste0(name, "_events"), members & event, level, value, "event")
+      check(scope, target, paste0(name, "_nonevents"), members & !event, level, value, "nonevent")
+    } else {
+      check(scope, target, paste0(name, "_response_nonzero"), members & response_nonzero,
+        level, value, "nonzero")
+    }
+  }
+  check("model", NA_character_, "included", rep(TRUE, nrow(x)))
+  if (binary) {
+    check("model", NA_character_, "events", event, outcome = "event")
+    check("model", NA_character_, "nonevents", !event, outcome = "nonevent")
+  } else {
+    check("model", NA_character_, "response_nonzero", response_nonzero, outcome = "nonzero")
+  }
+  terms <- colnames(x)
+  intercept <- attr(x, "assign") == 0L
+  constant <- logical(length(terms))
+  for (j in seq_along(terms)) {
+    column <- x[, j]
+    values <- sort(unique(column))
+    constant[[j]] <- length(values) == 1L
+    if (length(values) == 1L && !intercept[[j]]) {
+      # A constant column other than the intercept has an empty group: no
+      # nonzero rows (such as an empty interaction cell) or no zero rows.
+      check_cells("column", terms[[j]], "nonzero", column != 0)
+      if (values != 0) check_cells("column", terms[[j]], "zero_valued", column == 0, value = 0)
+    } else if (length(values) == 2L) {
+      check_cells("column", terms[[j]], "lower_level", column == values[[1L]], value = values[[1L]])
+      check_cells("column", terms[[j]], "upper_level", column == values[[2L]], value = values[[2L]])
+    } else if (length(values) > 2L) {
+      check_cells("column", terms[[j]], "nonzero", column != 0)
+      if (any(column == 0)) check_cells("column", terms[[j]], "zero_valued", column == 0, value = 0)
+    }
+  }
+  for (variable in names(fit$levels)) {
+    observed <- as.character(fit$frame[[variable]])
+    for (level in fit$levels[[variable]]) {
+      check_cells("factor", variable, "level", observed == level, level = level)
+    }
+  }
+  # Coefficients of factors and other two-valued predictors describe the cells
+  # of their joint crossing, including the reference cell behind the intercept
+  # and empty cells, whether the predictors interact or enter additively.
+  crossable <- function(variable) {
+    variable %in% names(fit$levels) ||
+      (is.numeric(fit$frame[[variable]]) && length(unique(fit$frame[[variable]])) == 2L)
+  }
+  crossed <- Filter(crossable, unique(unlist(fit$term_variables)))
+  crossings <- if (length(crossed) > 1L) list(crossed) else list()
+  for (crossing in crossings) {
+    coded <- lapply(crossing, function(variable) {
+      value <- fit$frame[[variable]]
+      if (variable %in% names(fit$levels)) {
+        labels <- fit$levels[[variable]]
+        return(list(labels = labels, codes = match(as.character(value), labels)))
+      }
+      values <- sort(unique(value))
+      list(labels = as.character(values), codes = match(value, values))
+    })
+    sizes <- vapply(coded, function(v) length(v$labels), integer(1))
+    if (prod(sizes) > 10000) {
+      stop("The joint crossing of factor and two-valued predictors has more than 10000 cells; ",
+           "reduce the predictors before review.", call. = FALSE)
+    }
+    # Cell index with the first predictor varying fastest, as in expand.grid().
+    index <- 1 + Reduce(`+`, lapply(seq_along(coded), function(v) {
+      (coded[[v]]$codes - 1) * prod(sizes[seq_len(v - 1L)])
+    }))
+    labels <- do.call(paste, c(unname(expand.grid(lapply(coded, function(v) v$labels),
+      stringsAsFactors = FALSE)), sep = ":"))
+    target <- paste(crossing, collapse = ":")
+    partition <- function(name, members, outcome) {
+      cell <- index[members]
+      count <- as.double(tabulate(cell, length(labels)))
+      first <- !duplicated(paste(cell, hospital[members], sep = "\r"))
+      hospitals <- as.double(tabulate(cell[first], length(labels)))
+      data.frame(scope = "cross", target = target, check = name, level = labels,
+        value = NA_real_, outcome = outcome, count = count, hospitals = hospitals,
+        count_failed = disclosive(count), hospitals_failed = count > 0 & hospitals < min_hospitals,
+        stringsAsFactors = FALSE)
+    }
+    cells <- list(partition("cell", rep(TRUE, length(index)), NA_character_))
+    cells <- c(cells, if (binary) {
+      list(partition("cell_events", event, "event"), partition("cell_nonevents", !event, "nonevent"))
+    } else list(partition("cell_response_nonzero", response_nonzero, "nonzero")))
+    cells <- do.call(rbind, cells)
+    # Interleave each cell with its outcome cells.
+    groups <- c(groups, list(cells[order(rep(seq_along(labels), nrow(cells) / length(labels))), ]))
+  }
+  groups <- do.call(rbind, groups)
+  rownames(groups) <- NULL
+  failures <- function(scope, target = NA_character_) {
+    selected <- groups$scope == scope & groups$target %in% target
+    c(groups$check[selected & groups$count_failed],
+      paste0("hospitals_", groups$check[selected & groups$hospitals_failed], recycle0 = TRUE))
+  }
+  model_failed <- failures("model")
+  failed_columns <- terms[vapply(terms, function(term) length(failures("column", term)) > 0L,
+    logical(1), USE.NAMES = FALSE)]
+  failed_factors <- names(fit$levels)[vapply(names(fit$levels), function(variable) {
+    length(failures("factor", variable)) > 0L
+  }, logical(1), USE.NAMES = FALSE)]
+  failed_crossings <- Filter(function(crossing) {
+    length(failures("cross", paste(crossing, collapse = ":"))) > 0L
+  }, crossings)
+  # A failed predictor also protects the lower-order terms of every term
+  # containing it: the intercept, and main effects that an interaction makes
+  # level-specific.
+  protected_by <- function(variables) {
+    containing <- Filter(function(v) any(variables %in% v), fit$term_variables)
+    vapply(fit$column_variables, function(v) {
+      any(vapply(containing, function(s) all(v %in% s), logical(1)))
+    }, logical(1))
+  }
+  factor_columns <- lapply(failed_factors, protected_by)
+  crossing_columns <- lapply(failed_crossings, protected_by)
+  # Reasons belong to fitted columns, so rows repeating a term share one identity.
+  # Constant columns describe the reference groups of every other column.
+  column_reasons <- lapply(seq_along(terms), function(j) {
+    c(paste0("model:", model_failed, recycle0 = TRUE),
+      paste0("column:", failures("column", terms[[j]]), recycle0 = TRUE),
+      if (constant[[j]]) paste0("reference:", setdiff(failed_columns, terms[[j]]), recycle0 = TRUE),
+      paste0("factor:", failed_factors[vapply(factor_columns, function(x) x[[j]], logical(1))],
+        recycle0 = TRUE),
+      paste0("cross:", vapply(failed_crossings, paste, character(1), collapse = ":")[
+        vapply(crossing_columns, function(x) x[[j]], logical(1))], recycle0 = TRUE))
+  })
+  data <- table$data
+  at <- match(data$term, terms)
+  reasons <- column_reasons[at]
+  status <- ifelse(lengths(reasons) > 0L, "suppressed", "shown")
+  shown <- status == "shown"
+  hide <- function(value) {
+    value[!shown] <- NA
+    value
+  }
+  included <- as.double(nrow(x))
+  presentation <- data.frame(id = data$id, term = data$term, label = data$label,
+    unit = data$unit, estimate = hide(data$estimate), se = hide(data$se),
+    statistic = hide(data$statistic), p_value = hide(data$p_value),
+    lower = hide(data$lower), upper = hide(data$upper), aliased = hide(data$aliased),
+    coefficient_scale = data$coefficient_scale, family = data$family, link = data$link,
+    df = data$df, confidence = data$confidence,
+    unweighted_n = rep(if (length(model_failed)) NA_real_ else included, nrow(data)),
+    disclosure_status = status, stringsAsFactors = FALSE)
+  audit <- list(
+    sample = data.frame(supplied = as.double(table$sample$supplied), included = included,
+      missing = as.double(table$sample$excluded_missing),
+      hospitals = as.double(length(unique(hospital))), binary_response = binary),
+    groups = groups,
+    rows = data.frame(id = data$id, term = data$term,
+      reasons = vapply(reasons, paste, character(1), collapse = ";"),
+      disclosure_status = status, stringsAsFactors = FALSE))
+  provenance <- list(policy = list(suppress = suppress, zero = zero,
+      min_hospitals = min_hospitals, margins = list()),
+    rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
+    count_basis = "unweighted included model analysis discharges",
+    table_kind = "regression",
+    procedure = "model sample, fitted model-matrix columns, factor levels and joint cells, each split by response; failed columns suppress constant columns and failed factors or cells their marginal terms; no margins",
+    table = table$provenance, scope = "experimental_disclosure_review",
+    analysis_ready = FALSE)
+  structure(list(presentation = presentation, audit = audit, table = table,
+    provenance = provenance), class = "nis_disclosure_review")
+}
+
+# Verifies an unchanged regression table against its retained fit and returns
+# the fitted analysis rows that underlie its coefficients.
+regression_review_fit <- function(table) {
+  refuse <- function() {
+    stop("`table` must be an unchanged nis_regression_table result.", call. = FALSE)
+  }
+  # The table matches its model, but the retained fit disagrees with itself.
+  inconsistent <- function() {
+    stop("The retained model's fit, coefficients or factors are internally inconsistent; ",
+         "refit the model and rebuild the table.", call. = FALSE)
+  }
+  if (!identical(class(table), "nis_regression_table") || !is.list(table) ||
+      !identical(names(table), c("data", "model", "factors", "sample", "diagnostics", "provenance")) ||
+      !is.list(table$provenance)) refuse()
+  rebuilt <- tryCatch(nis_regression_table(table$model, table$provenance$declarations, "link"),
+    error = function(e) NULL)
+  if (is.null(rebuilt) || !identical(rebuilt, table)) refuse()
+  model <- table$model
+  native <- model$native
+  estimates <- stats::coef(native, na.rm = FALSE)
+  x <- tryCatch(stats::model.matrix(native), error = function(e) NULL)
+  frame <- native$model
+  hospital <- as.character(model$design$cluster[[1L]])
+  if (is.null(x) || !is.data.frame(frame) || !identical(colnames(x), names(estimates)) ||
+      !identical(model$coefficients$term, names(estimates)) ||
+      !identical(model$coefficients$estimate, unname(estimates)) ||
+      nrow(x) != length(hospital) || nrow(frame) != nrow(x) ||
+      nrow(x) != model$sample$included || length(attr(x, "assign")) != ncol(x)) inconsistent()
+  response <- stats::model.response(frame)
+  if (!is.null(dim(response)) || length(response) != nrow(x) || anyNA(response)) inconsistent()
+  predictors <- setdiff(names(frame)[-1L], c("(weights)", "(offset)"))
+  categorical <- predictors[vapply(frame[predictors], function(v) {
+    is.factor(v) || is.character(v) || is.logical(v)
+  }, logical(1))]
+  # Logical predictors are fitted with both levels, even when one has no rows.
+  levels <- lapply(frame[categorical], function(v) {
+    if (is.logical(v)) c("FALSE", "TRUE") else levels(factor(v))
+  })
+  if (!identical(as.character(names(model$factors)), categorical) ||
+      !identical(unname(levels), unname(lapply(model$factors, function(f) f$levels)))) inconsistent()
+  incidence <- attr(attr(frame, "terms"), "factors")
+  term_variables <- if (length(incidence)) lapply(seq_len(ncol(incidence)), function(j) {
+    rownames(incidence)[incidence[, j] > 0]
+  }) else list()
+  column_variables <- lapply(attr(x, "assign"), function(j) {
+    if (j == 0L) character() else term_variables[[j]]
+  })
+  list(matrix = x, frame = frame, response = response, hospital = hospital,
+    levels = levels, term_variables = term_variables, column_variables = column_variables)
 }

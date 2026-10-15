@@ -12,7 +12,8 @@
 #' @return A `nis_regression_table` list containing declaration and existing
 #'   numeric coefficient columns in `data`, plus the original model, factors,
 #'   sample, diagnostics and provenance. Aliases and undefined inference retain
-#'   their original `NA`/`NaN` values. Disclosure remains unreviewed.
+#'   their original `NA`/`NaN` values. Disclosure remains unreviewed until
+#'   [nis_disclosure_review()] reviews the unchanged table.
 #' @details Labels and units are caller declarations. They do not authenticate
 #'   reference groups or imply odds, means or rates. Intervals are pointwise;
 #'   tests remain existing link-scale null-zero tests. Existing native weighted
