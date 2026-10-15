@@ -6,6 +6,38 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+Grouped joint disclosure review merged in
+[PR #44](https://github.com/MSaadAsif/easyNIS/pull/44); all five resulting main
+jobs passed at `2d12519c5f1288d4ebd39ef930ad45a24bcbc9dd`. NIS-035's bounded
+grouped review/export criterion is complete.
+
+The next bounded NIS-019 increment reviews one regression table under the
+caller's explicit suppression policy. See
+[REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md) for model, coefficient-column,
+factor-level, joint-cell and response-split checks and their conservative
+intercept and lower-order suppression. Independent review of `a057116` found
+unchecked factor-by-factor cells (a 3-row reference cell disclosed by a shown
+intercept) and all-zero non-intercept columns that bypassed the zero policy.
+Review of `f06a51b` found a 1/2-coded response that skipped outcome cells and
+an additive model saturated by an empty cell. Broader rules now treat every
+two-valued response as binary, cross all factor, logical and two-valued
+predictors jointly (refusing crossings over 10000 cells) and check both empty
+groups of constant non-intercept columns. Review of `78c0760` found that a
+response with three or more values had no response checks; every group of
+such a response now checks its nonzero-response rows, matching the descriptive
+`nonzero` rule, and every column group is split by response. Numeric
+predictors with three or more values stay uncrossed, splits of a multi-valued
+response beyond nonzero are unchecked, and the retained model frame is trusted;
+all are documented limitations. Regression-table export remains refused and is
+the following NIS-020 increment. Focused invented cases pass 259 assertions with
+hand-counted references; 27 old/new ordinary and grouped descriptive reviews
+serialize identically. Precommit verification passes 2,779 package assertions,
+216 tool assertions, source Status OK and installed workflows. The intercept,
+lower-order, joint-crossing and response-split rules suppress more than the
+first draft and need Saad and Ali's policy review. Clean-head verification,
+independent review and protected hosted checks remain required. No scientific
+or annual support is promoted.
+
 Numeric factor grouping merged in
 [PR #43](https://github.com/MSaadAsif/easyNIS/pull/43); all five resulting main
 jobs passed at `4fdd813b0bb16e725b735d8d68f7d87bced57684`. Groups use full-design
@@ -1254,7 +1286,7 @@ separate gates, and no annual capability is promoted.
 |---|---|---|---|
 | NIS-033 | Define verified parquet input profiles. | 005–006; before 007 is finalized. | Source-preserving and legacy merged profiles distinguished; identifier/weight aliases verified against year/provenance; prefiltered input and lost missing/label information reported. |
 | NIS-034 | Verify derived-variable and model-scale provenance. | 010–011, 016–018. | Versioned supplied comorbidity/classification fields; unsupported POA-dependent scoring refused; broad disposition labels preserved; charges/cost/base-year and transformed-outcome interpretations explicit. |
-| NIS-035 | Add bounded grouped descriptive tables and joint disclosure/export. | 018. | Numeric grouping merged in PR #43 with all five main checks passing. Next: exact field/domain count identity for one grouped constructor result, repeated-statistic suppression, independent and cross-group margins/protected sums, hospital unions, group-specific binary/missingness behavior, grouped provenance rejection, ordinary compatibility and installed joint reviewed CSV/HTML/Word exports. No overall rows or between-group tests. |
+| NIS-035 | Add bounded grouped descriptive tables and joint disclosure/export. | 018. | Numeric grouping merged in PR #43 and joint review/export in PR #44, each with all five main checks passing. Completed bounded criterion: exact field/domain count identity for one grouped constructor result, repeated-statistic suppression, independent and cross-group margins/protected sums, hospital unions, group-specific binary/missingness behavior, grouped provenance rejection, ordinary compatibility and installed joint reviewed CSV/HTML/Word exports. No overall rows or between-group tests. |
 
 NIS-033 and the v1 metadata/model safeguards in NIS-034 are release requirements. New scoring algorithms, cost-conversion helpers, and additional model families remain later capabilities with separate validation gates.
 

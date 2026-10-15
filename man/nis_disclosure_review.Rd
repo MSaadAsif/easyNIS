@@ -2,13 +2,14 @@
 % Please edit documentation in R/disclosure.R
 \name{nis_disclosure_review}
 \alias{nis_disclosure_review}
-\title{Review an experimental descriptive table for disclosure}
+\title{Review an experimental descriptive or regression table for disclosure}
 \usage{
 nis_disclosure_review(table, suppress, zero, min_hospitals, margins)
 }
 \arguments{
 \item{table}{One experimental \code{\link[=nis_descriptive_table]{nis_descriptive_table()}} constructor result,
-optionally grouped by a retained factor.}
+optionally grouped by a retained factor, or one unchanged
+\code{\link[=nis_regression_table]{nis_regression_table()}} result.}
 
 \item{suppress}{Whole-number vector \code{c(lower, upper)} with
 \verb{1 <= lower <= upper}. Checked counts in this inclusive range are
@@ -24,7 +25,8 @@ fewer distinct first-level clusters are disclosive.}
 
 \item{margins}{A list, possibly empty, of additive relations. Each is a list
 with exactly a \code{total} row ID and distinct \code{parts} row IDs, declaring
-total = sum(parts) in raw counts. The relation must hold exactly.}
+total = sum(parts) in raw counts. The relation must hold exactly.
+Regression reviews require \code{list()}.}
 }
 \value{
 A \code{nis_disclosure_review} list with \code{presentation}, \code{audit}, the
@@ -33,18 +35,26 @@ unchanged \code{table} and \code{provenance}. \code{presentation} contains \code
 \code{confidence}, \code{unweighted_n} and \code{disclosure_status} (\code{shown},
 \code{suppressed_primary} or \code{suppressed_complementary}). Suppressed rows have
 \code{NA} values. \code{audit} and \code{table} contain raw counts and must stay local.
+A regression review instead has \code{presentation} columns \code{id}, \code{term},
+\code{label}, \code{unit}, \code{estimate}, \code{se}, \code{statistic}, \code{p_value}, \code{lower},
+\code{upper}, \code{aliased}, \code{coefficient_scale}, \code{family}, \code{link}, \code{df},
+\code{confidence}, \code{unweighted_n} and \code{disclosure_status} (\code{shown} or
+\code{suppressed}), an \code{audit} list of \code{sample}, \code{groups} and \code{rows}, and
+\code{provenance$table_kind = "regression"}.
 }
 \description{
 Applies caller-declared primary and complementary suppression to one
-\code{\link[=nis_descriptive_table]{nis_descriptive_table()}} using unweighted included discharge counts and
+\code{\link[=nis_descriptive_table]{nis_descriptive_table()}}, or coefficient suppression to one
+\code{\link[=nis_regression_table]{nis_regression_table()}}, using unweighted included discharge counts and
 contributing hospitals. Only \code{presentation} is an export candidate. The
 review assists a human publication check and does not certify a manuscript.
 }
 \details{
-Every row checks included, missing and nonzero discharge counts.
-Binary fields also check zero-valued discharges, and other two-valued
-fields check their smaller level. Nonempty groups also check their
-contributing hospitals. Margins compare nonzero counts for binary rows and
+In a descriptive table, every row checks included, missing and
+nonzero discharge counts. Binary fields also check zero-valued discharges,
+and other two-valued fields check their smaller level. Nonempty groups
+also check their contributing hospitals. Margins compare nonzero counts
+for binary rows and
 included counts otherwise. Complementary suppression repeats until rows on
 a suppressed field are all suppressed, no single margin recovers one
 suppressed row or a disclosive or single-hospital suppressed sum, no
@@ -67,6 +77,32 @@ procedure is greedy and conservative within these bounded checks, not a
 search over all subsets or nonnegative/whole-number constraints. Undeclared
 relations and external tables require human review. Annual support and
 scientific approval remain pending.
+
+A regression table must match its retained model's coefficient table and
+declarations exactly; altered objects are refused. Counts come from the
+model's included analysis rows. The model checks its included count and,
+for a binary (logical, zero/one or any two-valued) response, its event
+and nonevent counts, otherwise its nonzero-response count; a failure
+suppresses every row and \code{unweighted_n}. Each fitted
+model-matrix column with two distinct values checks both levels, and with a
+binary response their four level-by-outcome cells; a column with more
+values checks its nonzero and any zero-valued count. Every fitted level of
+each factor or logical predictor, including the reference and zero-count
+levels, is checked. Every checked group also checks its event and
+nonevent cells for a binary response, or otherwise its rows with a nonzero
+response; other splits of a multi-valued response are not checked. A
+constant column other than the intercept checks its nonzero group (for
+an all-zero column, its zero group is the model sample), and also its
+zero-valued group when every value is nonzero. All factor, logical and two-valued numeric predictors are crossed
+jointly, interacting or not, and every cell is checked, including empty
+and reference cells; crossings over 10000 cells are refused. A failed column
+suppresses its rows and constant columns such as the intercept. A failed
+factor or cell suppresses every term containing its predictors and the
+lower-order terms within those terms. Rows repeating a term share its
+status. Suppressed rows have \code{NA} inference and \code{aliased} values.
+Numeric predictors with three or more values are not crossed, and the
+retained fitted model frame is trusted. Differencing across models,
+disclosive weights, offsets and continuous extremes are not checked.
 }
 \examples{
 if (requireNamespace("survey", quietly = TRUE)) {

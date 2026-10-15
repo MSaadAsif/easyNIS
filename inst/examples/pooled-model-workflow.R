@@ -151,7 +151,7 @@ library(easyNIS)
   versions <- vapply(c("easyNIS", "DBI", "duckdb", "survey"),
     function(package) as.character(utils::packageVersion(package)), character(1))
   # Fixed whitelist. Model coefficients/accounting/designs remain internal;
-  # model disclosure review and regression-table export are unsupported.
+  # this example reviews no regression table, and regression-table export is unsupported.
   report <- c("# Invented pooled/model workflow report", "",
     "Experimental; not analysis ready. No annual support or scientific approval is claimed.",
     "All records, code assignments and year labels are invented; no audited annual layouts or clinical cohorts.",
@@ -179,7 +179,7 @@ library(easyNIS)
     "Rows: pooled LOS mean; average annual LOS total; average annual rare indicator total.",
     "Disclosure: suppress raw counts 1 through 10; display zero; minimum 2 contributing hospitals; no declared margins.",
     "Bounded disclosure requires human review of undeclared relations, larger margin combinations and external publications.",
-    "Only reviewed descriptive values are exported. Model disclosure review and regression-table export are unsupported.",
+    "Only reviewed descriptive values are exported. No regression table is reviewed; regression-table export is unsupported.",
     "CSV uses exact numbers and refuses formula-leading text; HTML uses 4 significant digits for estimates, SEs and intervals.",
     "", "## Reviewed descriptive outputs", "",
     "[Exact CSV table](table.csv)", "[HTML table with disclosure notes](table.html)", "",

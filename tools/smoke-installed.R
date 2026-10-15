@@ -464,6 +464,63 @@ local({
     is.finite(exported$estimate[3L]))
 })
 cat("Installed two-level review preserved exact doubles and suppressed count/hospital failures.\n")
+local({
+  session <- nis_open()
+  path <- tempfile(fileext = ".parquet")
+  output <- tempfile(fileext = ".csv")
+  on.exit({ nis_close(session); unlink(c(path, output)) })
+  # Row i is in hospital (i - 1) %% 4 + 1; level C holds rows 82-84 only.
+  rows <- nis_synthetic_data()$core[rep(1L, 84L), ]
+  rows$KEY_NIS <- sprintf("%06d", seq_len(84L))
+  hospital <- (seq_len(84L) - 1L) %% 4L + 1L
+  rows$HOSP_NIS <- sprintf("%04d", hospital)
+  rows$NIS_STRATUM <- as.integer(hospital > 2L) + 1L
+  rows$DISCWT <- 5
+  rows$g <- rep(c(1, 2, 3), c(41L, 40L, 3L))
+  rows$x <- rep(c(-1, 0, 2), length.out = 84L)
+  rows$y <- 1 + 0.5 * rows$x + rows$g + ((seq_len(84L) * 7L) %% 11L) / 10
+  rows$event <- as.double(seq_len(84L) %% 2L == 0L)
+  DBI::dbWriteTable(session$connection, "regression_review", rows)
+  DBI::dbExecute(session$connection, paste0("COPY regression_review TO ",
+    DBI::dbQuoteString(session$connection, path), " (FORMAT PARQUET)"))
+  design <- nis_survey_design(nis_import(session, path, 2022), c("y", "x", "g", "event"),
+    TRUE, "hospital_wr", "fail")
+  design <- nis_factor(design, "g", "group", c(1, 2, 3), c("A", "B", "C"))
+  fit <- nis_model(design, y ~ group + x, "gaussian", "fail", 8, 0.95, "wr_unadjusted")
+  spec <- data.frame(id = c("slope", "constant", "c", "b"),
+    term = c("x", "(Intercept)", "groupC", "groupB"), label = "Invented", unit = "link")
+  table <- nis_regression_table(fit, spec, "link")
+  before <- table
+  review <- nis_disclosure_review(table, c(1, 10), "display", 2, list())
+  out <- review$presentation
+  groups <- review$audit$groups
+  hidden <- table$data$estimate[out$disclosure_status != "shown"]
+  numeric_values <- unlist(out[vapply(out, is.numeric, logical(1))])
+  stopifnot(identical(table, before), identical(review$table, table),
+    identical(review$provenance$table_kind, "regression"),
+    identical(groups$count[groups$scope == "factor"], c(41, 41, 40, 40, 3, 3)),
+    identical(groups$count[groups$scope == "column" & groups$target == "groupC"], c(81, 81, 3, 3)),
+    identical(out$disclosure_status, c("shown", "suppressed", "suppressed", "suppressed")),
+    identical(review$audit$rows$reasons, c("", "reference:groupC;factor:group",
+      "column:upper_level;column:upper_level_response_nonzero;factor:group", "factor:group")),
+    identical(out$estimate[[1L]], fit$coefficients$estimate[fit$coefficients$term == "x"]),
+    all(is.na(out[-1L, c("estimate", "se", "statistic", "p_value", "lower", "upper", "aliased")])),
+    identical(out$unweighted_n, rep(84, 4L)),
+    identical(names(out), c("id", "term", "label", "unit", "estimate", "se", "statistic",
+      "p_value", "lower", "upper", "aliased", "coefficient_scale", "family", "link", "df",
+      "confidence", "unweighted_n", "disclosure_status")),
+    !any(hidden %in% numeric_values), !any(c(3, 40, 41, 81) %in% numeric_values),
+    inherits(tryCatch(nis_export_table(review, output, "csv", NULL, "refuse", FALSE),
+      error = identity), "error"), !file.exists(output))
+  binary_fit <- nis_model(design, event ~ x, "quasibinomial", "fail", 8, 0.95, "wr_unadjusted")
+  binary <- nis_disclosure_review(nis_regression_table(binary_fit, data.frame(id = "slope",
+    term = "x", label = "Invented", unit = "link"), "link"), c(1, 10), "display", 2, list())
+  stopifnot(identical(binary$audit$groups$count[binary$audit$groups$scope == "model"], c(84, 42, 42)),
+    identical(binary$presentation$disclosure_status, "shown"),
+    identical(nis_disclosure_review(binary$table, c(1, 42), "display", 2,
+      list())$presentation$unweighted_n, NA_real_))
+})
+cat("Installed regression review suppressed a small factor level and its intercept, kept a safe slope and refused export.\n")
 subtotal_review <- source(system.file("examples/disclosure-subtotals.R", package = "easyNIS"),
   local = new.env())$value
 subtotal_status <- stats::setNames(subtotal_review$presentation$disclosure_status,
@@ -588,7 +645,7 @@ stopifnot(identical(pooled_csv$disclosure_status, c("shown", "shown", "suppresse
   !any(c("raw_supplied", "raw_missing", "hospitals", "weighted_denominator") %in% names(pooled_csv)),
   any(grepl("Model: LOS ~ 1; Gaussian identity", pooled_report, fixed = TRUE)),
   any(grepl("native annual weights divided by 6", pooled_report, fixed = TRUE)),
-  any(grepl("Model disclosure review and regression-table export are unsupported", pooled_report, fixed = TRUE)),
+  any(grepl("No regression table is reviewed; regression-table export is unsupported", pooled_report, fixed = TRUE)),
   any(grepl("Internal outcome batch: LOS Gaussian identity and event quasibinomial logit", pooled_report, fixed = TRUE)),
   any(grepl("AGE >= 18 & cohort after full-design pooling", pooled_report, fixed = TRUE)),
   any(grepl("Character quality policy: explicit hcup_character", pooled_report, fixed = TRUE)),
