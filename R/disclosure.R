@@ -65,21 +65,23 @@
 #'   A regression table must match its retained model's coefficient table and
 #'   declarations exactly; altered objects are refused. Counts come from the
 #'   model's included analysis rows. The model checks its included count and,
-#'   for a binary (logical or zero/one) response, its event and nonevent
-#'   counts; a failure suppresses every row and `unweighted_n`. Each fitted
+#'   for a binary (logical, zero/one or any two-valued) response, its event
+#'   and nonevent counts; a failure suppresses every row and `unweighted_n`. Each fitted
 #'   model-matrix column with two distinct values checks both levels, and with a
 #'   binary response their four level-by-outcome cells; a column with more
 #'   values checks its nonzero and any zero-valued count. Every fitted level of
 #'   each factor or logical predictor, including the reference and zero-count
 #'   levels, is checked, with outcome cells for a binary response. Constant
-#'   columns other than the intercept check their nonzero count. Each term
-#'   crossing two or more factor, logical or two-valued predictors checks every
-#'   cell of the crossing, including empty and reference cells. A failed column
+#'   columns other than the intercept check their nonzero and zero-valued
+#'   counts. All factor, logical and two-valued numeric predictors are crossed
+#'   jointly, interacting or not, and every cell is checked, including empty
+#'   and reference cells; crossings over 10000 cells are refused. A failed column
 #'   suppresses its rows and constant columns such as the intercept. A failed
 #'   factor or cell suppresses every term containing its predictors and the
 #'   lower-order terms within those terms. Rows repeating a term share its
 #'   status. Suppressed rows have `NA` inference and `aliased` values.
-#'   Additively combined predictors are not crossed. Differencing across models,
+#'   Numeric predictors with three or more values are not crossed, and the
+#'   retained fitted model frame is trusted. Differencing across models,
 #'   disclosive weights, offsets and continuous extremes are not checked.
 #' @export
 #' @examples
@@ -443,8 +445,14 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
   hospital <- fit$hospital
   in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
   disclosive <- function(count) in_range(count) | (zero == "suppress" & count == 0)
-  binary <- is.logical(fit$response) || all(fit$response %in% c(0, 1))
-  event <- if (binary) as.double(fit$response) == 1 else NULL
+  response <- fit$response
+  # Any two-valued response carries outcome cells, whatever its coding; the
+  # upper value is the event unless the response is logical or zero/one.
+  binary <- is.logical(response) || all(response %in% c(0, 1)) ||
+    length(unique(response)) == 2L
+  event <- if (!binary) NULL else if (all(response %in% c(0, 1))) {
+    as.double(response) == 1
+  } else response == max(response)
   groups <- list()
   # Records one unweighted group; nonempty groups also need enough hospitals.
   check <- function(scope, target, name, members, level = NA_character_,
@@ -477,8 +485,10 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     values <- sort(unique(column))
     constant[[j]] <- length(values) == 1L
     if (length(values) == 1L && !intercept[[j]]) {
-      # An all-zero column, such as an empty interaction cell, has a zero count.
+      # A constant column other than the intercept has an empty group: no
+      # nonzero rows (such as an empty interaction cell) or no zero rows.
       check("column", terms[[j]], "nonzero", column != 0)
+      if (values != 0) check("column", terms[[j]], "zero_valued", column == 0, value = 0)
     } else if (length(values) == 2L) {
       check_cells("column", terms[[j]], "lower_level", column == values[[1L]], value = values[[1L]])
       check_cells("column", terms[[j]], "upper_level", column == values[[2L]], value = values[[2L]])
@@ -493,30 +503,55 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
       check_cells("factor", variable, "level", observed == level, level = level)
     }
   }
-  # Interaction coefficients describe the cells of their crossed predictors,
-  # including the reference cell behind the intercept and empty cells.
+  # Coefficients of factors and other two-valued predictors describe the cells
+  # of their joint crossing, including the reference cell behind the intercept
+  # and empty cells, whether the predictors interact or enter additively.
   crossable <- function(variable) {
     variable %in% names(fit$levels) ||
       (is.numeric(fit$frame[[variable]]) && length(unique(fit$frame[[variable]])) == 2L)
   }
-  crossings <- unique(Filter(function(v) length(v) > 1L,
-    lapply(fit$term_variables, function(v) v[vapply(v, crossable, logical(1))])))
+  crossed <- Filter(crossable, unique(unlist(fit$term_variables)))
+  crossings <- if (length(crossed) > 1L) list(crossed) else list()
   for (crossing in crossings) {
     coded <- lapply(crossing, function(variable) {
       value <- fit$frame[[variable]]
-      labels <- if (variable %in% names(fit$levels)) fit$levels[[variable]] else
-        as.character(sort(unique(value)))
-      codes <- if (variable %in% names(fit$levels)) match(as.character(value), labels) else
-        match(value, sort(unique(value)))
-      list(labels = labels, codes = codes)
+      if (variable %in% names(fit$levels)) {
+        labels <- fit$levels[[variable]]
+        return(list(labels = labels, codes = match(as.character(value), labels)))
+      }
+      values <- sort(unique(value))
+      list(labels = as.character(values), codes = match(value, values))
     })
-    cells <- expand.grid(lapply(coded, function(v) seq_along(v$labels)))
-    for (k in seq_len(nrow(cells))) {
-      members <- Reduce(`&`, lapply(seq_along(coded), function(v) coded[[v]]$codes == cells[k, v]))
-      label <- paste(vapply(seq_along(coded), function(v) coded[[v]]$labels[[cells[k, v]]],
-        character(1)), collapse = ":")
-      check_cells("cross", paste(crossing, collapse = ":"), "cell", members, level = label)
+    sizes <- vapply(coded, function(v) length(v$labels), integer(1))
+    if (prod(sizes) > 10000) {
+      stop("The joint crossing of factor and two-valued predictors has more than 10000 cells; ",
+           "reduce the predictors before review.", call. = FALSE)
     }
+    # Cell index with the first predictor varying fastest, as in expand.grid().
+    index <- 1 + Reduce(`+`, lapply(seq_along(coded), function(v) {
+      (coded[[v]]$codes - 1) * prod(sizes[seq_len(v - 1L)])
+    }))
+    labels <- do.call(paste, c(unname(expand.grid(lapply(coded, function(v) v$labels),
+      stringsAsFactors = FALSE)), sep = ":"))
+    target <- paste(crossing, collapse = ":")
+    partition <- function(name, members, outcome) {
+      cell <- index[members]
+      count <- as.double(tabulate(cell, length(labels)))
+      first <- !duplicated(paste(cell, hospital[members], sep = "\r"))
+      hospitals <- as.double(tabulate(cell[first], length(labels)))
+      data.frame(scope = "cross", target = target, check = name, level = labels,
+        value = NA_real_, outcome = outcome, count = count, hospitals = hospitals,
+        count_failed = disclosive(count), hospitals_failed = count > 0 & hospitals < min_hospitals,
+        stringsAsFactors = FALSE)
+    }
+    cells <- list(partition("cell", rep(TRUE, length(index)), NA_character_))
+    if (binary) {
+      cells <- c(cells, list(partition("cell_events", event, "event"),
+        partition("cell_nonevents", !event, "nonevent")))
+    }
+    cells <- do.call(rbind, cells)
+    # Interleave each cell with its outcome cells.
+    groups <- c(groups, list(cells[order(rep(seq_along(labels), nrow(cells) / length(labels))), ]))
   }
   groups <- do.call(rbind, groups)
   rownames(groups) <- NULL
