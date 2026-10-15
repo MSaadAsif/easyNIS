@@ -16,40 +16,40 @@ reveal a 3-row count that the descriptive review of the same field suppresses.
 The missing-outcome count is also unchecked. A follow-up PR on
 `claude/easynis-regression-disclosure-groups` applies the descriptive row rule
 to every checked group. Do not merge regression-table export until that
-follow-up merges; its exporter must recompute the corrected review. Two writers
-also shared the main checkout; parallel writers need separate worktrees.
+follow-up merges; its exporter must recompute the corrected review. The
+follow-up is implemented and locally verified on that branch (draft PR #46);
+it still needs independent review and hosted checks. Two writers also shared
+the main checkout; parallel writers need separate worktrees.
 
 Grouped joint disclosure review merged in
 [PR #44](https://github.com/MSaadAsif/easyNIS/pull/44); all five resulting main
 jobs passed at `2d12519c5f1288d4ebd39ef930ad45a24bcbc9dd`. NIS-035's bounded
 grouped review/export criterion is complete.
 
-The next bounded NIS-019 increment reviews one regression table under the
-caller's explicit suppression policy. See
-[REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md) for model, coefficient-column,
-factor-level, joint-cell and response-split checks and their conservative
-intercept and lower-order suppression. Independent review of `a057116` found
-unchecked factor-by-factor cells (a 3-row reference cell disclosed by a shown
-intercept) and all-zero non-intercept columns that bypassed the zero policy.
-Review of `f06a51b` found a 1/2-coded response that skipped outcome cells and
-an additive model saturated by an empty cell. Broader rules now treat every
-two-valued response as binary, cross all factor, logical and two-valued
-predictors jointly (refusing crossings over 10000 cells) and check both empty
-groups of constant non-intercept columns. Review of `78c0760` found that a
-response with three or more values had no response checks; every group of
-such a response now checks its nonzero-response rows, matching the descriptive
-`nonzero` rule, and every column group is split by response. Numeric
-predictors with three or more values stay uncrossed, splits of a multi-valued
-response beyond nonzero are unchecked, and the retained model frame is trusted;
-all are documented limitations. Regression-table export remains refused and is
-the following NIS-020 increment. Focused invented cases pass 259 assertions with
-hand-counted references; 27 old/new ordinary and grouped descriptive reviews
-serialize identically. Precommit verification passes 2,779 package assertions,
-216 tool assertions, source Status OK and installed workflows. The intercept,
-lower-order, joint-crossing and response-split rules suppress more than the
-first draft and need Saad and Ali's policy review. Clean-head verification,
-independent review and protected hosted checks remain required. No scientific
-or annual support is promoted.
+Regression-table disclosure review (NIS-019) merged in
+[PR #45](https://github.com/MSaadAsif/easyNIS/pull/45) at `c77ac7c`. See
+[REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md). Three review rounds had
+added interaction and joint cells, all-zero and all-one constant columns, the
+zero/one recoding of two-valued responses and nonzero checks for multi-valued
+responses. A fourth review of `a8c7e3f` found that binary and two-level status
+was still decided from the whole response, so a 0/1 or 1/2 group inside a
+multi-valued response was published while the descriptive review of the same
+field restricted to that group suppressed it, and that the excluded missing
+count was unchecked. The follow-up on
+`claude/easynis-regression-disclosure-groups` replaces the response splits with
+one helper applying the descriptive row rule to each checked group's own
+values, adds the model missing check (a failure suppresses every row and
+`unweighted_n`, as the descriptive row is suppressed) and adds a consistency
+test against descriptive reviews of seven probe groups. Numeric predictors
+with three or more values stay uncrossed, a group's multi-valued response is
+checked only for nonzero rows (as a descriptive mean is), and the retained
+model frame is trusted; all are documented limitations. Focused invented cases
+pass 300 assertions with hand-counted references; descriptive code is
+unchanged. Precommit verification passes 2,820 package assertions, 216 tool
+assertions, source Status OK and installed workflows. The intercept,
+lower-order, joint-crossing and group rules suppress more than the first draft
+and need Saad and Ali's policy review. Regression-table export remains held
+until the follow-up merges. No scientific or annual support is promoted.
 
 Numeric factor grouping merged in
 [PR #43](https://github.com/MSaadAsif/easyNIS/pull/43); all five resulting main

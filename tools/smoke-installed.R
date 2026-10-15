@@ -502,7 +502,7 @@ local({
     identical(groups$count[groups$scope == "column" & groups$target == "groupC"], c(81, 81, 3, 3)),
     identical(out$disclosure_status, c("shown", "suppressed", "suppressed", "suppressed")),
     identical(review$audit$rows$reasons, c("", "reference:groupC;factor:group",
-      "column:upper_level;column:upper_level_response_nonzero;factor:group", "factor:group")),
+      "column:upper_level;column:upper_level_nonzero;factor:group", "factor:group")),
     identical(out$estimate[[1L]], fit$coefficients$estimate[fit$coefficients$term == "x"]),
     all(is.na(out[-1L, c("estimate", "se", "statistic", "p_value", "lower", "upper", "aliased")])),
     identical(out$unweighted_n, rep(84, 4L)),
@@ -515,7 +515,7 @@ local({
   binary_fit <- nis_model(design, event ~ x, "quasibinomial", "fail", 8, 0.95, "wr_unadjusted")
   binary <- nis_disclosure_review(nis_regression_table(binary_fit, data.frame(id = "slope",
     term = "x", label = "Invented", unit = "link"), "link"), c(1, 10), "display", 2, list())
-  stopifnot(identical(binary$audit$groups$count[binary$audit$groups$scope == "model"], c(84, 42, 42)),
+  stopifnot(identical(binary$audit$groups$count[binary$audit$groups$scope == "model"], c(84, 42, 42, 0)),
     identical(binary$presentation$disclosure_status, "shown"),
     identical(nis_disclosure_review(binary$table, c(1, 42), "display", 2,
       list())$presentation$unweighted_n, NA_real_))

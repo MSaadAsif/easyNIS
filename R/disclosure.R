@@ -63,30 +63,28 @@
 #'   scientific approval remain pending.
 #'
 #'   A regression table must match its retained model's coefficient table and
-#'   declarations exactly; altered objects are refused. Counts come from the
-#'   model's included analysis rows. The model checks its included count and,
-#'   for a binary (logical, zero/one or any two-valued) response, its event
-#'   and nonevent counts, otherwise its nonzero-response count; a failure
-#'   suppresses every row and `unweighted_n`. Each fitted
-#'   model-matrix column with two distinct values checks both levels, and with a
-#'   binary response their four level-by-outcome cells; a column with more
-#'   values checks its nonzero and any zero-valued count. Every fitted level of
-#'   each factor or logical predictor, including the reference and zero-count
-#'   levels, is checked. Every checked group also checks its event and
-#'   nonevent cells for a binary response, or otherwise its rows with a nonzero
-#'   response; other splits of a multi-valued response are not checked. A
-#'   constant column other than the intercept checks its nonzero group (for
-#'   an all-zero column, its zero group is the model sample), and also its
-#'   zero-valued group when every value is nonzero. All factor, logical and two-valued numeric predictors are crossed
-#'   jointly, interacting or not, and every cell is checked, including empty
-#'   and reference cells; crossings over 10000 cells are refused. A failed column
-#'   suppresses its rows and constant columns such as the intercept. A failed
-#'   factor or cell suppresses every term containing its predictors and the
-#'   lower-order terms within those terms. Rows repeating a term share its
-#'   status. Suppressed rows have `NA` inference and `aliased` values.
-#'   Numeric predictors with three or more values are not crossed, and the
-#'   retained fitted model frame is trusted. Differencing across models,
-#'   disclosive weights, offsets and continuous extremes are not checked.
+#'   declarations exactly; altered objects are refused. Each checked group
+#'   receives the descriptive row checks on its own included response values:
+#'   its size, its nonzero rows, its zero-valued rows when its values are all
+#'   zero/one or otherwise its smaller level when it has two values, each with
+#'   hospitals when nonempty. A two-valued response is first recoded to
+#'   zero/one. The groups are the model sample, which also checks its excluded
+#'   missing count against the range; each fitted model-matrix column's two
+#'   levels, or its nonzero and zero-valued rows (a constant column other than
+#'   the intercept forms its nonzero group and, when nonzero everywhere, its
+#'   zero-valued group); every fitted level of each factor or logical
+#'   predictor, including reference and zero-count levels; and every cell of
+#'   the joint crossing of all factor, logical and two-valued numeric
+#'   predictors, interacting or not, including empty and reference cells.
+#'   Crossings over 10000 cells are refused. A model failure suppresses every
+#'   row and `unweighted_n`. A failed column suppresses its rows and constant
+#'   columns such as the intercept. A failed factor or cell suppresses every
+#'   term containing its predictors and the lower-order terms within those
+#'   terms. Rows repeating a term share its status. Suppressed rows have `NA`
+#'   inference and `aliased` values. Numeric predictors with three or more
+#'   values are not crossed, and the retained fitted model frame is trusted.
+#'   Differencing across models, disclosive weights, offsets and continuous
+#'   extremes are not checked.
 #' @export
 #' @examples
 #' if (requireNamespace("survey", quietly = TRUE)) {
@@ -449,46 +447,54 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
   hospital <- fit$hospital
   in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
   disclosive <- function(count) in_range(count) | (zero == "suppress" & count == 0)
-  response <- fit$response
-  # Any two-valued response carries outcome cells, whatever its coding; the
-  # upper value is the event unless the response is logical or zero/one.
-  binary <- is.logical(response) || all(response %in% c(0, 1)) ||
-    length(unique(response)) == 2L
-  event <- if (!binary) NULL else if (all(response %in% c(0, 1))) {
-    as.double(response) == 1
-  } else response == max(response)
-  # Like a descriptive field, a multi-valued response checks its nonzero rows.
-  response_nonzero <- if (binary) NULL else as.double(response) != 0
-  groups <- list()
-  # Records one unweighted group; nonempty groups also need enough hospitals.
-  check <- function(scope, target, name, members, level = NA_character_,
-                    value = NA_real_, outcome = NA_character_) {
-    count <- as.double(sum(members))
-    hospitals <- as.double(length(unique(hospital[members])))
-    groups[[length(groups) + 1L]] <<- data.frame(scope = scope, target = target,
-      check = name, level = level, value = value, outcome = outcome, count = count,
-      hospitals = hospitals, count_failed = disclosive(count),
-      hospitals_failed = count > 0 && hospitals < min_hospitals, stringsAsFactors = FALSE)
+  response <- as.double(fit$response)
+  values <- unique(response)
+  # A two-valued response is recoded to zero/one (upper value one), so every
+  # coding receives the zero-valued and nonzero checks of a binary field.
+  if (length(values) == 2L && !all(values %in% c(0, 1))) {
+    response <- as.double(response == max(values))
   }
-  # Each group also checks its response cells: event and nonevent rows for a
-  # binary response, otherwise rows with a nonzero response.
-  check_cells <- function(scope, target, name, members, level = NA_character_, value = NA_real_) {
-    check(scope, target, name, members, level, value)
-    if (binary) {
-      check(scope, target, paste0(name, "_events"), members & event, level, value, "event")
-      check(scope, target, paste0(name, "_nonevents"), members & !event, level, value, "nonevent")
-    } else {
-      check(scope, target, paste0(name, "_response_nonzero"), members & response_nonzero,
-        level, value, "nonzero")
+  binary_response <- all(response %in% c(0, 1))
+  records <- list()
+  record <- function(scope, target, check, level, value, outcome, count, hospitals,
+                     failed) {
+    records[[length(records) + 1L]] <<- list(scope = scope, target = target, check = check,
+      level = level, value = value, outcome = outcome, count = as.double(count),
+      hospitals = as.double(hospitals), count_failed = failed,
+      hospitals_failed = count > 0 && !is.na(hospitals) && hospitals < min_hospitals)
+  }
+  # Applies the descriptive row checks to the response values of one group of
+  # rows: its size and, when nonempty, its nonzero rows and either its
+  # zero-valued rows (own values zero/one) or its smaller level (two other
+  # values). Nonempty groups also need enough contributing hospitals.
+  check_group <- function(scope, target, name, rows, level = NA_character_, value = NA_real_) {
+    prefix <- if (scope == "model") "" else paste0(name, "_")
+    y <- response[rows]
+    h <- hospital[rows]
+    distinct <- function(members) length(unique(h[members]))
+    record(scope, target, name, level, value, NA_character_, length(rows), length(unique(h)),
+      disclosive(length(rows)))
+    # An empty group fails or passes on its zero count alone.
+    if (!length(rows)) return(invisible())
+    nonzero <- y != 0
+    record(scope, target, paste0(prefix, "nonzero"), level, value, "nonzero", sum(nonzero),
+      distinct(nonzero), disclosive(sum(nonzero)))
+    if (all(y %in% c(0, 1))) {
+      record(scope, target, paste0(prefix, "zero_valued"), level, value, "zero_valued",
+        sum(!nonzero), distinct(!nonzero), disclosive(sum(!nonzero)))
+    } else if (length(unique(y)) == 2L) {
+      levels <- split(seq_along(y), match(y, unique(y)))
+      record(scope, target, paste0(prefix, "two_level"), level, value, "two_level",
+        min(lengths(levels)), min(vapply(levels, distinct, integer(1))),
+        in_range(min(lengths(levels))))
     }
   }
-  check("model", NA_character_, "included", rep(TRUE, nrow(x)))
-  if (binary) {
-    check("model", NA_character_, "events", event, outcome = "event")
-    check("model", NA_character_, "nonevents", !event, outcome = "nonevent")
-  } else {
-    check("model", NA_character_, "response_nonzero", response_nonzero, outcome = "nonzero")
-  }
+  every_row <- seq_len(nrow(x))
+  check_group("model", NA_character_, "included", every_row)
+  # As in a descriptive row, excluded missing outcomes are checked against the range.
+  missing <- as.double(table$sample$excluded_missing)
+  record("model", NA_character_, "missing", NA_character_, NA_real_, NA_character_, missing,
+    NA_real_, in_range(missing))
   terms <- colnames(x)
   intercept <- attr(x, "assign") == 0L
   constant <- logical(length(terms))
@@ -499,20 +505,20 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     if (length(values) == 1L && !intercept[[j]]) {
       # A constant column other than the intercept has an empty group: no
       # nonzero rows (such as an empty interaction cell) or no zero rows.
-      check_cells("column", terms[[j]], "nonzero", column != 0)
-      if (values != 0) check_cells("column", terms[[j]], "zero_valued", column == 0, value = 0)
+      check_group("column", terms[[j]], "nonzero", which(column != 0))
+      if (values != 0) check_group("column", terms[[j]], "zero_valued", which(column == 0), value = 0)
     } else if (length(values) == 2L) {
-      check_cells("column", terms[[j]], "lower_level", column == values[[1L]], value = values[[1L]])
-      check_cells("column", terms[[j]], "upper_level", column == values[[2L]], value = values[[2L]])
+      check_group("column", terms[[j]], "lower_level", which(column == values[[1L]]), value = values[[1L]])
+      check_group("column", terms[[j]], "upper_level", which(column == values[[2L]]), value = values[[2L]])
     } else if (length(values) > 2L) {
-      check_cells("column", terms[[j]], "nonzero", column != 0)
-      if (any(column == 0)) check_cells("column", terms[[j]], "zero_valued", column == 0, value = 0)
+      check_group("column", terms[[j]], "nonzero", which(column != 0))
+      if (any(column == 0)) check_group("column", terms[[j]], "zero_valued", which(column == 0), value = 0)
     }
   }
   for (variable in names(fit$levels)) {
     observed <- as.character(fit$frame[[variable]])
     for (level in fit$levels[[variable]]) {
-      check_cells("factor", variable, "level", observed == level, level = level)
+      check_group("factor", variable, "level", which(observed == level), level = level)
     }
   }
   # Coefficients of factors and other two-valued predictors describe the cells
@@ -545,27 +551,17 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     }))
     labels <- do.call(paste, c(unname(expand.grid(lapply(coded, function(v) v$labels),
       stringsAsFactors = FALSE)), sep = ":"))
-    target <- paste(crossing, collapse = ":")
-    partition <- function(name, members, outcome) {
-      cell <- index[members]
-      count <- as.double(tabulate(cell, length(labels)))
-      first <- !duplicated(paste(cell, hospital[members], sep = "\r"))
-      hospitals <- as.double(tabulate(cell[first], length(labels)))
-      data.frame(scope = "cross", target = target, check = name, level = labels,
-        value = NA_real_, outcome = outcome, count = count, hospitals = hospitals,
-        count_failed = disclosive(count), hospitals_failed = count > 0 & hospitals < min_hospitals,
-        stringsAsFactors = FALSE)
+    cells <- split(every_row, factor(index, levels = seq_along(labels)))
+    for (k in seq_along(labels)) {
+      check_group("cross", paste(crossing, collapse = ":"), "cell", cells[[k]], level = labels[[k]])
     }
-    cells <- list(partition("cell", rep(TRUE, length(index)), NA_character_))
-    cells <- c(cells, if (binary) {
-      list(partition("cell_events", event, "event"), partition("cell_nonevents", !event, "nonevent"))
-    } else list(partition("cell_response_nonzero", response_nonzero, "nonzero")))
-    cells <- do.call(rbind, cells)
-    # Interleave each cell with its outcome cells.
-    groups <- c(groups, list(cells[order(rep(seq_along(labels), nrow(cells) / length(labels))), ]))
   }
-  groups <- do.call(rbind, groups)
-  rownames(groups) <- NULL
+  field <- function(name, type) vapply(records, function(r) r[[name]], type)
+  groups <- data.frame(scope = field("scope", ""), target = field("target", ""),
+    check = field("check", ""), level = field("level", ""), value = field("value", 0),
+    outcome = field("outcome", ""), count = field("count", 0),
+    hospitals = field("hospitals", 0), count_failed = field("count_failed", TRUE),
+    hospitals_failed = field("hospitals_failed", TRUE), stringsAsFactors = FALSE)
   failures <- function(scope, target = NA_character_) {
     selected <- groups$scope == scope & groups$target %in% target
     c(groups$check[selected & groups$count_failed],
@@ -623,7 +619,7 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
   audit <- list(
     sample = data.frame(supplied = as.double(table$sample$supplied), included = included,
       missing = as.double(table$sample$excluded_missing),
-      hospitals = as.double(length(unique(hospital))), binary_response = binary),
+      hospitals = as.double(length(unique(hospital))), binary_response = binary_response),
     groups = groups,
     rows = data.frame(id = data$id, term = data$term,
       reasons = vapply(reasons, paste, character(1), collapse = ";"),
@@ -633,7 +629,7 @@ regression_disclosure_review <- function(table, suppress, zero, min_hospitals, m
     rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
     count_basis = "unweighted included model analysis discharges",
     table_kind = "regression",
-    procedure = "model sample, fitted model-matrix columns, factor levels and joint cells, each split by response; failed columns suppress constant columns and failed factors or cells their marginal terms; no margins",
+    procedure = "descriptive row checks on the response values of the model sample, fitted model-matrix column groups, factor levels and joint cells; failed columns suppress constant columns and failed factors or cells their marginal terms; no margins",
     table = table$provenance, scope = "experimental_disclosure_review",
     analysis_ready = FALSE)
   structure(list(presentation = presentation, audit = audit, table = table,

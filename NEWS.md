@@ -5,10 +5,12 @@
 - `nis_disclosure_review()` now accepts one unchanged `nis_regression_table()`
   result with `margins = list()`. Unweighted model, fitted-column and
   factor-level counts, and joint cells crossing all factor, logical and
-  two-valued predictors, decide which coefficients are shown. Each group is
-  split into event and nonevent rows for any two-valued response, or into
-  nonzero-response rows otherwise. Constant non-intercept columns follow the
-  zero policy. Failed columns also hide constant columns, and failed factors
+  two-valued predictors, decide which coefficients are shown. Each group
+  receives the descriptive row checks on its own response values (nonzero,
+  and zero-valued or smaller-level rows by the group's own coding), and the
+  model also checks its excluded missing count. A two-valued response is
+  recoded to zero/one first. Constant non-intercept columns follow the zero
+  policy. Failed columns also hide constant columns, and failed factors
   or cells hide their terms and marginal terms. Altered tables are refused.
   Descriptive reviews are unchanged, and `nis_export_table()` still refuses
   regression tables and reviews.
