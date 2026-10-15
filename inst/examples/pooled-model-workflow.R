@@ -24,6 +24,7 @@ library(easyNIS)
     core$exposure <- hospital %% 2L == 1L
     core$event <- as.integer(seq_len(nrow(core)) %% 7L < hospital + 1L)
     core$event[7L] <- NA_integer_
+    core$I10_DX1[c(2L, 4L)] <- c("invl", "incn")
     if (i > 1L) core$rare <- 0L
     path <- tempfile(fileext = ".parquet")
     paths <<- c(paths, path)
@@ -33,7 +34,15 @@ library(easyNIS)
     imported <- nis_import(session, path, year)
     stopifnot(nis_validate(imported)$structural_errors == 0)
     flagged <- nis_flag_codes(imported, "cohort", codes,
-      "principal_diagnosis", "no_match", slots = 1)
+      "principal_diagnosis", "no_match", slots = 1, special_missing = "hcup_character")
+    observed <- nis_collect(flagged, c("KEY_NIS", "I10_DX1", "cohort"), limit = 120)
+    source_order <- match(observed$KEY_NIS, core$KEY_NIS)
+    expected <- cohort_rows
+    expected[c(2L, 4L)] <- NA
+    stopifnot(identical(observed$I10_DX1, core$I10_DX1[source_order]),
+      identical(observed$cohort, expected[source_order]),
+      identical(flagged$flags$cohort$special_missing$values,
+        c(invalid = "invl", inconsistent = "incn")))
     nis_survey_design(flagged, c("cohort", "LOS", "rare", "AGE", "exposure", "event"),
       TRUE, "hospital_wr", "fail")
   })
@@ -43,7 +52,9 @@ library(easyNIS)
     pooled$population$degrees_of_freedom == 12)
   analysis <- nis_factor(pooled, "exposure", "exposure_factor", c(FALSE, TRUE),
     c("Comparator", "Exposed"))
-  domain <- nis_domain(analysis, ~ AGE >= 18 & cohort, "fail")
+  domain <- nis_domain(analysis, ~ AGE >= 18 & cohort, "exclude")
+  stopifnot(domain$domains[[1L]]$included == 360L,
+    domain$domains[[1L]]$unknown == 12L, domain$domains[[1L]]$excluded_false == 348L)
   spec <- data.frame(id = c("stay", "total", "rare"), field = c("LOS", "LOS", "rare"),
     statistic = c("mean", "total", "total"),
     label = c("Invented pooled stay", "Invented average annual LOS", "Invented rare indicator"),
@@ -61,7 +72,9 @@ library(easyNIS)
   # Separate GLM coefficients and hospital-score WR covariance, not survey fits.
   population <- analysis$design$variables
   weights <- population$DISCWT / 6
-  eligible <- population$cohort & population$AGE >= 18
+  predicate <- population$cohort & population$AGE >= 18
+  eligible <- !is.na(predicate) & predicate
+  stopifnot(sum(is.na(predicate)) == 12L, sum(eligible) == 360L)
   hospital <- paste(population$YEAR, population$HOSP_NIS, sep = ":")
   strata <- paste(population$YEAR, population$NIS_STRATUM, sep = ":")
   for (field in names(families)) {
@@ -147,8 +160,10 @@ library(easyNIS)
     "Included invented labels: 2017 through 2022; complete supplied populations before pooling and domain selection.",
     "Code set: A001 ICD10CM; valid labels 2017 through 2022; version invented-1; author easyNIS example.",
     "Code source: pooled-model-workflow.R invented declaration.",
-    "Exact principal diagnosis match, slot 1 (I10_DX1); normalization FALSE; missing codes use no_match.",
-    "Domain: AGE >= 18 & cohort after full-design pooling; unknown values fail; all invented cohort members are adults.",
+    "Exact principal diagnosis match, slot 1 (I10_DX1); normalization FALSE; blank codes use no_match.",
+    "Character quality policy: explicit hcup_character; lowercase invl/incn remain raw, distinct and unknown unless positive.",
+    "Invented quality markers: two noncohort codes per year; 12 unknown cohort predicates excluded after pooling.",
+    "Domain: AGE >= 18 & cohort after full-design pooling; unknown values exclude; all invented cohort members are adults.",
     "Design: hospital_wr; HOSP_NIS, NIS_STRATUM, DISCWT; singleton fail; no FPC; year-specific hospital/stratum keys.",
     "Pool intent: average_annual_total; native annual weights divided by 6; raw weights retained.",
     "Pooled mean is weighted across supplied discharges, not an arithmetic average of annual means.",
