@@ -5,7 +5,8 @@
 #' contributing hospitals. Only `presentation` is an export candidate. The
 #' review assists a human publication check and does not certify a manuscript.
 #'
-#' @param table An experimental [nis_descriptive_table()] result.
+#' @param table One experimental [nis_descriptive_table()] constructor result,
+#'   optionally grouped by a retained factor.
 #' @param suppress Whole-number vector `c(lower, upper)` with
 #'   `1 <= lower <= upper`. Checked counts in this inclusive range are
 #'   disclosive. `c(1, 10)` reproduces the DUA range recorded in the package
@@ -39,6 +40,12 @@
 #'   are additive raw counts, with repeated fields counted repeatedly; their
 #'   hospital count uses the union of contributing hospitals. Count equality
 #'   alone does not establish that the underlying groups are disjoint. The call
+#'   uses separate count identities for exact fields in distinct complete group
+#'   domain histories, keeping repeated statistics together within a group.
+#'   Grouping provenance and retained factor membership must agree. Internal
+#'   identities and domain histories are never presentation columns. Combining
+#'   separate tables, overall rows and between-group tests are outside this scope.
+#'   The call
 #'   fails if declarations alone determine a protected hidden target. The
 #'   procedure is greedy and conservative within these bounded checks, not a
 #'   search over all subsets or nonnegative/whole-number constraints. Undeclared
@@ -72,9 +79,6 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       !is.list(table$results) || !identical(names(table$results), table$data$id)) {
     stop("`table` must be a nis_descriptive_table result.", call. = FALSE)
   }
-  if (!is.null(table$provenance$grouping)) {
-    stop("Grouped descriptive tables are not supported by disclosure review.", call. = FALSE)
-  }
   if (base::missing(suppress) || base::missing(zero) || base::missing(min_hospitals) ||
       base::missing(margins)) {
     stop("Choose explicit `suppress`, `zero`, `min_hospitals` and `margins` policies.",
@@ -98,10 +102,12 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
   in_range <- function(count) count >= suppress[[1L]] & count <= suppress[[2L]]
   disclosive <- function(count) in_range(count) | (zero == "suppress" & count == 0)
 
-  fields <- vapply(table$results, function(x) x$provenance$field, character(1), USE.NAMES = FALSE)
+  source_fields <- vapply(table$results, function(x) x$provenance$field, character(1), USE.NAMES = FALSE)
+  grouped <- !is.null(table$provenance$grouping)
+  fields <- if (grouped) grouped_count_identity(table, source_fields) else source_fields
   rows <- lapply(seq_along(ids), function(i) {
     result <- table$results[[i]]
-    value <- result$design$variables[[fields[[i]]]]
+    value <- result$design$variables[[source_fields[[i]]]]
     if (inherits(value, "integer64")) value <- as.double(as.character(value))
     hospital <- as.character(result$design$cluster[[1L]])
     if (length(value) != length(hospital) || anyNA(value)) {
@@ -117,7 +123,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     levels <- if (!rows[[i]]$binary && length(unique(value)) == 2L) {
       split(hospital, match(value, unique(value)))
     } else list()
-    data.frame(id = ids[[i]], field = fields[[i]], binary = rows[[i]]$binary,
+    data.frame(id = ids[[i]], field = source_fields[[i]], binary = rows[[i]]$binary,
       included = as.double(length(value)),
       missing = as.double(table$results[[i]]$sample$excluded_missing),
       nonzero = as.double(sum(nonzero)),
@@ -131,6 +137,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       } else NA_real_,
       stringsAsFactors = FALSE)
   }))
+  if (grouped) audit$count_identity <- fields
   audit$margin_count <- ifelse(audit$binary, audit$nonzero, audit$included)
   margin_hospitals <- lapply(rows, function(row) {
     if (row$binary) row$hospital[row$value != 0] else row$hospital
@@ -163,7 +170,7 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
     }
   }
   unique_fields <- unique(fields)
-  # Each relation is total - sum(parts) = 0 over field-level raw counts.
+  # Each relation is total - sum(parts) = 0 over count identities.
   equations <- matrix(0, length(margins), length(unique_fields))
   for (k in seq_along(margins)) {
     columns <- match(fields[match(c(margins[[k]]$total, margins[[k]]$parts), ids)], unique_fields)
@@ -298,11 +305,76 @@ nis_disclosure_review <- function(table, suppress, zero, min_hospitals, margins)
       min_hospitals = min_hospitals, margins = margins),
     rule_source = "caller policy; docs/DISCLOSURE.md records the HCUP Nationwide DUA 1-10 guidance",
     count_basis = "unweighted included discharges",
-    complementary = "greedy: same-field rows, declared relation recovery and sums, hidden fields and bounded primary sums across margins, unweighted n differences",
+    complementary = if (grouped) {
+      "greedy: same-field/domain rows, declared relation recovery and sums, hidden count identities and bounded primary sums across margins, unweighted n differences"
+    } else "greedy: same-field rows, declared relation recovery and sums, hidden fields and bounded primary sums across margins, unweighted n differences",
     table = table$provenance, scope = "experimental_disclosure_review",
     analysis_ready = FALSE)
   structure(list(presentation = presentation, audit = audit, table = table,
     provenance = provenance), class = "nis_disclosure_review")
+}
+
+grouped_count_identity <- function(table, fields) {
+  refuse <- function() stop("Grouped table has inconsistent grouping provenance or retained results.",
+                            call. = FALSE)
+  plain_list <- function(x) is.list(x) && !is.object(x)
+  labels <- function(x) is.character(x) && is.null(attributes(x)) &&
+    !anyNA(x) && all(nzchar(trimws(x))) && !anyDuplicated(x)
+  grouping <- table$provenance$grouping
+  parent <- table$provenance$domains
+  policies <- table$provenance$policies
+  if (!plain_list(grouping) ||
+      !identical(names(grouping), c("field", "observed_levels", "unused_levels", "unknown", "missing")) ||
+      !labels(grouping$field) || length(grouping$field) != 1L ||
+      !labels(grouping$observed_levels) || !length(grouping$observed_levels) ||
+      !labels(grouping$unused_levels) ||
+      any(grouping$unused_levels %in% grouping$observed_levels) ||
+      !is_whole(grouping$unknown, 1L) || grouping$unknown < 0 ||
+      !identical(grouping$missing, "fail") && !identical(grouping$missing, "exclude") ||
+      (grouping$missing == "fail" && grouping$unknown != 0) ||
+      !plain_list(parent) || !plain_list(policies) ||
+      !identical(fields, table$data$field)) refuse()
+  histories <- list()
+  domain <- integer(length(table$results))
+  supplied <- NULL
+  for (i in seq_along(table$results)) {
+    result <- table$results[[i]]
+    provenance <- result$provenance
+    history <- provenance$domains
+    if (!identical(provenance$design, table$provenance$constructor) ||
+        !identical(provenance$population, table$provenance$population) ||
+        !identical(provenance$statistic, table$data$statistic[[i]]) ||
+        !identical(provenance$missing, policies$missing) ||
+        !identical(provenance$variance, policies$variance) ||
+        !identical(provenance$df, as.double(policies$df)) ||
+        !identical(provenance$confidence, as.double(policies$confidence)) ||
+        !plain_list(history) || length(history) != length(parent) + 1L ||
+        !identical(history[seq_along(parent)], parent)) refuse()
+    last <- history[[length(history)]]
+    if (!plain_list(last) || !identical(last$fields, grouping$field) ||
+        !identical(last$missing, grouping$missing) ||
+        !is_whole(last$included, 1L) || last$included < 1 ||
+        !identical(as.double(last$included), as.double(result$sample$supplied)) ||
+        !identical(as.double(last$unknown), as.double(grouping$unknown)) ||
+        !is_whole(last$supplied, 1L)) refuse()
+    if (is.null(supplied)) supplied <- last$supplied
+    if (!identical(last$supplied, supplied)) refuse()
+    same <- which(vapply(histories, identical, logical(1), history))
+    if (!length(same)) {
+      histories[[length(histories) + 1L]] <- history
+      same <- length(histories)
+    }
+    domain[[i]] <- same[[1L]]
+    if (domain[[i]] > length(grouping$observed_levels)) refuse()
+    group <- result$design$variables[[grouping$field]]
+    if (!identical(class(group), "factor") || !is.null(dim(group)) ||
+        !length(group) || anyNA(group) ||
+        length(group) != result$sample$included ||
+        anyNA(as.character(group)) ||
+        any(as.character(group) != grouping$observed_levels[[domain[[i]]]])) refuse()
+  }
+  if (length(histories) != length(grouping$observed_levels)) refuse()
+  paste0("d", domain, ".f", match(fields, unique(fields)))
 }
 
 is_whole <- function(x, n) {

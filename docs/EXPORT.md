@@ -6,6 +6,13 @@ regression tables, which have no disclosure review yet, remains a separate
 increment. An exported file is a candidate for human publication review; it
 does not certify a manuscript or approve annual support.
 
+One grouped `nis_descriptive_table()` constructor result can be reviewed jointly
+and exported through the same adapters. Export recomputes the complete grouped
+review, including domain count identities. Only the existing presentation
+columns are written; internal identity keys, domain histories, unknown grouping
+counts and audit reasons stay local. Unreviewed grouped tables are refused.
+This does not provide overall rows, between-group tests or a table-combining API.
+
 ## Interface
 
 `nis_export_table(review, path, format, digits, formula_text, overwrite)`
@@ -176,3 +183,6 @@ reject a CSV policy, invalid digits, a mismatched
 extension and an existing file, and give the install guidance without
 writing when officer is unavailable. The installed smoke compares Word and
 HTML cells for the subtotal reproduction.
+Grouped cases compare one joint review across CSV, HTML and supported Word,
+including a shown zero, primary and complementary suppression, formula-looking
+labels, escaped markup, exact visible values and repeatable CSV/HTML output.
