@@ -71,18 +71,21 @@ subset certification. Source cases live in `tests/testthat/test-disclosure.R`;
 the contract is `docs/DISCLOSURE.md`.
 
 The same function reviews one unchanged `nis_regression_table()` with
-`margins = list()`. Count every checked group by hand from the invented rows:
-the model's included rows; each fitted model-matrix column's two levels or its
-nonzero and zero-valued rows; every fitted factor or logical level,
-including the reference and zero-count levels; and every cell, including
-empty and reference cells, of the joint crossing of all factor, logical and
-two-valued predictors, interacting or additive. Split every group into events
-and nonevents for a binary (two-valued) response, or otherwise into
-nonzero-response rows. Any two-valued response, such
-as 1/2, must get the same response-value cells as its 0/1 coding. A
-multi-valued response must check its nonzero rows like the descriptive review
-of the same field, and a strictly positive response must stay shown. All-zero and
-all-one non-intercept columns must follow the zero policy. Use distinct native hospital IDs,
+`margins = list()`. Every checked group receives the descriptive row checks on
+its own response values: size, nonzero rows, and zero-valued rows when the
+group's own values are 0/1 or its smaller level when it has two other values.
+Count every group by hand from the invented rows: the model's included rows
+and excluded missing count; each fitted model-matrix column's two levels or its
+nonzero and zero-valued rows; every fitted factor or logical level, including
+the reference and zero-count levels; and every cell, including empty and
+reference cells, of the joint crossing of all factor, logical and two-valued
+predictors, interacting or additive. A two-valued response such as 1/2 is
+recoded to 0/1 and must match its 0/1 coding. For several probe groups, review
+the same field restricted to the group with the descriptive review and confirm
+the regression review suppresses whenever it does: a 0/1 or 1/2 group inside a
+multi-valued response, a 0/1 joint cell, three missing outcomes and a sparse
+`y ~ 1` response. A strictly positive response must stay shown, and all-zero
+and all-one non-intercept columns must follow the zero policy. Use distinct native hospital IDs,
 including pooled reused IDs, against `min_hospitals`. Confirm a failed column
 also hides the intercept, a failed factor hides its terms and their marginal
 terms, a model failure hides every row and `unweighted_n`, and repeated terms
