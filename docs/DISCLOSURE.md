@@ -2,12 +2,11 @@
 
 This is the first bounded NIS-019 increment. It reviews one
 `nis_descriptive_table` and produces a presentation table with primary and
-complementary suppression. Regression tables and grouped disclosure remain
-separate increments; [EXPORT.md](EXPORT.md) writes the presentation to CSV or
-HTML. Grouped descriptive tables are rejected before disclosure computation because
-current additive count identity is field-based and cannot safely distinguish
-group domains. Export also refuses grouped numeric tables. A future grouped
-disclosure increment must define and validate domain-aware count identity. The
+complementary suppression. It accepts one unchanged constructor result,
+including optional factor grouping, and reviews all its rows jointly.
+Regression tables, overall rows, between-group tests and combining separately
+constructed tables remain outside this scope. [EXPORT.md](EXPORT.md) writes the
+reviewed presentation to CSV, HTML or Word. The
 review assists a human publication check; it does not certify a manuscript or approve annual support.
 
 ## Policy source
@@ -77,22 +76,25 @@ incorrect declaration would invalidate the review.
 The review repeats the following repairs until none applies. Each repair
 suppresses one published row and records why.
 
-1. Rows on the same field share their counts, so suppressing one suppresses
-   every row on that field (`field:<id>`). A count row and a proportion row for
-   the same category are suppressed together.
+1. Rows on the same count identity share their counts, so suppressing one
+   suppresses every row with that identity (`field:<id>`). For ordinary tables
+   identity is the exact source field. For grouped tables it is the exact field
+   and complete domain history, compared structurally in first-occurrence order.
+   A count row and a proportion row for the same field within a group suppress
+   together; another group's field remains a distinct count.
 2. Within one margin, a single suppressed row is recoverable from the others.
    When the total is published, the sum of the suppressed parts is also
    recoverable; it must pass the range and zero checks and come from at least
    `min_hospitals` hospitals (`margin:<k>`).
-3. Margins combine. Treating each field as an unknown and each margin as a
+3. Margins combine. Treating each count identity as an unknown and each margin as a
    linear equation, a suppressed field is determined when its unit vector lies
    in the row space of the equations restricted to suppressed fields. The same
    test applies to a bounded set of protected sums, frozen before any repair:
    the primary-hidden parts of each relation, and each pair of distinct
-   primary-hidden fields participating in margins. A sum is protected when its
+   primary-hidden count identities participating in margins. A sum is protected when its
    summed raw count fails the range or zero policy, or its contributing
    hospital count is below `min_hospitals`. The test uses a coefficient of one
-   per occurrence of a field. It does not replace the original primary set
+   per occurrence of a count identity. It does not replace the original primary set
    with the larger set of complementary suppressions. A determined target
    triggers suppression of a published row connected to it through declared
    margins (`margins:<field>`, `margins_sum:relation:<k>` or
@@ -145,12 +147,40 @@ The result is a `nis_disclosure_review` list:
   hospital counts are not columns, and the data frame carries no extra
   attributes.
 - `audit`: internal counts, hospital counts, margin counts and reasons. It
-  contains raw small counts and must stay local.
+  contains raw small counts and must stay local. Its `field` retains the source
+  name; grouped reviews also carry an internal generated `count_identity`.
 - `table`: the unchanged input table, also internal.
 - `provenance`: the policy, canonical margins, rule source, procedure and
   scope `experimental_disclosure_review`, with `analysis_ready = FALSE`.
 
 ## Acceptance cases
+
+Grouped NIS-035 acceptance uses one constructor result and one joint review.
+Counts on the same exact field and complete retained domain history share an
+internal identity; different group histories remain distinct. Histories are
+compared structurally, never by printed predicates or pasted field labels.
+Repeated statistics suppress together only within their group. Margin count
+scales remain row-specific (binary nonzero, otherwise included), and declared
+raw equality does not prove disjointness. Protected sums and hospital unions
+use the same identities, retaining native pooled year-specific hospital IDs.
+Grouped provenance must match the original constructor, population, parent
+domain prefix, grouping field/policy and actual retained factor membership;
+inconsistent structure rejects the whole review.
+
+The regression fixture contains true partitions with group 1 counts
+T=100, a=40, b=60, c=0 and group 2 counts T=100, a=45, b=52, c=3.
+Declarations T1=a1+b1 and T2=a2+b2+c2 are independent equations. Collapsing
+them by field falsely implies c=0. Under zero display and a satisfied hospital
+minimum, group 1 stays shown, group 2 c is primary and a is complementary.
+Other cases cover a rare and safe group, repeated statistics, cross-group
+protected sums and pairs, hospital-only unions, group-dependent binary
+classification, outcome/group missingness, existing domains, pooled hospital
+reuse and exact ordinary-review compatibility. The installed factor -> grouped
+table -> joint review -> CSV/HTML path must preserve the export whitelist,
+primary/complementary suppression, formula defense and repeatable bytes.
+The same review uses the existing Word adapter when officer is available.
+Overall rows, between-group tests and combining independent tables remain
+outside this contract.
 
 Verification must use the installed public API on invented data. Cases cover
 counts 0, 1, 9, 10 and 11 under the recorded range with both zero policies, a

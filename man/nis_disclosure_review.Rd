@@ -7,7 +7,8 @@
 nis_disclosure_review(table, suppress, zero, min_hospitals, margins)
 }
 \arguments{
-\item{table}{An experimental \code{\link[=nis_descriptive_table]{nis_descriptive_table()}} result.}
+\item{table}{One experimental \code{\link[=nis_descriptive_table]{nis_descriptive_table()}} constructor result,
+optionally grouped by a retained factor.}
 
 \item{suppress}{Whole-number vector \code{c(lower, upper)} with
 \verb{1 <= lower <= upper}. Checked counts in this inclusive range are
@@ -55,6 +56,12 @@ their summed raw counts or contributing hospitals fail the policy. These
 are additive raw counts, with repeated fields counted repeatedly; their
 hospital count uses the union of contributing hospitals. Count equality
 alone does not establish that the underlying groups are disjoint. The call
+uses separate count identities for exact fields in distinct complete group
+domain histories, keeping repeated statistics together within a group.
+Grouping provenance and retained factor membership must agree. Internal
+identities and domain histories are never presentation columns. Combining
+separate tables, overall rows and between-group tests are outside this scope.
+The call
 fails if declarations alone determine a protected hidden target. The
 procedure is greedy and conservative within these bounded checks, not a
 search over all subsets or nonnegative/whole-number constraints. Undeclared

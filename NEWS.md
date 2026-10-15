@@ -5,8 +5,11 @@
 - Added optional factor-based `by` grouping to `nis_descriptive_table()` with
   explicit missing-group policy, observed factor order, unused-level provenance,
   and native estimates selected through `nis_domain()`.
-- Grouped results remain numeric-only. Disclosure review and exports refuse them
-  pending domain-aware disclosure count identity; no group comparisons or
+- One grouped constructor result now supports joint disclosure review and
+  CSV/HTML/Word export. Exact field and complete domain-history identities keep
+  repeated statistics together within each group and distinct groups separate
+  throughout complementary suppression. Inconsistent grouping provenance or
+  retained membership rejects the review. No group comparisons or
   overall rows are added.
 
 ## Explicit character quality markers

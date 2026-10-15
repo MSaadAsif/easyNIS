@@ -1,7 +1,7 @@
 # Experimental numeric descriptive tables
 
-This is the bounded NIS-018 numeric contract. Regression tables, grouped
-comparisons, grouped disclosure and rendering remain separate increments.
+This is the bounded NIS-018 numeric contract with NIS-035 factor grouping.
+Regression tables and between-group comparisons remain separate increments.
 
 `nis_descriptive_table(design, specification, missing, df, confidence, variance)`
 calculates explicitly requested scalar statistics on one existing experimental
@@ -56,10 +56,12 @@ Grouped IDs use `g1.`, `g2.` and so on before each declared ID; labels append
 Each estimate retains its native domain result and complete domain history. A
 failure anywhere rejects the whole grouped call.
 
-Grouped tables remain numeric analysis objects. Disclosure review and every
-export refuse them until count identity can distinguish domains while retaining
-repeated statistics within each domain. No overall row or between-group
-inference is produced.
+Grouped tables remain numeric analysis objects until one joint
+`nis_disclosure_review()` reviews the complete constructor result. The review
+distinguishes exact fields and complete group-domain histories while keeping
+repeated statistics together within each domain. Its presentation can use the
+existing CSV, HTML and Word adapters. No overall row or between-group inference
+is produced, and separately constructed tables cannot be combined by this API.
 
 These are internal numeric tables with disclosure status `unreviewed` and
 `analysis_ready = FALSE`. They do not apply suppression, serialize results,
@@ -77,4 +79,5 @@ available and table values must exactly preserve their numeric values.
 Grouped verification also compares independent hospital WR means, proportions
 and totals when hospitals contribute no group observations; checks exact domain
 parity, factor order, unused and missing groups, pooled reused IDs and current
-domains; and confirms review/export rejection before writing.
+domains; and drives one joint review and presentation-only exports with primary
+and complementary suppression. Unreviewed numeric objects still refuse export.
