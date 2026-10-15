@@ -63,7 +63,8 @@ The vignette also runs a six-invented-year pooled/model walkthrough. Run it
 separately with `source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"))$value`.
 It pools complete annual designs before domain selection, declares average
 annual totals and verifies a Gaussian intercept against independent hospital
-WR arithmetic. Only reviewed descriptive values and sanitized declarations
+WR arithmetic. It also demonstrates explicit opt-in character-quality markers,
+preserved raw values and unknown cohort exclusion after pooling. Only reviewed descriptive values and sanitized declarations
 are exported; model disclosure review/export remain unsupported.
 
 ## Start here

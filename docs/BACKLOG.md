@@ -6,6 +6,25 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ### Workshop readiness priority, 2026-10-14
 
+The next bounded NIS-021 workshop composition uses explicit character-quality
+handling in the existing six-year installed workflow. Replace two invented
+noncohort codes per annual fixture with lowercase quality markers; preserve
+all raw fields and full annual populations. Pool before explicitly excluding
+the 12 unknown cohort predicates. The same 360 domain rows, 288/354 outcome
+samples, independent scalar/GLM/WR references and reviewed descriptive outputs
+must remain unchanged. Check exact raw/flag alignment, retained policy, unknown
+accounting, repeatable outputs and cleanup. This illustrates a declared policy,
+not clinical, conversion, annual or licensed-data readiness. Full verification,
+independent review and protected hosted checks remain merge requirements.
+
+The updated invented workflow passes direct execution and full precommit
+verification: 2,391 package assertions, 216 tool assertions, source Status OK
+and installed workflows. These are the existing package-suite counts; new
+composition checks run in the example and installed smoke. The reference mask
+explicitly excludes unknown predicates before GLM fitting and assigns their
+original hospitals zero scores. Final clean-head verification, independent
+review and hosted checks remain required.
+
 The next bounded NIS-009/011/033 increment adds explicit opt-in handling for
 documented HCUP character quality markers in selected diagnosis/procedure slots.
 Default strict rejection remains unchanged. Lowercase `invl`/`incn` stay raw and
@@ -22,8 +41,9 @@ a public regression fails before the fix and passes with byte-exact marker
 comparison. The initial full run passed 2,387 package and 216 tool assertions,
 source Status OK and installed workflows. Corrected full verification passes
 2,391 package and 216 tool assertions, source Status OK and installed workflows.
-Both independent preliminary reviews have zero remaining blockers; clean-head
-verification, final pinned review and hosted checks remain required before merge.
+The character-policy increment merged in
+[PR #41](https://github.com/MSaadAsif/easyNIS/pull/41) after successful clean-head
+verification, final independent review and all five PR/main hosted jobs.
 
 The next bounded NIS-013/022 increment removes full-discharge data-frame
 deduplication from hospital/stratum validation. Acceptance: retain the first
@@ -45,8 +65,9 @@ non-overlapping ranges. Separate profiles identify mapping deduplication before
 and native survey construction as the remaining limiter. A public developer
 harness reproduces the invented workload/accounting checks; its prepare/run path
 was executed successfully. Updated full verification also passes the same gates,
-and independent review accepts the bounded measurement. Final pinned independent
-review and hosted checks remain required. No memory envelope or annual support
+and independent review accepts the bounded measurement. The increment merged in
+[PR #40](https://github.com/MSaadAsif/easyNIS/pull/40) after final pinned independent
+review and all five PR/main hosted jobs. No memory envelope or annual support
 is promoted; see [SURVEY.md](SURVEY.md) for the bounded measurement and context.
 
 The next bounded NIS-021/033 onboarding increment reuses `nis_import()` and
