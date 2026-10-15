@@ -109,7 +109,8 @@ code/domain/weight/inference declarations, model formula/family/scale and
 reference-check statements. It omits model coefficients, sample accounting,
 retained designs/provenance, raw records, suppressed results and local paths.
 This demonstrates model fitting without publishing unreviewed regression
-results. Regression-table disclosure review and export remain unsupported.
+results. The example reviews no regression table, and regression-table export
+remains unsupported.
 
 The installed vignette executes both scripts and displays both reviewed CSVs.
 Installed smoke runs the pooled script twice, checks independent CSV references,
@@ -185,7 +186,7 @@ metadata, inference, disclosure and scientific evidence in [SUPPORT.md](SUPPORT.
 | Establish categorical covariates | `nis_factor()` preserves raw fields and declares levels/labels. | No clinical dictionary, special-missing recoding or universal reference is inferred. |
 | Combine cohort criteria | `nis_domain()` evaluates a bounded predicate after full-design construction. | Raw sentinels retain their source values; caller policies and phenotype validity need review. |
 | Fit several outcomes | `nis_models()` shares predictor/inference declarations with separate samples and diagnostics. | Pointwise inference, no automatic multiplicity correction, no causal interpretation. |
-| Retain reproducible outputs | Use explicit disclosure review and descriptive CSV/HTML/Word adapters. | Grouped baseline comparisons and regression disclosure/export remain separate work. |
+| Retain reproducible outputs | Use explicit disclosure review and descriptive CSV/HTML/Word adapters. | Grouped baseline comparisons and regression-table export remain separate work. |
 
 Review legacy names such as HOSPID/TRENDWT against the actual conversion profile
 before mapping them to HOSP_NIS/DISCWT. Existing global singleton adjustment

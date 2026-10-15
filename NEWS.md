@@ -1,5 +1,15 @@
 # easyNIS 0.0.0.9000
 
+## Experimental regression-table disclosure review
+
+- `nis_disclosure_review()` now accepts one unchanged `nis_regression_table()`
+  result with `margins = list()`. Unweighted model, fitted-column and
+  factor-level counts, with outcome cells for binary responses, decide which
+  coefficients are shown. Failed columns also hide constant columns, and
+  failed factors hide their terms and marginal terms. Altered tables are
+  refused. Descriptive reviews are unchanged, and `nis_export_table()` still
+  refuses regression tables and reviews.
+
 ## Experimental grouped numeric descriptives
 
 - Added optional factor-based `by` grouping to `nis_descriptive_table()` with

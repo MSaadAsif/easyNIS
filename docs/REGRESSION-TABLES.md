@@ -3,7 +3,8 @@
 This is the next bounded NIS-018 increment. It assembles existing coefficient
 inference from one `nis_model` result; it does not fit a model or calculate new
 statistics. Profile contrasts, exponentiated effects, grouped comparisons,
-disclosure review and rendering remain separate capabilities.
+disclosure review and rendering remain separate capabilities;
+[REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md) specifies the review.
 
 `nis_regression_table(model, specification, scale)` requires `scale = "link"`.
 `specification` is a nonempty plain data frame with exactly the plain character
@@ -38,7 +39,8 @@ their original diagnostics are retained without certifying them.
 Provenance records the canonical declarations, link scale and pointwise
 interval scope, original model provenance and the table scope
 `experimental_numeric_regression_table`, with `analysis_ready = FALSE`.
-Disclosure status remains `unreviewed`. Caller models, specifications, raw
+The table's disclosure status remains `unreviewed`; `nis_disclosure_review()`
+reviews an unchanged table separately. Caller models, specifications, raw
 columns and options remain unchanged. Invalid declarations reject the whole
 call. No annual support or scientific approval is promoted.
 

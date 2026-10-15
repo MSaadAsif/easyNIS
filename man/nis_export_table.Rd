@@ -36,7 +36,8 @@ The normalized path, invisibly.
 \description{
 Writes the presentation of one \code{\link[=nis_disclosure_review]{nis_disclosure_review()}} to CSV, HTML or
 Word.
-Only reviewed presentations can be exported. The review is recomputed from
+Only reviewed descriptive presentations can be exported; regression tables
+and their reviews are refused. The review is recomputed from
 its retained results and recorded policy and must match exactly. The file is a candidate for human publication review and
 does not certify a manuscript.
 }

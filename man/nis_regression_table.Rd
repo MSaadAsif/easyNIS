@@ -19,7 +19,8 @@ be unique. Terms must exactly match coefficient names and may repeat.}
 A \code{nis_regression_table} list containing declaration and existing
 numeric coefficient columns in \code{data}, plus the original model, factors,
 sample, diagnostics and provenance. Aliases and undefined inference retain
-their original \code{NA}/\code{NaN} values. Disclosure remains unreviewed.
+their original \code{NA}/\code{NaN} values. Disclosure remains unreviewed until
+\code{\link[=nis_disclosure_review]{nis_disclosure_review()}} reviews the unchanged table.
 }
 \description{
 Selects existing coefficient inference from one \code{\link[=nis_model]{nis_model()}} result. This

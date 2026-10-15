@@ -298,7 +298,7 @@ test_that("only unmodified disclosure reviews can be exported", {
   expect_error(nis_export_table(review$table, path, "csv", NULL, "keep", FALSE),
     "Only a nis_disclosure_review")
   expect_error(nis_export_table(structure(list(), class = "nis_regression_table"), path,
-    "csv", NULL, "keep", FALSE), "Regression tables have no disclosure review")
+    "csv", NULL, "keep", FALSE), "Regression tables cannot be exported yet")
   expect_error(nis_export_table(review$presentation, path, "csv", NULL, "keep", FALSE),
     "unmodified nis_disclosure_review")
   revealed <- review

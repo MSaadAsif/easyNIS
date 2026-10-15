@@ -2,7 +2,8 @@
 #'
 #' Writes the presentation of one [nis_disclosure_review()] to CSV, HTML or
 #' Word.
-#' Only reviewed presentations can be exported. The review is recomputed from
+#' Only reviewed descriptive presentations can be exported; regression tables
+#' and their reviews are refused. The review is recomputed from
 #' its retained results and recorded policy and must match exactly. The file is a candidate for human publication review and
 #' does not certify a manuscript.
 #'
@@ -75,7 +76,11 @@ nis_export_table <- function(review, path, format, digits, formula_text,
   }
   if (inherits(review, c("nis_descriptive_table", "nis_regression_table"))) {
     stop("Only a nis_disclosure_review can be exported; review the table first. ",
-         "Regression tables have no disclosure review yet.", call. = FALSE)
+         "Regression tables cannot be exported yet.", call. = FALSE)
+  }
+  if (inherits(review, "nis_disclosure_review") && is.list(review) &&
+      inherits(review$table, "nis_regression_table")) {
+    stop("Regression disclosure reviews cannot be exported yet.", call. = FALSE)
   }
   check_review(review)
   if (!is.character(format) || length(format) != 1L || is.na(format) ||

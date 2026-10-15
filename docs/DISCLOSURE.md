@@ -4,8 +4,9 @@ This is the first bounded NIS-019 increment. It reviews one
 `nis_descriptive_table` and produces a presentation table with primary and
 complementary suppression. It accepts one unchanged constructor result,
 including optional factor grouping, and reviews all its rows jointly.
-Regression tables, overall rows, between-group tests and combining separately
-constructed tables remain outside this scope. [EXPORT.md](EXPORT.md) writes the
+Overall rows, between-group tests and combining separately constructed tables
+remain outside this scope. [REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md)
+specifies the separate review of one unchanged regression table. [EXPORT.md](EXPORT.md) writes the
 reviewed presentation to CSV, HTML or Word. The
 review assists a human publication check; it does not certify a manuscript or approve annual support.
 
@@ -22,8 +23,9 @@ review the policy and any applicable agreement before publication.
 
 `nis_disclosure_review(table, suppress, zero, min_hospitals, margins)`
 
-- `table` is an experimental `nis_descriptive_table`. Other objects, including
-  regression tables, are refused.
+- `table` is an experimental `nis_descriptive_table`. A `nis_regression_table`
+  follows [REGRESSION-DISCLOSURE.md](REGRESSION-DISCLOSURE.md); other objects
+  are refused.
 - `suppress` is a length-two whole-number vector `c(lower, upper)` with
   `1 <= lower <= upper`. A checked count inside this inclusive range is
   disclosive.
