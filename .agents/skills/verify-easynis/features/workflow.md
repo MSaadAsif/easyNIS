@@ -51,3 +51,9 @@ repeat run starts from nondefault survey/contrast options and must restore them
 while producing identical bytes. Check fixed factor/batch/domain declarations
 in the report, absence of model coefficient/sample-accounting leakage, and the
 new walkthrough/migration text with the same two reviewed vignette tables.
+
+The six-year example opts in to two lowercase quality markers per year in
+invented noncohort rows. Require raw/flag key alignment before construction,
+distinct retained reasons, 12 explicitly excluded unknown pooled predicates,
+348 false predicates and unchanged 360 domain rows and numerical references.
+The report declares this experimental policy without clinical or annual approval.

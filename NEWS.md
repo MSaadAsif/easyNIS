@@ -2,6 +2,10 @@
 
 ## Explicit character quality markers
 
+- The installed six-year workflow demonstrates opt-in quality markers and
+  explicit unknown-cohort exclusion after pooling. Raw codes and distinct
+  reasons are preserved; existing model and reviewed-export references remain.
+
 - `nis_flag_codes()` can explicitly recognize HCUP's lowercase invalid and
   inconsistent character markers while preserving raw values and reason
   provenance. Quality markers yield unknown unless another selected slot

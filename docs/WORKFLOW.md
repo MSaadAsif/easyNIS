@@ -139,7 +139,16 @@ logical exposure and a zero/one event; every invented code-positive cohort row
 is adult, and one eligible event is missing per year. Narrow full-population
 projections are pooled before selection. `nis_factor()` declares Comparator and
 Exposed in a new field while retaining raw exposure. `nis_domain()` selects
-`AGE >= 18 & cohort`. `nis_models()` shares `~ exposure_factor` across Gaussian
+`AGE >= 18 & cohort`. Two invented noncohort codes per year are replaced with
+lowercase `invl`/`incn`; explicit `special_missing = "hcup_character"` makes
+them unknown while preserving the raw values and distinct reasons. The example
+checks exact raw/flag alignment before design construction and explicitly
+excludes the 12 unknown pooled predicates. It retains the same 360 domain rows
+and full 24-PSU design. This illustrates the experimental
+[character-quality policy](CHARACTER-MISSING.md), not an authenticated conversion
+or recommended clinical missingness rule.
+
+`nis_models()` shares `~ exposure_factor` across Gaussian
 LOS and quasibinomial event outcomes. Their complete-case samples are 288 and
 354 from 360 domain rows, with 72 and 6 exclusions respectively. No common
 complete-case mask across outcomes is imposed.
