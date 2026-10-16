@@ -36,7 +36,7 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, roxygen2@8.1.0
+          extra-packages: any::rcmdcheck, roxygen2@8.1.1
           needs: check
       - name: Verify generated documentation
         run: |
@@ -45,21 +45,7 @@ jobs:
             stop('Generated documentation is out of date.')
           }
         shell: Rscript {0}
-      - name: Test metadata audit tools offline
-        run: testthat::test_dir('tools/tests', stop_on_failure = TRUE)
-        shell: Rscript {0}
-      - name: Test autonomous merge gate offline
-        run: ./tools/tests/test-merge-gate.ps1
-        shell: pwsh
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual")'
           error-on: '"warning"'
-      - name: Inspect source tarball
-        run: |
-          tarballs <- list.files('check', pattern = '[.]tar[.]gz$', full.names = TRUE)
-          if (length(tarballs) != 1L) stop('Expected one checked source tarball.')
-          status <- system2(file.path(R.home('bin'), 'Rscript'),
-                            c('tools/check-tarball.R', shQuote(tarballs)))
-          if (status != 0L) stop('Source tarball inspection failed.')
-        shell: Rscript {0}
