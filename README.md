@@ -28,5 +28,14 @@ and one placeholder per hospital-year without cohort cases. Later `filter()`
 calls may only narrow the declared cohort. The placeholder variance method and
 cost adjustment remain experimental pending scientific approval.
 
+For AHRQ Elixhauser flags and index scores (experimental; needs the
+`medicalcoder` package), keep the diagnosis columns in the design and pass it
+to `nis_comorbidity()`:
+
+```r
+design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
+design <- nis_comorbidity(design)
+```
+
 Use `nis_example()` for invented offline data. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output.
