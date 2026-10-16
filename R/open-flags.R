@@ -73,7 +73,9 @@ nis_open <- function(path, years = NULL) {
 #' Add ICD-10 diagnosis prefix flags
 #'
 #' Each diagnosis slot is checked separately. Prefixes are case-insensitive;
-#' periods and spaces are removed from both the supplied prefixes and codes.
+#' periods and spaces are ignored in both the supplied prefixes and codes. A
+#' code containing any other character, such as malformed UTF-8, never
+#' matches.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
@@ -89,7 +91,9 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' Add ICD-10 procedure prefix flags
 #'
 #' Each procedure slot is checked separately. Prefixes are case-insensitive;
-#' periods and spaces are removed from both the supplied prefixes and codes.
+#' periods and spaces are ignored in both the supplied prefixes and codes. A
+#' code containing any other character, such as malformed UTF-8, never
+#' matches.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
@@ -136,25 +140,24 @@ nis_flag_codes <- function(.data, slots, ..., position) {
     cli::cli_abort("No ICD-10 {slots} columns match the requested position.")
   }
 
-  flags <- lapply(seq_along(definitions), function(i) {
+  flags <- lapply(prefixes, function(prefix) {
+    pattern <- rlang::expr(stringr::regex(!!code_pattern(prefix), ignore_case = TRUE))
     per_slot <- lapply(slot_names, function(column) {
-      field <- rlang::sym(column)
-      normalized <- rlang::expr(stringr::str_to_upper(
-        stringr::str_remove_all(as.character(!!field), "[.[:space:]]")
-      ))
-      per_prefix <- lapply(prefixes[[i]], function(prefix) {
-        rlang::expr(stringr::str_starts(!!normalized, !!prefix))
-      })
-      matches <- Reduce(function(left, right) {
-        rlang::expr((!!left) | (!!right))
-      }, per_prefix)
-      rlang::expr(dplyr::coalesce(!is.na(!!field) & (!!matches), FALSE))
+      rlang::expr(stringr::str_detect(!!rlang::sym(column), !!pattern))
     })
-    matches <- Reduce(function(left, right) {
-      rlang::expr((!!left) | (!!right))
-    }, per_slot)
-    rlang::set_names(list(matches), names(definitions)[[i]])
+    matches <- Reduce(function(left, right) rlang::expr((!!left) | (!!right)), per_slot)
+    rlang::expr(dplyr::coalesce(!!matches, FALSE))
   })
 
-  dplyr::mutate(.data, !!!unlist(flags, recursive = FALSE))
+  dplyr::mutate(.data, !!!flags)
+}
+
+# One regex per flag: prefix characters may be separated by periods or
+# whitespace, and a code containing anything but letters, numbers, periods or
+# whitespace (including malformed UTF-8) never matches. Unlike upper-casing,
+# regex matching does not require valid UTF-8, so Arrow can stay lazy.
+code_pattern <- function(prefixes) {
+  gap <- "[. \t\r\n]*"
+  spaced <- vapply(strsplit(prefixes, ""), paste, "", collapse = gap)
+  paste0("^", gap, "(?:", paste(spaced, collapse = "|"), ")[A-Za-z0-9. \t\r\n]*$")
 }
