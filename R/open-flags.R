@@ -72,10 +72,11 @@ nis_open <- function(path, years = NULL) {
 
 #' Add ICD-10 diagnosis prefix flags
 #'
-#' Each diagnosis slot is checked separately. Prefixes are case-insensitive;
-#' periods and spaces are ignored in both the supplied prefixes and codes. A
-#' code containing any other character, such as malformed UTF-8, never
-#' matches.
+#' Each diagnosis slot is checked separately. Supplied prefixes are
+#' case-insensitive, and periods and spaces in them are ignored. Slot values are
+#' compared as stored, byte for byte, because NIS stores upper-case codes
+#' without periods; malformed UTF-8 therefore cannot raise an error. Matching
+#' stays lazy on Arrow queries and avoids per-row text normalization.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
@@ -90,10 +91,11 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 
 #' Add ICD-10 procedure prefix flags
 #'
-#' Each procedure slot is checked separately. Prefixes are case-insensitive;
-#' periods and spaces are ignored in both the supplied prefixes and codes. A
-#' code containing any other character, such as malformed UTF-8, never
-#' matches.
+#' Each procedure slot is checked separately. Supplied prefixes are
+#' case-insensitive, and periods and spaces in them are ignored. Slot values are
+#' compared as stored, byte for byte, because NIS stores upper-case codes
+#' without periods; malformed UTF-8 therefore cannot raise an error. Matching
+#' stays lazy on Arrow queries and avoids per-row text normalization.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
@@ -140,24 +142,52 @@ nis_flag_codes <- function(.data, slots, ..., position) {
     cli::cli_abort("No ICD-10 {slots} columns match the requested position.")
   }
 
-  flags <- lapply(prefixes, function(prefix) {
-    pattern <- rlang::expr(stringr::regex(!!code_pattern(prefix), ignore_case = TRUE))
-    per_slot <- lapply(slot_names, function(column) {
-      rlang::expr(stringr::str_detect(!!rlang::sym(column), !!pattern))
-    })
-    matches <- Reduce(function(left, right) rlang::expr((!!left) | (!!right)), per_slot)
-    rlang::expr(dplyr::coalesce(!!matches, FALSE))
-  })
+  match_prefixes <- if (is.data.frame(.data)) frame_match else arrow_match
+  flags <- lapply(prefixes, match_prefixes, slot_names = slot_names)
 
   dplyr::mutate(.data, !!!flags)
 }
 
-# One regex per flag: prefix characters may be separated by periods or
-# whitespace, and a code containing anything but letters, numbers, periods or
-# whitespace (including malformed UTF-8) never matches. Unlike upper-casing,
-# regex matching does not require valid UTF-8, so Arrow can stay lazy.
-code_pattern <- function(prefixes) {
-  gap <- "[. \t\r\n]*"
-  spaced <- vapply(strsplit(prefixes, ""), paste, "", collapse = gap)
-  paste0("^", gap, "(?:", paste(spaced, collapse = "|"), ")[A-Za-z0-9. \t\r\n]*$")
+# Data frames use `startsWith()`, which compares bytes and never errors on
+# malformed text; a missing slot value counts as no match.
+frame_match <- function(prefix, slot_names) {
+  per_slot <- lapply(slot_names, function(column) {
+    per_prefix <- lapply(prefix, function(code) {
+      rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))
+    })
+    reduce_or(per_prefix)
+  })
+  rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
+}
+
+# Arrow queries get native compute expressions. One prefix is a plain
+# `starts_with` per slot. Several prefixes cut each slot to the prefix length as
+# bytes and test set membership, so cost grows with the number of distinct
+# prefix lengths instead of the number of prefixes. Neither validates UTF-8.
+arrow_match <- function(prefix, slot_names) {
+  kernel <- arrow::Expression$create
+  per_slot <- lapply(slot_names, function(column) {
+    field <- arrow::Expression$field_ref(column)
+    if (length(prefix) == 1L) {
+      return(kernel("starts_with", field, options = list(pattern = prefix)))
+    }
+    as_bytes <- kernel("cast", field, options = list(to_type = arrow::binary()))
+    by_length <- split(prefix, nchar(prefix))
+    per_length <- lapply(by_length, function(codes) {
+      kernel("is_in",
+        kernel("binary_slice", as_bytes,
+          options = list(start = 0L, stop = nchar(codes[[1L]]))),
+        options = list(
+          value_set = arrow::Array$create(lapply(codes, charToRaw),
+            type = arrow::binary()),
+          skip_nulls = FALSE))
+    })
+    Reduce(function(left, right) kernel("or_kleene", left, right), per_length)
+  })
+  matches <- Reduce(function(left, right) kernel("or_kleene", left, right), per_slot)
+  kernel("coalesce", matches, arrow::Expression$scalar(FALSE))
+}
+
+reduce_or <- function(terms) {
+  Reduce(function(left, right) rlang::expr((!!left) | (!!right)), terms)
 }

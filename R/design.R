@@ -6,9 +6,17 @@
 #' design. After this function returns, `filter()` may only narrow the declared
 #' cohort; it cannot define a new cohort.
 #'
+#' Discharges whose `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` is missing,
+#' non-finite, or not positive cannot be placed in a survey design. They are
+#' excluded before the cohort is applied, with a warning that gives their
+#' number. The query is scanned twice: once over the four design columns, and
+#' once to collect the cohort rows, so the cohort expression is evaluated one
+#' time over the full data.
+#'
 #' @param .data Lazy Arrow query or data frame.
 #' @param cohort Logical data-masked cohort expression. Missing values are
-#'   counted and treated as outside the cohort.
+#'   counted and treated as outside the cohort. Only valid-design discharges
+#'   are counted.
 #' @param keep Tidyselect expression naming analysis columns to collect.
 #' @param annualize Divide discharge weights by the number of included years.
 #' @param dollars Optional reference dollar year for adjusted costs and charges.
@@ -19,7 +27,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.")
   }
-  reserved <- c(".in_cohort", ".nis_cohort", ".cohort_missing",
+  reserved <- c(".in_cohort", ".nis_cohort", ".nis_valid",
     ".nis_psu", ".nis_stratum", ".nis_weight")
   if (any(reserved %in% names(.data))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.")
@@ -40,46 +48,57 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
   selected <- unique(c(design_fields, keep_names))
 
   cohort_quo <- rlang::enquo(cohort)
-  prepared <- dplyr::mutate(.data, .nis_cohort = !!cohort_quo)
   prepared <- dplyr::mutate(
-    prepared,
-    .in_cohort = dplyr::coalesce(.nis_cohort, FALSE),
-    .cohort_missing = is.na(.nis_cohort)
+    .data,
+    .nis_cohort = !!cohort_quo,
+    .nis_valid = dplyr::coalesce(
+      YEAR > 0 & HOSP_NIS > 0 & NIS_STRATUM > 0 & is.finite(DISCWT) & DISCWT > 0,
+      FALSE
+    )
   )
 
-  missing_cohort <- prepared |>
-    dplyr::filter(.cohort_missing) |>
-    dplyr::summarise(n = dplyr::n()) |>
+  # Scan 1 reads only the design columns, because Arrow drops the cohort
+  # expression from the projection when it is not selected.
+  design_groups <- prepared |>
+    dplyr::group_by(.nis_valid, YEAR, HOSP_NIS, NIS_STRATUM) |>
+    dplyr::summarise(
+      DISCWT = min(dplyr::if_else(.nis_valid, DISCWT, Inf)),
+      n = dplyr::n(),
+      .groups = "drop"
+    ) |>
     nis_collect()
-  missing_count <- if (nrow(missing_cohort) == 0L) 0L else missing_cohort$n[[1L]]
-  if (missing_count > 0L) {
-    cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
+  excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
+  if (excluded_count > 0L) {
+    cli::cli_warn(paste0(
+      "Excluded {excluded_count} discharge{?s} with a missing or invalid ",
+      "`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` before applying the cohort."
+    ))
   }
-
-  hospital_rows <- prepared |>
-    dplyr::select(dplyr::all_of(design_fields)) |>
-    dplyr::group_by(YEAR, HOSP_NIS, NIS_STRATUM) |>
-    dplyr::summarise(DISCWT = min(DISCWT, na.rm = TRUE), .groups = "drop") |>
-    nis_collect()
-  if (nrow(hospital_rows) == 0L || anyNA(hospital_rows[design_fields])) {
-    cli::cli_abort("NIS design fields must be present for every hospital-year.")
-  }
-  if (any(!is.finite(hospital_rows$DISCWT)) || any(hospital_rows$DISCWT <= 0)) {
-    cli::cli_abort("`DISCWT` must contain a positive finite weight for every hospital-year.")
+  hospital_rows <- design_groups[design_groups$.nis_valid, design_fields]
+  if (nrow(hospital_rows) == 0L) {
+    cli::cli_abort("No discharges have valid design fields.")
   }
   stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS)
   if (any(stratum_counts$n != 1L)) {
     cli::cli_abort("Each hospital must map to one stratum within a year.")
   }
 
-  cohort_rows <- prepared |>
-    dplyr::filter(.in_cohort) |>
-    dplyr::select(dplyr::all_of(selected), .in_cohort) |>
+  # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
+  # the cohort expression runs once per discharge. Missing values are counted
+  # here and dropped.
+  collected <- prepared |>
+    dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
+    dplyr::select(dplyr::all_of(selected), .nis_cohort) |>
     nis_collect()
-  if (anyNA(cohort_rows$DISCWT) || any(!is.finite(cohort_rows$DISCWT)) ||
-      any(cohort_rows$DISCWT <= 0)) {
-    cli::cli_abort("`DISCWT` must be positive and finite for every cohort discharge.")
+  if (!is.logical(collected$.nis_cohort)) {
+    cli::cli_abort("`cohort` must evaluate to a logical vector.")
   }
+  missing_count <- sum(is.na(collected$.nis_cohort))
+  if (missing_count > 0L) {
+    cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
+  }
+  cohort_rows <- collected[which(collected$.nis_cohort), selected, drop = FALSE]
+  cohort_rows$.in_cohort <- rep(TRUE, nrow(cohort_rows))
   cohort_hospitals <- unique(cohort_rows[c("YEAR", "HOSP_NIS")])
   empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals,
     by = c("YEAR", "HOSP_NIS"))

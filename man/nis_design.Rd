@@ -10,7 +10,8 @@ nis_design(.data, cohort, keep, annualize = FALSE, dollars = NULL)
 \item{.data}{Lazy Arrow query or data frame.}
 
 \item{cohort}{Logical data-masked cohort expression. Missing values are
-counted and treated as outside the cohort.}
+counted and treated as outside the cohort. Only valid-design discharges
+are counted.}
 
 \item{keep}{Tidyselect expression naming analysis columns to collect.}
 
@@ -27,4 +28,12 @@ no cohort discharges, then builds a nested NIS survey design. The
 placeholder-row method is experimental and is gated against a full-data
 design. After this function returns, \code{filter()} may only narrow the declared
 cohort; it cannot define a new cohort.
+}
+\details{
+Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,
+non-finite, or not positive cannot be placed in a survey design. They are
+excluded before the cohort is applied, with a warning that gives their
+number. The query is scanned twice: once over the four design columns, and
+once to collect the cohort rows, so the cohort expression is evaluated one
+time over the full data.
 }

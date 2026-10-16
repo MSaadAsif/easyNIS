@@ -159,3 +159,71 @@ test_that("placeholder rows keep design fields and tolerate all-NA analysis valu
   expect_true(is.na(adjusted_placeholder$DIED[[1L]]))
   expect_true(is.na(adjusted_placeholder$cost_adj[[1L]]))
 })
+
+test_that("nis_design excludes discharges with invalid design fields and warns", {
+  path <- nis_example(2017:2018)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- nis_open(path) |>
+    nis_flag_dx(heart_failure = "I50", position = "principal") |>
+    dplyr::collect()
+  invalid <- data
+  invalid$DISCWT[c(1L, 5L)] <- c(-9, NA)
+  invalid$NIS_STRATUM[9L] <- -9
+  valid <- data[-c(1L, 5L, 9L), ]
+
+  expected <- nis_design(valid, heart_failure, keep = c(AGE, LOS))
+  expect_warning(
+    from_frame <- nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
+    "Excluded 3 discharges"
+  )
+
+  invalid_path <- tempfile("nis-invalid-")
+  dir.create(invalid_path)
+  on.exit(unlink(invalid_path, recursive = TRUE), add = TRUE)
+  arrow::write_parquet(invalid, file.path(invalid_path, "part-0.parquet"))
+  expect_warning(
+    from_arrow <- nis_design(
+      arrow::open_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
+    ),
+    "Excluded 3 discharges"
+  )
+
+  for (design in list(from_frame, from_arrow)) {
+    expect_equal(nrow(design$variables), nrow(expected$variables))
+    expect_equal(sort(as.numeric(stats::weights(design))),
+      sort(as.numeric(stats::weights(expected))))
+    expect_equal(
+      survey::svymean(~AGE, design) |> coef(),
+      survey::svymean(~AGE, expected) |> coef()
+    )
+    expect_equal(
+      survey::SE(survey::svymean(~AGE, design)),
+      survey::SE(survey::svymean(~AGE, expected))
+    )
+  }
+
+  none <- data
+  none$DISCWT <- -9
+  expect_error(
+    suppressWarnings(nis_design(none, heart_failure, keep = c(AGE))),
+    "No discharges have valid design fields"
+  )
+})
+
+test_that("multi-prefix any-position cohorts give identical designs on Arrow and data frames", {
+  path <- nis_example(2017:2018)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  query <- nis_open(path)
+  frame <- dplyr::collect(query)
+  add_flags <- function(.data) {
+    nis_flag_dx(.data, exposed = c("Z515", "E11", "J18"), position = "any")
+  }
+
+  from_arrow <- nis_design(add_flags(query), exposed & AGE >= 30, keep = c(AGE, DIED))
+  from_frame <- nis_design(add_flags(frame), exposed & AGE >= 30, keep = c(AGE, DIED))
+
+  expect_equal(nrow(from_arrow$variables), nrow(from_frame$variables))
+  expect_gt(nrow(from_arrow$variables), 0L)
+  expect_equal(sort(as.numeric(stats::weights(from_arrow))),
+    sort(as.numeric(stats::weights(from_frame))))
+})
