@@ -159,3 +159,81 @@ test_that("placeholder rows keep design fields and tolerate all-NA analysis valu
   expect_true(is.na(adjusted_placeholder$DIED[[1L]]))
   expect_true(is.na(adjusted_placeholder$cost_adj[[1L]]))
 })
+
+test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+
+  design <- designs$placeholder
+  multipliers <- 0.6 + (seq_len(nrow(design$variables)) %% 7) / 10
+  reweighted <- nis_reweight(design, multipliers)
+
+  reference_data <- designs$full_data
+  reference_data$.nis_weight[reference_data$.in_cohort] <-
+    reference_data$.nis_weight[reference_data$.in_cohort] * multipliers
+  reference <- srvyr::as_survey_design(
+    reference_data,
+    ids = .nis_psu,
+    strata = .nis_stratum,
+    weights = .nis_weight,
+    nest = TRUE
+  ) |>
+    dplyr::filter(.in_cohort)
+
+  mean_reweighted <- survey::svymean(~AGE + LOS, reweighted)
+  mean_reference <- survey::svymean(~AGE + LOS, reference)
+  expect_equal(coef(mean_reweighted), coef(mean_reference), tolerance = 1e-8)
+  expect_equal(vcov(mean_reweighted), vcov(mean_reference), tolerance = 1e-8)
+
+  model_reweighted <- survey::svyglm(
+    I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+    design = reweighted,
+    family = stats::quasibinomial()
+  )
+  model_reference <- survey::svyglm(
+    I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+    design = reference,
+    family = stats::quasibinomial()
+  )
+  expect_equal(coef(model_reweighted), coef(model_reference), tolerance = 1e-8)
+  expect_equal(vcov(model_reweighted), vcov(model_reference), tolerance = 1e-8)
+  expect_equal(survey::degf(reweighted), survey::degf(reference))
+
+  original_placeholders <- attr(design, "nis_placeholder_rows")
+  reweighted_placeholders <- attr(reweighted, "nis_placeholder_rows")
+  expect_gt(nrow(original_placeholders), 0L)
+  expect_identical(
+    reweighted_placeholders$.nis_weight,
+    original_placeholders$.nis_weight
+  )
+})
+
+test_that("nis_reweight accepts a column and validates propensity weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(designs$query)
+  cohort <- dplyr::coalesce(data$heart_failure, FALSE)
+  data$iptw <- NA_real_
+  data$iptw[cohort] <- 0.8 + (seq_len(sum(cohort)) %% 5) / 10
+  design <- nis_design(data, heart_failure, keep = c(AGE, iptw))
+
+  reweighted <- nis_reweight(design, iptw)
+  expect_equal(
+    as.numeric(stats::weights(reweighted)),
+    as.numeric(stats::weights(design)) * data$iptw[cohort]
+  )
+  expect_error(nis_reweight(design, rep(1, nrow(design$variables) - 1L)),
+    "one value per cohort row")
+  expect_error(nis_reweight(design, rep("1", nrow(design$variables))),
+    "numeric vector")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), NA_real_)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), Inf)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), 0)),
+    "positive")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), -1)),
+    "positive")
+  expect_error(nis_reweight(designs$full, rep(1, nrow(designs$full$variables))),
+    "must be a result of")
+})
