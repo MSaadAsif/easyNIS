@@ -117,3 +117,45 @@ test_that("annualized weights divide by the number of years and missing cohorts 
   )
   expect_equal(nrow(domain$variables), 1L)
 })
+
+test_that("placeholder rows keep design fields and tolerate all-NA analysis values", {
+  data <- dplyr::tibble(
+    YEAR = c(2017, 2017),
+    HOSP_NIS = c(1, 2),
+    NIS_STRATUM = c(1, 1),
+    DISCWT = c(1, 1),
+    eligible = c(TRUE, FALSE),
+    DIED = c(1, NA_real_),
+    TOTCHG = c(1000, NA_real_),
+    CCR_NIS = c(0.25, NA_real_)
+  )
+
+  design <- nis_design(
+    data,
+    eligible,
+    keep = c(DIED, TOTCHG, CCR_NIS),
+    dollars = 2022
+  )
+
+  expect_equal(nrow(design$variables), 1L)
+  expect_identical(as.character(design$variables$DIED), "Yes")
+  expect_true(is.finite(design$variables$cost_adj[[1L]]))
+  expect_equal(as.numeric(design$variables$YEAR), 2017)
+  expect_equal(as.numeric(design$variables$HOSP_NIS), 1)
+  expect_equal(as.numeric(design$variables$NIS_STRATUM), 1)
+  expect_equal(as.numeric(design$variables$DISCWT), 1)
+
+  placeholder <- dplyr::tibble(
+    YEAR = 2017,
+    HOSP_NIS = 2,
+    NIS_STRATUM = 1,
+    DISCWT = 1,
+    DIED = NA_real_,
+    TOTCHG = NA_real_,
+    CCR_NIS = NA_real_
+  ) |>
+    nis_label()
+  adjusted_placeholder <- nis_cost(placeholder, dollars = 2022)
+  expect_true(is.na(adjusted_placeholder$DIED[[1L]]))
+  expect_true(is.na(adjusted_placeholder$cost_adj[[1L]]))
+})
