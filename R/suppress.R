@@ -22,6 +22,9 @@ nis_suppress <- function(x, threshold = 10) {
 
   body <- x$table_body
   cards <- x$cards$tbl_svysummary
+  if (!is.null(x$cards$add_overall)) {
+    cards <- dplyr::bind_rows(cards, x$cards$add_overall)
+  }
   stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
   card_variable_level <- vapply(cards$variable_level, function(value) {
     if (length(value) == 0L) "" else as.character(value[[1L]])
@@ -58,6 +61,11 @@ nis_suppress <- function(x, threshold = 10) {
       matches <- which(cards$variable == variable &
         cards$context == context & cards$stat_name == stat_name &
         cards$gts_column == column & level_index)
+      if (length(matches) == 0L && identical(column, "stat_0")) {
+        matches <- which(cards$variable == variable &
+          cards$context == context & cards$stat_name == stat_name &
+          grepl("^stat_[1-9][0-9]*$", cards$gts_column) & level_index)
+      }
       if (length(matches) == 0L) next
       counts <- vapply(matches, function(i) as.numeric(unlist(cards$stat[[i]]))[1L],
         numeric(1))
