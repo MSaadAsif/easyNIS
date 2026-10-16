@@ -313,6 +313,28 @@ for (family_table in family_tables) {
 }
 ```
 
-## Deferred analyses
+<!--
+## IPTW propensity weighting (optional)
 
-Inverse-probability treatment weighting (IPTW) is deferred.
+Fit propensity weights to cohort rows from the design. The resulting survey
+design keeps the placeholder rows needed for domain variance estimation.
+
+```r
+cohort_data <- study_design$variables
+propensity_fit <- WeightIt::weightit(
+  exposed ~ AGE + FEMALE + factor(YEAR),
+  data = cohort_data,
+  s.weights = "DISCWT",
+  estimand = "ATE"
+)
+
+weighted_design <- nis_reweight(study_design, propensity_fit$weights)
+cobalt::bal.tab(propensity_fit, un = TRUE)
+
+weighted_model <- survey::svyglm(
+  DIED ~ exposed + AGE + FEMALE + factor(YEAR),
+  design = weighted_design,
+  family = stats::quasibinomial()
+)
+```
+-->

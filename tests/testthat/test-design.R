@@ -227,3 +227,98 @@ test_that("multi-prefix any-position cohorts give identical designs on Arrow and
   expect_equal(sort(as.numeric(stats::weights(from_arrow))),
     sort(as.numeric(stats::weights(from_frame))))
 })
+
+test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+
+  old_lonely <- getOption("survey.lonely.psu")
+  old_adjust <- getOption("survey.adjust.domain.lonely")
+  on.exit(options(
+    survey.lonely.psu = old_lonely,
+    survey.adjust.domain.lonely = old_adjust
+  ), add = TRUE)
+
+  design <- designs$placeholder
+  multipliers <- 0.6 + (seq_len(nrow(design$variables)) %% 7) / 10
+  reweighted <- nis_reweight(design, multipliers)
+
+  reference_data <- designs$full_data
+  reference_data$.nis_weight[reference_data$.in_cohort] <-
+    reference_data$.nis_weight[reference_data$.in_cohort] * multipliers
+  reference <- srvyr::as_survey_design(
+    reference_data,
+    ids = .nis_psu,
+    strata = .nis_stratum,
+    weights = .nis_weight,
+    nest = TRUE
+  ) |>
+    dplyr::filter(.in_cohort)
+
+  settings <- list(
+    adjusted = list(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = TRUE),
+    default = list(survey.lonely.psu = NULL, survey.adjust.domain.lonely = NULL)
+  )
+  max_abs_diff <- function(x, y) max(abs(as.numeric(x) - as.numeric(y)))
+
+  for (setting in settings) {
+    do.call(options, setting)
+
+    mean_reweighted <- survey::svymean(~AGE + LOS, reweighted)
+    mean_reference <- survey::svymean(~AGE + LOS, reference)
+    expect_lt(max_abs_diff(coef(mean_reweighted), coef(mean_reference)), 1e-8)
+    expect_lt(max_abs_diff(survey::SE(mean_reweighted), survey::SE(mean_reference)), 1e-8)
+
+    model_reweighted <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reweighted,
+      family = stats::quasibinomial()
+    )
+    model_reference <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reference,
+      family = stats::quasibinomial()
+    )
+    expect_lt(max_abs_diff(coef(model_reweighted), coef(model_reference)), 1e-8)
+    expect_lt(max_abs_diff(vcov(model_reweighted), vcov(model_reference)), 1e-8)
+    expect_identical(survey::degf(reweighted), survey::degf(reference))
+  }
+
+  original_placeholders <- attr(design, "nis_placeholder_rows")
+  reweighted_placeholders <- attr(reweighted, "nis_placeholder_rows")
+  expect_gt(nrow(original_placeholders), 0L)
+  expect_identical(
+    reweighted_placeholders$.nis_weight,
+    original_placeholders$.nis_weight
+  )
+})
+
+test_that("nis_reweight accepts a column and validates propensity weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(designs$query)
+  cohort <- dplyr::coalesce(data$heart_failure, FALSE)
+  data$iptw <- NA_real_
+  data$iptw[cohort] <- 0.8 + (seq_len(sum(cohort)) %% 5) / 10
+  design <- nis_design(data, heart_failure, keep = c(AGE, iptw))
+
+  reweighted <- nis_reweight(design, iptw)
+  expect_equal(
+    as.numeric(stats::weights(reweighted)),
+    as.numeric(stats::weights(design)) * data$iptw[cohort]
+  )
+  expect_error(nis_reweight(design, rep(1, nrow(design$variables) - 1L)),
+    "one value per cohort row")
+  expect_error(nis_reweight(design, rep("1", nrow(design$variables))),
+    "numeric vector")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), NA_real_)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), Inf)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), 0)),
+    "positive")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), -1)),
+    "positive")
+  expect_error(nis_reweight(designs$full, rep(1, nrow(designs$full$variables))),
+    "must be a result of")
+})

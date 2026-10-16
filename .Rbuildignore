@@ -1,6 +1,7 @@
 ^\.agents($|[/\\])
 ^\.audit($|[/\\])
 ^\.claude($|[/\\])
+^\.git$
 ^\.easynis-local\.ps1$
 ^\.github$
 ^\.Rproj\.user$

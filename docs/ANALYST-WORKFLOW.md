@@ -66,11 +66,12 @@ remain experimental until Saad and Ali approve them.
 
 ## Follow-on handoff
 
-The study-template increment is separate from this core API. It should use
+The study template should use
 `purrr::map()` over outcomes, include `factor(YEAR)` among covariates, and show
 plain lazy flow-count chunks. Its self-contained HTML and DOCX output should
 hide code, use the JAMA theme, and include Methods, flow, Table 1, outcomes,
-trends, and models. IPTW is deferred. The template must not imply HCUP
+trends, and models. The optional IPTW example remains commented out because
+propensity weighting is experimental. The template must not imply HCUP
 endorsement or scientific approval.
 
 Keep placeholder-row design methods experimental. Do not attribute the method

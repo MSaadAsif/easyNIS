@@ -25,6 +25,7 @@ Imports:
 Suggests:
     broom.helpers,
     cardx,
+    cobalt,
     forcats,
     flextable,
     ggplot2,
@@ -35,7 +36,8 @@ Suggests:
     quarto,
     rmarkdown,
     survey,
-    testthat (>= 3.1.7)
+    testthat (>= 3.1.7),
+    WeightIt
 VignetteBuilder: knitr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
