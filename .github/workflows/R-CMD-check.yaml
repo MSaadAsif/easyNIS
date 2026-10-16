@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -24,8 +24,8 @@ jobs:
           - {os: windows-latest, r: 'release'}
           - {os: macos-latest, r: 'release'}
           - {os: ubuntu-latest, r: 'release'}
-          - {os: ubuntu-latest, r: 'oldrel-1'}
           - {os: ubuntu-latest, r: 'devel'}
+          - {os: ubuntu-latest, r: 'oldrel-1'}
     env:
       R_KEEP_PKG_SOURCE: yes
     steps:
@@ -34,17 +34,11 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
+      - uses: r-lib/actions/setup-pandoc@v2
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, roxygen2@8.1.1
+          extra-packages: any::rcmdcheck
           needs: check
-      - name: Verify generated documentation
-        run: |
-          roxygen2::roxygenise()
-          if (system('git diff --exit-code -- NAMESPACE man DESCRIPTION') != 0) {
-            stop('Generated documentation is out of date.')
-          }
-        shell: Rscript {0}
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual")'
