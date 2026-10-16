@@ -142,8 +142,12 @@ nis_flag_codes <- function(.data, slots, ..., position) {
     cli::cli_abort("No ICD-10 {slots} columns match the requested position.")
   }
 
-  match_prefixes <- if (is.data.frame(.data)) frame_match else arrow_match
-  flags <- lapply(prefixes, match_prefixes, slot_names = slot_names)
+  flags <- if (is.data.frame(.data)) {
+    lapply(prefixes, frame_match, slot_names = slot_names)
+  } else {
+    projection <- dplyr::select(.data, dplyr::everything())$selected_columns
+    lapply(prefixes, arrow_match, slots = projection[slot_names])
+  }
 
   dplyr::mutate(.data, !!!flags)
 }
@@ -160,32 +164,35 @@ frame_match <- function(prefix, slot_names) {
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
 }
 
-# Arrow queries get native compute expressions. One prefix is a plain
-# `starts_with` per slot. Several prefixes cut each slot to the prefix length as
-# bytes and test set membership, so cost grows with the number of distinct
-# prefix lengths instead of the number of prefixes. Neither validates UTF-8.
-arrow_match <- function(prefix, slot_names) {
+# Arrow queries get native compute expressions built on the query's current
+# projection, so columns created or changed by an earlier `mutate()` are
+# respected. One prefix is a plain `starts_with` per slot. Several prefixes cut
+# each slot to the prefix length as bytes and test set membership, so cost
+# grows with the number of distinct prefix lengths instead of the number of
+# prefixes. Neither validates UTF-8.
+arrow_match <- function(prefix, slots) {
   kernel <- arrow::Expression$create
-  per_slot <- lapply(slot_names, function(column) {
-    field <- arrow::Expression$field_ref(column)
+  or_all <- function(terms) {
+    Reduce(function(left, right) kernel("or_kleene", left, right), terms)
+  }
+  by_length <- split(prefix, nchar(prefix))
+  value_sets <- lapply(by_length, function(codes) {
+    arrow::Array$create(lapply(codes, charToRaw), type = arrow::binary())
+  })
+
+  per_slot <- lapply(slots, function(slot) {
     if (length(prefix) == 1L) {
-      return(kernel("starts_with", field, options = list(pattern = prefix)))
+      return(kernel("starts_with", slot, options = list(pattern = prefix)))
     }
-    as_bytes <- kernel("cast", field, options = list(to_type = arrow::binary()))
-    by_length <- split(prefix, nchar(prefix))
-    per_length <- lapply(by_length, function(codes) {
+    as_bytes <- kernel("cast", slot, options = list(to_type = arrow::binary()))
+    or_all(lapply(seq_along(by_length), function(i) {
       kernel("is_in",
         kernel("binary_slice", as_bytes,
-          options = list(start = 0L, stop = nchar(codes[[1L]]))),
-        options = list(
-          value_set = arrow::Array$create(lapply(codes, charToRaw),
-            type = arrow::binary()),
-          skip_nulls = FALSE))
-    })
-    Reduce(function(left, right) kernel("or_kleene", left, right), per_length)
+          options = list(start = 0L, stop = nchar(by_length[[i]][[1L]]))),
+        options = list(value_set = value_sets[[i]], skip_nulls = FALSE))
+    }))
   })
-  matches <- Reduce(function(left, right) kernel("or_kleene", left, right), per_slot)
-  kernel("coalesce", matches, arrow::Expression$scalar(FALSE))
+  kernel("coalesce", or_all(per_slot), arrow::Expression$scalar(FALSE))
 }
 
 reduce_or <- function(terms) {
