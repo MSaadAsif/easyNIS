@@ -25,10 +25,15 @@ gtsummary::tbl_svysummary(design, include = c(AGE, FEMALE, DIED))
 survey::svyglm(DIED ~ AGE + factor(YEAR), design, family = quasibinomial())
 ```
 
-`nis_open()` returns a lazy Arrow query. `nis_design()` collects cohort rows
-and one placeholder per hospital-year without cohort cases. Later `filter()`
-calls may only narrow the declared cohort. The placeholder variance method and
-cost adjustment remain experimental pending scientific approval.
+`nis_open()` returns a lazy Arrow query. `nis_flag_dx()` and `nis_flag_pr()`
+compare stored codes byte for byte (NIS codes are upper case without periods),
+so they stay fast across all 40 diagnosis slots and cannot fail on malformed
+text. `nis_design()` scans the design columns once, then collects cohort rows
+and one placeholder per hospital-year without cohort cases. It excludes
+discharges with a missing or non-positive `DISCWT`, `NIS_STRATUM`, or
+`HOSP_NIS`, with a warning. Later `filter()` calls may only narrow the declared
+cohort. The placeholder variance method and cost adjustment remain
+experimental pending scientific approval.
 
 Experimental helpers, each optional:
 
