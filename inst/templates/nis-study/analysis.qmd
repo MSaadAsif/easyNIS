@@ -314,7 +314,7 @@ for (family_table in family_tables) {
 ```
 
 <!--
-## Propensity weighting (optional)
+## IPTW propensity weighting (optional)
 
 Fit propensity weights to cohort rows from the design. The resulting survey
 design keeps the placeholder rows needed for domain variance estimation.
