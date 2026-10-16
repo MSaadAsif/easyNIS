@@ -32,12 +32,16 @@ cannot be represented exactly. Keep that condition in a regular expression
 with a plain `mutate()`/`if_any()` expression on the code columns.
 
 The example starts from generated data and substitutes illustrative codes,
-then creates diagnosis and procedure flags:
+then creates diagnosis and procedure flags. It collects the small invented
+data first because it overwrites the code columns; on lazy queries, flag the
+stored code columns, since flags do not see columns changed earlier in the
+same lazy query:
 
 ```{r prefixes}
 example_path <- nis_example(years = 2018:2020)
 
 nis_flagged <- nis_open(example_path, years = 2018:2020) |>
+  dplyr::collect() |>
   dplyr::mutate(
     I10_DX1 = dplyr::if_else(AGE >= 50, "A1234", "C004"),
     I10_DX2 = dplyr::if_else(FEMALE == 1, "B34.1", "C00.5"),
