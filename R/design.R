@@ -105,23 +105,13 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
     combined <- nis_cost(combined, dollars = dollars)
   }
 
-  design <- srvyr::as_survey_design(
-    combined,
-    ids = .nis_psu,
-    strata = .nis_stratum,
-    weights = .nis_weight,
-    nest = TRUE
-  )
   hospitals <- length(unique(paste(cohort_rows$YEAR, cohort_rows$HOSP_NIS)))
   weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
   cli::cli_inform(paste0(
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
   ))
-  cohort_design <- dplyr::filter(design, .in_cohort)
-  attr(cohort_design, "nis_placeholder_rows") <-
-    combined[!combined$.in_cohort, , drop = FALSE]
-  cohort_design
+  nis_cohort_design(combined)
 }
 
 #' Reweight a cohort survey design
@@ -139,25 +129,21 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
 nis_reweight <- function(design, weights) {
-  if (!inherits(design, "tbl_svy") || !is.data.frame(design$variables)) {
-    cli::cli_abort("`design` must be a result of `nis_design()`.")
-  }
-
   placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
-  if (!is.data.frame(placeholders) ||
-      !all(c(".in_cohort", ".nis_weight", ".nis_psu", ".nis_stratum") %in%
-        names(placeholders))) {
+  cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)
+  if (!inherits(design, "tbl_svy") || !is.data.frame(placeholders) ||
+      is.null(cohort_rows)) {
     cli::cli_abort("`design` must be a result of `nis_design()`.")
   }
-
   variables <- design$variables
-  if (!all(c(".in_cohort", ".nis_weight", ".nis_psu", ".nis_stratum") %in%
-      names(variables)) || any(!variables$.in_cohort)) {
-    cli::cli_abort("`design` must contain the cohort rows from `nis_design()`.")
+  if (nrow(variables) != cohort_rows) {
+    cli::cli_abort(c(
+      "`design` has been narrowed with `filter()`.",
+      i = "Call `nis_reweight()` before narrowing the cohort."
+    ))
   }
 
-  weights_quo <- rlang::enquo(weights)
-  weight_values <- rlang::eval_tidy(weights_quo, data = variables)
+  weight_values <- rlang::eval_tidy(rlang::enquo(weights), data = variables)
   if (!is.numeric(weight_values) || !is.null(dim(weight_values))) {
     cli::cli_abort("`weights` must be a numeric vector or numeric column.")
   }
@@ -171,12 +157,15 @@ nis_reweight <- function(design, weights) {
     cli::cli_abort("`weights` must be positive.")
   }
 
-  combined <- dplyr::bind_rows(variables, placeholders)
-  cohort_rows <- seq_len(nrow(variables))
-  combined$.nis_weight[cohort_rows] <-
-    combined$.nis_weight[cohort_rows] * weight_values
+  variables$.nis_weight <- variables$.nis_weight * weight_values
+  nis_cohort_design(dplyr::bind_rows(variables, placeholders))
+}
 
-  reweighted_design <- srvyr::as_survey_design(
+# Cohort rows plus placeholder rows (`.in_cohort == FALSE`) in one nested
+# design, filtered to the cohort. The placeholders and the cohort row count
+# stay on the result so `nis_reweight()` can rebuild the design.
+nis_cohort_design <- function(combined) {
+  design <- srvyr::as_survey_design(
     combined,
     ids = .nis_psu,
     strata = .nis_stratum,
@@ -184,8 +173,9 @@ nis_reweight <- function(design, weights) {
     nest = TRUE
   ) |>
     dplyr::filter(.in_cohort)
-  attr(reweighted_design, "nis_placeholder_rows") <- placeholders
-  reweighted_design
+  attr(design, "nis_placeholder_rows") <- combined[!combined$.in_cohort, , drop = FALSE]
+  attr(design, "nis_cohort_rows") <- sum(combined$.in_cohort)
+  design
 }
 
 nis_collect <- function(x) {
