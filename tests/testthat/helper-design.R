@@ -33,6 +33,7 @@ comparison_designs <- function(years = 2017:2019) {
   list(
     path = path,
     query = query,
+    full_data = full_data,
     full = full_design,
     placeholder = placeholder_design
   )
