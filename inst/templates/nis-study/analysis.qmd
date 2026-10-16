@@ -1,0 +1,230 @@
+---
+title: "National Inpatient Sample Study"
+params:
+  data_path: null
+  years: [2017, 2018, 2019, 2020, 2021, 2022]
+---
+
+```{r}
+library(dplyr)
+library(purrr)
+library(srvyr)
+library(survey)
+library(gtsummary)
+library(gt)
+
+gtsummary::theme_gtsummary_journal("jama")
+
+is_example <- is.null(params$data_path)
+input_path <- if (is_example) {
+  nis_example(years = params$years)
+} else {
+  params$data_path
+}
+
+nis_data <- nis_open(input_path, years = params$years) |>
+  nis_flag_dx(diagnosis_flag = c("I", "J", "E")) |>
+  nis_flag_pr(procedure_flag = "0")
+
+study_design <- if (is_example) {
+  nis_design(
+    nis_data,
+    AGE >= 65,
+    keep = c(YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, FEMALE, DIED, ELECTIVE,
+             LOS, TOTCHG, CCR_NIS, diagnosis_flag, procedure_flag),
+    annualize = FALSE,
+    dollars = 2022
+  )
+}
+```
+
+## Methods
+
+This workflow covers ICD-10 NIS years `r paste(params$years, collapse = ", ")`.
+In the invented example, the survey design uses year-specific hospital
+clusters, NIS strata, and `DISCWT` discharge weights. Diagnosis and procedure
+flags are added to the whole lazy dataset before nis_design() selects the age
+65 or older cohort as part of design construction. The design uses annual
+discharge weights without annualization. nis_design() applies nis_label() and
+nis_cost() to the retained cohort, adjusting cost and charges using CPI-U to
+2022 USD when TOTCHG and CCR_NIS are retained.
+
+The survey design and cost workflow are experimental and have not been
+scientifically validated or approved for publication. This template does not
+imply HCUP endorsement.
+
+The report uses easyNIS `r as.character(utils::packageVersion("easyNIS"))`,
+R `r getRversion()`, survey
+`r as.character(utils::packageVersion("survey"))`, srvyr
+`r as.character(utils::packageVersion("srvyr"))`, dplyr
+`r as.character(utils::packageVersion("dplyr"))`, and gtsummary
+`r as.character(utils::packageVersion("gtsummary"))`.
+
+When data_path is null, every record comes from the entirely invented
+nis_example() fixture. To use locally prepared data, change only data_path in
+this file to that directory and keep the selected years current. For local data,
+analysis tables, flow counts, trends, and model output are omitted until a
+disclosure review protects small cells and complementary counts across the
+complete report. No record-derived results are emitted in local-data mode.
+
+## Cohort flow
+
+These lazy dplyr summarise() steps count all discharges, those age 65 or older,
+those in that age group with the example diagnosis flag, and those with both
+example flags. This flow is shown only for the invented fixture.
+
+```{r}
+if (is_example) {
+  flow_all <- nis_data |>
+    summarise(n = n(), weighted_discharges = sum(DISCWT)) |>
+    mutate(step = "All discharges") |>
+    select(step, everything()) |>
+    collect()
+
+  flow_age <- nis_data |>
+    filter(AGE >= 65) |>
+    summarise(n = n(), weighted_discharges = sum(DISCWT)) |>
+    mutate(step = "Age 65 or older") |>
+    select(step, everything()) |>
+    collect()
+
+  flow_diagnosis <- nis_data |>
+    filter(AGE >= 65, diagnosis_flag) |>
+    summarise(n = n(), weighted_discharges = sum(DISCWT)) |>
+    mutate(step = "Age cohort and example diagnosis flag") |>
+    select(step, everything()) |>
+    collect()
+
+  flow_procedure <- nis_data |>
+    filter(AGE >= 65, diagnosis_flag, procedure_flag) |>
+    summarise(n = n(), weighted_discharges = sum(DISCWT)) |>
+    mutate(step = "Age cohort and both example flags") |>
+    select(step, everything()) |>
+    collect()
+
+  flow_table <- bind_rows(flow_all, flow_age, flow_diagnosis, flow_procedure)
+  if (knitr::is_html_output()) {
+    gt::gt(flow_table)
+  } else {
+    knitr::kable(flow_table)
+  }
+} else {
+  cat("Flow counts are omitted for local data pending complementary suppression.")
+}
+```
+
+## Table 1
+
+```{r}
+if (is_example) {
+  table_one <- gtsummary::tbl_svysummary(
+    study_design,
+    by = FEMALE,
+    include = c(AGE, YEAR, LOS, cost_adj)
+  ) |>
+    gtsummary::add_overall() |>
+    nis_suppress(threshold = 10)
+  if (knitr::is_html_output()) {
+    gtsummary::as_gt(table_one)
+  } else {
+    gtsummary::as_flex_table(table_one)
+  }
+} else {
+  cat("Table 1 is omitted in local-data mode pending report-wide disclosure review.")
+}
+```
+
+## Outcomes
+
+```{r}
+if (is_example) {
+  outcome_table <- gtsummary::tbl_svysummary(
+    study_design,
+    include = c(DIED, LOS, cost_adj),
+    statistic = gtsummary::all_continuous() ~ "{mean} ({sd})"
+  ) |>
+    nis_suppress(threshold = 10)
+  if (knitr::is_html_output()) {
+    gtsummary::as_gt(outcome_table)
+  } else {
+    gtsummary::as_flex_table(outcome_table)
+  }
+} else {
+  cat("Outcome summaries are omitted in local-data mode pending report-wide disclosure review.")
+}
+```
+
+## Trends by year
+
+```{r}
+if (is_example) {
+  trend_table <- gtsummary::tbl_svysummary(
+    study_design,
+    by = YEAR,
+    include = c(DIED, LOS, cost_adj),
+    statistic = gtsummary::all_continuous() ~ "{mean} ({sd})"
+  ) |>
+    nis_suppress(threshold = 10)
+  if (knitr::is_html_output()) {
+    gtsummary::as_gt(trend_table)
+  } else {
+    gtsummary::as_flex_table(trend_table)
+  }
+} else {
+  cat("Year-specific summaries are omitted in local-data mode pending report-wide disclosure review.")
+}
+```
+
+## Multivariable models
+
+The invented example fits the models and builds gtsummary tables grouped by
+model family. Their regression tables are withheld because the current
+nis_suppress() contract does not cover regression summaries.
+
+```{r}
+if (is_example) {
+  # Adjust for differences between pooled study years.
+  covariates <- c("AGE", "FEMALE", "factor(YEAR)")
+
+  binary_models <- purrr::map(c("DIED", "ELECTIVE"), function(outcome) {
+    survey::svyglm(
+      stats::reformulate(covariates, response = outcome),
+      design = study_design,
+      family = quasibinomial()
+    )
+  })
+  names(binary_models) <- c("DIED", "ELECTIVE")
+  binary_tables <- purrr::map(binary_models, function(model) {
+    gtsummary::tbl_regression(model, exponentiate = TRUE)
+  })
+  binary_table <- gtsummary::tbl_merge(
+    list_tbls = binary_tables,
+    tab_spanner = c("**DIED**", "**ELECTIVE**")
+  )
+
+  gaussian_models <- purrr::map(c("LOS", "cost_adj"), function(outcome) {
+    survey::svyglm(
+      stats::reformulate(covariates, response = outcome),
+      design = study_design,
+      family = gaussian()
+    )
+  })
+  names(gaussian_models) <- c("LOS", "cost_adj")
+  gaussian_tables <- purrr::map(gaussian_models, function(model) {
+    gtsummary::tbl_regression(model, exponentiate = FALSE)
+  })
+  gaussian_table <- gtsummary::tbl_merge(
+    list_tbls = gaussian_tables,
+    tab_spanner = c("**LOS**", "**Cost**")
+  )
+  invisible(list(binary = binary_table, gaussian = gaussian_table))
+  cat("Model tables are withheld pending disclosure-safe regression suppression.")
+} else {
+  cat("Model results are omitted in local-data mode pending report-wide disclosure review.")
+}
+```
+
+## Deferred analyses
+
+Inverse-probability treatment weighting (IPTW) is deferred. The experimental
+scaffold does not define a treatment effect or a weighting procedure.
