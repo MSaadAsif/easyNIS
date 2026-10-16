@@ -21,3 +21,16 @@ at or below \code{threshold}. Counts come from the \code{cards} computed by
 perform complementary suppression, so related totals may still reveal a
 masked count.
 }
+\examples{
+if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
+  nis <- nis_open(nis_example(years = 2019:2020)) |>
+    nis_flag_dx(heart_failure = "I50")
+  design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+  table <- gtsummary::tbl_svysummary(
+    design,
+    by = RACE,
+    include = c(AGE, FEMALE)
+  )
+  nis_suppress(table, threshold = 10)
+}
+}
