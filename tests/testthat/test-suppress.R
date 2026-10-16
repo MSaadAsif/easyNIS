@@ -59,3 +59,54 @@ test_that("nis_suppress masks a low level in a two-level categorical variable", 
   expect_false(grepl("\u2264", common$stat_1))
   expect_false(grepl("\u2264", common$stat_2))
 })
+
+test_that("nis_suppress masks overall cells with add_p and keeps no-by support", {
+  make_group <- function(group, common, tiny) {
+    data.frame(
+      group = group,
+      category = c(rep("common", common), rep("tiny", tiny)),
+      stringsAsFactors = FALSE
+    )
+  }
+  data <- rbind(make_group("A", 11L, 1L), make_group("B", 11L, 0L))
+  data$group <- factor(data$group, levels = c("A", "B"))
+  data$category <- factor(data$category, levels = c("common", "tiny"))
+  data$PSU <- seq_len(nrow(data))
+  data$STRATUM <- factor((data$PSU - 1L) %% 3L + 1L)
+  data$weight <- 1
+  design <- survey::svydesign(
+    ids = ~PSU, strata = ~STRATUM, weights = ~weight, data = data, nest = TRUE
+  )
+
+  table <- gtsummary::tbl_svysummary(
+    design,
+    by = group,
+    include = category,
+    statistic = list(gtsummary::all_categorical() ~ "{n_unweighted} ({p}%)"),
+    missing = "no"
+  )
+  table <- suppressMessages(gtsummary::add_p(table))
+  table <- gtsummary::add_overall(table)
+  expect_true("p.value" %in% names(table$table_body))
+
+  suppressed <- nis_suppress(table)
+  tiny <- dplyr::filter(suppressed$table_body, variable == "category", label == "tiny")
+  expect_equal(nrow(tiny), 1L)
+  expect_equal(enc2utf8(tiny$stat_0[[1L]]), "\u226410")
+  expect_equal(enc2utf8(tiny$stat_1[[1L]]), "\u226410")
+  expect_equal(enc2utf8(tiny$stat_2[[1L]]), "\u226410")
+  expect_true("p.value" %in% names(suppressed$table_body))
+
+  no_by <- gtsummary::tbl_svysummary(
+    design,
+    include = category,
+    statistic = list(gtsummary::all_categorical() ~ "{n_unweighted} ({p}%)"),
+    missing = "no"
+  ) |>
+    nis_suppress()
+  no_by_tiny <- dplyr::filter(
+    no_by$table_body, variable == "category", label == "tiny"
+  )
+  expect_equal(nrow(no_by_tiny), 1L)
+  expect_equal(enc2utf8(no_by_tiny$stat_0[[1L]]), "\u226410")
+})
