@@ -1,5 +1,7 @@
 # easyNIS
 
+[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
+
 Pipe-friendly tools for NIS 2016+ ICD-10 data. Open annual Parquet directories
 lazily, flag code prefixes, then build a survey design with `nis_design()`.
 
