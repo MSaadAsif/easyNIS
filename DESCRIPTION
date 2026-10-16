@@ -35,10 +35,12 @@ Suggests:
     medicalcoder (>= 0.10.0),
     purrr,
     quarto,
+    readxl,
     rmarkdown,
     survey,
     testthat (>= 3.1.7),
-    WeightIt
+    WeightIt,
+    zip
 VignetteBuilder: knitr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -30,14 +30,27 @@ and one placeholder per hospital-year without cohort cases. Later `filter()`
 calls may only narrow the declared cohort. The placeholder variance method and
 cost adjustment remain experimental pending scientific approval.
 
-For AHRQ Elixhauser flags and index scores (experimental; needs the
-`medicalcoder` package), keep the diagnosis columns in the design and pass it
-to `nis_comorbidity()`:
+Experimental helpers, each optional:
+
+- `nis_ccsr_codes()` lists the ICD-10 codes in an HCUP CCSR category from the
+  reference file you downloaded (readxl reads the Excel version).
+- `nis_comorbidity()` adds AHRQ Elixhauser flags and index scores (needs
+  `medicalcoder`).
+- `nis_reweight()` multiplies cohort weights, for example by propensity
+  weights, and keeps the placeholder rows.
 
 ```r
+codes <- nis_ccsr_codes("DXCCSR-Reference-File-v2025-1.xlsx", "CIR019",
+  default_only = TRUE)
+nis <- nis_flag_dx(nis, heart_failure = codes, position = "principal")
+
+# Keep the diagnosis columns in the design, then enrich it.
 design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
 design <- nis_comorbidity(design)
+design <- nis_reweight(design, runif(nrow(design$variables), 0.5, 1.5))
 ```
+
+See `vignette("porting")` for moving an existing NIS study to easyNIS.
 
 Use `nis_example()` for invented offline data. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output.
