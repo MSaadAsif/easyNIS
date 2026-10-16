@@ -1,179 +1,25 @@
 # easyNIS
 
-easyNIS is an R package in early development for reproducible workflows with the HCUP National Inpatient Sample. The planned workflow covers importing licensed files, annual differences, cohorts, survey-weighted results, models, and publication tables.
-
-**Status: experimental import, cohorts, survey estimates, models, tables and reviewed descriptive-table exports implemented. No licensed-data years are release-supported yet.** The development package provides a capability roadmap, entirely invented fixtures, lazy parquet inspection, aggregate structural checks, and explicit cohort, design and inference policies. Annual adapters and scientific approval remain pending. The first private validation set is 2017–2022. The recorded coverage roadmap is 1988–2023 and will expand through verified, staged releases.
-
-## Install and try the development package
-
-Install the runtime and quickstart dependencies in R with
-`install.packages(c("DBI", "duckdb", "survey"))`.
-From a local checkout, run `R CMD INSTALL .` in a terminal. This package is not
-on CRAN. In R:
+easyNIS provides a small, pipe-first workflow for HCUP National Inpatient
+Sample data. The current increment supports 2016 and later ICD-10 years.
 
 ```r
 library(easyNIS)
 
-nis_supported_years(2017:2022)
-nis_supported_years(supported_only = TRUE) # No supported years yet.
-
-fixture <- nis_synthetic_data(2022)
-head(fixture$core)
-sum(fixture$core$DISCWT) # 36 invented weighted discharges.
-fixture$expected$age_mean_observed # 42.5; arithmetic, not survey inference.
+nis_open("path/to/nis", years = 2017:2022) |>
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_design(
+    heart_failure,
+    keep = c(AGE, DIED, LOS, TOTCHG, CCR_NIS, APRDRG_RISK_MORTALITY)
+  )
 ```
 
-The fixture's slots and components are test choices, not verified annual layouts.
-The examples run offline and do not read licensed files. Read the
-[fixture contract](inst/extdata/synthetic/README.md) and
-[contribution guide](CONTRIBUTING.md) for development checks.
+`nis_open()` returns a lazy Arrow query. `nis_design()` collects the cohort and
+one placeholder row for each hospital-year without cohort cases so its survey
+design retains the full hospital structure. After construction, `filter()` may
+only narrow the declared cohort. This variance method remains experimental and
+is checked against a full-data survey design.
 
-Before adapting the quickstart below to licensed files, follow the [input-check guide](docs/INPUT-CHECKS.md).
-Its installed invented walkthrough distinguishes rejected imports, structural
-errors and unverified analysis readiness without mapping aliases or correcting years.
-
-Run the installed offline import-to-export quickstart in R:
-
-```r
-outputs <- source(system.file("examples/synthetic-workflow.R", package = "easyNIS"))$value
-cat(readLines(outputs$report), sep = "\n")
-utils::read.csv(outputs$csv)
-browseURL(outputs$html)
-# Copy all three files to a directory you choose before ending the R session.
-# file.copy(unlist(outputs), "existing-output-directory", overwrite = FALSE)
-```
-
-It creates invented parquet data, declares an exact principal-diagnosis code
-set, constructs the full survey design, selects a domain, handles missing
-outcomes and reviews suppression before writing CSV and HTML. The Markdown
-report lists package/R versions, declarations, weights, df, confidence and
-missingness policy without raw records, suppressed values or local source
-paths. It checks the stay mean and SE against independent hospital-level
-arithmetic. Each run creates a new temporary output directory and removes its
-parquet file and connection. Read the [workflow contract](docs/WORKFLOW.md)
-for reference values and limits. The code assignments are invented test choices,
-not a clinical phenotype. Scientific approval remains pending.
-
-The built source package also includes an offline walkthrough. Open it with
-`vignette("synthetic-workflow", package = "easyNIS")`. To build vignettes from
-a checkout, install knitr and run `R CMD build .`, then install the resulting
-tarball. A direct `R CMD INSTALL .` does not build vignettes.
-
-The vignette also runs a six-invented-year pooled/model walkthrough. Run it
-separately with `source(system.file("examples/pooled-model-workflow.R", package = "easyNIS"))$value`.
-It pools complete annual designs before domain selection, declares average
-annual totals and verifies a Gaussian intercept against independent hospital
-WR arithmetic. It also demonstrates explicit opt-in character-quality markers,
-preserved raw values and unknown cohort exclusion after pooling. Only reviewed descriptive values and sanitized declarations
-are exported; model disclosure review/export remain unsupported.
-
-## Start here
-
-- [Detailed development plan](docs/PLAN.md)
-- [Decisions and interview](docs/DECISIONS.md)
-- [Year support matrix](docs/SUPPORT.md) and [machine-readable matrix](inst/metadata/year-support.csv)
-- [Implementation backlog](docs/BACKLOG.md)
-- [Evidence and references](docs/SOURCES.md)
-- [Review of the existing easyNRD work](docs/EASYNRD-REVIEW.md)
-- [Biostatistics workflow context](docs/CONTEXT-REVIEW.md)
-- [Domain glossary](GLOSSARY.md)
-
-## Development
-
-Saad and Ali are developing easyNIS before resuming the broader easyNRD work. This public repository will hold development history and tagged stable releases. The new easyNIS code uses the MIT license. Reusing existing easyNRD implementation requires a separate license/permission decision.
-
-Only invented synthetic records belong in public examples, tests, and CI. HCUP records and local reference-book copies must stay outside version control. Users obtain NIS data independently and run licensed-data checks locally.
-
-The current functions are `nis_supported_years()`, `nis_synthetic_data()`,
-`nis_open()`, `nis_close()`, `nis_import()`, `nis_collect()`, `nis_validate()`,
-`nis_code_set()`, `nis_flag_codes()`, `nis_select()`, `nis_survey_design()`, and
-`nis_domain()`, `nis_pool_design()`, `nis_estimate()`, `nis_model()`,
-`nis_model_contrast()`, `nis_descriptive_table()`, `nis_regression_table()`,
-`nis_disclosure_review()` and `nis_export_table()`.
-The import API is experimental. Use `example(nis_import)` for an offline
-parquet demonstration. Structural checks preserve raw values and always report
-`analysis_ready = FALSE`. The full analysis example in the plan remains a
-proposal, not an executable API.
-
-Code matching requires a user-declared code set with system, valid years,
-version, source, and author. Flags retain all discharges and record selected
-slots. Clinical validity and annual code dictionaries remain unverified. Run
-`example(nis_flag_codes)` offline and read the [matcher contract](docs/COHORTS.md).
-
-`nis_select()` narrows a lazy relation without filtering records. Validation
-can report columns removed by selection separately from unverified source or
-conversion absences. Explicit field requests return SQL NULL counts without
-interpreting special missing-value sentinels. Run `example(nis_select)` offline.
-
-Experimental `nis_survey_design()` collects a narrow full-population projection
-for a native `survey` design. `nis_domain()` selects logical domains after
-construction. Population, method, singleton and domain missingness declarations
-are explicit. Read the [experimental design contract](docs/SURVEY.md) and run
-`example(nis_survey_design)` offline. Annual inference approval remains pending.
-Compound domains can use retained fields directly, for example
-`nis_domain(design, ~ AGE >= 18 & cohort, missing = "exclude")` after full-design
-construction. Predicates support bounded comparisons and logical operators;
-missing-value meanings and clinical cohorts remain caller declarations.
-
-`nis_pool_design()` combines complete single-year designs with explicit estimand
-intent and year-specific design keys. Read the [experimental pooling contract](docs/POOLING.md).
-
-`nis_estimate()` returns a numeric scalar total, mean or zero/one proportion,
-its native survey result, SE, Wald interval, sample accounting and provenance.
-Missingness, variance, interval degrees of freedom and confidence are explicit.
-For an existing experimental design, use
-`nis_estimate(design, "LOS", "mean", "fail", df = 2, confidence = 0.95,
-variance = "wr_unadjusted")`, with degrees of freedom chosen for your analysis.
-Read the [experimental estimate contract](docs/ESTIMATES.md) and run
-`example(nis_estimate)` offline. Saad and Ali's scientific review remains pending.
-
-`nis_model()` fits experimental Gaussian, quasibinomial logistic and quasipoisson
-regressions on an existing design. It returns the native fit, numeric link-scale
-inference, complete-case accounting, factor contrasts and warnings. Family,
-missingness, df, confidence and variance are explicit. Read the
-[model contract](docs/MODELS.md) and run `example(nis_model)` offline.
-Bounded row-wise transformations and a Poisson log-exposure offset retain their
-[formula/scale contract](docs/MODEL-FORMULAS.md). Interpreted linear contrasts
-have an explicit [scale contract](docs/MODEL-CONTRASTS.md); scientific approval
-remains pending.
-Native prediction for offset models is unsupported; see the formula contract.
-
-Numeric tables retain unrounded inference and sample accounting. Descriptive
-tables can undergo an explicit experimental disclosure review, then export to
-CSV, HTML or Word. Word needs optional officer 0.5.0 or later. Regression-table
-disclosure review and export remain pending. Read the
-[table](docs/DESCRIPTIVE-TABLES.md), [disclosure](docs/DISCLOSURE.md) and
-[export](docs/EXPORT.md) contracts before interpreting or sharing results.
-
-For several outcomes sharing the same predictors, declare families once:
-
-```r
-batch <- nis_models(design,
-  c(binary = "quasibinomial", stay = "gaussian"), ~ exposure + age,
-  missing = "exclude", df = 6, confidence = 0.95, variance = "wr_unadjusted")
-batch$sample # Separate complete-case accounting for each outcome.
-batch$models$binary$coefficients
-```
-
-The names above are illustrative retained fields, and df must be chosen for
-the analysis. Existing model restrictions and policy guards apply. Read the
-[batch contract](docs/MODEL-BATCHES.md) for pointwise inference, failure handling
-and retained native results. This does not make licensed annual inputs ready.
-
-Declare categorical covariates without overwriting their raw source fields:
-
-```r
-analysis <- nis_factor(design, "group", "group_factor", c(0, 1),
-  c("Comparator", "Exposed"))
-```
-
-The [analysis-factor helper](docs/ANALYSIS-FACTORS.md) requires explicit levels
-and labels and rejects undeclared observed values. It records caller choices
-without approving clinical labels or missing-code meanings. Use the resulting
-field in model predictors and inspect the fitted factor coding and support.
-The [six-year workshop template](docs/WORKFLOW.md#six-year-workshop-template)
-executes those helpers together with independent references and reviewed
-descriptive outputs. Its migration guide lists the remaining licensed-input,
-inference and publication boundaries.
-
-The current NIS coverage target and methodological boundaries come from [HCUP's official documentation](https://hcup-us.ahrq.gov/nisoverview.jsp). This project is independent of AHRQ/HCUP and does not imply their endorsement.
+Use `nis_example()` for an invented offline dataset. Never put licensed NIS
+files or record-derived outputs in the repository. A Quarto study template and
+study-folder generator are planned for a later increment.
