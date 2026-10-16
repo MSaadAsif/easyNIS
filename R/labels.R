@@ -29,7 +29,6 @@
   "DISPUNIFORM", 6, "Home health care", "Disposition of patient",
   "DISPUNIFORM", 7, "Left against medical advice", "Disposition of patient",
   "DISPUNIFORM", 20, "Died in hospital", "Disposition of patient",
-  "DISPUNIFORM", 21, "Discharged to court/law enforcement", "Disposition of patient",
   "DISPUNIFORM", 99, "Alive, destination unknown", "Disposition of patient",
   "HCUP_ED", 0, "No qualifying ED evidence", "Emergency department indicator",
   "HCUP_ED", 1, "ED revenue code", "Emergency department indicator",
@@ -55,16 +54,16 @@
   "PL_NCHS", 4, "Metro, population 50,000-249,999", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 5, "Micropolitan", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 6, "Nonmetropolitan, nonmicropolitan", "Patient location, NCHS urban-rural code",
-  "ZIPINC_QRTL", 1, "Q1", "Median household income quartile (patient ZIP)",
-  "ZIPINC_QRTL", 2, "Q2", "Median household income quartile (patient ZIP)",
-  "ZIPINC_QRTL", 3, "Q3", "Median household income quartile (patient ZIP)",
-  "ZIPINC_QRTL", 4, "Q4", "Median household income quartile (patient ZIP)",
-  "PAY1", 1, "Medicare", "Primary payer",
-  "PAY1", 2, "Medicaid", "Primary payer",
-  "PAY1", 3, "Private including HMO", "Primary payer",
-  "PAY1", 4, "Self-pay", "Primary payer",
-  "PAY1", 5, "No charge", "Primary payer",
-  "PAY1", 6, "Other", "Primary payer",
+  "ZIPINC_QRTL", 1, "Q1", "Median household income national quartile (patient ZIP)",
+  "ZIPINC_QRTL", 2, "Q2", "Median household income national quartile (patient ZIP)",
+  "ZIPINC_QRTL", 3, "Q3", "Median household income national quartile (patient ZIP)",
+  "ZIPINC_QRTL", 4, "Q4", "Median household income national quartile (patient ZIP)",
+  "PAY1", 1, "Medicare", "Expected primary payer",
+  "PAY1", 2, "Medicaid", "Expected primary payer",
+  "PAY1", 3, "Private including HMO", "Expected primary payer",
+  "PAY1", 4, "Self-pay", "Expected primary payer",
+  "PAY1", 5, "No charge", "Expected primary payer",
+  "PAY1", 6, "Other", "Expected primary payer",
   "DQTR", 1, "Q1", "Discharge quarter",
   "DQTR", 2, "Q2", "Discharge quarter",
   "DQTR", 3, "Q3", "Discharge quarter",
@@ -87,32 +86,31 @@
   "HOSP_BEDSIZE", 1, "Small", "Hospital bed size",
   "HOSP_BEDSIZE", 2, "Medium", "Hospital bed size",
   "HOSP_BEDSIZE", 3, "Large", "Hospital bed size",
-  "H_CONTRL", 1, "Government, non-federal", "Hospital control",
-  "H_CONTRL", 2, "Private, non-profit", "Hospital control",
-  "H_CONTRL", 3, "Private, investor-owned", "Hospital control",
+  "H_CONTRL", 1, "Government, non-federal", "Hospital control/ownership",
+  "H_CONTRL", 2, "Private, non-profit", "Hospital control/ownership",
+  "H_CONTRL", 3, "Private, investor-owned", "Hospital control/ownership",
   "HOSP_LOCTEACH", 1, "Rural", "Hospital location and teaching status",
   "HOSP_LOCTEACH", 2, "Urban, non-teaching", "Hospital location and teaching status",
   "HOSP_LOCTEACH", 3, "Urban, teaching", "Hospital location and teaching status",
-  "APRDRG_RISK_MORTALITY", 0, "None specified", "APR-DRG risk of mortality",
+  "APRDRG_RISK_MORTALITY", 0, "No class specified", "APR-DRG risk of mortality",
   "APRDRG_RISK_MORTALITY", 1, "Minor", "APR-DRG risk of mortality",
   "APRDRG_RISK_MORTALITY", 2, "Moderate", "APR-DRG risk of mortality",
   "APRDRG_RISK_MORTALITY", 3, "Major", "APR-DRG risk of mortality",
   "APRDRG_RISK_MORTALITY", 4, "Extreme", "APR-DRG risk of mortality",
-  "APRDRG_SEVERITY", 0, "None specified", "APR-DRG severity of illness",
+  "APRDRG_SEVERITY", 0, "No class specified", "APR-DRG severity of illness",
   "APRDRG_SEVERITY", 1, "Minor", "APR-DRG severity of illness",
   "APRDRG_SEVERITY", 2, "Moderate", "APR-DRG severity of illness",
   "APRDRG_SEVERITY", 3, "Major", "APR-DRG severity of illness",
   "APRDRG_SEVERITY", 4, "Extreme", "APR-DRG severity of illness",
-  "I10_BIRTH", 0, "No", "ICD-10-CM birth indicator",
-  "I10_BIRTH", 1, "Yes", "ICD-10-CM birth indicator",
+  "I10_BIRTH", NA_real_, NA_character_, "ICD-10-CM birth indicator",
   "I10_DELIVERY", 0, "No", "ICD-10-CM delivery indicator",
   "I10_DELIVERY", 1, "Yes", "ICD-10-CM delivery indicator",
-  "I10_INJURY", 0, "No", "Injury ICD-10-CM diagnosis indicator",
-  "I10_INJURY", 1, "Yes", "Injury ICD-10-CM diagnosis indicator",
+  "I10_INJURY", 0, "No injury", "Injury ICD-10-CM diagnosis indicator",
+  "I10_INJURY", 1, "Injury, first-listed", "Injury ICD-10-CM diagnosis indicator",
+  "I10_INJURY", 2, "Injury, other than first-listed", "Injury ICD-10-CM diagnosis indicator",
   "I10_MULTINJURY", 0, "No", "Multiple injury indicator",
   "I10_MULTINJURY", 1, "Yes", "Multiple injury indicator",
-  "I10_SERVICELINE", 0, "No", "ICD-10-CM/PCS service line indicator",
-  "I10_SERVICELINE", 1, "Yes", "ICD-10-CM/PCS service line indicator",
+  "I10_SERVICELINE", NA_real_, NA_character_, "ICD-10-CM/PCS service line indicator",
   "PCLASS_ORPROC", 0, "No", "ICD-10-PCS major operating room procedure indicator",
   "PCLASS_ORPROC", 1, "Yes", "ICD-10-PCS major operating room procedure indicator",
   "AGE", NA_real_, NA_character_, "Age, years",
@@ -126,45 +124,68 @@
   "elixsum", NA_real_, NA_character_, "Elixhauser comorbidity score",
   "charlindex", NA_real_, NA_character_, "Charlson comorbidity index",
   "ELIXSUM", NA_real_, NA_character_, "Elixhauser comorbidity score",
-  "CHARLINDEX", NA_real_, NA_character_, "Charlson comorbidity index"
+  "CHARLINDEX", NA_real_, NA_character_, "Charlson comorbidity index",
+  "GRPCI", 0, "No comorbidities", "Number of comorbidities",
+  "GRPCI", 1, "One comorbidity", "Number of comorbidities",
+  "GRPCI", 2, "Two or more comorbidities", "Number of comorbidities"
 )
 attr(.hcup_labels, "source") <- paste(
   "HCUP 2020 NIS Introduction, Appendix III, Data Elements;",
   "local analyst recoding helper cross-check"
 )
 
-#' Apply HCUP labels and common missing-value handling
+#' Apply HCUP labels
 #'
 #' @param data A collected data frame.
 #'
 #' @return `data` with known coded elements as factors and variable labels in
-#'   `attr(x, "label")`. Existing labels and labelled comorbidity fields are
-#'   preserved. The operation is idempotent.
+#'   `attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
+#'   with one warning per variable. Existing labels and labelled comorbidity
+#'   fields are preserved. The operation is idempotent.
+#'
+#' Negative numeric sentinels are not converted to missing values. The supplied
+#' HCUP documentation represents missing numeric values as system missing and
+#' does not document negative sentinels for any element handled here.
 #' @export
 nis_label <- function(data) {
   if (!is.data.frame(data)) {
     cli::cli_abort("`data` must be a collected data frame.")
   }
-  missing_codes <- c(-9, -8, -6, -5)
-  design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "CCR_NIS")
-
   for (variable in names(data)) {
     if (startsWith(variable, ".")) next
     x <- data[[variable]]
     definition <- .hcup_labels[.hcup_labels$variable == variable, , drop = FALSE]
     value_rows <- !is.na(definition$code)
+    binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
 
-    if (is.numeric(x) && !variable %in% design_fields) {
-      x[x %in% missing_codes] <- NA
-    }
-
-    if (any(value_rows)) {
-      codes <- as.character(definition$code[value_rows])
-      values <- definition$value_label[value_rows]
-      if (is.factor(x) && all(is.na(x) | as.character(x) %in% values)) {
-        x <- factor(as.character(x), levels = unique(values))
+    if (any(value_rows) || binary_comorbidity) {
+      codes <- if (binary_comorbidity) c("0", "1") else {
+        as.character(definition$code[value_rows])
+      }
+      values <- if (binary_comorbidity) c("No", "Yes") else {
+        definition$value_label[value_rows]
+      }
+      raw <- as.character(x)
+      already_labelled <- !is.na(raw) & (
+        raw %in% values | grepl("^Code .+", raw)
+      )
+      if (is.factor(x) && all(is.na(raw) | already_labelled)) {
+        x <- factor(raw, levels = levels(x), ordered = is.ordered(x))
       } else {
-        x <- factor(as.character(x), levels = codes, labels = values)
+        unknown <- !is.na(raw) & !raw %in% codes
+        unknown_labels <- if (any(unknown)) {
+          unique(paste0("Code ", raw[unknown]))
+        } else {
+          character()
+        }
+        if (any(unknown)) {
+          cli::cli_warn(
+            "Unknown code(s) in {.var {variable}}: {paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+          )
+        }
+        labels <- ifelse(is.na(raw), NA_character_,
+          ifelse(raw %in% codes, values[match(raw, codes)], paste0("Code ", raw)))
+        x <- factor(labels, levels = c(values, unique(unknown_labels)))
       }
     } else if (is.logical(x)) {
       x <- factor(ifelse(is.na(x), NA_character_, ifelse(x, "Yes", "No")),

@@ -2,7 +2,7 @@
 % Please edit documentation in R/labels.R
 \name{nis_label}
 \alias{nis_label}
-\title{Apply HCUP labels and common missing-value handling}
+\title{Apply HCUP labels}
 \usage{
 nis_label(data)
 }
@@ -11,9 +11,14 @@ nis_label(data)
 }
 \value{
 \code{data} with known coded elements as factors and variable labels in
-\code{attr(x, "label")}. Existing labels and labelled comorbidity fields are
-preserved. The operation is idempotent.
+\code{attr(x, "label")}. Unknown codes are retained as \verb{Code <value>} levels
+with one warning per variable. Existing labels and labelled comorbidity
+fields are preserved. The operation is idempotent.
+
+Negative numeric sentinels are not converted to missing values. The supplied
+HCUP documentation represents missing numeric values as system missing and
+does not document negative sentinels for any element handled here.
 }
 \description{
-Apply HCUP labels and common missing-value handling
+Apply HCUP labels
 }
