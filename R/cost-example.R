@@ -118,8 +118,9 @@ nis_example <- function(years = 2017:2022) {
       ynel2 = as.integer((hospital + within_hospital) %% 3L == 0L)
     )
     records$I10_DX1 <- ifelse(has_cohort, "I5022", "J189")
-    records$I10_DX2 <- ifelse(has_cohort & within_hospital %% 2L == 1L,
-      "I50.9", "E119")
+    exposure_code <- (hospital + within_hospital) %% 5L == 0L
+    records$I10_DX2 <- ifelse(exposure_code, "Z515",
+      ifelse(has_cohort & within_hospital %% 2L == 1L, "I50.9", "E119"))
     records$I10_PR1 <- ifelse(within_hospital %% 2L == 0L, "0JH60DZ", "02703ZZ")
     records$I10_PR2 <- ifelse(within_hospital %% 3L == 0L, "02L73DK", NA_character_)
     for (slot in 3:40) records[[paste0("I10_DX", slot)]] <- NA_character_

@@ -12,37 +12,41 @@
 nis_new_study <- function(path) {
   if (!is.character(path) || length(path) != 1L || is.na(path) ||
       !nzchar(trimws(path))) {
-    stop("path must be one non-empty directory path.", call. = FALSE)
+    cli::cli_abort("`path` must be one non-empty directory path.")
   }
 
   path <- normalizePath(path.expand(path), winslash = "/", mustWork = FALSE)
   link <- Sys.readlink(path)
   if (file.exists(path) || dir.exists(path) ||
       (length(link) == 1L && !is.na(link) && nzchar(link))) {
-    stop("The study path already exists.", call. = FALSE)
+    cli::cli_abort("The study path already exists.")
   }
 
   parent <- dirname(path)
   if (!dir.exists(parent) &&
       !dir.create(parent, recursive = TRUE, showWarnings = FALSE)) {
-    stop("Could not create the parent directory for the study.", call. = FALSE)
+    cli::cli_abort("Could not create the parent directory for the study.")
   }
   if (file.exists(path) || dir.exists(path) || !dir.create(path, showWarnings = FALSE)) {
-    stop("Could not create the study directory because the path is unavailable.",
-         call. = FALSE)
+    cli::cli_abort("Could not create the study directory because the path is unavailable.")
   }
 
   template <- system.file("templates", "nis-study", package = "easyNIS")
   if (!nzchar(template) || !dir.exists(template)) {
     unlink(path, recursive = TRUE)
-    stop("The packaged NIS study template is unavailable.", call. = FALSE)
+    cli::cli_abort("The packaged NIS study template is unavailable.")
   }
 
-  files <- list.files(template, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+  files <- list.files(template, full.names = TRUE, no.. = TRUE)
   if (!length(files) || any(dir.exists(files)) ||
       !all(file.copy(files, path, overwrite = FALSE))) {
     unlink(path, recursive = TRUE)
-    stop("Could not copy the packaged NIS study template.", call. = FALSE)
+    cli::cli_abort("Could not copy the packaged NIS study template.")
+  }
+
+  if (!file.rename(file.path(path, "gitignore"), file.path(path, ".gitignore"))) {
+    unlink(path, recursive = TRUE)
+    cli::cli_abort("Could not create the study output `.gitignore`.")
   }
 
   path

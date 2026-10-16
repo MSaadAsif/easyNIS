@@ -4,7 +4,14 @@ test_that("nis_new_study copies the packaged template without overwriting", {
   target <- file.path(parent, "analysis")
 
   expect_identical(new_study(target), normalizePath(target, winslash = "/"))
-  expect_setequal(list.files(target), c("_quarto.yml", "analysis.qmd"))
+  expect_setequal(
+    list.files(target, all.files = TRUE, no.. = TRUE),
+    c("_quarto.yml", ".gitignore", "analysis.qmd")
+  )
+  expect_setequal(
+    readLines(file.path(target, ".gitignore")),
+    c("docs/", "*_files/", ".quarto/", "*.html", "*.docx")
+  )
   writeLines("keep me", file.path(target, "sentinel.txt"))
 
   expect_error(new_study(target), "already exists")
@@ -34,10 +41,14 @@ test_that("the packaged Quarto template follows the scaffold contract", {
   expect_false(file.exists(file.path(template, "styles.css")))
 
   quarto <- paste(readLines(file.path(template, "_quarto.yml")), collapse = "\n")
-  analysis <- paste(readLines(file.path(template, "analysis.qmd")), collapse = "\n")
+  analysis <- paste(
+    readLines(file.path(template, "analysis.qmd"), encoding = "UTF-8"),
+    collapse = "\n"
+  )
   combined <- paste(quarto, analysis, sep = "\n")
 
   expect_match(quarto, "embed-resources: true")
+  expect_match(quarto, "output-dir: docs")
   expect_match(quarto, "toc: true")
   expect_match(quarto, "echo: false")
   expect_match(analysis, "data_path: null")
@@ -47,18 +58,46 @@ test_that("the packaged Quarto template follows the scaffold contract", {
                     "Trends by year", "Multivariable models")) {
     expect_match(analysis, paste0("## ", section), fixed = TRUE)
   }
-  for (interface in c("nis_example", "nis_open", "nis_flag_dx",
-                      "nis_flag_pr", "nis_design", "nis_label", "nis_cost",
-                      "nis_suppress", "gtsummary::tbl_svysummary",
+  for (interface in c("library(easyNIS)", "nis_example", "nis_open", "nis_flag_dx",
+                      "nis_design", "nis_suppress", "cost_adj",
+                      "gtsummary::tbl_svysummary",
                       "gtsummary::as_flex_table", "gt::gt",
-                      "survey::svyglm", "factor(YEAR)")) {
+                      "survey::svyglm", "factor(YEAR)",
+                      "srvyr::survey_mean", "ggplot2::geom_ribbon",
+                      "gtsummary::add_p()", "gtsummary::add_overall()")) {
     expect_match(combined, interface, fixed = TRUE)
   }
   expect_match(analysis, "IPTW")
-  expect_match(analysis, "scientifically validated")
-  expect_match(analysis, "regression tables are withheld")
-  expect_match(analysis, "tbl_regression(model, exponentiate = FALSE)",
-               fixed = TRUE)
+  analysis_raw <- readBin(
+    file.path(template, "analysis.qmd"),
+    what = "raw",
+    n = file.info(file.path(template, "analysis.qmd"))$size
+  )
+  dua_marker <- c(
+    charToRaw("Cells based on "),
+    as.raw(c(0xe2, 0x89, 0xa4)),
+    charToRaw("10 unweighted discharges are suppressed per the HCUP Data Use Agreement.")
+  )
+  marker_starts <- seq_len(length(analysis_raw) - length(dua_marker) + 1L)
+  expect_true(any(vapply(marker_starts, function(start) {
+    identical(
+      analysis_raw[start:(start + length(dua_marker) - 1L)],
+      dua_marker
+    )
+  }, logical(1))))
+  expect_match(analysis, "experimental pending")
+  expect_match(
+    analysis,
+    "options(survey.lonely.psu = \"adjust\", survey.adjust.domain.lonely = TRUE)",
+    fixed = TRUE
+  )
+  expect_false(grepl("omitted in local-data mode|withheld pending", analysis))
+  example_branches <- gregexpr("if (is_example)", analysis, fixed = TRUE)[[1L]]
+  expect_equal(sum(example_branches > 0L), 1L)
+  expect_match(analysis, "gtsummary::tbl_regression(", fixed = TRUE)
+  expect_match(analysis, "exponentiate = outcomes$exponentiate[[i]]", fixed = TRUE)
+  expect_match(analysis, "split(seq_len(nrow(outcomes)), outcomes$family)", fixed = TRUE)
+  expect_match(analysis, "tbls = model_tables[rows]", fixed = TRUE)
   expect_false(grepl("heart[- ]failure|cardiac", combined, ignore.case = TRUE))
   expect_true(regexpr("nis_design(", analysis, fixed = TRUE) <
               regexpr("filter(", analysis, fixed = TRUE))

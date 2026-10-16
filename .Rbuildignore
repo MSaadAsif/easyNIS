@@ -13,5 +13,6 @@
 ^local-data($|[/\\])
 ^local-validation($|[/\\])
 ^private($|[/\\])
+^worktrees($|[/\\])
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
