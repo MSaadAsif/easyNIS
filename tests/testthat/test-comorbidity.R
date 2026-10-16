@@ -159,3 +159,45 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   total <- survey::svytotal(~cmrb_any, enriched)
   expect_true(is.finite(stats::coef(total)[["cmrb_anyTRUE"]]))
 })
+
+test_that("nis_reweight works on a design that went through nis_comorbidity", {
+  skip_if_not_installed("medicalcoder")
+  path <- nis_example(2017:2018)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  query <- nis_open(path) |>
+    nis_flag_dx(heart_failure = "I50", position = "principal")
+  design <- suppressMessages(nis_design(
+    query, heart_failure,
+    keep = c(AGE, dplyr::starts_with("I10_DX"))
+  ))
+  enriched <- nis_comorbidity(design)
+
+  expect_identical(
+    attr(enriched, "nis_placeholder_rows"),
+    attr(design, "nis_placeholder_rows")
+  )
+  expect_identical(
+    attr(enriched, "nis_cohort_rows"),
+    attr(design, "nis_cohort_rows")
+  )
+
+  multipliers <- 0.6 + (seq_len(nrow(enriched$variables)) %% 7) / 10
+  reweighted <- nis_reweight(enriched, multipliers)
+  reference <- nis_reweight(design, multipliers)
+
+  expect_s3_class(reweighted, "tbl_svy")
+  expect_true(all(c("cmrb_hf", "cmrb_n") %in% names(reweighted$variables)))
+  expect_equal(
+    as.numeric(stats::weights(reweighted)),
+    as.numeric(stats::weights(reference))
+  )
+  expect_equal(
+    survey::svymean(~AGE, reweighted) |> stats::coef(),
+    survey::svymean(~AGE, reference) |> stats::coef()
+  )
+  expect_equal(
+    survey::SE(survey::svymean(~AGE, reweighted)),
+    survey::SE(survey::svymean(~AGE, reference))
+  )
+  expect_identical(survey::degf(reweighted), survey::degf(reference))
+})
