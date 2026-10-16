@@ -23,6 +23,15 @@ gtsummary::tbl_svysummary(design, include = c(AGE, FEMALE, DIED))
 survey::svyglm(DIED ~ AGE + factor(YEAR), design, family = quasibinomial())
 ```
 
+To flag an HCUP CCSR category, supply the official reference file you
+downloaded (experimental; readxl reads the Excel version):
+
+```r
+codes <- nis_ccsr_codes("DXCCSR-Reference-File-v2025-1.xlsx", "CIR019",
+  default_only = TRUE)
+nis <- nis_flag_dx(nis, heart_failure = codes, position = "principal")
+```
+
 `nis_open()` returns a lazy Arrow query. `nis_design()` collects cohort rows
 and one placeholder per hospital-year without cohort cases. Later `filter()`
 calls may only narrow the declared cohort. The placeholder variance method and
