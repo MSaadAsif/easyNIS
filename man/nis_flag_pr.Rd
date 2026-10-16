@@ -18,5 +18,7 @@ nis_flag_pr(.data, ..., position = c("any", "principal"))
 }
 \description{
 Each procedure slot is checked separately. Prefixes are case-insensitive;
-periods and spaces are removed from both the supplied prefixes and codes.
+periods and spaces are ignored in both the supplied prefixes and codes. A
+code containing any other character, such as malformed UTF-8, never
+matches.
 }
