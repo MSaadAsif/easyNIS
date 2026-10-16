@@ -10,7 +10,7 @@ test_that("nis_new_study copies the packaged template without overwriting", {
   )
   expect_setequal(
     readLines(file.path(target, ".gitignore")),
-    c("docs/", "*_files/", ".quarto/", "*.html", "*.docx")
+    c("docs/", "*_files/", "*_cache/", ".quarto/", "*.html", "*.docx")
   )
   writeLines("keep me", file.path(target, "sentinel.txt"))
 
