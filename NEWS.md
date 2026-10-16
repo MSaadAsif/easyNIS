@@ -11,3 +11,9 @@
   case-insensitive regex per slot, so lazy Arrow queries no longer error on
   malformed UTF-8 in code columns. Codes with characters other than letters,
   numbers, periods or whitespace never match.
+- Added experimental `nis_comorbidity()`, which adds AHRQ Elixhauser Refined
+  condition flags and mortality/readmission index scores to a collected data
+  frame or an `nis_design()` result from `I10_DX1`, `I10_DX2`, ... by delegating
+  to the suggested `medicalcoder` package. Present-on-admission is not used,
+  `I10_DX1` is the principal diagnosis, and the output is not expected to
+  match the Stata-derived `ynel*` and `elixsum` columns.
