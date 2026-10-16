@@ -26,6 +26,11 @@ attr(.cpi_u, "source") <- paste(
 #'
 #' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD.
 #' @export
+#' @examples
+#' charges <- nis_open(nis_example(years = 2019:2020)) |>
+#'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+#'   dplyr::collect()
+#' head(nis_cost(charges, dollars = 2024))
 nis_cost <- function(data, dollars) {
   required <- c("YEAR", "TOTCHG", "CCR_NIS")
   missing <- setdiff(required, names(data))
@@ -59,6 +64,9 @@ nis_cost <- function(data, dollars) {
 #'
 #' @return The temporary directory containing `NIS_<year>.parquet/` entries.
 #' @export
+#' @examples
+#' path <- nis_example(years = 2019:2020)
+#' list.files(path)
 nis_example <- function(years = 2017:2022) {
   if (!is.numeric(years) || length(years) == 0L || anyNA(years) ||
       any(years != as.integer(years)) || any(years < 2016L) || any(years > 2024L)) {

@@ -22,3 +22,9 @@ does not document negative sentinels for any element handled here.
 \description{
 Apply HCUP labels
 }
+\examples{
+demographics <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(AGE, FEMALE, RACE) |>
+  dplyr::collect()
+head(nis_label(demographics))
+}

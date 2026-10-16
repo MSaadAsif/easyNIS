@@ -15,3 +15,7 @@ The temporary directory containing \verb{NIS_<year>.parquet/} entries.
 \description{
 Write an invented NIS-shaped Parquet dataset
 }
+\examples{
+path <- nis_example(years = 2019:2020)
+list.files(path)
+}
