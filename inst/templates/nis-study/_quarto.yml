@@ -1,0 +1,14 @@
+project:
+  type: default
+
+execute:
+  echo: false
+  warning: false
+  message: false
+
+format:
+  html:
+    embed-resources: true
+    toc: true
+  docx:
+    toc: true
