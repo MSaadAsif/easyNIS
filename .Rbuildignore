@@ -4,6 +4,7 @@
 ^\.git$
 ^\.easynis-local\.ps1$
 ^\.github$
+^\.lintr$
 ^\.Rproj\.user$
 ^\.Rproj$
 ^AGENTS\.md$
