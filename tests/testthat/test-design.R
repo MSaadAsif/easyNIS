@@ -164,6 +164,13 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
   designs <- comparison_designs()
   on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
 
+  old_lonely <- getOption("survey.lonely.psu")
+  old_adjust <- getOption("survey.adjust.domain.lonely")
+  on.exit(options(
+    survey.lonely.psu = old_lonely,
+    survey.adjust.domain.lonely = old_adjust
+  ), add = TRUE)
+
   design <- designs$placeholder
   multipliers <- 0.6 + (seq_len(nrow(design$variables)) %% 7) / 10
   reweighted <- nis_reweight(design, multipliers)
@@ -180,24 +187,34 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
   ) |>
     dplyr::filter(.in_cohort)
 
-  mean_reweighted <- survey::svymean(~AGE + LOS, reweighted)
-  mean_reference <- survey::svymean(~AGE + LOS, reference)
-  expect_equal(coef(mean_reweighted), coef(mean_reference), tolerance = 1e-8)
-  expect_equal(vcov(mean_reweighted), vcov(mean_reference), tolerance = 1e-8)
+  settings <- list(
+    adjusted = list(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = TRUE),
+    default = list(survey.lonely.psu = NULL, survey.adjust.domain.lonely = NULL)
+  )
+  max_abs_diff <- function(x, y) max(abs(as.numeric(x) - as.numeric(y)))
 
-  model_reweighted <- survey::svyglm(
-    I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
-    design = reweighted,
-    family = stats::quasibinomial()
-  )
-  model_reference <- survey::svyglm(
-    I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
-    design = reference,
-    family = stats::quasibinomial()
-  )
-  expect_equal(coef(model_reweighted), coef(model_reference), tolerance = 1e-8)
-  expect_equal(vcov(model_reweighted), vcov(model_reference), tolerance = 1e-8)
-  expect_equal(survey::degf(reweighted), survey::degf(reference))
+  for (setting in settings) {
+    do.call(options, setting)
+
+    mean_reweighted <- survey::svymean(~AGE + LOS, reweighted)
+    mean_reference <- survey::svymean(~AGE + LOS, reference)
+    expect_lt(max_abs_diff(coef(mean_reweighted), coef(mean_reference)), 1e-8)
+    expect_lt(max_abs_diff(survey::SE(mean_reweighted), survey::SE(mean_reference)), 1e-8)
+
+    model_reweighted <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reweighted,
+      family = stats::quasibinomial()
+    )
+    model_reference <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reference,
+      family = stats::quasibinomial()
+    )
+    expect_lt(max_abs_diff(coef(model_reweighted), coef(model_reference)), 1e-8)
+    expect_lt(max_abs_diff(vcov(model_reweighted), vcov(model_reference)), 1e-8)
+    expect_identical(survey::degf(reweighted), survey::degf(reference))
+  }
 
   original_placeholders <- attr(design, "nis_placeholder_rows")
   reweighted_placeholders <- attr(reweighted, "nis_placeholder_rows")
