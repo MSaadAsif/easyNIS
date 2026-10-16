@@ -18,8 +18,9 @@ slots only.}
 \code{.data} with one logical column per named definition.
 }
 \description{
-Each diagnosis slot is checked separately. Prefixes are case-insensitive;
-periods and spaces are ignored in both the supplied prefixes and codes. A
-code containing any other character, such as malformed UTF-8, never
-matches.
+Each diagnosis slot is checked separately. Supplied prefixes are
+case-insensitive, and periods and spaces in them are ignored. Slot values are
+compared as stored, byte for byte, because NIS stores upper-case codes
+without periods; malformed UTF-8 therefore cannot raise an error. Matching
+stays lazy on Arrow queries and avoids per-row text normalization.
 }
