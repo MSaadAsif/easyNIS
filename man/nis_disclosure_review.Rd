@@ -79,30 +79,31 @@ relations and external tables require human review. Annual support and
 scientific approval remain pending.
 
 A regression table must match its retained model's coefficient table and
-declarations exactly; altered objects are refused. Counts come from the
-model's included analysis rows. The model checks its included count and,
-for a binary (logical, zero/one or any two-valued) response, its event
-and nonevent counts, otherwise its nonzero-response count; a failure
-suppresses every row and \code{unweighted_n}. Each fitted
-model-matrix column with two distinct values checks both levels, and with a
-binary response their four level-by-outcome cells; a column with more
-values checks its nonzero and any zero-valued count. Every fitted level of
-each factor or logical predictor, including the reference and zero-count
-levels, is checked. Every checked group also checks its event and
-nonevent cells for a binary response, or otherwise its rows with a nonzero
-response; other splits of a multi-valued response are not checked. A
-constant column other than the intercept checks its nonzero group (for
-an all-zero column, its zero group is the model sample), and also its
-zero-valued group when every value is nonzero. All factor, logical and two-valued numeric predictors are crossed
-jointly, interacting or not, and every cell is checked, including empty
-and reference cells; crossings over 10000 cells are refused. A failed column
-suppresses its rows and constant columns such as the intercept. A failed
-factor or cell suppresses every term containing its predictors and the
-lower-order terms within those terms. Rows repeating a term share its
-status. Suppressed rows have \code{NA} inference and \code{aliased} values.
-Numeric predictors with three or more values are not crossed, and the
-retained fitted model frame is trusted. Differencing across models,
-disclosive weights, offsets and continuous extremes are not checked.
+declarations exactly; altered objects are refused. Each checked group
+receives the descriptive row checks on its own included response values:
+its size, its nonzero rows, its zero-valued rows when its values are all
+zero/one or otherwise its smaller level when it has two values, each with
+hospitals when nonempty. They apply to the fitted response, recoded to
+zero/one when it has two values, and for a transformed response also to
+each raw source field. The groups are the model sample, which also checks
+its count of rows excluded for missingness against the range; each fitted
+model-matrix column's two
+levels, or its nonzero and zero-valued rows (a constant column other than
+the intercept forms its nonzero group and, when nonzero everywhere, its
+zero-valued group); every fitted level of each factor or logical
+predictor, including reference and zero-count levels; and every cell of
+the joint crossing of all factor, logical and two-valued numeric
+predictors, interacting or not, including empty and reference cells.
+Crossings over 10000 cells are refused. A model failure suppresses every
+row and \code{unweighted_n}. A failed column suppresses its rows and constant
+columns such as the intercept. A failed factor or cell suppresses every
+term containing its predictors and the lower-order terms within those
+terms. Rows repeating a term share its status. Suppressed rows have \code{NA}
+inference and \code{aliased} values. Numeric predictors with three or more
+values are not crossed. The retained fitted model frame, sample counts,
+response-field provenance and design variables are trusted.
+Differencing across models, disclosive weights, offsets and continuous
+extremes are not checked.
 }
 \examples{
 if (requireNamespace("survey", quietly = TRUE)) {
