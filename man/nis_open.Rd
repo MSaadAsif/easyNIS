@@ -17,3 +17,15 @@ A lazy Arrow query with case-normalized columns.
 \description{
 Open annual NIS Parquet files lazily
 }
+\examples{
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path)
+nis |>
+  dplyr::count(YEAR) |>
+  dplyr::collect()
+
+# Open one year only
+nis_open(path, years = 2020) |>
+  dplyr::count(YEAR) |>
+  dplyr::collect()
+}

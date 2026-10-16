@@ -24,3 +24,16 @@ compared as stored, byte for byte, because NIS stores upper-case codes
 without periods; malformed UTF-8 therefore cannot raise an error. Matching
 stays lazy on Arrow queries and avoids per-row text normalization.
 }
+\examples{
+nis <- nis_open(nis_example(years = 2019:2020))
+nis |>
+  nis_flag_dx(heart_failure = "I50") |>
+  dplyr::count(heart_failure) |>
+  dplyr::collect()
+
+# Several prefixes, restricted to the principal diagnosis
+nis |>
+  nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
+  dplyr::count(hf_or_diabetes) |>
+  dplyr::collect()
+}

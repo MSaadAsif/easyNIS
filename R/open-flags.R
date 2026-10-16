@@ -5,6 +5,17 @@
 #'
 #' @return A lazy Arrow query with case-normalized columns.
 #' @export
+#' @examples
+#' path <- nis_example(years = 2019:2020)
+#' nis <- nis_open(path)
+#' nis |>
+#'   dplyr::count(YEAR) |>
+#'   dplyr::collect()
+#'
+#' # Open one year only
+#' nis_open(path, years = 2020) |>
+#'   dplyr::count(YEAR) |>
+#'   dplyr::collect()
 nis_open <- function(path, years = NULL) {
   if (!dir.exists(path)) {
     cli::cli_abort("`path` must name an existing directory.")
@@ -85,6 +96,18 @@ nis_open <- function(path, years = NULL) {
 #'
 #' @return `.data` with one logical column per named definition.
 #' @export
+#' @examples
+#' nis <- nis_open(nis_example(years = 2019:2020))
+#' nis |>
+#'   nis_flag_dx(heart_failure = "I50") |>
+#'   dplyr::count(heart_failure) |>
+#'   dplyr::collect()
+#'
+#' # Several prefixes, restricted to the principal diagnosis
+#' nis |>
+#'   nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
+#'   dplyr::count(hf_or_diabetes) |>
+#'   dplyr::collect()
 nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary")) {
   nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position))
 }
@@ -103,6 +126,12 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'
 #' @return `.data` with one logical column per named definition.
 #' @export
+#' @examples
+#' nis <- nis_open(nis_example(years = 2019:2020))
+#' nis |>
+#'   nis_flag_pr(ablation = "02L") |>
+#'   dplyr::count(ablation) |>
+#'   dplyr::collect()
 nis_flag_pr <- function(.data, ..., position = c("any", "principal")) {
   nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position))
 }
