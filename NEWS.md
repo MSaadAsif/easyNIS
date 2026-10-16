@@ -11,3 +11,8 @@
   case-insensitive regex per slot, so lazy Arrow queries no longer error on
   malformed UTF-8 in code columns. Codes with characters other than letters,
   numbers, periods or whitespace never match.
+- Added experimental `nis_ccsr_codes()`, which reads an HCUP DXCCSR or PRCCSR
+  reference file you download (Excel with readxl, or comma-separated) and
+  returns the ICD-10 codes in chosen CCSR categories, optionally only where the
+  category is the default inpatient assignment. Pass the codes to
+  `nis_flag_dx()` or `nis_flag_pr()`. No CCSR content is bundled.
