@@ -53,13 +53,14 @@ regression_status <- function(review) {
 }
 
 # Audited counts (or hospitals) for one model, column, factor or crossing, keyed
-# by check and level. Response-nonzero splits of a multi-valued response are
-# included only on request.
+# by check and level. Response splits are included for a zero/one or two-valued
+# response, and otherwise only on request; the model's missing count likewise.
 regression_counts <- function(review, scope, target = NA_character_, value = "count",
-                              nonzero = FALSE) {
+                              nonzero = FALSE, missing = FALSE) {
   groups <- review$audit$groups
+  splits <- nonzero || review$audit$sample$binary_response
   groups <- groups[groups$scope == scope & groups$target %in% target &
-    (nonzero | !groups$outcome %in% "nonzero"), ]
+    (splits | is.na(groups$outcome)) & (missing | groups$check != "missing"), ]
   stats::setNames(groups[[value]],
     ifelse(is.na(groups$level), groups$check, paste0(groups$check, ":", groups$level)))
 }
@@ -78,22 +79,22 @@ test_that("equal-weight logistic cells are checked just inside and outside the r
   outside <- regression_review(logistic(c(11, 11, 11, 11)))
   expect_identical(unname(regression_status(outside)), c("shown", "shown"))
   expect_identical(regression_counts(outside, "model"),
-    c(included = 44, events = 22, nonevents = 22))
+    c(included = 44, nonzero = 22, zero_valued = 22))
   expect_identical(regression_counts(outside, "column", "x"),
-    c(lower_level = 22, lower_level_events = 11, lower_level_nonevents = 11,
-      upper_level = 22, upper_level_events = 11, upper_level_nonevents = 11))
+    c(lower_level = 22, lower_level_nonzero = 11, lower_level_zero_valued = 11,
+      upper_level = 22, upper_level_nonzero = 11, upper_level_zero_valued = 11))
   expect_true(all(regression_counts(outside, "column", "x", "hospitals") == 4))
   expect_identical(outside$audit$sample$binary_response, TRUE)
   expect_identical(outside$presentation$unweighted_n, c(44, 44))
-  checks <- c("lower_level_nonevents", "lower_level_events", "upper_level_nonevents",
-    "upper_level_events")
+  checks <- c("lower_level_zero_valued", "lower_level_nonzero", "upper_level_zero_valued",
+    "upper_level_nonzero")
   for (k in 1:4) {
     cells <- c(11, 11, 11, 11)
     cells[[k]] <- 10
     fit <- logistic(cells)
     review <- regression_review(fit)
-    expected <- c(lower_level = 22, lower_level_events = 11, lower_level_nonevents = 11,
-      upper_level = 22, upper_level_events = 11, upper_level_nonevents = 11)
+    expected <- c(lower_level = 22, lower_level_nonzero = 11, lower_level_zero_valued = 11,
+      upper_level = 22, upper_level_nonzero = 11, upper_level_zero_valued = 11)
     expected[[checks[[k]]]] <- 10
     expected[[if (k <= 2) "lower_level" else "upper_level"]] <- 21
     expect_identical(regression_counts(review, "column", "x"), expected, info = k)
@@ -134,7 +135,7 @@ test_that("small reference and non-reference factor levels suppress the factor a
     c("level:A" = 41, "level:B" = 40, "level:C" = 3))
   expect_identical(regression_counts(other, "column", "groupC"), c(lower_level = 81, upper_level = 3))
   expect_identical(regression_reasons(other), c("(Intercept)" = "reference:groupC;factor:group",
-    groupB = "factor:group", groupC = "column:upper_level;column:upper_level_response_nonzero;factor:group", x = ""))
+    groupB = "factor:group", groupC = "column:upper_level;column:upper_level_nonzero;factor:group", x = ""))
   expect_identical(other$presentation$estimate[[4L]], other$table$data$estimate[[4L]])
 })
 
@@ -160,7 +161,7 @@ test_that("zero-count fitted levels and zero cells follow the zero policy", {
   suppressed <- regression_review(fit, zero = "suppress")
   expect_identical(regression_reasons(suppressed),
     c("(Intercept)" = "reference:flagTRUE;factor:flag", x = "",
-      flagTRUE = "column:nonzero;column:nonzero_response_nonzero;factor:flag"))
+      flagTRUE = "column:nonzero;factor:flag"))
   expect_identical(suppressed$presentation$aliased, c(NA, FALSE, NA))
 
   cells <- regression_rows(60L)
@@ -169,22 +170,22 @@ test_that("zero-count fitted levels and zero cells follow the zero policy", {
   # A zero/one Gaussian response is binary, so level-by-outcome cells apply.
   cell_fit <- regression_fit(session, cells, c("event", "flag"), event ~ flag)
   shown <- regression_review(cell_fit)
-  expect_identical(regression_counts(shown, "model"), c(included = 60, events = 20, nonevents = 40))
+  expect_identical(regression_counts(shown, "model"), c(included = 60, nonzero = 20, zero_valued = 40))
   expect_identical(regression_counts(shown, "model", value = "hospitals"),
-    c(included = 4, events = 2, nonevents = 4))
+    c(included = 4, nonzero = 2, zero_valued = 4))
   expect_identical(regression_counts(shown, "column", "flagTRUE"),
-    c(lower_level = 40, lower_level_events = 20, lower_level_nonevents = 20,
-      upper_level = 20, upper_level_events = 0, upper_level_nonevents = 20))
+    c(lower_level = 40, lower_level_nonzero = 20, lower_level_zero_valued = 20,
+      upper_level = 20, upper_level_nonzero = 0, upper_level_zero_valued = 20))
   expect_identical(regression_counts(shown, "factor", "flag"),
-    c("level:FALSE" = 40, "level_events:FALSE" = 20, "level_nonevents:FALSE" = 20,
-      "level:TRUE" = 20, "level_events:TRUE" = 0, "level_nonevents:TRUE" = 20))
+    c("level:FALSE" = 40, "level_nonzero:FALSE" = 20, "level_zero_valued:FALSE" = 20,
+      "level:TRUE" = 20, "level_nonzero:TRUE" = 0, "level_zero_valued:TRUE" = 20))
   expect_identical(regression_counts(shown, "factor", "flag", "hospitals"),
-    c("level:FALSE" = 4, "level_events:FALSE" = 2, "level_nonevents:FALSE" = 2,
-      "level:TRUE" = 4, "level_events:TRUE" = 0, "level_nonevents:TRUE" = 4))
+    c("level:FALSE" = 4, "level_nonzero:FALSE" = 2, "level_zero_valued:FALSE" = 2,
+      "level:TRUE" = 4, "level_nonzero:TRUE" = 0, "level_zero_valued:TRUE" = 4))
   expect_identical(unname(regression_status(shown)), c("shown", "shown"))
   hidden <- regression_review(cell_fit, zero = "suppress")
   expect_identical(regression_reasons(hidden), c("(Intercept)" = "reference:flagTRUE;factor:flag",
-    flagTRUE = "column:upper_level_events;factor:flag"))
+    flagTRUE = "column:upper_level_nonzero;factor:flag"))
 })
 
 test_that("factor interactions protect marginal terms and sparse interaction columns", {
@@ -208,15 +209,15 @@ test_that("factor interactions protect marginal terms and sparse interaction col
     c(nonzero = 4, zero_valued = 4))
   expect_identical(unname(regression_reasons(small)),
     c("reference:groupB;reference:x:groupB;factor:group", "factor:group",
-      "column:upper_level;column:upper_level_response_nonzero;factor:group", "",
-      "column:nonzero;column:nonzero_response_nonzero;factor:group"))
+      "column:upper_level;column:upper_level_nonzero;factor:group", "",
+      "column:nonzero;column:nonzero_nonzero;factor:group"))
   sparse_x <- c(rep(c(-1, 0, 2), length.out = 44L), c(1, 2, 3, 1, 2), rep(0, 35L))
   sparse <- regression_review(interaction_fit(rep(c(1, 2), c(44, 40)), sparse_x))
   expect_identical(regression_counts(sparse, "factor", "group"), c("level:A" = 44, "level:B" = 40))
   expect_identical(regression_counts(sparse, "column", c("x", "x:groupB")),
     c(nonzero = 34, zero_valued = 50, nonzero = 5, zero_valued = 79))
   expect_identical(unname(regression_reasons(sparse)),
-    c("reference:x:groupB", "", "", "", "column:nonzero;column:nonzero_response_nonzero"))
+    c("reference:x:groupB", "", "", "", "column:nonzero;column:nonzero_nonzero"))
   expect_identical(unname(regression_status(sparse)),
     c("suppressed", "shown", "shown", "shown", "suppressed"))
 })
@@ -240,8 +241,8 @@ test_that("two-valued, sparse-zero and exactly distinct columns are checked", {
   expect_identical(regression_counts(review, "column", "w", "hospitals"),
     c(nonzero = 4, zero_valued = 2))
   expect_identical(regression_reasons(review), c("(Intercept)" = "reference:dose;reference:w",
-    dose = "column:upper_level;column:upper_level_response_nonzero",
-    w = "column:zero_valued;column:zero_valued_response_nonzero", x = ""))
+    dose = "column:upper_level;column:upper_level_nonzero",
+    w = "column:zero_valued;column:zero_valued_nonzero", x = ""))
   expect_identical(unname(regression_status(regression_review(fit, suppress = c(1, 3)))),
     rep("shown", 4L))
 
@@ -252,7 +253,7 @@ test_that("two-valued, sparse-zero and exactly distinct columns are checked", {
   expect_identical(regression_counts(near, "column", "near", "value"),
     c(lower_level = 1, upper_level = 1 + 2^-52))
   expect_identical(regression_reasons(near),
-    c("(Intercept)" = "reference:near", x = "", near = "column:upper_level;column:upper_level_response_nonzero"))
+    c("(Intercept)" = "reference:near", x = "", near = "column:upper_level;column:upper_level_nonzero"))
 })
 
 test_that("hospital minimums apply to model, column and factor groups", {
@@ -264,9 +265,9 @@ test_that("hospital minimums apply to model, column and factor groups", {
   fit <- regression_fit(session, rows, c("y", "x"), y ~ x)
   model <- regression_review(fit, min_hospitals = 5)
   expect_identical(regression_counts(model, "model", value = "hospitals"), c(included = 4))
-  expect_identical(regression_reasons(model), c("(Intercept)" = "model:hospitals_included;model:hospitals_response_nonzero;reference:x",
-    x = paste0("model:hospitals_included;model:hospitals_response_nonzero;column:hospitals_nonzero;",
-      "column:hospitals_nonzero_response_nonzero;column:hospitals_zero_valued;column:hospitals_zero_valued_response_nonzero")))
+  expect_identical(regression_reasons(model), c("(Intercept)" = "model:hospitals_included;model:hospitals_nonzero;reference:x",
+    x = paste0("model:hospitals_included;model:hospitals_nonzero;column:hospitals_nonzero;",
+      "column:hospitals_nonzero_nonzero;column:hospitals_zero_valued;column:hospitals_zero_valued_nonzero")))
   expect_identical(model$presentation$unweighted_n, c(NA_real_, NA_real_))
   expect_identical(regression_review(fit, min_hospitals = 4)$presentation$unweighted_n, c(40, 40))
 
@@ -280,7 +281,7 @@ test_that("hospital minimums apply to model, column and factor groups", {
   expect_identical(regression_counts(column, "column", "site", "hospitals"),
     c(lower_level = 3, upper_level = 1))
   expect_identical(regression_reasons(column), c("(Intercept)" = "reference:site",
-    site = "column:hospitals_upper_level;column:hospitals_upper_level_response_nonzero", x = ""))
+    site = "column:hospitals_upper_level;column:hospitals_upper_level_nonzero", x = ""))
 
   # Reference level A is hospital 1; B and C alternate over the other rows.
   rows$g <- 1
@@ -305,12 +306,12 @@ test_that("a model-level failure suppresses every row and the published n", {
   rows$event <- as.double(seq_len(60L) %in% c(1, 7, 13, 19, 25, 31, 37, 43, 49))
   fit <- regression_fit(session, rows, c("x", "event"), event ~ x, "quasibinomial")
   review <- regression_review(fit)
-  expect_identical(regression_counts(review, "model"), c(included = 60, events = 9, nonevents = 51))
+  expect_identical(regression_counts(review, "model"), c(included = 60, nonzero = 9, zero_valued = 51))
   expect_identical(regression_counts(review, "model", value = "hospitals"),
-    c(included = 4, events = 2, nonevents = 4))
+    c(included = 4, nonzero = 2, zero_valued = 4))
   # All nine events have x = -1, so the nonzero-x event cell also fails.
   expect_identical(unname(regression_reasons(review)),
-    c("model:events;reference:x", "model:events;column:nonzero_events"))
+    c("model:nonzero;reference:x", "model:nonzero;column:nonzero_nonzero"))
   expect_identical(unname(regression_status(review)), c("suppressed", "suppressed"))
   expect_identical(review$presentation$unweighted_n, c(NA_real_, NA_real_))
   wider <- regression_review(fit, suppress = c(1, 8))
@@ -366,7 +367,7 @@ test_that("domains and average annual pools count reused hospitals by year", {
   expect_identical(unname(regression_status(review)), c("shown", "shown"))
   strict <- regression_review(fit, min_hospitals = 3)
   expect_identical(regression_reasons(strict), c("(Intercept)" = "reference:flag",
-    flag = "column:hospitals_upper_level;column:hospitals_upper_level_response_nonzero"))
+    flag = "column:hospitals_upper_level;column:hospitals_upper_level_nonzero"))
 })
 
 test_that("presentation keeps only declared, inference and policy columns", {
@@ -395,8 +396,8 @@ test_that("presentation keeps only declared, inference and policy columns", {
     c("cell:0:0" = 54, "cell:1:0" = 0, "cell:0:1" = 0, "cell:1:1" = 6))
   expect_identical(regression_reasons(review),
     c("(Intercept)" = "reference:s;reference:s_copy;cross:s:s_copy", x = "", x_copy = "",
-      s = "column:upper_level;column:upper_level_response_nonzero;cross:s:s_copy",
-      s_copy = "column:upper_level;column:upper_level_response_nonzero;cross:s:s_copy"))
+      s = "column:upper_level;column:upper_level_nonzero;cross:s:s_copy",
+      s_copy = "column:upper_level;column:upper_level_nonzero;cross:s:s_copy"))
   out <- review$presentation
   expect_identical(names(out), c("id", "term", "label", "unit", "estimate", "se", "statistic",
     "p_value", "lower", "upper", "aliased", "coefficient_scale", "family", "link", "df",
@@ -541,29 +542,29 @@ test_that("interaction cells, including the reference cell, are crossed and chec
       group = c("A", "B"), sex = c("F", "M"))
   }
   small <- regression_review(logistic(c(3, 50, 50, 50)))
-  expect_identical(regression_counts(small, "model"), c(included = 153, events = 76, nonevents = 77))
+  expect_identical(regression_counts(small, "model"), c(included = 153, nonzero = 76, zero_valued = 77))
   expect_identical(regression_counts(small, "cross", "group:sex"),
-    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
-      "cell:B:F" = 50, "cell_events:B:F" = 25, "cell_nonevents:B:F" = 25,
-      "cell:A:M" = 50, "cell_events:A:M" = 25, "cell_nonevents:A:M" = 25,
-      "cell:B:M" = 50, "cell_events:B:M" = 25, "cell_nonevents:B:M" = 25))
+    c("cell:A:F" = 3, "cell_nonzero:A:F" = 1, "cell_zero_valued:A:F" = 2,
+      "cell:B:F" = 50, "cell_nonzero:B:F" = 25, "cell_zero_valued:B:F" = 25,
+      "cell:A:M" = 50, "cell_nonzero:A:M" = 25, "cell_zero_valued:A:M" = 25,
+      "cell:B:M" = 50, "cell_nonzero:B:M" = 25, "cell_zero_valued:B:M" = 25))
   expect_identical(regression_counts(small, "cross", "group:sex", "hospitals"),
-    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
-      "cell:B:F" = 6, "cell_events:B:F" = 3, "cell_nonevents:B:F" = 3,
-      "cell:A:M" = 6, "cell_events:A:M" = 3, "cell_nonevents:A:M" = 3,
-      "cell:B:M" = 6, "cell_events:B:M" = 3, "cell_nonevents:B:M" = 3))
+    c("cell:A:F" = 3, "cell_nonzero:A:F" = 1, "cell_zero_valued:A:F" = 2,
+      "cell:B:F" = 6, "cell_nonzero:B:F" = 3, "cell_zero_valued:B:F" = 3,
+      "cell:A:M" = 6, "cell_nonzero:A:M" = 3, "cell_zero_valued:A:M" = 3,
+      "cell:B:M" = 6, "cell_nonzero:B:M" = 3, "cell_zero_valued:B:M" = 3))
   # Every marginal group is safe; only the crossed reference cell fails.
   expect_identical(regression_counts(small, "factor", c("group", "sex")),
-    c("level:A" = 53, "level_events:A" = 26, "level_nonevents:A" = 27,
-      "level:B" = 100, "level_events:B" = 50, "level_nonevents:B" = 50,
-      "level:F" = 53, "level_events:F" = 26, "level_nonevents:F" = 27,
-      "level:M" = 100, "level_events:M" = 50, "level_nonevents:M" = 50))
+    c("level:A" = 53, "level_nonzero:A" = 26, "level_zero_valued:A" = 27,
+      "level:B" = 100, "level_nonzero:B" = 50, "level_zero_valued:B" = 50,
+      "level:F" = 53, "level_nonzero:F" = 26, "level_zero_valued:F" = 27,
+      "level:M" = 100, "level_nonzero:M" = 50, "level_zero_valued:M" = 50))
   expect_identical(regression_reasons(small), c("(Intercept)" = "cross:group:sex",
     groupB = "cross:group:sex", sexM = "cross:group:sex", "groupB:sexM" = "cross:group:sex"))
   expect_true(all(is.na(small$presentation$estimate)))
   safe <- regression_review(logistic(c(22, 50, 50, 50)))
   expect_identical(regression_counts(safe, "cross", "group:sex")[1:3],
-    c("cell:A:F" = 22, "cell_events:A:F" = 11, "cell_nonevents:A:F" = 11))
+    c("cell:A:F" = 22, "cell_nonzero:A:F" = 11, "cell_zero_valued:A:F" = 11))
   expect_identical(unname(regression_status(safe)), rep("shown", 4L))
 
   # Two-valued numeric predictors are crossed the same way.
@@ -602,25 +603,25 @@ test_that("empty interaction cells and all-zero indicators follow the zero polic
   expect_identical(regression_reasons(hidden),
     c("(Intercept)" = "reference:groupB:sexM;cross:group:sex", groupB = "cross:group:sex",
       sexM = "cross:group:sex",
-      "groupB:sexM" = "column:nonzero;column:nonzero_response_nonzero;cross:group:sex"))
+      "groupB:sexM" = "column:nonzero;cross:group:sex"))
   expect_identical(hidden$presentation$aliased, rep(NA, 4L))
 
-  # `site` is 1 only on rows whose outcome is missing, so it is all zero in the
-  # analysis sample. Rows 5 and 20 had x = 0; rows 10 and 15 did not.
+  # `site` is 1 only on the 12 rows 3, 6, ..., 36, whose outcome is missing, so
+  # it is all zero in the analysis sample. All 12 rows had x = 2.
   rows <- regression_rows(40L)
   rows$x <- rep(c(-1, 0, 2), length.out = 40L)
   rows$y <- 1 + 0.5 * rows$x + regression_noise(40L)
-  rows$site <- as.double(seq_len(40L) %in% c(5, 10, 15, 20))
+  rows$site <- as.double(seq_len(40L) %in% seq(3L, 36L, by = 3L))
   rows$y[rows$site == 1] <- NA
   site_fit <- regression_fit(session, rows, c("y", "x", "site"), y ~ x + site, missing = "exclude")
   shown <- regression_review(site_fit)
   expect_identical(shown$audit$sample[c("supplied", "included", "missing")],
-    data.frame(supplied = 40, included = 36, missing = 4))
+    data.frame(supplied = 40, included = 28, missing = 12))
   expect_identical(regression_counts(shown, "column", c("x", "site")),
-    c(nonzero = 25, zero_valued = 11, nonzero = 0))
+    c(nonzero = 15, zero_valued = 13, nonzero = 0))
   expect_identical(unname(regression_status(shown)), rep("shown", 3L))
   expect_identical(regression_reasons(regression_review(site_fit, zero = "suppress")),
-    c("(Intercept)" = "reference:site", x = "", site = "column:nonzero;column:nonzero_response_nonzero"))
+    c("(Intercept)" = "reference:site", x = "", site = "column:nonzero"))
 })
 
 test_that("a count of exactly one is the lower edge of the range", {
@@ -637,7 +638,7 @@ test_that("a count of exactly one is the lower edge of the range", {
     c(lower_level = 4, upper_level = 1))
   expect_identical(regression_reasons(inside),
     c("(Intercept)" = "reference:solo", x = "",
-      solo = "column:upper_level;column:upper_level_response_nonzero"))
+      solo = "column:upper_level;column:upper_level_nonzero"))
   outside <- regression_review(fit, suppress = c(2, 10), min_hospitals = 1)
   expect_identical(unname(regression_status(outside)), rep("shown", 3L))
 })
@@ -646,26 +647,27 @@ test_that("missing exclusions, including a whole hospital, leave only fitted row
   session <- nis_open()
   on.exit(nis_close(session))
   # Eight hospitals; hospital 8 holds rows 8, 16, ..., 64 and loses every
-  # outcome. Rows 1 and 2 lose x. Zero x rows (i %% 3 == 2) lost: 2, 8, 32, 56.
+  # outcome. Rows 1-3 lose x. Zero x rows (i %% 3 == 2) lost: 2, 8, 32, 56.
   rows <- regression_rows(64L, hospitals = 8L)
   hospital <- (seq_len(64L) - 1L) %% 8L + 1L
   rows$x <- rep(c(-1, 0, 2), length.out = 64L)
   rows$y <- 1 + 0.5 * rows$x + regression_noise(64L)
   rows$y[hospital == 8L] <- NA
-  rows$x[1:2] <- NA
+  rows$x[1:3] <- NA
   fit <- regression_fit(session, rows, c("y", "x"), y ~ x, missing = "exclude")
   review <- regression_review(fit)
-  expect_identical(review$audit$sample, data.frame(supplied = 64, included = 54, missing = 10,
+  expect_identical(review$audit$sample, data.frame(supplied = 64, included = 53, missing = 11,
     hospitals = 7, binary_response = FALSE))
+  expect_identical(regression_counts(review, "model", missing = TRUE), c(included = 53, missing = 11))
   expect_identical(regression_counts(review, "model", value = "hospitals"), c(included = 7))
-  expect_identical(regression_counts(review, "column", "x"), c(nonzero = 37, zero_valued = 17))
+  expect_identical(regression_counts(review, "column", "x"), c(nonzero = 36, zero_valued = 17))
   expect_identical(regression_counts(review, "column", "x", "hospitals"),
     c(nonzero = 7, zero_valued = 7))
-  expect_identical(review$presentation$unweighted_n, c(54, 54))
+  expect_identical(review$presentation$unweighted_n, c(53, 53))
   expect_identical(regression_reasons(regression_review(fit, min_hospitals = 8)),
-    c("(Intercept)" = "model:hospitals_included;model:hospitals_response_nonzero;reference:x",
-      x = paste0("model:hospitals_included;model:hospitals_response_nonzero;column:hospitals_nonzero;",
-        "column:hospitals_nonzero_response_nonzero;column:hospitals_zero_valued;column:hospitals_zero_valued_response_nonzero")))
+    c("(Intercept)" = "model:hospitals_included;model:hospitals_nonzero;reference:x",
+      x = paste0("model:hospitals_included;model:hospitals_nonzero;column:hospitals_nonzero;",
+        "column:hospitals_nonzero_nonzero;column:hospitals_zero_valued;column:hospitals_zero_valued_nonzero")))
 })
 
 test_that("any two-valued response checks its response-value cells", {
@@ -681,12 +683,12 @@ test_that("any two-valued response checks its response-value cells", {
   }
   two <- coded(1, 2)
   expect_identical(two$audit$sample$binary_response, TRUE)
-  expect_identical(regression_counts(two, "model"), c(included = 100, events = 28, nonevents = 72))
+  expect_identical(regression_counts(two, "model"), c(included = 100, nonzero = 28, zero_valued = 72))
   expect_identical(regression_counts(two, "factor", "group"),
-    c("level:A" = 50, "level_events:A" = 3, "level_nonevents:A" = 47,
-      "level:B" = 50, "level_events:B" = 25, "level_nonevents:B" = 25))
+    c("level:A" = 50, "level_nonzero:A" = 3, "level_zero_valued:A" = 47,
+      "level:B" = 50, "level_nonzero:B" = 25, "level_zero_valued:B" = 25))
   expect_identical(regression_reasons(two), c("(Intercept)" = "reference:groupB;factor:group",
-    groupB = "column:lower_level_events;factor:group"))
+    groupB = "column:lower_level_nonzero;factor:group"))
   expect_true(all(is.na(two$presentation$estimate)))
   binary <- coded(0, 1)
   expect_identical(binary$audit$groups[c("check", "level", "count", "hospitals")],
@@ -709,25 +711,24 @@ test_that("factor and two-valued predictors are crossed jointly, even additively
   # An empty B/M cell makes the additive fit saturated: the intercept is the
   # logit of the 3-row A/F cell.
   additive <- regression_review(cells_fit(c(3, 50, 50, 0), event ~ group + sex))
-  expect_identical(regression_counts(additive, "cross", "group:sex")[c(1:3, 10:12)],
-    c("cell:A:F" = 3, "cell_events:A:F" = 1, "cell_nonevents:A:F" = 2,
-      "cell:B:M" = 0, "cell_events:B:M" = 0, "cell_nonevents:B:M" = 0))
+  expect_identical(regression_counts(additive, "cross", "group:sex")[c(1:3, 10)],
+    c("cell:A:F" = 3, "cell_nonzero:A:F" = 1, "cell_zero_valued:A:F" = 2, "cell:B:M" = 0))
   expect_identical(regression_counts(additive, "factor", "group"),
-    c("level:A" = 53, "level_events:A" = 26, "level_nonevents:A" = 27,
-      "level:B" = 50, "level_events:B" = 25, "level_nonevents:B" = 25))
+    c("level:A" = 53, "level_nonzero:A" = 26, "level_zero_valued:A" = 27,
+      "level:B" = 50, "level_nonzero:B" = 25, "level_zero_valued:B" = 25))
   expect_identical(unname(regression_reasons(additive)), rep("cross:group:sex", 3L))
   # Only the non-reference B/M cell is small: rows 151-153 in hospitals 1-3,
   # whose single event (row 152) lies in hospital 2.
   corner <- regression_review(cells_fit(c(50, 50, 50, 3), event ~ group * sex))
   expect_identical(regression_counts(corner, "cross", "group:sex")[10:12],
-    c("cell:B:M" = 3, "cell_events:B:M" = 1, "cell_nonevents:B:M" = 2))
+    c("cell:B:M" = 3, "cell_nonzero:B:M" = 1, "cell_zero_valued:B:M" = 2))
   expect_identical(regression_counts(corner, "cross", "group:sex", "hospitals")[10:12],
-    c("cell:B:M" = 3, "cell_events:B:M" = 1, "cell_nonevents:B:M" = 2))
+    c("cell:B:M" = 3, "cell_nonzero:B:M" = 1, "cell_zero_valued:B:M" = 2))
   expect_identical(regression_reasons(corner), c(
     "(Intercept)" = "reference:groupB:sexM;cross:group:sex",
     groupB = "cross:group:sex", sexM = "cross:group:sex",
-    "groupB:sexM" = paste0("column:upper_level;column:upper_level_events;",
-      "column:upper_level_nonevents;column:hospitals_upper_level_events;cross:group:sex")))
+    "groupB:sexM" = paste0("column:upper_level;column:upper_level_nonzero;",
+      "column:upper_level_zero_valued;column:hospitals_upper_level_nonzero;cross:group:sex")))
 
   # Three-way crossing of two factors and a logical predictor: only A/F/FALSE
   # is small, and every marginal column group has at least 30 rows.
@@ -759,7 +760,7 @@ test_that("factor and two-valued predictors are crossed jointly, even additively
   expect_identical(regression_reasons(logical), c(
     "(Intercept)" = "reference:groupB:flagTRUE;cross:group:flag", groupB = "cross:group:flag",
     flagTRUE = "cross:group:flag",
-    "groupB:flagTRUE" = "column:upper_level;column:upper_level_response_nonzero;cross:group:flag"))
+    "groupB:flagTRUE" = "column:upper_level;column:upper_level_nonzero;cross:group:flag"))
 
   # Factor by a 2/5 numeric predictor with a small non-reference A/5 cell.
   sizes <- c(30, 30, 3, 30)
@@ -789,7 +790,7 @@ test_that("an indicator equal to one on every row has an empty zero-valued group
   expect_identical(unname(regression_status(display)), rep("shown", 3L))
   expect_identical(display$presentation$aliased, c(FALSE, FALSE, TRUE))
   expect_identical(regression_reasons(regression_review(fit, zero = "suppress")),
-    c("(Intercept)" = "reference:one", x = "", one = "column:zero_valued;column:zero_valued_response_nonzero"))
+    c("(Intercept)" = "reference:one", x = "", one = "column:zero_valued"))
 })
 
 test_that("joint crossings larger than 10000 cells are refused", {
@@ -819,15 +820,15 @@ test_that("a multi-valued response checks its nonzero rows in every group", {
       group = c("A", "B")))
     expect_identical(review$audit$sample$binary_response, FALSE)
     expect_identical(regression_counts(review, "model", nonzero = TRUE),
-      c(included = 100, response_nonzero = 36))
+      c(included = 100, nonzero = 36))
     expect_identical(regression_counts(review, "factor", "group", nonzero = TRUE),
-      c("level:A" = 50, "level_response_nonzero:A" = 3,
-        "level:B" = 50, "level_response_nonzero:B" = 33))
+      c("level:A" = 50, "level_nonzero:A" = 3, "level_zero_valued:A" = 47,
+        "level:B" = 50, "level_nonzero:B" = 33))
     expect_identical(regression_counts(review, "factor", "group", "hospitals", nonzero = TRUE),
-      c("level:A" = 4, "level_response_nonzero:A" = 3,
-        "level:B" = 4, "level_response_nonzero:B" = 4))
+      c("level:A" = 4, "level_nonzero:A" = 3, "level_zero_valued:A" = 4,
+        "level:B" = 4, "level_nonzero:B" = 4))
     expect_identical(regression_reasons(review), c("(Intercept)" = "reference:groupB;factor:group",
-      groupB = "column:lower_level_response_nonzero;factor:group"), info = family)
+      groupB = "column:lower_level_nonzero;factor:group"), info = family)
   }
 
   # One fractional value makes the P13 zero/one response three-valued; its
@@ -840,9 +841,9 @@ test_that("a multi-valued response checks its nonzero rows in every group", {
     group = c("A", "B")))
   expect_identical(f1$audit$sample$binary_response, FALSE)
   expect_identical(regression_counts(f1, "model", nonzero = TRUE),
-    c(included = 100, response_nonzero = 29))
+    c(included = 100, nonzero = 29))
   expect_identical(regression_reasons(f1), c("(Intercept)" = "reference:groupB;factor:group",
-    groupB = "column:lower_level_response_nonzero;factor:group"))
+    groupB = "column:lower_level_nonzero;factor:group"))
 
   # A strictly positive response has no empty or small nonzero group.
   positive <- regression_rows(100L)
@@ -851,10 +852,13 @@ test_that("a multi-valued response checks its nonzero rows in every group", {
   shown <- regression_review(regression_fit(session, positive, c("y", "g"), y ~ group,
     group = c("A", "B")))
   expect_identical(regression_counts(shown, "factor", "group", nonzero = TRUE),
-    c("level:A" = 50, "level_response_nonzero:A" = 50,
-      "level:B" = 50, "level_response_nonzero:B" = 50))
+    c("level:A" = 50, "level_nonzero:A" = 50,
+      "level:B" = 50, "level_nonzero:B" = 50))
   expect_identical(unname(regression_status(shown)), c("shown", "shown"))
-  expect_false(any(shown$audit$groups$check == "response_zero_valued"))
+  # No zero-valued or two-level split applies to a strictly positive response.
+  expect_identical(shown$audit$groups$check, c("included", "nonzero", "missing",
+    "lower_level", "lower_level_nonzero", "upper_level", "upper_level_nonzero",
+    "level", "level_nonzero", "level", "level_nonzero"))
 })
 
 test_that("a sparse multi-valued response matches the descriptive nonzero rule", {
@@ -868,10 +872,10 @@ test_that("a sparse multi-valued response matches the descriptive nonzero rule",
   fit <- nis_model(design, y ~ 1, "quasipoisson", "fail", 8, 0.95, "wr_unadjusted")
   review <- regression_review(fit)
   expect_identical(regression_counts(review, "model", nonzero = TRUE),
-    c(included = 100, response_nonzero = 3))
+    c(included = 100, nonzero = 3))
   expect_identical(regression_counts(review, "model", value = "hospitals", nonzero = TRUE),
-    c(included = 4, response_nonzero = 3))
-  expect_identical(regression_reasons(review), c("(Intercept)" = "model:response_nonzero"))
+    c(included = 4, nonzero = 3))
+  expect_identical(regression_reasons(review), c("(Intercept)" = "model:nonzero"))
   expect_identical(review$presentation$unweighted_n, NA_real_)
   descriptive <- nis_descriptive_table(design, data.frame(id = "y", field = "y",
     statistic = "mean", label = "Invented mean", unit = "count"), "fail", 8, 0.95,
@@ -905,4 +909,165 @@ test_that("a joint cell can fail on its hospital minimum alone", {
   expect_identical(groups$count_failed[af], c(FALSE, FALSE))
   expect_identical(groups$hospitals_failed[af], c(TRUE, TRUE))
   expect_identical(unname(regression_reasons(review)), rep("cross:group:sex", 4L))
+})
+
+# Invented probes whose small group lies inside a multi-valued, two-valued or
+# missing response. `in_group` marks the group behind the intercept.
+regression_probe <- function(name) {
+  if (name == "A5") {
+    # Cells A/F, A/M, B/F, B/M of 40 rows; A/F is 0/1 with zeros at rows 1-3
+    # (hospitals 1-3), and every other cell cycles 0, 1, 2.
+    rows <- regression_rows(160L)
+    rows$g <- rep(c(1, 1, 2, 2), each = 40L)
+    rows$s <- rep(c(1, 2, 1, 2), each = 40L)
+    rows$y <- rep(rep(c(0, 1, 2), length.out = 40L), 4L)
+    rows$y[1:40] <- rep(c(0, 1), c(3L, 37L))
+    rows$in_group <- seq_len(160L) <= 40L
+    return(list(rows = rows, columns = c("y", "g", "s"), formula = y ~ group * sex,
+      family = "gaussian", missing = "fail"))
+  }
+  rows <- regression_rows(100L)
+  rows$in_group <- seq_len(100L) <= 50L
+  rows$g <- rep(c(1, 2), each = 50L)
+  b <- rep(c(0, 1, 2), length.out = 50L)
+  probe <- list(columns = c("y", "g"), formula = y ~ group, family = "gaussian",
+    missing = "fail", zero = "display")
+  if (name == "T2") {
+    # Raw group A is 1, 2, 1 at rows 1-3 (hospitals 1-3) and otherwise zero; the
+    # fitted I(y + 1) moves every zero to one.
+    rows$y <- c(c(1, 2, 1), rep(0, 47L), b)
+    probe$formula <- I(y + 1) ~ group
+  } else if (name == "Q1") {
+    # Raw group A is all zero, which the zero policy hides; I(y + 2) is all two.
+    rows$y <- c(rep(0, 50L), b)
+    probe$formula <- I(y + 2) ~ group
+    probe$zero <- "suppress"
+  } else if (name %in% c("A1", "A3")) {
+    # Group A is 0/1 with zeros at rows 1-3; group B cycles 0, 1, 2.
+    rows$y <- c(rep(c(0, 1), c(3L, 47L)), b)
+    if (name == "A3") probe$family <- "quasipoisson"
+  } else if (name == "A2") {
+    # Group A is 1/2 with twos at rows 1-3; group B cycles 0, 1, 2.
+    rows$y <- c(rep(c(2, 1), c(3L, 47L)), b)
+  } else if (name == "P13") {
+    # A 1/2 response: twos at rows 1-3 in A and rows 76-100 in B.
+    rows$y <- ifelse(seq_len(100L) %in% c(1:3, 76:100), 2, 1)
+  } else {
+    # Whole-sample probes: three missing outcomes, or 3 of 100 nonzero values.
+    rows$in_group <- TRUE
+    probe$columns <- "y"
+    probe$formula <- y ~ 1
+    if (name == "M1") {
+      rows$y <- 1 + regression_noise(100L)
+      rows$y[1:3] <- NA
+      probe$missing <- "exclude"
+    } else {
+      # Rows 1, 30 and 60 (hospitals 1, 2 and 4) hold 1, 2 and 1; T1 fits I(y + 1).
+      rows$y <- 0
+      rows$y[c(1, 30, 60)] <- c(1, 2, 1)
+      if (name == "T1") probe$formula <- I(y + 1) ~ 1 else probe$family <- "quasipoisson"
+    }
+  }
+  c(list(rows = rows), probe)
+}
+
+regression_probe_review <- function(session, probe) {
+  regression_review(regression_fit(session, probe$rows, probe$columns, probe$formula,
+    probe$family, group = if ("g" %in% probe$columns) c("A", "B"),
+    sex = if ("s" %in% probe$columns) c("F", "M"), missing = probe$missing),
+    zero = if (is.null(probe$zero)) "display" else probe$zero)
+}
+
+# The descriptive review of the same field, restricted to the same group, under
+# the same policy.
+regression_probe_descriptive <- function(session, probe) {
+  design <- regression_design(session, probe$rows, c("y", "in_group"))
+  if (!all(probe$rows$in_group)) design <- nis_domain(design, "in_group", "fail")
+  table <- nis_descriptive_table(design, data.frame(id = "y", field = "y", statistic = "mean",
+    label = "Invented mean", unit = "outcome"), "exclude", 8, 0.95, "wr_unadjusted")
+  nis_disclosure_review(table, c(1, 10), if (is.null(probe$zero)) "display" else probe$zero, 2,
+    list())
+}
+
+test_that("each checked group receives the descriptive row checks on its own values", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  for (name in c("A1", "A3")) {
+    review <- regression_probe_review(session, regression_probe(name))
+    expect_identical(review$audit$sample$binary_response, FALSE)
+    expect_identical(regression_counts(review, "model", nonzero = TRUE),
+      c(included = 100, nonzero = 80))
+    expect_identical(regression_counts(review, "factor", "group", nonzero = TRUE),
+      c("level:A" = 50, "level_nonzero:A" = 47, "level_zero_valued:A" = 3,
+        "level:B" = 50, "level_nonzero:B" = 33))
+    expect_identical(regression_counts(review, "factor", "group", "hospitals", nonzero = TRUE)[[3L]], 3)
+    expect_identical(regression_reasons(review), c("(Intercept)" = "reference:groupB;factor:group",
+      groupB = "column:lower_level_zero_valued;factor:group"), info = name)
+  }
+  a2 <- regression_probe_review(session, regression_probe("A2"))
+  expect_identical(regression_counts(a2, "factor", "group", nonzero = TRUE),
+    c("level:A" = 50, "level_nonzero:A" = 50, "level_two_level:A" = 3,
+      "level:B" = 50, "level_nonzero:B" = 33))
+  expect_identical(regression_reasons(a2), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_two_level;factor:group"))
+  a5 <- regression_probe_review(session, regression_probe("A5"))
+  expect_identical(regression_counts(a5, "model", nonzero = TRUE), c(included = 160, nonzero = 115))
+  expect_identical(regression_counts(a5, "cross", "group:sex", nonzero = TRUE),
+    c("cell:A:F" = 40, "cell_nonzero:A:F" = 37, "cell_zero_valued:A:F" = 3,
+      "cell:B:F" = 40, "cell_nonzero:B:F" = 26, "cell:A:M" = 40, "cell_nonzero:A:M" = 26,
+      "cell:B:M" = 40, "cell_nonzero:B:M" = 26))
+  expect_identical(regression_counts(a5, "factor", "group", nonzero = TRUE),
+    c("level:A" = 80, "level_nonzero:A" = 63, "level:B" = 80, "level_nonzero:B" = 52))
+  expect_identical(unname(regression_reasons(a5)), rep("cross:group:sex", 4L))
+  m1 <- regression_probe_review(session, regression_probe("M1"))
+  expect_identical(regression_counts(m1, "model", missing = TRUE), c(included = 97, missing = 3))
+  expect_identical(regression_reasons(m1), c("(Intercept)" = "model:missing"))
+  expect_identical(m1$presentation$unweighted_n, NA_real_)
+})
+
+test_that("regression reviews suppress whenever the descriptive review of the group does", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  expected <- c(A1 = "zero_valued", A2 = "two_level", A3 = "zero_valued", A5 = "zero_valued",
+    M1 = "missing", N1b = "nonzero", P13 = "two_level", T1 = "nonzero", T2 = "nonzero",
+    Q1 = "nonzero")
+  for (name in names(expected)) {
+    probe <- regression_probe(name)
+    descriptive <- regression_probe_descriptive(session, probe)
+    expect_identical(descriptive$presentation$disclosure_status, "suppressed_primary", info = name)
+    expect_identical(descriptive$audit$reasons, expected[[name]], info = name)
+    review <- regression_probe_review(session, probe)
+    expect_identical(review$audit$rows$disclosure_status[review$audit$rows$term == "(Intercept)"],
+      "suppressed", info = name)
+  }
+})
+
+test_that("a shifted response also checks its raw source field", {
+  session <- nis_open()
+  on.exit(nis_close(session))
+  t1 <- regression_probe_review(session, regression_probe("T1"))
+  # The fitted I(y + 1) is nonzero on all 100 rows; raw y is nonzero on 3.
+  expect_identical(regression_counts(t1, "model", nonzero = TRUE),
+    c(included = 100, nonzero = 100, source_nonzero = 3))
+  expect_identical(regression_counts(t1, "model", value = "hospitals", nonzero = TRUE),
+    c(included = 4, nonzero = 4, source_nonzero = 3))
+  expect_identical(t1$audit$groups$source[t1$audit$groups$check == "source_nonzero"], "y")
+  expect_identical(regression_reasons(t1), c("(Intercept)" = "model:source_nonzero"))
+  expect_identical(t1$presentation$unweighted_n, NA_real_)
+  t2 <- regression_probe_review(session, regression_probe("T2"))
+  expect_identical(regression_counts(t2, "factor", "group", nonzero = TRUE),
+    c("level:A" = 50, "level_nonzero:A" = 50, "level_source_nonzero:A" = 3,
+      "level:B" = 50, "level_nonzero:B" = 50, "level_source_nonzero:B" = 33))
+  expect_identical(regression_reasons(t2), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_source_nonzero;factor:group"))
+  q1 <- regression_probe_review(session, regression_probe("Q1"))
+  expect_identical(regression_counts(q1, "factor", "group", nonzero = TRUE),
+    c("level:A" = 50, "level_nonzero:A" = 50, "level_source_nonzero:A" = 0,
+      "level_source_zero_valued:A" = 50, "level:B" = 50, "level_nonzero:B" = 50,
+      "level_source_nonzero:B" = 33))
+  expect_identical(regression_reasons(q1), c("(Intercept)" = "reference:groupB;factor:group",
+    groupB = "column:lower_level_source_nonzero;factor:group"))
+  q1_display <- regression_review(regression_fit(session, regression_probe("Q1")$rows,
+    c("y", "g"), I(y + 2) ~ group, group = c("A", "B")))
+  expect_identical(unname(regression_status(q1_display)), c("shown", "shown"))
 })
