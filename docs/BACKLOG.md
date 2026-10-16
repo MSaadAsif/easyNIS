@@ -4,22 +4,18 @@ This is the ordered, reviewable backlog for the agreed scope. Implementation beg
 
 ## Initial implementation progress
 
-### Workshop readiness priority, 2026-10-14
+### Workshop readiness priority, 2026-10-16
 
-**Hold on regression export (NIS-020).** Regression-table disclosure review
-merged in [PR #45](https://github.com/MSaadAsif/easyNIS/pull/45) at `c77ac7c` on a
-VERIFIED receipt, while a concurrent independent review of the same head
-(`a8c7e3f`) found one blocking leak: response binary/two-level status is decided
-from the whole response, so a group whose own values are 0/1 within a
-multi-valued response gets only a nonzero check and a shown coefficient can
-reveal a 3-row count that the descriptive review of the same field suppresses.
-The missing-outcome count is also unchecked. A follow-up PR on
-`claude/easynis-regression-disclosure-groups` applies the descriptive row rule
-to every checked group. Do not merge regression-table export until that
-follow-up merges; its exporter must recompute the corrected review. The
-follow-up is implemented and locally verified on that branch (draft PR #46);
-it still needs independent review and hosted checks. Two writers also shared
-the main checkout; parallel writers need separate worktrees.
+**Regression export (NIS-020) is unblocked.** The per-group regression
+disclosure follow-up merged in
+[PR #46](https://github.com/MSaadAsif/easyNIS/pull/46) at `9f5d7db`; all five
+resulting main jobs passed. Its head `c5afa7a` had clean-head verification
+(2,839 package assertions, 216 tool assertions, source Status OK, installed
+workflows) and an independent VERIFIED review with zero blockers. A
+non-blocking standards note remains: `regression_disclosure_review()`
+coordinates many concerns in one long function. The regression exporter must
+recompute this corrected review rather than trust a retained one. Parallel
+writers need separate worktrees.
 
 Grouped joint disclosure review merged in
 [PR #44](https://github.com/MSaadAsif/easyNIS/pull/44); all five resulting main
@@ -35,8 +31,7 @@ responses. A fourth review of `a8c7e3f` found that binary and two-level status
 was still decided from the whole response, so a 0/1 or 1/2 group inside a
 multi-valued response was published while the descriptive review of the same
 field restricted to that group suppressed it, and that the excluded missing
-count was unchecked. The follow-up on
-`claude/easynis-regression-disclosure-groups` replaces the response splits with
+count was unchecked. The follow-up in PR #46 replaces the response splits with
 one helper applying the descriptive row rule to each checked group's own
 values, adds the model missing check (a failure suppresses every row and
 `unweighted_n`, as the descriptive row is suppressed) and adds a consistency
@@ -51,8 +46,8 @@ cases pass 319 assertions with hand-counted references; descriptive code is
 unchanged. Precommit verification passes 2,839 package assertions, 216 tool
 assertions, source Status OK and installed workflows. The intercept,
 lower-order, joint-crossing and group rules suppress more than the first draft
-and need Saad and Ali's policy review. Regression-table export remains held
-until the follow-up merges. No scientific or annual support is promoted.
+and need Saad and Ali's policy review. No scientific or annual support is
+promoted.
 
 Numeric factor grouping merged in
 [PR #43](https://github.com/MSaadAsif/easyNIS/pull/43); all five resulting main
