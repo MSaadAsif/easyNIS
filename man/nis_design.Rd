@@ -37,3 +37,18 @@ number. The query is scanned twice: once over the four design columns, and
 once to collect the cohort rows, so the cohort expression is evaluated one
 time over the full data.
 }
+\examples{
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(
+  nis,
+  cohort = heart_failure & AGE >= 50,
+  keep = c(AGE, FEMALE, TOTCHG, CCR_NIS),
+  dollars = 2024
+)
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE)
+)
+}

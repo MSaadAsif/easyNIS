@@ -23,6 +23,20 @@
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
+#' @examples
+#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#'   nis_flag_dx(heart_failure = "I50")
+#' design <- nis_design(
+#'   nis,
+#'   cohort = heart_failure & AGE >= 50,
+#'   keep = c(AGE, FEMALE, TOTCHG, CCR_NIS),
+#'   dollars = 2024
+#' )
+#' srvyr::summarise(
+#'   design,
+#'   discharges = srvyr::survey_total(),
+#'   mean_age = srvyr::survey_mean(AGE)
+#' )
 nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.")
@@ -147,6 +161,14 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
+#' @examples
+#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#'   nis_flag_dx(heart_failure = "I50")
+#' design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
+#'
+#' # Illustrative weights only; use weights from your own validated model
+#' reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
+#' srvyr::summarise(reweighted, discharges = srvyr::survey_total())
 nis_reweight <- function(design, weights) {
   placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
   cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)

@@ -42,9 +42,20 @@ have no default assignment.
 This function is experimental.
 }
 \examples{
-\dontrun{
-codes <- nis_ccsr_codes("DXCCSR-Reference-File-v2025-1.xlsx", "CIR019")
-nis_open("path/to/nis") |>
-  nis_flag_dx(heart_failure = codes)
-}
+# An invented reference file in the HCUP comma-separated layout. Download
+# the real DXCCSR file from HCUP and pass its path instead.
+reference <- tempfile(fileext = ".csv")
+writeLines(c(
+  "'ICD-10-CM CODE','CCSR CATEGORY 1','CCSR CATEGORY 2','DEFAULT CCSR CATEGORY IP'",
+  "'I5022','CIR019','','CIR019'",
+  "'I509','CIR019','','CIR019'",
+  "'E119','END002','','END002'"
+), reference)
+codes <- nis_ccsr_codes(reference, "CIR019")
+codes
+
+nis_open(nis_example(years = 2019)) |>
+  nis_flag_dx(heart_failure = codes) |>
+  dplyr::count(heart_failure) |>
+  dplyr::collect()
 }

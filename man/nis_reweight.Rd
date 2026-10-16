@@ -22,3 +22,12 @@ and rebuilds the nested survey design. This experimental method is intended
 for analysts who have validated their weighting specification against a
 full-data reference design.
 }
+\examples{
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
+
+# Illustrative weights only; use weights from your own validated model
+reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
+srvyr::summarise(reweighted, discharges = srvyr::survey_total())
+}

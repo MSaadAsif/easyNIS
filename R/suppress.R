@@ -11,6 +11,18 @@
 #'
 #' @return The table with small statistics masked and a HCUP DUA footnote.
 #' @export
+#' @examples
+#' if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
+#'   nis <- nis_open(nis_example(years = 2019:2020)) |>
+#'     nis_flag_dx(heart_failure = "I50")
+#'   design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+#'   table <- gtsummary::tbl_svysummary(
+#'     design,
+#'     by = RACE,
+#'     include = c(AGE, FEMALE)
+#'   )
+#'   nis_suppress(table, threshold = 10)
+#' }
 nis_suppress <- function(x, threshold = 10) {
   if (!inherits(x, "tbl_svysummary") || is.null(x$cards$tbl_svysummary)) {
     cli::cli_abort("`x` must be a table created by `gtsummary::tbl_svysummary()`.")
