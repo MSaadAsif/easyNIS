@@ -99,44 +99,38 @@ scientific approval.
 
 ## Cohort flow
 
-The flow summaries stay lazy until each aggregate is collected. The final row
-uses the same diagnosis and age expression passed to `nis_design()`.
+The first three rows are lazy aggregates over the opened data. The final row
+comes from the survey design, which also drops discharges with a missing or
+non-positive `DISCWT`, `NIS_STRATUM`, or `HOSP_NIS`.
 
 ```{r}
-flow_all <- nis_data |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "All discharges")
+flow_summary <- function(data, step) {
+  data |>
+    dplyr::summarise(
+      n = dplyr::n(),
+      weighted_discharges = sum(DISCWT, na.rm = TRUE)
+    ) |>
+    dplyr::collect() |>
+    dplyr::mutate(step = step)
+}
 
-flow_principal_dx <- nis_data |>
-  dplyr::filter(principal_dx) |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "Principal diagnosis prefix")
-
-flow_cohort <- rlang::inject(dplyr::filter(nis_data, !!cohort)) |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "Final analysis cohort")
-
-flow_raw <- dplyr::bind_rows(flow_all, flow_principal_dx, flow_cohort)
-stopifnot(
-  flow_cohort$n[[1L]] == nrow(study_design$variables),
-  isTRUE(all.equal(
-    flow_cohort$weighted_discharges[[1L]],
-    sum(study_design$variables$DISCWT),
-    tolerance = 1e-8
-  ))
+flow_all <- flow_summary(nis_data, "All discharges")
+flow_principal_dx <- flow_summary(
+  dplyr::filter(nis_data, principal_dx), "Principal diagnosis prefix"
 )
+flow_cohort <- flow_summary(
+  rlang::inject(dplyr::filter(nis_data, !!cohort)), "Cohort definition"
+)
+flow_analysis <- dplyr::tibble(
+  n = cohort_n,
+  weighted_discharges = sum(study_design$variables$DISCWT),
+  step = "Analysis cohort (valid survey design)"
+)
+
+flow_raw <- dplyr::bind_rows(
+  flow_all, flow_principal_dx, flow_cohort, flow_analysis
+)
+stopifnot(flow_analysis$n[[1L]] <= flow_cohort$n[[1L]])
 flow_display <- flow_raw |>
   dplyr::mutate(
     discharges = dplyr::if_else(
