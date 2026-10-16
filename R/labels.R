@@ -147,6 +147,11 @@ attr(.hcup_labels, "source") <- paste(
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
 #' @export
+#' @examples
+#' demographics <- nis_open(nis_example(years = 2019)) |>
+#'   dplyr::select(AGE, FEMALE, RACE) |>
+#'   dplyr::collect()
+#' head(nis_label(demographics))
 nis_label <- function(data) {
   if (!is.data.frame(data)) {
     cli::cli_abort("`data` must be a collected data frame.")

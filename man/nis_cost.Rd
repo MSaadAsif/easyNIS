@@ -17,3 +17,9 @@ nis_cost(data, dollars)
 \description{
 Adjust NIS charges and costs to a reference dollar year
 }
+\examples{
+charges <- nis_open(nis_example(years = 2019:2020)) |>
+  dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+  dplyr::collect()
+head(nis_cost(charges, dollars = 2024))
+}
