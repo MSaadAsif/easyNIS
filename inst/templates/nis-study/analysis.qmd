@@ -6,6 +6,9 @@ params:
 ---
 
 ```{r}
+#| label: setup
+# Expensive chunks are cached. To force a full re-run, delete the
+# analysis_cache folder next to this file.
 library(easyNIS)
 library(purrr)
 library(srvyr)
@@ -28,6 +31,7 @@ nis_data <- nis_open(input_path, years = params$years)
 ## Study definitions
 
 ```{r}
+#| label: definitions
 # ---- Study definitions: edit this block for each study ----
 codes <- list(
   principal_dx = c("I50"),
@@ -51,6 +55,24 @@ nis_data <- nis_data |>
   nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
   nis_flag_dx(exposed = codes$exposure, position = "any")
 
+# Cache key: the cached design is rebuilt when any of these change. The
+# invented example is left out of the file check because its folder is new on
+# every render.
+data_files <- list.files(input_path, pattern = "[.]parquet$",
+  recursive = TRUE, full.names = TRUE)[!is_example]
+data_info <- file.info(data_files)
+design_key <- list(
+  package = as.character(utils::packageVersion("easyNIS")),
+  years = params$years, codes = codes, cohort = rlang::expr_text(cohort),
+  annualize = annualize,
+  data = list(basename(data_files), data_info$size, data_info$mtime)
+)
+```
+
+```{r}
+#| label: design
+#| cache: true
+#| cache.extra: !expr design_key
 study_design <- rlang::inject(
   nis_design(
     nis_data,
@@ -63,7 +85,10 @@ study_design <- rlang::inject(
     dollars = max(params$years)
   )
 )
+```
 
+```{r}
+#| label: design-summary
 cohort_n <- nrow(study_design$variables)
 n_hospitals <- dplyr::n_distinct(
   study_design$variables$YEAR,
@@ -99,44 +124,39 @@ scientific approval.
 
 ## Cohort flow
 
-The flow summaries stay lazy until each aggregate is collected. The final row
-uses the same diagnosis and age expression passed to `nis_design()`.
+The first three rows are lazy aggregates over the opened data. The final row
+comes from the survey design, which also drops discharges with a missing or
+non-positive `DISCWT`, `NIS_STRATUM`, or `HOSP_NIS`.
 
 ```{r}
-flow_all <- nis_data |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "All discharges")
+#| label: flow
+flow_summary <- function(data, step) {
+  data |>
+    dplyr::summarise(
+      n = dplyr::n(),
+      weighted_discharges = sum(DISCWT, na.rm = TRUE)
+    ) |>
+    dplyr::collect() |>
+    dplyr::mutate(step = step)
+}
 
-flow_principal_dx <- nis_data |>
-  dplyr::filter(principal_dx) |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "Principal diagnosis prefix")
-
-flow_cohort <- rlang::inject(dplyr::filter(nis_data, !!cohort)) |>
-  dplyr::summarise(
-    n = dplyr::n(),
-    weighted_discharges = sum(DISCWT, na.rm = TRUE)
-  ) |>
-  dplyr::collect() |>
-  dplyr::mutate(step = "Final analysis cohort")
-
-flow_raw <- dplyr::bind_rows(flow_all, flow_principal_dx, flow_cohort)
-stopifnot(
-  flow_cohort$n[[1L]] == nrow(study_design$variables),
-  isTRUE(all.equal(
-    flow_cohort$weighted_discharges[[1L]],
-    sum(study_design$variables$DISCWT),
-    tolerance = 1e-8
-  ))
+flow_all <- flow_summary(nis_data, "All discharges")
+flow_principal_dx <- flow_summary(
+  dplyr::filter(nis_data, principal_dx), "Principal diagnosis prefix"
 )
+flow_cohort <- flow_summary(
+  rlang::inject(dplyr::filter(nis_data, !!cohort)), "Cohort definition"
+)
+flow_analysis <- dplyr::tibble(
+  n = cohort_n,
+  weighted_discharges = sum(study_design$variables$DISCWT),
+  step = "Analysis cohort (valid survey design)"
+)
+
+flow_raw <- dplyr::bind_rows(
+  flow_all, flow_principal_dx, flow_cohort, flow_analysis
+)
+stopifnot(flow_analysis$n[[1L]] <= flow_cohort$n[[1L]])
 flow_display <- flow_raw |>
   dplyr::mutate(
     discharges = dplyr::if_else(
@@ -160,6 +180,9 @@ if (knitr::is_html_output()) {
 ## Table 1
 
 ```{r}
+#| label: table-one
+#| cache: true
+#| dependson: design
 table_one <- gtsummary::tbl_svysummary(
   study_design,
   by = exposed,
@@ -179,6 +202,9 @@ if (knitr::is_html_output()) {
 ## Outcomes
 
 ```{r}
+#| label: outcomes
+#| cache: true
+#| dependson: design
 outcome_table <- gtsummary::tbl_svysummary(
   study_design,
   include = c(DIED, LOS, cost_adj),
@@ -199,6 +225,9 @@ The trend chart omits years with 10 or fewer cohort discharges. The table
 masks each displayed estimate and count for those years.
 
 ```{r}
+#| label: trends
+#| cache: true
+#| dependson: design
 trend <- study_design |>
   dplyr::mutate(
     .died = as.numeric(DIED == "Yes"),
@@ -276,6 +305,10 @@ Regression coefficients and confidence intervals are model estimates rather
 than discharge counts, so the regression tables are displayed.
 
 ```{r}
+#| label: models
+#| cache: true
+#| dependson: design
+#| cache.extra: !expr list(exposure, covariates, outcomes)
 models <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
   model_family <- switch(
@@ -303,7 +336,10 @@ family_tables <- purrr::map(split(seq_len(nrow(outcomes)), outcomes$family), fun
     tab_spanner = paste0("**", outcomes$outcome[rows], "**")
   )
 })
+```
 
+```{r}
+#| label: model-tables
 for (family_table in family_tables) {
   if (knitr::is_html_output()) {
     print(gtsummary::as_gt(family_table))

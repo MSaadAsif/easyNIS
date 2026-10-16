@@ -80,3 +80,43 @@ test_that("ICD flags compare stored codes byte for byte and never fail on malfor
   expect_identical(actual$principal_hf, c(TRUE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE))
   expect_identical(add_flags(data), actual)
 })
+
+test_that("ICD flags read the current lazy projection, not the stored columns", {
+  data <- dplyr::tibble(
+    pick = c(1L, 2L, 1L, 2L, 1L),
+    I10_DX1 = c("Z0000", "Z0000", "C004", "A1299", NA_character_),
+    I10_DX2 = c("C004", "A1299", "Z0000", "Z0000", "Z0000"),
+    I10_PR1 = c("0AAAAAA", "0BBBBBB", "0AAAAAA", "0BBBBBB", NA_character_)
+  )
+  data_path <- tempfile("nis-lazy-")
+  dir.create(data_path)
+  on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
+  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- arrow::open_dataset(data_path)
+
+  prepare_and_flag <- function(.data) {
+    .data |>
+      dplyr::mutate(
+        I10_DX1 = dplyr::if_else(pick == 1L, "A1234", "C004"),
+        I10_DX3 = dplyr::if_else(pick == 2L, "B5678", NA_character_),
+        I10_PR1 = dplyr::if_else(pick == 1L, "02L73DK", "0JH60DZ")
+      ) |>
+      nis_flag_dx(
+        one_prefix = "A12", several = c("A12", "B56", "C0"), position = "any"
+      ) |>
+      nis_flag_dx(first_slot = c("A1", "C004"), position = "principal") |>
+      nis_flag_dx(late_slot = "B5", position = "secondary") |>
+      nis_flag_pr(procedure = "02L", position = "any")
+  }
+  expected <- prepare_and_flag(data)
+  lazy <- prepare_and_flag(query)
+  expect_true(inherits(lazy, "arrow_dplyr_query"))
+  actual <- dplyr::collect(lazy)
+
+  expect_identical(actual, expected)
+  expect_identical(actual$one_prefix, c(TRUE, TRUE, TRUE, FALSE, TRUE))
+  expect_identical(actual$several, c(TRUE, TRUE, TRUE, TRUE, TRUE))
+  expect_identical(actual$first_slot, c(TRUE, TRUE, TRUE, TRUE, TRUE))
+  expect_identical(actual$late_slot, c(FALSE, TRUE, FALSE, TRUE, FALSE))
+  expect_identical(actual$procedure, c(TRUE, FALSE, TRUE, FALSE, TRUE))
+})
