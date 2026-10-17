@@ -18,3 +18,4 @@
 ^worktrees($|[/\\])
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
+^_pkgdown\.yml$
