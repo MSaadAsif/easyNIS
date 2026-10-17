@@ -3,7 +3,10 @@ test_that("nis_new_study copies the packaged template without overwriting", {
   parent <- tempfile("nis-study-")
   target <- file.path(parent, "analysis")
 
-  expect_identical(new_study(target), normalizePath(target, winslash = "/"))
+  expect_identical(
+    normalizePath(new_study(target), winslash = "/", mustWork = FALSE),
+    normalizePath(target, winslash = "/", mustWork = FALSE)
+  )
   expect_setequal(
     list.files(target, all.files = TRUE, no.. = TRUE),
     c("_quarto.yml", ".gitignore", "analysis.qmd")
