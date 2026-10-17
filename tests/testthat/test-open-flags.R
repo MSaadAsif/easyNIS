@@ -17,6 +17,55 @@ test_that("nis_open stays lazy and unifies the 2022 APR-DRG case drift", {
   expect_error(nis_open(path, years = 2011), "before 2012")
 })
 
+test_that("2023 layout opens without optional geography and keeps year-scoped IDs", {
+  path <- tempfile("nis-2023-layout-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+
+  year_2022 <- file.path(path, "NIS_2022.parquet")
+  year_2023 <- file.path(path, "NIS_2023.parquet")
+  dir.create(year_2022)
+  dir.create(year_2023)
+  data_2022 <- dplyr::tibble(
+    YEAR = rep(2022L, 2L), HOSP_NIS = 101:102, NIS_STRATUM = c(1L, 1L),
+    DISCWT = c(1, 1), eligible = c(TRUE, TRUE), AGE = c(50, 60),
+    TOTCHG = c(1000, 1100), CCR_NIS = c(0.25, 0.25),
+    HOSP_REGION = c(1L, 1L), HOSP_DIVISION = c(1L, 1L), RACE = c(1L, 2L)
+  )
+  data_2023 <- dplyr::tibble(
+    YEAR = rep(2023L, 2L), HOSP_NIS = 101:102, NIS_STRATUM = c(1L, 1L),
+    DISCWT = c(1, 1), eligible = c(TRUE, TRUE), AGE = c(70, 80),
+    TOTCHG_2023 = c(2000, 2200), CCR_NIS = c(0.25, 0.25), PL_NCHS2 = c(21L, 22L)
+  )
+  arrow::write_parquet(data_2022, file.path(year_2022, "part-0.parquet"))
+  arrow::write_parquet(data_2023, file.path(year_2023, "part-0.parquet"))
+
+  latest <- nis_open(path, years = 2023L)
+  expect_true(inherits(latest, "arrow_dplyr_query"))
+  expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% names(latest)))
+  expect_true("TOTCHG_2023" %in% names(latest))
+  expect_identical(
+    latest |> dplyr::select(TOTCHG) |> dplyr::collect() |> dplyr::pull(),
+    c(2000, 2200)
+  )
+  latest_design <- latest |>
+    nis_design(eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023)
+  expect_equal(nrow(latest_design$variables), 2L)
+  expect_true(all(is.finite(latest_design$variables$cost_adj)))
+
+  combined <- nis_open(path, years = 2022:2023) |>
+    nis_design(eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023)
+  variables <- combined$variables
+  expect_setequal(variables$.nis_psu,
+    c("2022::101", "2022::102", "2023::101", "2023::102"))
+  expect_setequal(variables$.nis_stratum, c("2022::1", "2023::1"))
+  expect_equal(
+    variables$TOTCHG[order(variables$YEAR, variables$HOSP_NIS)],
+    c(1000, 1100, 2000, 2200)
+  )
+  expect_true(all(is.finite(variables$cost_adj)))
+})
+
 test_that("ICD flags match prefixes by slot and behave the same on Arrow", {
   data <- dplyr::tibble(
     I10_DX1 = c("I5090", "J189", "I5", NA_character_, "E119"),

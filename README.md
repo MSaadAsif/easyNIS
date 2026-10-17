@@ -35,3 +35,12 @@ experimental pending scientific approval.
 
 Use `nis_example()` for invented offline data. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output.
+
+NIS 2023 layout support is experimental. `nis_open()` accepts the 2023 layout
+without `HOSP_REGION` and `HOSP_DIVISION`, retains `HOSP_NIS` and
+`NIS_STRATUM`, and scopes both design identifiers by `YEAR`. The 2023
+`TOTCHG_2023` field is retained and also supplies the harmonized `TOTCHG`
+column; HCUP adjusts this field to account for states unavailable in 2023, so
+its charge estimates are not directly comparable with earlier years. The
+removed `RACE` field is optional, and the coarser `PL_NCHS2` field is labelled
+when present.

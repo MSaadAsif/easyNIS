@@ -12,7 +12,10 @@ nis_open(path, years = NULL)
 \item{years}{Optional years to open. Defaults to every matching year.}
 }
 \value{
-A lazy Arrow query with case-normalized columns.
+A lazy Arrow query with case-normalized columns. For 2023 layouts,
+\code{TOTCHG_2023} is retained and also supplies the harmonized \code{TOTCHG} column
+used by existing cost workflows. The 2023 field is HCUP-adjusted for
+national estimates and is not directly comparable to earlier-year charges.
 }
 \description{
 Open annual NIS Parquet files lazily
