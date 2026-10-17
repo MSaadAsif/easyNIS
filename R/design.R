@@ -15,12 +15,26 @@
 #' strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
 #' data.
 #'
+#' @section Invalid design fields:
 #' Discharges whose `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` is missing,
-#' non-finite, or not positive cannot be placed in a survey design. They are
-#' excluded before the cohort is applied, with a warning that gives their
-#' number. The query is scanned twice: once over the four design columns, and
-#' once to collect the cohort rows, so the cohort expression is evaluated one
-#' time over the full data.
+#' non-finite, or not positive are excluded before the cohort is applied.
+#' HCUP specifies `DISCWT` as the discharge weight, `NIS_STRATUM` as the
+#' stratum, and `HOSP_NIS` as the hospital cluster
+#' ([variance guidance](https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp);
+#' [2017 NIS introduction](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2017.jsp));
+#' HCUP also documents missing and invalid coding conventions
+#' ([coding conventions](https://hcup-us.ahrq.gov/db/coding.jsp)). Records
+#' with invalid values cannot be placed in the documented design as supplied.
+#' Exclusion is not a claim that these records have zero population weight or
+#' that estimates are unbiased. Report the excluded count and affected fields,
+#' and consider whether conclusions could depend on them. The returned design
+#' has a `nis_excluded` attribute containing aggregate `total`, `by_field`,
+#' and `by_year` counts; `by_year` includes years with exclusions when the
+#' year is itself valid. A discharge can fail more than one field.
+#'
+#' The query is scanned twice: once over the four design columns, and once to
+#' collect the cohort rows, so the cohort expression is evaluated one time over
+#' the full data.
 #'
 #' @param .data Lazy Arrow query or data frame.
 #' @param cohort Logical data-masked cohort expression. Missing values are
@@ -66,7 +80,8 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.")
   }
   reserved <- c(".in_cohort", ".nis_cohort", ".nis_valid",
-    ".nis_psu", ".nis_stratum", ".nis_weight")
+    ".nis_psu", ".nis_stratum", ".nis_weight", ".nis_bad_YEAR",
+    ".nis_bad_HOSP_NIS", ".nis_bad_NIS_STRATUM", ".nis_bad_DISCWT")
   if (any(reserved %in% names(.data))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.")
   }
@@ -90,19 +105,22 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   prepared <- dplyr::mutate(
     .data,
     .nis_cohort = !!cohort_quo,
-    .nis_valid = dplyr::coalesce(
-      is.finite(YEAR) & YEAR > 0 &
-        is.finite(HOSP_NIS) & HOSP_NIS > 0 &
-        is.finite(NIS_STRATUM) & NIS_STRATUM > 0 &
-        is.finite(DISCWT) & DISCWT > 0,
-      FALSE
-    )
+    .nis_bad_YEAR = !dplyr::coalesce(is.finite(YEAR) & YEAR > 0, FALSE),
+    .nis_bad_HOSP_NIS = !dplyr::coalesce(is.finite(HOSP_NIS) & HOSP_NIS > 0, FALSE),
+    .nis_bad_NIS_STRATUM = !dplyr::coalesce(is.finite(NIS_STRATUM) & NIS_STRATUM > 0, FALSE),
+    .nis_bad_DISCWT = !dplyr::coalesce(is.finite(DISCWT) & DISCWT > 0, FALSE),
+    .nis_valid = !(.data[[".nis_bad_YEAR"]] | .data[[".nis_bad_HOSP_NIS"]] |
+      .data[[".nis_bad_NIS_STRATUM"]] | .data[[".nis_bad_DISCWT"]])
   )
 
   # Scan 1 reads only the design columns, because Arrow drops the cohort
   # expression from the projection when it is not selected.
   design_groups <- prepared |>
-    dplyr::group_by(.nis_valid, YEAR, HOSP_NIS, NIS_STRATUM) |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(
+      ".nis_valid", ".nis_bad_YEAR", ".nis_bad_HOSP_NIS",
+      ".nis_bad_NIS_STRATUM", ".nis_bad_DISCWT", "YEAR", "HOSP_NIS",
+      "NIS_STRATUM"
+    )))) |>
     dplyr::summarise(
       DISCWT = min(dplyr::if_else(.nis_valid, DISCWT, Inf)),
       n = dplyr::n(),
@@ -111,10 +129,34 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     nis_collect()
   # nolint end
   excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
+  excluded_by_field <- stats::setNames(
+    vapply(c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"), function(field) {
+      sum(design_groups$n[design_groups[[paste0(".nis_bad_", field)]]])
+    }, integer(1)),
+    c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
+  )
+  year_counts <- design_groups |>
+    dplyr::filter(.nis_valid == FALSE, is.finite(YEAR), YEAR > 0) |>
+    dplyr::group_by(YEAR) |>
+    dplyr::summarise(n = sum(.data$n), .groups = "drop") |>
+    dplyr::arrange(YEAR)
+  excluded <- list(
+    total = excluded_count,
+    by_field = excluded_by_field,
+    by_year = year_counts
+  )
   if (excluded_count > 0L) {
+    by_field_text <- paste0(names(excluded_by_field), ": ", excluded_by_field,
+      collapse = ", ")
+    year_text <- if (nrow(year_counts) > 1L) {
+      paste0(" Affected valid years: ", paste0(year_counts$YEAR, ": ", year_counts$n, collapse = ", "), ".")
+    } else {
+      ""
+    }
     cli::cli_warn(paste0(
-      "Excluded {excluded_count} discharge{?s} with a missing or invalid ",
-      "`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` before applying the cohort."
+      "Excluded {excluded_count} discharge{?s} with invalid design fields (",
+      by_field_text, "); a discharge can fail more than one field. Exclusion happens before cohort filtering.",
+      year_text
     ))
   }
   hospital_rows <- design_groups[design_groups$.nis_valid, design_fields]
@@ -202,7 +244,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
   ))
-  nis_cohort_design(combined)
+  design <- nis_cohort_design(combined)
+  attr(design, "nis_excluded") <- excluded
+  design
 }
 
 #' Reweight a cohort survey design
@@ -275,7 +319,9 @@ nis_reweight <- function(design, weights) {
     label <- attr(variables[[name]], "label", exact = TRUE)
     if (!is.null(label)) attr(combined[[name]], "label") <- label
   }
-  nis_cohort_design(combined)
+  reweighted <- nis_cohort_design(combined)
+  attr(reweighted, "nis_excluded") <- attr(design, "nis_excluded", exact = TRUE)
+  reweighted
 }
 
 # Cohort rows plus placeholder rows (`.in_cohort == FALSE`) in one nested
