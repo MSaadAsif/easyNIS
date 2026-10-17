@@ -8,22 +8,24 @@ nis_suppress(x, threshold = 10)
 }
 \arguments{
 \item{x}{A \code{gtsummary::tbl_svysummary()} result, optionally with \code{add_p()}
-and \code{add_overall()}.}
+or \code{add_overall()}.}
 
 \item{threshold}{Maximum unweighted cell count to suppress.}
 }
 \value{
-The table with small statistics masked and a footnote saying so.
+The table with primary and secondary masks and a footnote describing
+them.
 }
 \description{
 Replaces displayed statistics when their corresponding unweighted count is
 at or below \code{threshold}. Counts come from the \code{cards} computed by
-\code{gtsummary::tbl_svysummary()}. Primary masking is applied, and when a
-by-group cell is masked the overall cell (\code{stat_0}) in the same row is masked
-too, so \code{gtsummary::add_overall()} cannot reveal it by subtraction. Other
-complements, such as those derived from column totals across levels, are not
-masked, so analysts must review tables for other derivable cells before
-sharing them.
+\code{gtsummary::tbl_svysummary()}. Continuous2 statistic rows use the
+non-missing count for their corresponding output column. If that count is
+absent, ambiguous, or non-finite for a displayed statistic, the function
+errors; blank statistic cells do not require a count. When a by-group cell
+is masked, the overall cell (\code{stat_0}) in the same row is marked \code{Masked},
+unless its own count is at or below the threshold. Other derivable cells
+still need analyst review before sharing.
 }
 \examples{
 if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
