@@ -10,7 +10,9 @@
 
 ## Core workflow
 
-- Added experimental 2012–2015 opening, explicit `system = "icd9"` prefix
+- `nis_design()` now warns when the charge column is entirely missing for a
+  year, or when a year has hospitals but no cohort discharges. `annualize`
+  divides by the number of distinct `YEAR` values, so a partial year X experimental 2012–2015 opening, explicit `system = "icd9"` prefix
   flags, metadata guards, and invented historical/split-2015 fixtures.
   ICD-10 remains the default; cross-era clinical definitions are analyst supplied.
 - Experimental NIS 2023 layout support, UNVERIFIED against official HCUP 2023
@@ -22,8 +24,7 @@
   contains `TOTCHG_2023`, because HCUP's national-estimate adjustment makes it
   not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
   gain a `charges` argument (default `"TOTCHG"`); pass `"TOTCHG_2023"` or
-  pool explicitly with `mutate()` to opt in. `PL_NCHS2` is labelled; geography
-  columns remain optional. Hospital and stratum IDs stay qualified by year.
+  pool explicitly with `mutate()` to opt in. Geography columns remain optional. Hospital and stratum IDs stay qualified by year.
 - Replaced the archived API with lazy annual Parquet opening, ICD-10 prefix
   flags, a domain survey design, HCUP labels, CPI-adjusted charges and costs,
   cell suppression, and an invented six-year fixture.
@@ -37,6 +38,7 @@
   UTF-8 cannot raise a matching error.
 
 ## Experimental helpers
+
 - Added experimental `nis_reweight()` for multiplying cohort survey weights
   while retaining placeholder rows, with an optional commented WeightIt and
   cobalt example in the study template.
@@ -45,11 +47,14 @@
   frame or an `nis_design()` result from `I10_DX1`, `I10_DX2`, ... by delegating
   to the suggested `medicalcoder` package. Present-on-admission is not used,
   `I10_DX1` is the principal diagnosis, and the output is not expected to
-  match the Stata-derived `ynel*` and `elixsum` columns.
+  match the Stata-derived `ynel*` and `elixsum` columns. ICD-10 only: rows
+  with no usable `I10_DX*` code, such as ICD-9-era discharges, get `NA` and a
+  warning rather than zeros.
 - Added experimental `nis_ccsr_codes()`, which reads an HCUP DXCCSR or PRCCSR
   reference file you download (Excel with readxl, or comma-separated) and
   returns the ICD-10 codes in chosen CCSR categories, optionally only where the
   category is the default inpatient assignment. Pass the codes to
-  `nis_flag_dx()` or `nis_flag_pr()`. No CCSR content is bundled.
+  `nis_flag_dx()` or `nis_flag_pr()`. No CCSR content is bundled. The file
+  layouts are UNVERIFIED; malformed rows and non-ICD-10 codes are rejected.
 - Added a vignette on porting existing NIS study code, and CI workflows for
   linting, test coverage and rendering the study template.

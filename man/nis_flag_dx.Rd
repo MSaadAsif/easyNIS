@@ -39,8 +39,8 @@ through Q3 2015. A prefix is only ever compared with slots of the chosen
 system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
 
 In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
-ICD-10 codes. HCUP recommends \code{DXVER} (9 or 10) to distinguish them,
-because \code{DQTR} can be missing; \code{PRVER} describes the procedure system.
+ICD-10 codes. HCUP is understood to recommend \code{DXVER} (9 or 10) to
+distinguish them, because \code{DQTR} can be missing (UNVERIFIED: secondhand); \code{PRVER} describes the procedure system.
 Non-missing version indicators must agree with \code{system}; non-missing
 \code{YEAR} and, in 2015, \code{DQTR} must also agree. Conflicting or invalid
 indicators yield \code{FALSE}. Missing indicators rely on the slot namespace:
