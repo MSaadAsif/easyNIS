@@ -13,7 +13,9 @@ nis_label(data)
 \code{data} with known coded elements as factors and variable labels in
 \code{attr(x, "label")}. Unknown codes are retained as \verb{Code <value>} levels
 with one warning per variable. Existing labels and labelled comorbidity
-fields are preserved. The operation is idempotent.
+fields are preserved. The 2023 \code{PL_NCHS2} collapsed geography field and
+\code{TOTCHG_2023} total-charge field are labelled when present. The operation
+is idempotent.
 
 Negative numeric sentinels are not converted to missing values. The supplied
 HCUP documentation represents missing numeric values as system missing and

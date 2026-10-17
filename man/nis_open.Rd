@@ -15,7 +15,17 @@ codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
 }
 \value{
-A lazy Arrow query with case-normalized columns.
+A lazy Arrow query with case-normalized columns. Experimental 2023
+layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
+because the 2023 field is HCUP-adjusted for national estimates and is not
+comparable to earlier-year charges. Opening a query that contains
+\code{TOTCHG_2023} warns once per session. To use it, pass
+\code{charges = "TOTCHG_2023"} to \code{\link[=nis_design]{nis_design()}} or \code{\link[=nis_cost]{nis_cost()}}, or pool
+explicitly with \code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))}.
+
+The 2023 layout facts used here (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and
+\code{HOSP_DIVISION}, sequential \code{NIS_STRATUM}) are UNVERIFIED against official
+HCUP 2023 documentation and real 2023 data; none were available for testing.
 }
 \description{
 Open annual NIS Parquet files lazily

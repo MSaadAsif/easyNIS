@@ -5,6 +5,15 @@
 #' placeholder-row method is experimental and is gated against a full-data
 #' design. After this function returns, `filter()` may only narrow the declared
 #' cohort; it cannot define a new cohort.
+#' Hospital geography columns are optional. Hospital and stratum identifiers
+#' are scoped by year (`YEAR` + `HOSP_NIS` and `YEAR` + `NIS_STRATUM`), because
+#' HCUP reassigns hospital numbers annually and 2023 stratum codes are
+#' sequential. Costs and charges use `TOTCHG` only, unless `charges` names
+#' another column such as `TOTCHG_2023`; nothing is coalesced silently, because
+#' the 2023 field is not comparable to earlier-year `TOTCHG`. The 2023 layout
+#' facts (`TOTCHG_2023`, removed `HOSP_REGION` and `HOSP_DIVISION`, sequential
+#' strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
+#' data.
 #'
 #' Discharges whose `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` is missing,
 #' non-finite, or not positive cannot be placed in a survey design. They are
@@ -20,6 +29,12 @@
 #' @param keep Tidyselect expression naming analysis columns to collect.
 #' @param annualize Divide discharge weights by the number of included years.
 #' @param dollars Optional reference dollar year for adjusted costs and charges.
+#'   When supplied, keep `CCR_NIS` and the `charges` column.
+#' @param charges Name of the total-charge column used for adjusted costs and
+#'   charges. Defaults to `"TOTCHG"`. Use `"TOTCHG_2023"` for 2023-only
+#'   analyses, or build a pooled column explicitly with
+#'   `dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))` before
+#'   calling; either choice mixes charge definitions across years.
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
@@ -37,7 +52,11 @@
 #'   discharges = srvyr::survey_total(),
 #'   mean_age = srvyr::survey_mean(AGE)
 #' )
-nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
+nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
+                       charges = "TOTCHG") {
+  if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
+    cli::cli_abort("`charges` must be a single column name.")
+  }
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.")
   }
@@ -128,14 +147,14 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
   year_count <- length(unique(hospital_rows$YEAR))
   combined$.nis_weight <- combined$DISCWT / if (annualize) year_count else 1
 
-  combined <- nis_label(combined)
-  has_cost_inputs <- all(c("TOTCHG", "CCR_NIS") %in% keep_names)
+  has_cost_inputs <- all(c(charges, "CCR_NIS") %in% keep_names)
   if (!is.null(dollars) && !has_cost_inputs) {
-    cli::cli_abort("Keep both `TOTCHG` and `CCR_NIS` when requesting `dollars`.")
+    cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
+  combined <- nis_label(combined)
   if (has_cost_inputs) {
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
-    combined <- nis_cost(combined, dollars = dollars)
+    combined <- nis_cost(combined, dollars = dollars, charges = charges)
   }
 
   # nolint next: object_usage_linter. Used by cli interpolation below.

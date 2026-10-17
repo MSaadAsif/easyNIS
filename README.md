@@ -95,3 +95,15 @@ indicators. Supply the correct annual CCR; no cost file is bundled.
 
 The evidence level (verified versus assumed layout facts) and input
 assumptions are recorded in `docs/ICD9-SUPPORT.md`.
+
+NIS 2023 layout support is experimental and UNVERIFIED against official HCUP
+2023 documentation and real 2023 data (none was available for testing).
+`nis_open()` accepts the 2023 layout without `HOSP_REGION` and `HOSP_DIVISION`,
+retains `HOSP_NIS` and `NIS_STRATUM`, and scopes both design identifiers by
+`YEAR`. The 2023 `TOTCHG_2023` field is kept as its own column and `TOTCHG` is
+never altered: HCUP adjusts `TOTCHG_2023` for states unavailable in 2023, so it
+is not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
+use `TOTCHG` unless you opt in with `charges = "TOTCHG_2023"`, or pool
+deliberately with `mutate(TOTCHG = coalesce(TOTCHG_2023, TOTCHG))`. Opening a
+query with `TOTCHG_2023` warns once per session. The removed `RACE` field is
+optional, and the coarser `PL_NCHS2` field is labelled when present.

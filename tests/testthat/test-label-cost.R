@@ -26,6 +26,8 @@ test_that("nis_label maps common codes and preserves existing labels", {
     RACE = c(1, 2, 3),
     PAY1 = c(1, 2, 3),
     DISPUNIFORM = c(20, 21, 99),
+    PL_NCHS2 = c(21, 22, 21),
+    TOTCHG_2023 = c(1000, 2000, 3000),
     AGE = c(40, -9, -8),
     LOS = c(2, -6, 5),
     ynel1 = structure(c(0, 1, NA_real_), label = "Existing Elixhauser label")
@@ -41,6 +43,11 @@ test_that("nis_label maps common codes and preserves existing labels", {
     "Died in hospital", "Code 21",
     "Alive, destination unknown"
   ))
+  expect_identical(as.character(labelled$PL_NCHS2), c(
+    "Metropolitan", "Non-metropolitan", "Metropolitan"
+  ))
+  expect_identical(attr(labelled$TOTCHG_2023, "label"),
+    "Total charges, USD, adjusted for national estimates (2023)")
   expect_equal(as.numeric(labelled$AGE), c(40, -9, -8))
   expect_equal(as.numeric(labelled$LOS), c(2, -6, 5))
   expect_identical(attr(labelled$AGE, "label"), "Age, years")
@@ -134,6 +141,13 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
   expect_identical(attr(adjusted$cost_adj, "label"), "Hospital cost (2022 USD)")
   expect_identical(attr(adjusted$charges_adj, "label"), "Total charges (2022 USD)")
   expect_error(nis_cost(data, dollars = 2025), "2012 through 2024")
+
+  other <- dplyr::tibble(YEAR = 2023, TOTCHG = 1, TOTCHG_2023 = 4000, CCR_NIS = 0.5)
+  explicit <- nis_cost(other, dollars = 2023, charges = "TOTCHG_2023")
+  expect_equal(as.numeric(explicit$charges_adj), 4000)
+  expect_equal(as.numeric(explicit$cost_adj), 2000)
+  expect_equal(as.numeric(nis_cost(other, dollars = 2023)$charges_adj), 1)
+  expect_error(nis_cost(other, dollars = 2023, charges = "MISSING"), "MISSING")
 })
 
 test_that("common labels and cost adjustment work in experimental ICD-9 years", {
