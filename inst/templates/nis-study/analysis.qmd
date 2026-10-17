@@ -354,6 +354,8 @@ for (family_table in family_tables) {
 
 Fit propensity weights to cohort rows from the design. The resulting survey
 design keeps the placeholder rows needed for domain variance estimation.
+This block needs two packages that easyNIS does not depend on; install them
+first with `install.packages(c("WeightIt", "cobalt"))`.
 
 ```r
 cohort_data <- study_design$variables
