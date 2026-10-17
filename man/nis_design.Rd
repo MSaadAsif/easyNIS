@@ -57,14 +57,29 @@ facts (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and \code{HOSP_DIVISION}, 
 strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
 data.
 }
-\details{
+\section{Invalid design fields}{
+
 Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,
-non-finite, or not positive cannot be placed in a survey design. They are
-excluded before the cohort is applied, with a warning that gives their
-number. The query is scanned twice: once over the four design columns, and
-once to collect the cohort rows, so the cohort expression is evaluated one
-time over the full data.
+non-finite, or not positive are excluded before the cohort is applied.
+HCUP specifies \code{DISCWT} as the discharge weight, \code{NIS_STRATUM} as the
+stratum, and \code{HOSP_NIS} as the hospital cluster
+(\href{https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp}{variance guidance};
+\href{https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2017.jsp}{2017 NIS introduction});
+HCUP also documents missing and invalid coding conventions
+(\href{https://hcup-us.ahrq.gov/db/coding.jsp}{coding conventions}). Records
+with invalid values cannot be placed in the documented design as supplied.
+Exclusion is not a claim that these records have zero population weight or
+that estimates are unbiased. Report the excluded count and affected fields,
+and consider whether conclusions could depend on them. The returned design
+has a \code{nis_excluded} attribute containing aggregate \code{total}, \code{by_field},
+and \code{by_year} counts; \code{by_year} includes years with exclusions when the
+year is itself valid. A discharge can fail more than one field.
+
+The query is scanned twice: once over the four design columns, and once to
+collect the cohort rows, so the cohort expression is evaluated one time over
+the full data.
 }
+
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")

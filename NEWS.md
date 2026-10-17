@@ -54,6 +54,12 @@
 
 ## Experimental helpers
 
+- `nis_design()` reports aggregate exclusions by invalid design field and by
+  affected year, stores the counts in the `nis_excluded` design attribute, and
+  documents why rows with invalid `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or
+  `DISCWT` cannot be represented in the supplied survey design. `nis_reweight()`
+  preserves column labels when rebuilding designs, including after comorbidity
+  scoring.
 - Added experimental `nis_reweight()` for multiplying cohort survey weights
   while retaining placeholder rows, with an optional commented WeightIt and
   cobalt example in the study template.
