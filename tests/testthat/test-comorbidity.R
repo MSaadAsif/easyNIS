@@ -59,18 +59,17 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
       codes[["AIDS"]])
   )
 
-  out <- nis_comorbidity(data)
+  expect_warning(out <- nis_comorbidity(data), "2 rows")
 
   expect_identical(out$KEY, 1:6)
-  expect_identical(out$cmrb_aids, c(FALSE, FALSE, FALSE, TRUE, FALSE, TRUE))
-  expect_identical(out$cmrb_dementia, c(FALSE, FALSE, FALSE, FALSE, TRUE, TRUE))
-  expect_identical(out$cmrb_n, c(0L, 0L, 0L, 1L, 1L, 2L))
+  expect_identical(out$cmrb_aids, c(FALSE, NA, NA, TRUE, FALSE, TRUE))
+  expect_identical(out$cmrb_dementia, c(FALSE, NA, NA, FALSE, TRUE, TRUE))
+  expect_identical(out$cmrb_n, c(0L, NA, NA, 1L, 1L, 2L))
 
-  one_at_a_time <- do.call(rbind, lapply(seq_len(nrow(data)), function(i) {
-    nis_comorbidity(data[i, ])
-  }))
+  one_at_a_time <- suppressWarnings(do.call(rbind, lapply(seq_len(nrow(data)),
+    function(i) nis_comorbidity(data[i, ]))))
   expect_identical(out, one_at_a_time)
-  expect_identical(nis_comorbidity(data[rev(seq_len(6)), ]),
+  expect_identical(suppressWarnings(nis_comorbidity(data[rev(seq_len(6)), ])),
     out[rev(seq_len(6)), ])
   expect_s3_class(out, "tbl_df")
   expect_identical(names(out)[1:4], names(data))
@@ -94,21 +93,42 @@ test_that("I10_DX1 is passed as the principal diagnosis", {
   expect_true(out$cmrb_hf[[2L]])
 })
 
-test_that("a discharge with no usable code gets zeros, including malformed text", {
+test_that("a discharge with no usable code gets NA and a warning, not zeros", {
   skip_if_not_installed("medicalcoder")
   malformed <- rawToChar(as.raw(c(0x49, 0x35, 0x30, 0xff, 0xfe)))
   data <- dplyr::tibble(
-    I10_DX1 = c(NA_character_, malformed, "ZZZ99"),
+    I10_DX1 = c(NA_character_, malformed, "ZZZ99", ""),
     I10_DX2 = NA_character_
   )
-  out <- nis_comorbidity(data)
-  expect_identical(out$cmrb_n, c(0L, 0L, 0L))
-  expect_false(any(out$cmrb_any))
-  expect_identical(out$cmrb_mortality_index, c(0L, 0L, 0L))
+  expect_warning(out <- nis_comorbidity(data), "3 rows")
+  expect_identical(out$cmrb_n[c(1, 2, 4)], rep(NA_integer_, 3L))
+  expect_identical(out$cmrb_n[[3L]], 0L)
+  expect_identical(out$cmrb_any, c(NA, NA, FALSE, NA))
+  expect_identical(out$cmrb_mortality_index[[3L]], 0L)
+  expect_true(all(is.na(out$cmrb_hf[c(1, 2, 4)])))
+  expect_identical(out$cmrb_hf[[3L]], FALSE)
+  expect_true(all(vapply(out[grepl("^cmrb_", names(out))][c(1, 2, 4), ],
+    function(column) all(is.na(column)), logical(1))))
 
-  empty <- nis_comorbidity(data[0, ])
+  all_usable <- dplyr::tibble(I10_DX1 = "ZZZ99")
+  expect_no_warning(nis_comorbidity(all_usable))
+
+  expect_no_warning(empty <- nis_comorbidity(data[0, ]))
   expect_identical(nrow(empty), 0L)
-  expect_identical(names(empty), names(out))
+  expect_identical(names(empty), names(suppressWarnings(nis_comorbidity(data))))
+})
+
+test_that("ICD-9-era rows are NA while ICD-10 rows in the same data are scored", {
+  skip_if_not_installed("medicalcoder")
+  codes <- single_codes("AIDS")
+  data <- dplyr::tibble(
+    YEAR = c(2014L, 2016L),
+    I10_DX1 = c(NA_character_, "ZZZ99"),
+    I10_DX2 = c(NA_character_, codes[["AIDS"]])
+  )
+  expect_warning(out <- nis_comorbidity(data), "no usable")
+  expect_identical(out$cmrb_any, c(NA, TRUE))
+  expect_identical(out$cmrb_n, c(NA, 1L))
 })
 
 test_that("method and prefix options and input errors are explicit", {

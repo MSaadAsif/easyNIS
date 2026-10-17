@@ -21,9 +21,16 @@
 #'   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for example, a
 #'   condition is not flagged from the principal diagnosis alone where AHRQ
 #'   excludes it). Codes in `I10_DX2` onward are secondary.
-#' * Codes are upper-cased with periods and spaces removed. Blank, missing,
-#'   malformed or unmapped codes contribute nothing; a discharge with no
-#'   usable code gets zeros.
+#' * **ICD-10 only.** Only the `I10_DX*` columns are read. A discharge with no
+#'   usable `I10_DX*` code (all blank, missing or malformed), such as an ICD-9
+#'   discharge from before October 2015, gets `NA` in every added column, and
+#'   the function warns with the number of such rows. Do not treat those `NA`
+#'   values as "no comorbidity".
+#' * Codes are upper-cased with periods and spaces removed. Blank, missing or
+#'   malformed codes are ignored, and an unmapped code adds no condition. A
+#'   discharge with at least one usable but unmapped code gets zeros.
+#' * The long reshaping holds about 40 diagnosis columns by every row in memory.
+#'   Use it on a cohort, not on the full national file.
 #'
 #' @section Differences from the Stata-derived columns:
 #' NIS studies often already carry `ynel*` indicators and `elixsum`, derived in
@@ -61,7 +68,8 @@
 #' @return `.data` with one logical column per condition (`<prefix>hf`, ...),
 #'   `<prefix>n` (conditions flagged), `<prefix>any`, and the integer
 #'   `<prefix>mortality_index` and `<prefix>readmission_index` scores, using the
-#'   names and weights from `medicalcoder`.
+#'   names and weights from `medicalcoder`. Rows with no usable `I10_DX*` code
+#'   are `NA` in all of them; see the Assumptions section.
 #' @export
 #' @examples
 #' \donttest{
@@ -119,10 +127,19 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
   result <- as.data.frame(result)
   counts <- c("num_cmrb", "mortality_index", "readmission_index")
   columns <- setdiff(names(result), ".row")
+  usable <- seq_len(n) %in% long$.row
+  unusable_count <- sum(!usable)
+  if (unusable_count > 0L) {
+    cli::cli_warn(c(
+      "{unusable_count} row{?s} {?has/have} no usable `I10_DX*` code; comorbidity columns are `NA` for {?it/them}.",
+      i = "Pre-October-2015 (ICD-9) discharges have no ICD-10 diagnoses, so they cannot be scored."
+    ))
+  }
   added <- lapply(stats::setNames(columns, columns), function(column) {
     value <- result[[column]][match(seq_len(n), result$.row)]
-    value[is.na(value)] <- 0L
-    if (column %in% counts) value else value == 1L
+    value[usable & is.na(value)] <- 0L
+    value[!usable] <- NA
+    if (column %in% counts) as.integer(value) else value == 1L
   })
   names(added) <- paste0(prefix, ifelse(columns == "num_cmrb", "n",
     ifelse(columns == "cmrb_flag", "any", tolower(columns))))
