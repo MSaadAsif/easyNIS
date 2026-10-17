@@ -1,82 +1,106 @@
-# easyNIS 0.2.0.9000
+# easyNIS 0.2.0
+
+## Highlights
+
+- Replaced the archived API with lazy annual Parquet opening, ICD-10 prefix
+  flags, a domain survey design, HCUP labels, CPI-adjusted charges and costs,
+  cell suppression, and an invented six-year example fixture.
+- Added a Getting started guide, a guide to porting existing NIS studies, and
+  an analyst workflow note.
+
+## New features
+
+- `nis_open()` supports 2012 onward. `nis_flag_dx()` and `nis_flag_pr()` match
+  literal prefixes separately in each code slot; supplied prefixes ignore
+  case, periods, and spaces, while stored codes are compared byte for byte
+  without text normalization, so malformed UTF-8 cannot raise a matching
+  error.
+- Added experimental ICD-9 prefix flags with an explicit `system = "icd9"`
+  option, metadata guards, and invented historical and split-2015 fixtures.
+  ICD-10 remains the default.
+- `nis_comorbidity()` adds AHRQ Elixhauser Refined condition flags and
+  mortality/readmission index scores through the suggested `medicalcoder`
+  package. It accepts a collected data frame or an `nis_design()` result.
+- `nis_ccsr_codes()` reads a user-supplied HCUP DXCCSR or PRCCSR reference
+  file (Excel via `readxl` or comma-separated) and returns ICD-10 codes in
+  selected CCSR categories, optionally restricted to the default inpatient
+  assignment. The codes can be passed to `nis_flag_dx()` or `nis_flag_pr()`.
+
+## Survey design and weighting
+
+- `nis_design()` reports aggregate exclusions for invalid design fields and
+  affected years, stores the counts in the `nis_excluded` design attribute,
+  and documents why rows with invalid `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or
+  `DISCWT` cannot be represented in the supplied survey design. Exclusions
+  happen before cohort filtering and do not imply zero population weight or
+  unbiased estimates.
+- `nis_design()` warns when charges are entirely missing for a year or when
+  that year has hospitals but no cohort discharges. `annualize` divides by
+  the number of distinct `YEAR` values, so a partial year counts as one.
+- Added experimental `nis_reweight()` to multiply cohort survey weights while
+  retaining placeholder rows. It preserves column labels when rebuilding
+  designs, including after comorbidity scoring. Weights are matched by
+  position; call the function once. Weighted totals after reweighting are not
+  national counts, and its placeholder variance field does not provide survey
+  variance estimation. An optional commented WeightIt/cobalt example is in
+  the study template.
+
+## Disclosure control
+
+- `nis_suppress()` also masks the overall (`add_overall()`) cell in any row
+  where a by-group cell is masked. It marks that secondary mask `Masked`,
+  unless the overall cell is itself at or below the threshold.
+- For `continuous2` statistic rows, suppression uses the displayed output
+  column's non-missing count and errors when that count is missing, ambiguous,
+  or non-finite. Other derivable cells, such as column totals across levels,
+  are not masked; review tables before sharing.
+
+## Study template
+
+- Quarto study reports handle empty cohorts, one-level exposures, constant
+  outcomes, and unusable model matrices with explicit status messages. Models
+  use complete-case preflight; single-year reports omit the year adjustment,
+  and DOCX trend tables display years without thousands separators.
+- Report caches include study definitions, external data-root identity,
+  report inputs, output format, and rendering dependencies.
+- The template includes an optional, commented propensity-weighting example;
+  both WeightIt and cobalt must be installed to use it.
 
 ## Documentation
 
-- Added runnable examples for every exported helper using invented fixtures;
-  the slower optional comorbidity example is marked `donttest`.
-- Added a Getting started guide covering opening files, flags, survey design,
-  weighted tables, models, primary-cell suppression, and study scaffolding.
-- Grouped the local pkgdown reference by workflow; no site is deployed.
+- Added a Getting started guide covering file opening, flags, survey design,
+  weighted tables, models, primary-cell suppression, and study scaffolding;
+  runnable examples for exported helpers use invented fixtures, with the
+  slower optional comorbidity example marked `donttest`.
+- Added a vignette on porting existing NIS study code, a short tidyverse
+  pipeline README, grouped pkgdown reference pages, and package citation
+  metadata.
+- Added issue templates, a privacy-aware pull request checklist, Contributor
+  Covenant, security reporting guidance, and contributor instructions.
+- Added CI workflows for linting, test coverage, and study-template rendering.
+  The pkgdown site is published at <https://msaadasif.github.io/easyNIS/> on
+  pushes to `main`.
 
-## Core workflow
+## Experimental and unverified
 
-- Quarto study reports now handle empty cohorts, one-level exposures, constant
-  outcomes, and unusable model matrices with explicit status messages. Single-
-  year reports omit the year adjustment, and DOCX trend tables display years
-  without thousands separators. Report caches now include study definitions,
-  external data-root identity, report inputs, and rendering dependencies.
-- `nis_design()` now warns when the charge column is entirely missing for a
-  year, or when a year has hospitals but no cohort discharges. `annualize`
-  divides by the number of distinct `YEAR` values, so a partial year counts
-  as one.
-- Added experimental 2012–2015 opening, explicit `system = "icd9"` prefix
-  flags, metadata guards, and invented historical/split-2015 fixtures.
-  ICD-10 remains the default; cross-era clinical definitions are analyst supplied.
-- Experimental NIS 2023 layout support, UNVERIFIED against official HCUP 2023
-  documentation and real 2023 data (the `TOTCHG_2023` field, removed
-  `HOSP_REGION` and `HOSP_DIVISION`, and sequential `NIS_STRATUM` are assumed
-  from secondary notes; none was tested on real data). `nis_open()` accepts
-  files without `HOSP_REGION` and `HOSP_DIVISION`, keeps `TOTCHG_2023` as its
-  own column, never changes `TOTCHG`, and warns once per session when a query
-  contains `TOTCHG_2023`, because HCUP's national-estimate adjustment makes it
-  not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
-  gain a `charges` argument (default `"TOTCHG"`); pass `"TOTCHG_2023"` or
-  pool explicitly with `mutate()` to opt in. Geography columns remain optional. Hospital and stratum IDs stay
-  qualified by year.
-- Replaced the archived API with lazy annual Parquet opening, ICD-10 prefix
-  flags, a domain survey design, HCUP labels, CPI-adjusted charges and costs,
-  cell suppression, and an invented six-year fixture.
 - The placeholder-row survey method is experimental and must agree with the
-  full-data design on estimates, standard errors and degrees of freedom.
-- Added a short tidyverse pipeline README and retained the analyst workflow
-  note that motivated the redesign.
-- `nis_flag_dx()` and `nis_flag_pr()` match literal prefixes separately in
-  each slot. Supplied prefixes ignore case, periods, and spaces; stored NIS
-  codes are compared byte for byte without text normalization, so malformed
-  UTF-8 cannot raise a matching error.
-- `nis_suppress()` now also masks the overall (`add_overall()`) cell in any row
-  where a by-group cell is masked. It marks that secondary mask as `Masked`
-  unless the overall cell is itself at or below the threshold. Continuous2
-  statistic rows use their output column's non-missing count and error when
-  that count is missing, ambiguous, or non-finite for a displayed statistic.
-  Other derivable cells, such as those from column totals across levels, are
-  still not masked; its footnote says to review tables before sharing.
-
-## Experimental helpers
-
-- `nis_design()` reports aggregate exclusions by invalid design field and by
-  affected year, stores the counts in the `nis_excluded` design attribute, and
-  documents why rows with invalid `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or
-  `DISCWT` cannot be represented in the supplied survey design. `nis_reweight()`
-  preserves column labels when rebuilding designs, including after comorbidity
-  scoring.
-- Added experimental `nis_reweight()` for multiplying cohort survey weights
-  while retaining placeholder rows, with an optional commented WeightIt and
-  cobalt example in the study template.
-- Added experimental `nis_comorbidity()`, which adds AHRQ Elixhauser Refined
-  condition flags and mortality/readmission index scores to a collected data
-  frame or an `nis_design()` result from `I10_DX1`, `I10_DX2`, ... by delegating
-  to the suggested `medicalcoder` package. Present-on-admission is not used,
-  `I10_DX1` is the principal diagnosis, and the output is not expected to
-  match the Stata-derived `ynel*` and `elixsum` columns. ICD-10 only: rows
-  with no usable `I10_DX*` code, such as ICD-9-era discharges, get `NA` and a
-  warning rather than zeros.
-- Added experimental `nis_ccsr_codes()`, which reads an HCUP DXCCSR or PRCCSR
-  reference file you download (Excel with readxl, or comma-separated) and
-  returns the ICD-10 codes in chosen CCSR categories, optionally only where the
-  category is the default inpatient assignment. Pass the codes to
-  `nis_flag_dx()` or `nis_flag_pr()`. No CCSR content is bundled. The file
-  layouts are UNVERIFIED; malformed single-quoted CSV rows and non-ICD-10
-  codes are rejected.
-- Added a vignette on porting existing NIS study code, and CI workflows for
-  linting, test coverage and rendering the study template.
+  full-data design on estimates, standard errors, and degrees of freedom.
+- ICD-9 support is experimental. Historical layout facts beyond the
+  documented 2015 Q1–Q3/Q4 split are assumptions and have not been verified
+  against official HCUP documentation or licensed data.
+- NIS 2023 layout support is experimental and UNVERIFIED against official
+  HCUP 2023 documentation and real 2023 data. It assumes `TOTCHG_2023`, the
+  removal of `HOSP_REGION` and `HOSP_DIVISION`, and sequential `NIS_STRATUM`
+  based on secondary notes. `nis_open()` accepts files without the geography
+  columns and keeps `TOTCHG_2023` separate from `TOTCHG`; queries containing
+  it receive a once-per-session warning because HCUP's national-estimate
+  adjustment makes it incomparable with earlier-year charges. `nis_design()`
+  and `nis_cost()` accept `charges = "TOTCHG_2023"` to opt in; pooling requires
+  an explicit `mutate()`. Hospital and stratum IDs remain qualified by year.
+- `nis_comorbidity()` is ICD-10 only, does not use present-on-admission
+  values, and treats `I10_DX1` as the principal diagnosis. Its output is not
+  expected to match the Stata-derived `ynel*` and `elixsum` columns. Rows
+  without a usable `I10_DX*` code, including ICD-9-era discharges, receive
+  `NA` and a warning rather than zeros.
+- HCUP CCSR file layouts are UNVERIFIED; no CCSR content is bundled.
+  Malformed single-quoted CSV rows and non-ICD-10 codes are rejected.
