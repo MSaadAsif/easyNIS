@@ -1,0 +1,354 @@
+---
+title: "National Inpatient Sample Study"
+params:
+  data_path: null
+  years: [2017, 2018, 2019, 2020, 2021, 2022]
+---
+
+```{r}
+#| label: setup
+# Expensive chunks are cached. To force a full re-run, delete the
+# analysis_cache folder next to this file.
+library(easyNIS)
+library(purrr)
+library(srvyr)
+library(survey)
+library(gtsummary)
+
+options(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = TRUE)
+gtsummary::theme_gtsummary_journal("jama")
+
+is_example <- is.null(params$data_path)
+input_path <- if (is_example) {
+  nis_example(years = params$years)
+} else {
+  params$data_path
+}
+
+nis_data <- nis_open(input_path, years = params$years)
+```
+
+## Study definitions
+
+```{r}
+#| label: definitions
+# ---- Study definitions: edit this block for each study ----
+codes <- list(
+  principal_dx = c("I50"),
+  exposure = c("Z515")
+)
+
+cohort <- rlang::expr(principal_dx & AGE >= 18)
+exposure <- "exposed"
+covariates <- c(
+  "AGE", "FEMALE",
+  "factor(YEAR)" # Adjust for changes in the NIS sample across pooled years.
+)
+annualize <- FALSE
+outcomes <- dplyr::tibble(
+  outcome = c("DIED", "LOS", "cost_adj"),
+  family = c("quasibinomial", "gaussian", "gaussian"),
+  exponentiate = c(TRUE, FALSE, FALSE)
+)
+
+nis_data <- nis_data |>
+  nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
+  nis_flag_dx(exposed = codes$exposure, position = "any")
+
+# Cache key: the cached design is rebuilt when any of these change. The
+# invented example is left out of the file check because its folder is new on
+# every render.
+data_files <- list.files(input_path, pattern = "[.]parquet$",
+  recursive = TRUE, full.names = TRUE)[!is_example]
+data_info <- file.info(data_files)
+design_key <- list(
+  package = as.character(utils::packageVersion("easyNIS")),
+  years = params$years, codes = codes, cohort = rlang::expr_text(cohort),
+  annualize = annualize,
+  data = list(basename(data_files), data_info$size, data_info$mtime)
+)
+```
+
+```{r}
+#| label: design
+#| cache: true
+#| cache.extra: !expr design_key
+study_design <- rlang::inject(
+  nis_design(
+    nis_data,
+    !!cohort,
+    keep = c(
+      AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS,
+      principal_dx, exposed
+    ),
+    annualize = annualize,
+    dollars = max(params$years)
+  )
+)
+```
+
+```{r}
+#| label: design-summary
+cohort_n <- nrow(study_design$variables)
+n_hospitals <- dplyr::n_distinct(
+  study_design$variables$YEAR,
+  study_design$variables$HOSP_NIS
+)
+weight_description <- if (annualize) {
+  "DISCWT divided by the number of study years"
+} else {
+  "DISCWT"
+}
+```
+
+## Methods
+
+This study includes NIS years `r paste(params$years, collapse = ", ")`. The
+analysis cohort uses principal diagnosis prefix
+`r paste(codes$principal_dx, collapse = ", ")` and is defined by
+`r rlang::expr_text(cohort)`. It contains `r format(cohort_n, big.mark = ",")`
+discharges. The design uses year-specific HOSP_NIS clusters and NIS_STRATUM
+strata, with `r weight_description` weights, and includes `r n_hospitals`
+hospitals with cohort discharges. Cost and charges are adjusted to
+`r max(params$years)` USD using CPI-U. The report uses easyNIS
+`r as.character(utils::packageVersion("easyNIS"))`, R `r getRversion()`, survey
+`r as.character(utils::packageVersion("survey"))`, srvyr
+`r as.character(utils::packageVersion("srvyr"))`, dplyr
+`r as.character(utils::packageVersion("dplyr"))`, and gtsummary
+`r as.character(utils::packageVersion("gtsummary"))`.
+
+The placeholder-row design and cost adjustment are experimental pending
+scientific approval.
+
+**Cells based on ≤10 unweighted discharges are masked (with the overall cell in the same row); review tables for other derivable cells before sharing, per the HCUP Data Use Agreement.**
+
+## Cohort flow
+
+The first three rows are lazy aggregates over the opened data. The final row
+comes from the survey design, which also drops discharges with a missing or
+non-positive `DISCWT`, `NIS_STRATUM`, or `HOSP_NIS`.
+
+```{r}
+#| label: flow
+flow_summary <- function(data, step) {
+  data |>
+    dplyr::summarise(
+      n = dplyr::n(),
+      weighted_discharges = sum(DISCWT, na.rm = TRUE)
+    ) |>
+    dplyr::collect() |>
+    dplyr::mutate(step = step)
+}
+
+flow_all <- flow_summary(nis_data, "All discharges")
+flow_principal_dx <- flow_summary(
+  dplyr::filter(nis_data, principal_dx), "Principal diagnosis prefix"
+)
+flow_cohort <- flow_summary(
+  rlang::inject(dplyr::filter(nis_data, !!cohort)), "Cohort definition"
+)
+flow_analysis <- dplyr::tibble(
+  n = cohort_n,
+  weighted_discharges = sum(study_design$variables$DISCWT),
+  step = "Analysis cohort (valid survey design)"
+)
+
+flow_raw <- dplyr::bind_rows(
+  flow_all, flow_principal_dx, flow_cohort, flow_analysis
+)
+stopifnot(flow_analysis$n[[1L]] <= flow_cohort$n[[1L]])
+flow_display <- flow_raw |>
+  dplyr::mutate(
+    discharges = dplyr::if_else(
+      n >= 1 & n <= 10, "≤10", format(n, big.mark = ",", trim = TRUE)
+    ),
+    weighted_discharges = dplyr::if_else(
+      n >= 1 & n <= 10,
+      "≤10",
+      formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
+    )
+  ) |>
+  dplyr::select(step, discharges, weighted_discharges)
+
+if (knitr::is_html_output()) {
+  gt::gt(flow_display)
+} else {
+  flextable::flextable(flow_display)
+}
+```
+
+## Table 1
+
+```{r}
+#| label: table-one
+#| cache: true
+#| dependson: design
+table_one <- gtsummary::tbl_svysummary(
+  study_design,
+  by = exposed,
+  include = c(AGE, FEMALE, DIED, LOS, cost_adj)
+) |>
+  gtsummary::add_p() |>
+  gtsummary::add_overall() |>
+  nis_suppress(threshold = 10)
+
+if (knitr::is_html_output()) {
+  gtsummary::as_gt(table_one)
+} else {
+  gtsummary::as_flex_table(table_one)
+}
+```
+
+## Outcomes
+
+```{r}
+#| label: outcomes
+#| cache: true
+#| dependson: design
+outcome_table <- gtsummary::tbl_svysummary(
+  study_design,
+  include = c(DIED, LOS, cost_adj),
+  statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
+) |>
+  nis_suppress(threshold = 10)
+
+if (knitr::is_html_output()) {
+  gtsummary::as_gt(outcome_table)
+} else {
+  gtsummary::as_flex_table(outcome_table)
+}
+```
+
+## Trends by year
+
+The trend chart omits years with 10 or fewer cohort discharges. The table
+masks each displayed estimate and count for those years.
+
+```{r}
+#| label: trends
+#| cache: true
+#| dependson: design
+trend <- study_design |>
+  dplyr::mutate(
+    .died = as.numeric(DIED == "Yes"),
+    .one = 1
+  ) |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(
+    mortality = srvyr::survey_mean(.died, vartype = "ci", na.rm = TRUE),
+    mean_los = srvyr::survey_mean(LOS, vartype = "ci", na.rm = TRUE),
+    n_unweighted = dplyr::n(),
+    weighted_n = srvyr::survey_total(.one, vartype = NULL),
+    .groups = "drop"
+  ) |>
+  dplyr::ungroup()
+
+trend_long <- dplyr::bind_rows(
+  trend |>
+    dplyr::transmute(
+      YEAR, measure = "In-hospital mortality",
+      estimate = mortality, lower = mortality_low, upper = mortality_upp,
+      n_unweighted
+    ),
+  trend |>
+    dplyr::transmute(
+      YEAR, measure = "Mean length of stay",
+      estimate = mean_los, lower = mean_los_low, upper = mean_los_upp,
+      n_unweighted
+    )
+) |>
+  dplyr::filter(n_unweighted > 10)
+
+ggplot2::ggplot(
+  trend_long,
+  ggplot2::aes(x = YEAR, y = estimate, ymin = lower, ymax = upper, group = 1)
+) +
+  ggplot2::geom_ribbon(alpha = 0.2) +
+  ggplot2::geom_line() +
+  ggplot2::geom_point() +
+  ggplot2::facet_wrap(~measure, scales = "free_y") +
+  ggplot2::scale_x_continuous(breaks = params$years) +
+  ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
+  ggplot2::theme_minimal()
+
+trend_display <- trend |>
+  dplyr::mutate(
+    discharges = dplyr::if_else(
+      n_unweighted <= 10, "≤10",
+      format(n_unweighted, big.mark = ",", trim = TRUE)
+    ),
+    weighted_N = dplyr::if_else(
+      n_unweighted <= 10, "≤10",
+      formatC(weighted_n, format = "f", digits = 1, big.mark = ",")
+    ),
+    mortality = dplyr::if_else(
+      n_unweighted <= 10, "≤10",
+      paste0(formatC(100 * mortality, format = "f", digits = 1), "%")
+    ),
+    mean_LOS = dplyr::if_else(
+      n_unweighted <= 10, "≤10",
+      formatC(mean_los, format = "f", digits = 2)
+    )
+  ) |>
+  dplyr::select(YEAR, discharges, weighted_N, mortality, mean_LOS)
+
+if (knitr::is_html_output()) {
+  gt::gt(trend_display)
+} else {
+  flextable::flextable(trend_display)
+}
+```
+
+## Multivariable models
+
+Regression coefficients and confidence intervals are model estimates rather
+than discharge counts, so the regression tables are displayed.
+
+```{r}
+#| label: models
+#| cache: true
+#| dependson: design
+#| cache.extra: !expr list(exposure, covariates, outcomes)
+models <- purrr::map(seq_len(nrow(outcomes)), function(i) {
+  current <- outcomes[i, ]
+  model_family <- switch(
+    current$family[[1L]],
+    quasibinomial = stats::quasibinomial(),
+    gaussian = stats::gaussian()
+  )
+  formula <- stats::reformulate(
+    c(exposure, covariates),
+    response = current$outcome[[1L]]
+  )
+  survey::svyglm(formula, design = study_design, family = model_family)
+})
+
+model_tables <- purrr::map(seq_along(models), function(i) {
+  gtsummary::tbl_regression(
+    models[[i]],
+    exponentiate = outcomes$exponentiate[[i]]
+  )
+})
+
+family_tables <- purrr::map(split(seq_len(nrow(outcomes)), outcomes$family), function(rows) {
+  gtsummary::tbl_merge(
+    tbls = model_tables[rows],
+    tab_spanner = paste0("**", outcomes$outcome[rows], "**")
+  )
+})
+```
+
+```{r}
+#| label: model-tables
+for (family_table in family_tables) {
+  if (knitr::is_html_output()) {
+    print(gtsummary::as_gt(family_table))
+  } else {
+    print(gtsummary::as_flex_table(family_table))
+  }
+}
+```
+
+## Deferred analyses
+
+Inverse-probability treatment weighting (IPTW) is deferred.

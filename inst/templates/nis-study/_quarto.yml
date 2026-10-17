@@ -1,0 +1,15 @@
+project:
+  type: default
+  output-dir: docs
+
+execute:
+  echo: false
+  warning: false
+  message: false
+
+format:
+  html:
+    embed-resources: true
+    toc: true
+  docx:
+    toc: true

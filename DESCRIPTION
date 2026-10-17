@@ -1,35 +1,39 @@
 Package: easyNIS
-Title: Reproducible Workflows for the National Inpatient Sample
-Version: 0.0.0.9000
+Title: Tidy Workflows for the National Inpatient Sample
+Version: 0.1.0.9000
 Authors@R: c(
     person("Muhammad", "Saad", role = c("aut", "cre"),
            email = "msaadasif.md@gmail.com",
            comment = c(ORCID = "0000-0002-1792-2357")),
     person("Ali", role = "aut"))
-Description: Development tools for reproducible workflows with the Healthcare
-    Cost and Utilization Project National Inpatient Sample. Provides an explicit
-    year capability roadmap, deterministic invented discharge fixtures, and
-    experimental structural import of converted local parquet files.
-    Includes experimental single-year survey-design preparation with explicit
-    population and domain policies. Annual adapters and approved statistical
-    analysis of licensed files remain planned and unvalidated.
+Description: Pipe-friendly tools for working with Healthcare Cost and
+    Utilization Project National Inpatient Sample Parquet files. Opens annual
+    files lazily, flags ICD-10 code prefixes, prepares a survey design, applies
+    HCUP labels, and adjusts charges for inflation.
 License: MIT + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
 Depends: R (>= 4.1.0)
 Imports:
-    DBI,
-    duckdb (>= 1.5.5),
-    utils
+    arrow (>= 14.0.0),
+    cli,
+    dplyr,
+    rlang,
+    srvyr,
+    tidyselect
 Suggests:
-    arrow,
+    broom.helpers,
+    cardx,
+    flextable,
+    ggplot2,
+    gtsummary,
+    gt,
     knitr,
-    officer (>= 0.5.0),
+    purrr,
+    quarto,
     survey,
-    testthat (>= 3.1.7),
-    xml2
+    testthat (>= 3.1.7)
 Encoding: UTF-8
-VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
