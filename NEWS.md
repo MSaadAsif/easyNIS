@@ -12,7 +12,9 @@
 
 - `nis_design()` now warns when the charge column is entirely missing for a
   year, or when a year has hospitals but no cohort discharges. `annualize`
-  divides by the number of distinct `YEAR` values, so a partial year X experimental 2012–2015 opening, explicit `system = "icd9"` prefix
+  divides by the number of distinct `YEAR` values, so a partial year counts
+  as one.
+- Added experimental 2012–2015 opening, explicit `system = "icd9"` prefix
   flags, metadata guards, and invented historical/split-2015 fixtures.
   ICD-10 remains the default; cross-era clinical definitions are analyst supplied.
 - Experimental NIS 2023 layout support, UNVERIFIED against official HCUP 2023
@@ -24,7 +26,8 @@
   contains `TOTCHG_2023`, because HCUP's national-estimate adjustment makes it
   not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
   gain a `charges` argument (default `"TOTCHG"`); pass `"TOTCHG_2023"` or
-  pool explicitly with `mutate()` to opt in. Geography columns remain optional. Hospital and stratum IDs stay qualified by year.
+  pool explicitly with `mutate()` to opt in. Geography columns remain optional. Hospital and stratum IDs stay
+  qualified by year.
 - Replaced the archived API with lazy annual Parquet opening, ICD-10 prefix
   flags, a domain survey design, HCUP labels, CPI-adjusted charges and costs,
   cell suppression, and an invented six-year fixture.
