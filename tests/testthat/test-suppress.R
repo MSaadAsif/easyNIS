@@ -108,7 +108,7 @@ test_that("nis_suppress masks overall cells with add_p and keeps no-by support",
       stringsAsFactors = FALSE
     )
   }
-  data <- rbind(make_group("A", 11L, 1L), make_group("B", 11L, 0L))
+  data <- rbind(make_group("A", 11L, 1L), make_group("B", 11L, 12L))
   data$group <- factor(data$group, levels = c("A", "B"))
   data$category <- factor(data$category, levels = c("common", "tiny"))
   data$PSU <- seq_len(nrow(data))
@@ -132,9 +132,9 @@ test_that("nis_suppress masks overall cells with add_p and keeps no-by support",
   suppressed <- nis_suppress(table)
   tiny <- dplyr::filter(suppressed$table_body, variable == "category", label == "tiny")
   expect_equal(nrow(tiny), 1L)
-  expect_equal(enc2utf8(tiny$stat_0[[1L]]), "\u226410")
+  expect_equal(tiny$stat_0[[1L]], "Masked")
   expect_equal(enc2utf8(tiny$stat_1[[1L]]), "\u226410")
-  expect_equal(enc2utf8(tiny$stat_2[[1L]]), "\u226410")
+  expect_equal(tiny$stat_2[[1L]], "12 (52%)")
   expect_true("p.value" %in% names(suppressed$table_body))
 
   no_by <- gtsummary::tbl_svysummary(
@@ -148,7 +148,67 @@ test_that("nis_suppress masks overall cells with add_p and keeps no-by support",
     no_by$table_body, variable == "category", label == "tiny"
   )
   expect_equal(nrow(no_by_tiny), 1L)
-  expect_equal(enc2utf8(no_by_tiny$stat_0[[1L]]), "\u226410")
+  expect_equal(no_by_tiny$stat_0[[1L]], "13 (37%)")
+})
+
+test_that("continuous2 statistics use their column nonmissing counts", {
+  data <- data.frame(
+    age = 31:46,
+    group = factor(c(rep("small", 4L), rep("large", 12L)),
+      levels = c("small", "large")),
+    PSU = 1:16,
+    STRATUM = rep(1:2, each = 8L),
+    weight = 1
+  )
+  design <- survey::svydesign(
+    ids = ~PSU, strata = ~STRATUM, weights = ~weight, data = data, nest = TRUE
+  )
+  table <- gtsummary::tbl_svysummary(
+    design, by = group, include = age, type = list(age ~ "continuous2"),
+    statistic = list(age ~ c("{mean}", "{median}")), missing = "no"
+  ) |>
+    gtsummary::add_overall()
+
+  suppressed <- nis_suppress(table)
+  rows <- which(table$table_body$variable == "age" &
+    table$table_body$row_type == "level")
+  expect_equal(enc2utf8(suppressed$table_body$stat_1[rows]), rep("\u226410", 2L))
+  expect_equal(suppressed$table_body$stat_2[rows], table$table_body$stat_2[rows])
+  expect_equal(suppressed$table_body$stat_0[rows], rep("Masked", 2L))
+})
+
+test_that("continuous2 suppression errors when displayed counts cannot be verified", {
+  data <- data.frame(age = 31:38, PSU = 1:8, weight = 1)
+  design <- survey::svydesign(ids = ~PSU, weights = ~weight, data = data)
+  table <- gtsummary::tbl_svysummary(
+    design, include = age, type = list(age ~ "continuous2"),
+    statistic = list(age ~ c("{mean}", "{median}")), missing = "no"
+  )
+  missing_card <- table
+  missing_card$cards$tbl_svysummary <- dplyr::filter(
+    missing_card$cards$tbl_svysummary, stat_name != "N_nonmiss_unweighted"
+  )
+  expect_error(nis_suppress(missing_card), "Cannot verify.*non-missing count")
+
+  duplicate <- table
+  card <- dplyr::filter(duplicate$cards$tbl_svysummary,
+    stat_name == "N_nonmiss_unweighted")
+  duplicate$cards$tbl_svysummary <- dplyr::bind_rows(
+    duplicate$cards$tbl_svysummary, card
+  )
+  expect_error(nis_suppress(duplicate), "Cannot verify.*non-missing count")
+
+  nonfinite <- table
+  idx <- which(nonfinite$cards$tbl_svysummary$stat_name ==
+    "N_nonmiss_unweighted")[[1L]]
+  nonfinite$cards$tbl_svysummary$stat[[idx]] <- Inf
+  expect_error(nis_suppress(nonfinite), "Cannot verify.*non-missing count")
+
+  blank <- missing_card
+  stat_rows <- which(blank$table_body$variable == "age" &
+    blank$table_body$row_type == "level")
+  blank$table_body$stat_0[stat_rows] <- NA_character_
+  expect_no_warning(nis_suppress(blank))
 })
 
 suppress_fixture <- function(data) {
@@ -167,6 +227,7 @@ suppress_row <- function(table, variable, label) {
 }
 
 is_masked <- function(cell) identical(enc2utf8(cell), "≤10")
+is_secondary_masked <- function(cell) identical(cell, "Masked")
 
 test_that("nis_suppress masks the overall cell beside a masked group cell", {
   # A has 8 events, B has 100: unmasked, the overall 108 minus B's 100 gives A.
@@ -191,12 +252,12 @@ test_that("nis_suppress masks the overall cell beside a masked group cell", {
 
   event <- suppress_row(suppressed, "event", "event")
   expect_true(is_masked(event$stat_1))
-  expect_true(is_masked(event$stat_0))
+  expect_true(is_secondary_masked(event$stat_0))
   expect_equal(event$stat_2, original$stat_2)
 
   small <- suppress_row(suppressed, "category", "small")
   expect_true(is_masked(small$stat_1))
-  expect_true(is_masked(small$stat_0))
+  expect_true(is_secondary_masked(small$stat_0))
   expect_false(is_masked(small$stat_2))
 
   large <- suppress_row(suppressed, "category", "large")
@@ -204,7 +265,7 @@ test_that("nis_suppress masks the overall cell beside a masked group cell", {
   expect_false(any(vapply(large[c("stat_0", "stat_1", "stat_2")], is_masked, logical(1))))
 
   expect_true(any(grepl(
-    "overall cell in the same row",
+    "Overall cells in rows with a masked by-group cell",
     unlist(suppressed$table_styling$footnote_header)
   )))
 
@@ -243,12 +304,13 @@ test_that("nis_suppress masks the overall cell with three groups", {
     nis_suppress()
 
   rare <- suppress_row(table, "category", "rare")
-  expect_true(all(vapply(rare[c("stat_0", "stat_1", "stat_2")], is_masked, logical(1))))
+  expect_true(is_secondary_masked(rare$stat_0))
+  expect_true(all(vapply(rare[c("stat_1", "stat_2")], is_masked, logical(1))))
   expect_false(is_masked(rare$stat_3))
 
   other_rare <- suppress_row(table, "other", "rare")
   expect_true(is_masked(other_rare$stat_2))
-  expect_true(is_masked(other_rare$stat_0))
+  expect_true(is_secondary_masked(other_rare$stat_0))
   expect_false(is_masked(other_rare$stat_1))
   expect_false(is_masked(other_rare$stat_3))
 
@@ -272,7 +334,7 @@ test_that("nis_suppress keeps the p-value and masks the overall cell with add_p"
 
   suppressed <- nis_suppress(table)
   small <- suppress_row(suppressed, "category", "small")
-  expect_true(is_masked(small$stat_0))
+  expect_true(is_secondary_masked(small$stat_0))
   expect_true(is_masked(small$stat_1))
   expect_false(is_masked(small$stat_2))
   expect_equal(
@@ -297,7 +359,7 @@ test_that("nis_suppress masks the overall cell for continuous and missing rows",
     table$table_body, variable == "value", row_type == "label"
   )
   expect_true(is_masked(summary_row$stat_1))
-  expect_true(is_masked(summary_row$stat_0))
+  expect_true(is_secondary_masked(summary_row$stat_0))
   expect_false(is_masked(summary_row$stat_2))
 
   # B has 50 missing values, A has 92: neither is small, so nothing is masked.
