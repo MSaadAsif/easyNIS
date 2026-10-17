@@ -1,6 +1,6 @@
 # Analyst workflow
 
-easyNIS provides pipe-friendly tools for preparing Nationwide Inpatient Sample
+easyNIS provides pipe-friendly tools for preparing National Inpatient Sample
 (NIS) data for analysis. Start with `vignette("getting-started", package =
 "easyNIS")` for an end-to-end workflow or `vignette("porting", package =
 "easyNIS")` when adapting an existing study.
@@ -25,8 +25,9 @@ survey design.
 ## Protect outputs
 
 Follow the applicable HCUP Data Use Agreement when producing tables and
-sharing results. `nis_suppress()` masks small cells and related totals in a
-table, but analysts must review all derived outputs for disclosure risk.
+sharing results. `nis_suppress()` masks small cells and the overall cell in the
+same row, but does not mask column totals. Analysts must review derived outputs
+for disclosure risk.
 Use only invented public fixtures in package examples and tests. Never commit
 licensed inputs, private paths, local validation receipts, or record-derived
 output.

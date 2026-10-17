@@ -69,7 +69,7 @@ The prefix and regex paths serve different definitions: use the simpler
 prefix flag where the condition is a literal prefix, and retain the regex
 where the suffix matters.
 
-## Replace recodes in `clean_NIS_base_data()`
+## Replace local recode helpers
 
 If a local cleaning helper used `case_when()` to turn known HCUP codes such as
 sex, payer, or discharge disposition into labels, remove those repeated

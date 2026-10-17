@@ -8,10 +8,12 @@ Authors@R: c(
     person("Ali", role = "aut"))
 Description: Pipe-friendly tools for working with Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files. Opens annual
-    files lazily, flags ICD-10 and experimental ICD-9 code prefixes, prepares a survey design, applies
-    HCUP labels, and adjusts charges for inflation.
+    files lazily, flags diagnosis and procedure codes, looks up CCSR codes,
+    calculates comorbidity scores, prepares survey designs, supports
+    propensity-based reweighting, applies HCUP labels, and adjusts charges for
+    inflation. ICD-9 and NIS 2023 support are experimental.
 License: MIT + file LICENSE
-URL: https://github.com/MSaadAsif/easyNIS
+URL: https://github.com/MSaadAsif/easyNIS, https://MSaadAsif.github.io/easyNIS
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
 Depends: R (>= 4.1.0)
 Imports:

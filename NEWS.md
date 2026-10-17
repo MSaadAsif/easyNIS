@@ -63,6 +63,7 @@
   returns the ICD-10 codes in chosen CCSR categories, optionally only where the
   category is the default inpatient assignment. Pass the codes to
   `nis_flag_dx()` or `nis_flag_pr()`. No CCSR content is bundled. The file
-  layouts are UNVERIFIED; malformed rows and non-ICD-10 codes are rejected.
+  layouts are UNVERIFIED; malformed single-quoted CSV rows and non-ICD-10
+  codes are rejected.
 - Added a vignette on porting existing NIS study code, and CI workflows for
   linting, test coverage and rendering the study template.

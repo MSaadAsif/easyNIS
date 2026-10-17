@@ -1,8 +1,8 @@
 bibentry(
   bibtype = "Manual",
-  title = "easyNIS: Reproducible Workflows for the National Inpatient Sample",
+  title = "easyNIS: Tidy Workflows for the National Inpatient Sample",
   author = c(person("Muhammad", "Saad"), person("Ali")),
   year = "2026",
-  note = paste("R package version", meta$Version, "(development; no supported data years)"),
+  note = paste("R package version", meta$Version, "(development; annual NIS files from 2012 onward)"),
   url = "https://github.com/MSaadAsif/easyNIS"
 )
