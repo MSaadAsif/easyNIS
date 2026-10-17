@@ -17,6 +17,10 @@ Use `nis_example()` to explore the API with invented data.
 
 Use `nis_design()` to create a NIS survey design with year-specific hospital
 and stratum identifiers, discharge weights, and optional domain restrictions.
+It excludes records with missing, non-finite, or non-positive design fields
+before cohort filtering and warns with aggregate counts by field (and by year
+when multiple years are affected). Report `attr(design, "nis_excluded")` with
+your results and consider whether conclusions could depend on those records.
 Use survey-aware analysis functions for estimates and standard errors.
 `nis_reweight()` adds experimental propensity-based weights for analyst-led
 evaluation; it does not replace the supplied NIS discharge weight or the
