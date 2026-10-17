@@ -1,5 +1,5 @@
 utils::globalVariables(c(
   ":=", ".in_cohort", ".nis_cohort", ".nis_psu", ".nis_stratum",
-  ".nis_valid", ".nis_weight", "DISCWT", "HOSP_NIS", "NIS_STRATUM", "nis_label",
+  ".nis_valid", ".nis_weight", "DISCWT", "HOSP_NIS", "NIS_STRATUM",
   "TOTCHG", "TOTCHG_2023", "YEAR", "DQTR"
 ))

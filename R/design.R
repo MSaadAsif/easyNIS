@@ -169,7 +169,8 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
-  combined <- nis_label(combined) # nolint: object_usage_linter. Package export.
+  # nolint next: object_usage_linter. Function is defined in this package.
+  combined <- nis_label(combined)
   if (has_cost_inputs) {
     charge_years <- unique(cohort_rows$YEAR)
     missing_charge_years <- charge_years[vapply(charge_years, function(year) {
@@ -186,7 +187,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       ))
     }
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
-    # nolint next: object_usage_linter. nis_cost() supports custom charge columns.
+    # nolint next: object_usage_linter. Function is defined in this package.
     combined <- nis_cost(combined, dollars = dollars, charges = charges)
   }
 
