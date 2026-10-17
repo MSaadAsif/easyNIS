@@ -200,13 +200,39 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   invalid$HOSP_NIS[11L] <- Inf
   invalid$NIS_STRATUM[12L] <- Inf
   invalid$DISCWT[13L] <- NaN
-  valid <- data[-c(1L, 5L, 9L, 10L, 11L, 12L, 13L), ]
+  invalid$YEAR[14L] <- NA_real_
+  invalid$HOSP_NIS[15L] <- 0
+  invalid$NIS_STRATUM[16L] <- 0
+  invalid$DISCWT[17L] <- Inf
+  invalid$YEAR[18L] <- 0
+  invalid$HOSP_NIS[19L] <- NA_real_
+  invalid$NIS_STRATUM[20L] <- NA_real_
+  invalid$DISCWT[21L] <- 0
+  invalid$HOSP_NIS[22L] <- 0
+  invalid$DISCWT[22L] <- 0
+  invalid$DISCWT[nrow(invalid)] <- 0
+  valid <- data[-c(1L, 5L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L,
+    18L, 19L, 20L, 21L, 22L, nrow(data)), ]
 
   expected <- nis_design(valid, heart_failure, keep = c(AGE, LOS))
-  expect_warning(
-    from_frame <- nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
-    "Excluded 7 discharges"
+  warning <- NULL
+  from_frame <- withCallingHandlers(
+    nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
+    warning = function(condition) {
+      warning <<- conditionMessage(condition)
+      invokeRestart("muffleWarning")
+    }
   )
+  expect_match(warning, "Excluded 17 discharges")
+  expect_match(warning, "YEAR: 3, HOSP_NIS: 4, NIS_STRATUM: 4, DISCWT: 7")
+  expect_match(warning, "Affected valid years:")
+  expect_match(warning, "can fail more than one field")
+  expect_match(warning, "before cohort filtering")
+  expect_equal(attr(from_frame, "nis_excluded")$total, 17)
+  expect_equal(attr(from_frame, "nis_excluded")$by_field,
+    c(YEAR = 3, HOSP_NIS = 4, NIS_STRATUM = 4, DISCWT = 7))
+  expect_equal(nrow(attr(from_frame, "nis_excluded")$by_year), 2L)
+  expect_equal(sum(attr(from_frame, "nis_excluded")$by_year$n), 14)
 
   invalid_path <- tempfile("nis-invalid-")
   dir.create(invalid_path)
@@ -216,8 +242,9 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
     from_arrow <- nis_design(
       arrow::open_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
     ),
-    "Excluded 7 discharges"
+    "Excluded 17 discharges"
   )
+  expect_equal(attr(from_arrow, "nis_excluded"), attr(from_frame, "nis_excluded"))
 
   for (design in list(from_frame, from_arrow)) {
     expect_equal(nrow(design$variables), nrow(expected$variables))
@@ -279,6 +306,10 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
   names(labels) <- labelled_fields
   expect_true(all(vapply(labels, Negate(is.null), logical(1))))
   reweighted <- nis_reweight(design, multipliers)
+  expect_identical(
+    attr(reweighted, "nis_excluded", exact = TRUE),
+    attr(design, "nis_excluded", exact = TRUE)
+  )
   for (field in labelled_fields) {
     expect_identical(
       attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
