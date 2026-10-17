@@ -117,7 +117,7 @@
   "PCLASS_ORPROC", 1, "Yes", "ICD-10-PCS major operating room procedure indicator",
   "AGE", NA_real_, NA_character_, "Age, years",
   "LOS", NA_real_, NA_character_, "Length of stay, days",
-  "TOTCHG", NA_real_, NA_character_, "Total charges, USD; 2023 values use HCUP national-estimate adjustment",
+  "TOTCHG", NA_real_, NA_character_, "Total charges, USD",
   "TOTCHG_2023", NA_real_, NA_character_, "Total charges, USD, adjusted for national estimates (2023)",
   "CCR_NIS", NA_real_, NA_character_, "Cost-to-charge ratio",
   "YEAR", NA_real_, NA_character_, "Discharge year",

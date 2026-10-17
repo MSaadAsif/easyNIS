@@ -3,10 +3,17 @@
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
 #' @param years Optional years to open. Defaults to every matching year.
 #'
-#' @return A lazy Arrow query with case-normalized columns. For 2023 layouts,
-#'   `TOTCHG_2023` is retained and also supplies the harmonized `TOTCHG` column
-#'   used by existing cost workflows. The 2023 field is HCUP-adjusted for
-#'   national estimates and is not directly comparable to earlier-year charges.
+#' @return A lazy Arrow query with case-normalized columns. Experimental 2023
+#'   layouts keep `TOTCHG_2023` as its own column and leave `TOTCHG` untouched,
+#'   because the 2023 field is HCUP-adjusted for national estimates and is not
+#'   comparable to earlier-year charges. Opening a query that contains
+#'   `TOTCHG_2023` warns once per session. To use it, pass
+#'   `charges = "TOTCHG_2023"` to [nis_design()] or [nis_cost()], or pool
+#'   explicitly with `dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))`.
+#'
+#'   The 2023 layout facts used here (`TOTCHG_2023`, removed `HOSP_REGION` and
+#'   `HOSP_DIVISION`, sequential `NIS_STRATUM`) are UNVERIFIED against official
+#'   HCUP 2023 documentation and real 2023 data; none were available for testing.
 #' @export
 nis_open <- function(path, years = NULL) {
   if (!dir.exists(path)) {
@@ -72,15 +79,13 @@ nis_open <- function(path, years = NULL) {
   }
   output_names <- names(name_groups)
   if ("TOTCHG_2023" %in% output_names) {
-    if ("TOTCHG" %in% output_names) {
-      query <- dplyr::mutate(
-        query,
-        TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG)
-      )
-    } else {
-      query <- dplyr::mutate(query, TOTCHG = TOTCHG_2023)
-    }
-    output_names <- union(output_names, "TOTCHG")
+    cli::cli_warn(
+      c("This query contains {.field TOTCHG_2023}, which is not comparable to {.field TOTCHG}.",
+        "i" = "HCUP adjusts it for states missing from 2023, so charges and costs built from it differ in definition from earlier years.",
+        "i" = "{.fn nis_open} leaves {.field TOTCHG} unchanged; opt in with {.code charges = \"TOTCHG_2023\"}.",
+        "i" = "The 2023 layout support is experimental and unverified against real 2023 data."),
+      .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
+    )
   }
   dplyr::select(query, dplyr::all_of(output_names))
 }
