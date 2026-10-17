@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a reproducible problem in easyNIS.
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include licensed HCUP inputs, record-level data, private paths, or record-derived output. Reproduce the issue with invented data where possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the expected and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducible-example
+    attributes:
+      label: Reproducible example
+      description: Provide a minimal example using invented or package example data.
+      render: r
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: R version, easyNIS version, and relevant package versions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: This report contains no licensed inputs, record-level data, private paths, local validation receipts, or record-derived output.
+          required: true

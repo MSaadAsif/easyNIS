@@ -131,7 +131,8 @@
 )
 attr(.hcup_labels, "source") <- paste(
   "HCUP 2020 NIS Introduction, Appendix III, Data Elements;",
-  "local analyst recoding helper cross-check"
+  "local analyst recoding helper cross-check.",
+  "Elements introduced after 2020, such as PL_NCHS2 and TOTCHG_2023, are not labelled."
 )
 
 #' Apply HCUP labels
@@ -141,12 +142,19 @@ attr(.hcup_labels, "source") <- paste(
 #' @return `data` with known coded elements as factors and variable labels in
 #'   `attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
 #'   with one warning per variable. Existing labels and labelled comorbidity
-#'   fields are preserved. The operation is idempotent.
+#'   fields are preserved. Elements without a table entry, including the 2023
+#'   `PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The operation
+#'   is idempotent.
 #'
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
 #' @export
+#' @examples
+#' demographics <- nis_open(nis_example(years = 2019)) |>
+#'   dplyr::select(AGE, FEMALE, RACE) |>
+#'   dplyr::collect()
+#' head(nis_label(demographics))
 nis_label <- function(data) {
   if (!is.data.frame(data)) {
     cli::cli_abort("`data` must be a collected data frame.")
@@ -159,10 +167,14 @@ nis_label <- function(data) {
     binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
 
     if (any(value_rows) || binary_comorbidity) {
-      codes <- if (binary_comorbidity) c("0", "1") else {
+      codes <- if (binary_comorbidity) {
+        c("0", "1")
+      } else {
         as.character(definition$code[value_rows])
       }
-      values <- if (binary_comorbidity) c("No", "Yes") else {
+      values <- if (binary_comorbidity) {
+        c("No", "Yes")
+      } else {
         definition$value_label[value_rows]
       }
       raw <- as.character(x)
@@ -180,7 +192,10 @@ nis_label <- function(data) {
         }
         if (any(unknown)) {
           cli::cli_warn(
-            "Unknown code(s) in {.var {variable}}: {paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+            paste0(
+              "Unknown code(s) in {.var {variable}}: ",
+              "{paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+            )
           )
         }
         labels <- ifelse(is.na(raw), NA_character_,

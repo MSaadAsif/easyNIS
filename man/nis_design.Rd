@@ -4,7 +4,14 @@
 \alias{nis_design}
 \title{Prepare a cohort survey design}
 \usage{
-nis_design(.data, cohort, keep, annualize = FALSE, dollars = NULL)
+nis_design(
+  .data,
+  cohort,
+  keep,
+  annualize = FALSE,
+  dollars = NULL,
+  charges = "TOTCHG"
+)
 }
 \arguments{
 \item{.data}{Lazy Arrow query or data frame.}
@@ -15,9 +22,21 @@ are counted.}
 
 \item{keep}{Tidyselect expression naming analysis columns to collect.}
 
-\item{annualize}{Divide discharge weights by the number of included years.}
+\item{annualize}{Divide discharge weights by the number of distinct \code{YEAR}
+values among valid-design discharges. A year counts as one whole year
+however much of it is present, so a partial-year era such as the ICD-10
+fourth quarter of 2015 counts the same as a full year, and a year with no
+cohort discharges still counts. Divide by your own factor with
+\code{\link[=nis_reweight]{nis_reweight()}} if you need a different convention.}
 
-\item{dollars}{Optional reference dollar year for adjusted costs and charges.}
+\item{dollars}{Optional reference dollar year for adjusted costs and charges.
+When supplied, keep \code{CCR_NIS} and the \code{charges} column.}
+
+\item{charges}{Name of the total-charge column used for adjusted costs and
+charges. Defaults to \code{"TOTCHG"}. Use \code{"TOTCHG_2023"} for 2023-only
+analyses, or build a pooled column explicitly with
+\code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))} before
+calling; either choice mixes charge definitions across years.}
 }
 \value{
 A filtered \code{srvyr::tbl_svy} survey design.
@@ -28,12 +47,51 @@ no cohort discharges, then builds a nested NIS survey design. The
 placeholder-row method is experimental and is gated against a full-data
 design. After this function returns, \code{filter()} may only narrow the declared
 cohort; it cannot define a new cohort.
+Hospital geography columns are optional. Hospital and stratum identifiers
+are scoped by year (\code{YEAR} + \code{HOSP_NIS} and \code{YEAR} + \code{NIS_STRATUM}), because
+HCUP reassigns hospital numbers annually and 2023 stratum codes are
+sequential. Costs and charges use \code{TOTCHG} only, unless \code{charges} names
+another column such as \code{TOTCHG_2023}; nothing is coalesced silently, because
+the 2023 field is not comparable to earlier-year \code{TOTCHG}. The 2023 layout
+facts (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and \code{HOSP_DIVISION}, sequential
+strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
+data.
 }
-\details{
+\section{Invalid design fields}{
+
 Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,
-non-finite, or not positive cannot be placed in a survey design. They are
-excluded before the cohort is applied, with a warning that gives their
-number. The query is scanned twice: once over the four design columns, and
-once to collect the cohort rows, so the cohort expression is evaluated one
-time over the full data.
+non-finite, or not positive are excluded before the cohort is applied.
+HCUP specifies \code{DISCWT} as the discharge weight, \code{NIS_STRATUM} as the
+stratum, and \code{HOSP_NIS} as the hospital cluster
+(\href{https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp}{variance guidance};
+\href{https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2017.jsp}{2017 NIS introduction});
+HCUP also documents missing and invalid coding conventions
+(\href{https://hcup-us.ahrq.gov/db/coding.jsp}{coding conventions}). Records
+with invalid values cannot be placed in the documented design as supplied.
+Exclusion is not a claim that these records have zero population weight or
+that estimates are unbiased. Report the excluded count and affected fields,
+and consider whether conclusions could depend on them. The returned design
+has a \code{nis_excluded} attribute containing aggregate \code{total}, \code{by_field},
+and \code{by_year} counts; \code{by_year} includes years with exclusions when the
+year is itself valid. A discharge can fail more than one field.
+
+The query is scanned twice: once over the four design columns, and once to
+collect the cohort rows, so the cohort expression is evaluated one time over
+the full data.
+}
+
+\examples{
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(
+  nis,
+  cohort = heart_failure & AGE >= 50,
+  keep = c(AGE, FEMALE, TOTCHG, CCR_NIS),
+  dollars = 2024
+)
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE)
+)
 }

@@ -4,16 +4,27 @@
 \alias{nis_cost}
 \title{Adjust NIS charges and costs to a reference dollar year}
 \usage{
-nis_cost(data, dollars)
+nis_cost(data, dollars, charges = "TOTCHG")
 }
 \arguments{
-\item{data}{A data frame with \code{YEAR}, \code{TOTCHG}, and \code{CCR_NIS}.}
+\item{data}{A data frame with \code{YEAR}, the \code{charges} column, and \code{CCR_NIS}.}
 
 \item{dollars}{Reference dollar year, from 2012 through 2024.}
+
+\item{charges}{Name of the total-charge column. Defaults to \code{"TOTCHG"}.
+Use \code{"TOTCHG_2023"} only knowingly: HCUP adjusts that field for states
+missing from 2023, so it is not comparable to earlier-year \code{TOTCHG}, and it
+is missing for earlier years.}
 }
 \value{
 \code{data} with \code{cost_adj} and \code{charges_adj} in \code{dollars} USD.
 }
 \description{
 Adjust NIS charges and costs to a reference dollar year
+}
+\examples{
+charges <- nis_open(nis_example(years = 2019:2020)) |>
+  dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+  dplyr::collect()
+head(nis_cost(charges, dollars = 2024))
 }

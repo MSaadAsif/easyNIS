@@ -1,3 +1,30 @@
+test_that("design validation rejects ambiguous or incomplete inputs", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(nis_open(path))
+  expect_error(nis_design(data, TRUE, AGE, annualize = NA), "annualize")
+  expect_error(nis_design(data["AGE"], TRUE, AGE), "missing design")
+  data$.nis_weight <- 1
+  expect_error(nis_design(data, TRUE, AGE), "reserved")
+  data$.nis_weight <- NULL
+  data$.analysis <- 1
+  expect_error(nis_design(data, TRUE, .analysis), "dot-prefixed")
+  expect_error(nis_design(data, TRUE, AGE, dollars = 2024), "Keep both")
+  data$NIS_STRATUM[[1L]] <- 2L
+  expect_error(nis_design(data, TRUE, AGE), "one stratum")
+})
+
+test_that("reweighting rejects a design narrowed after cohort definition", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  design <- nis_open(path) |>
+    nis_flag_dx(heart_failure = "I50") |>
+    nis_design(heart_failure, keep = AGE)
+  narrowed <- dplyr::filter(design, AGE > min(AGE))
+  expect_error(nis_reweight(narrowed, rep(1, nrow(narrowed$variables))),
+    "has been narrowed")
+})
+
 test_that("nis_design placeholder designs match full-data domain estimates", {
   designs <- comparison_designs()
   on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
@@ -169,13 +196,43 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   invalid <- data
   invalid$DISCWT[c(1L, 5L)] <- c(-9, NA)
   invalid$NIS_STRATUM[9L] <- -9
-  valid <- data[-c(1L, 5L, 9L), ]
+  invalid$YEAR[10L] <- Inf
+  invalid$HOSP_NIS[11L] <- Inf
+  invalid$NIS_STRATUM[12L] <- Inf
+  invalid$DISCWT[13L] <- NaN
+  invalid$YEAR[14L] <- NA_real_
+  invalid$HOSP_NIS[15L] <- 0
+  invalid$NIS_STRATUM[16L] <- 0
+  invalid$DISCWT[17L] <- Inf
+  invalid$YEAR[18L] <- 0
+  invalid$HOSP_NIS[19L] <- NA_real_
+  invalid$NIS_STRATUM[20L] <- NA_real_
+  invalid$DISCWT[21L] <- 0
+  invalid$HOSP_NIS[22L] <- 0
+  invalid$DISCWT[22L] <- 0
+  invalid$DISCWT[nrow(invalid)] <- 0
+  valid <- data[-c(1L, 5L, 9L, 10L, 11L, 12L, 13L, 14L, 15L, 16L, 17L,
+    18L, 19L, 20L, 21L, 22L, nrow(data)), ]
 
   expected <- nis_design(valid, heart_failure, keep = c(AGE, LOS))
-  expect_warning(
-    from_frame <- nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
-    "Excluded 3 discharges"
+  warning <- NULL
+  from_frame <- withCallingHandlers(
+    nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
+    warning = function(condition) {
+      warning <<- conditionMessage(condition)
+      invokeRestart("muffleWarning")
+    }
   )
+  expect_match(warning, "Excluded 17 discharges")
+  expect_match(warning, "YEAR: 3, HOSP_NIS: 4, NIS_STRATUM: 4, DISCWT: 7")
+  expect_match(warning, "Affected valid years:")
+  expect_match(warning, "can fail more than one field")
+  expect_match(warning, "before cohort filtering")
+  expect_equal(attr(from_frame, "nis_excluded")$total, 17)
+  expect_equal(attr(from_frame, "nis_excluded")$by_field,
+    c(YEAR = 3, HOSP_NIS = 4, NIS_STRATUM = 4, DISCWT = 7))
+  expect_equal(nrow(attr(from_frame, "nis_excluded")$by_year), 2L)
+  expect_equal(sum(attr(from_frame, "nis_excluded")$by_year$n), 14)
 
   invalid_path <- tempfile("nis-invalid-")
   dir.create(invalid_path)
@@ -185,8 +242,9 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
     from_arrow <- nis_design(
       arrow::open_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
     ),
-    "Excluded 3 discharges"
+    "Excluded 17 discharges"
   )
+  expect_equal(attr(from_arrow, "nis_excluded"), attr(from_frame, "nis_excluded"))
 
   for (design in list(from_frame, from_arrow)) {
     expect_equal(nrow(design$variables), nrow(expected$variables))
@@ -226,4 +284,158 @@ test_that("multi-prefix any-position cohorts give identical designs on Arrow and
   expect_gt(nrow(from_arrow$variables), 0L)
   expect_equal(sort(as.numeric(stats::weights(from_arrow))),
     sort(as.numeric(stats::weights(from_frame))))
+})
+
+test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+
+  old_lonely <- getOption("survey.lonely.psu")
+  old_adjust <- getOption("survey.adjust.domain.lonely")
+  on.exit(options(
+    survey.lonely.psu = old_lonely,
+    survey.adjust.domain.lonely = old_adjust
+  ), add = TRUE)
+
+  design <- designs$placeholder
+  multipliers <- 0.6 + (seq_len(nrow(design$variables)) %% 7) / 10
+  labelled_fields <- c("YEAR", "AGE", "FEMALE", "DIED", "LOS")
+  labels <- lapply(labelled_fields, function(field) {
+    attr(design$variables[[field]], "label", exact = TRUE)
+  })
+  names(labels) <- labelled_fields
+  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
+  reweighted <- nis_reweight(design, multipliers)
+  expect_identical(
+    attr(reweighted, "nis_excluded", exact = TRUE),
+    attr(design, "nis_excluded", exact = TRUE)
+  )
+  for (field in labelled_fields) {
+    expect_identical(
+      attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
+    )
+  }
+
+  reference_data <- designs$full_data
+  reference_data$.nis_weight[reference_data$.in_cohort] <-
+    reference_data$.nis_weight[reference_data$.in_cohort] * multipliers
+  reference <- srvyr::as_survey_design(
+    reference_data,
+    ids = .nis_psu,
+    strata = .nis_stratum,
+    weights = .nis_weight,
+    nest = TRUE
+  ) |>
+    dplyr::filter(.in_cohort)
+
+  settings <- list(
+    adjusted = list(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = TRUE),
+    default = list(survey.lonely.psu = NULL, survey.adjust.domain.lonely = NULL)
+  )
+  max_abs_diff <- function(x, y) max(abs(as.numeric(x) - as.numeric(y)))
+
+  for (setting in settings) {
+    do.call(options, setting)
+
+    mean_reweighted <- survey::svymean(~AGE + LOS, reweighted)
+    mean_reference <- survey::svymean(~AGE + LOS, reference)
+    expect_lt(max_abs_diff(coef(mean_reweighted), coef(mean_reference)), 1e-8)
+    expect_lt(max_abs_diff(survey::SE(mean_reweighted), survey::SE(mean_reference)), 1e-8)
+
+    model_reweighted <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reweighted,
+      family = stats::quasibinomial()
+    )
+    model_reference <- survey::svyglm(
+      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      design = reference,
+      family = stats::quasibinomial()
+    )
+    expect_lt(max_abs_diff(coef(model_reweighted), coef(model_reference)), 1e-8)
+    expect_lt(max_abs_diff(vcov(model_reweighted), vcov(model_reference)), 1e-8)
+    expect_identical(survey::degf(reweighted), survey::degf(reference))
+  }
+
+  original_placeholders <- attr(design, "nis_placeholder_rows")
+  reweighted_placeholders <- attr(reweighted, "nis_placeholder_rows")
+  expect_gt(nrow(original_placeholders), 0L)
+  expect_identical(
+    reweighted_placeholders$.nis_weight,
+    original_placeholders$.nis_weight
+  )
+})
+
+test_that("nis_reweight accepts a column and validates propensity weights", {
+  designs <- comparison_designs()
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(designs$query)
+  cohort <- dplyr::coalesce(data$heart_failure, FALSE)
+  data$iptw <- NA_real_
+  data$iptw[cohort] <- 0.8 + (seq_len(sum(cohort)) %% 5) / 10
+  design <- nis_design(data, heart_failure, keep = c(AGE, iptw))
+
+  reweighted <- nis_reweight(design, iptw)
+  expect_equal(
+    as.numeric(stats::weights(reweighted)),
+    as.numeric(stats::weights(design)) * data$iptw[cohort]
+  )
+  expect_error(nis_reweight(design, rep(1, nrow(design$variables) - 1L)),
+    "one value per cohort row")
+  expect_error(nis_reweight(design, rep("1", nrow(design$variables))),
+    "numeric vector")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), NA_real_)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), Inf)),
+    "finite")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), 0)),
+    "positive")
+  expect_error(nis_reweight(design, c(rep(1, nrow(design$variables) - 1L), -1)),
+    "positive")
+  expect_error(nis_reweight(designs$full, rep(1, nrow(designs$full$variables))),
+    "must be a result of")
+})
+
+test_that("nis_design warns when the charge column is missing for a whole year", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2016L, 2017L), each = 2L),
+    HOSP_NIS = rep(1:2, 2L), NIS_STRATUM = 1L, DISCWT = 1,
+    eligible = TRUE, TOTCHG = c(1000, 1100, NA, NA), CCR_NIS = 0.25
+  )
+  expect_warning(
+    design <- nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2020),
+    "entirely missing in year 2017"
+  )
+  expect_true(all(is.na(design$variables$cost_adj[design$variables$YEAR == 2017])))
+
+  data$TOTCHG[3L] <- 900
+  expect_no_warning(
+    nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2020)
+  )
+})
+
+test_that("nis_design warns about years with hospitals but no cohort discharges", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2014L, 2015L, 2016L), each = 2L),
+    HOSP_NIS = rep(1:2, 3L), NIS_STRATUM = 1L, DISCWT = 1,
+    eligible = rep(c(FALSE, TRUE, TRUE), each = 2L)
+  )
+  expect_warning(
+    suppressMessages(nis_design(data, eligible, keep = YEAR)),
+    "No cohort discharges in year 2014"
+  )
+  data$eligible[1L] <- TRUE
+  expect_no_warning(suppressMessages(nis_design(data, eligible, keep = YEAR)))
+})
+
+test_that("annualize divides by the distinct years, counting empty and partial years", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2015L, 2016L), each = 2L),
+    HOSP_NIS = rep(1:2, 2L), NIS_STRATUM = 1L, DISCWT = c(4, 4, 6, 6),
+    eligible = c(FALSE, FALSE, TRUE, TRUE)
+  )
+  design <- suppressWarnings(suppressMessages(
+    nis_design(data, eligible, keep = YEAR, annualize = TRUE)
+  ))
+  expect_equal(design$variables$.nis_weight, c(3, 3))
 })
