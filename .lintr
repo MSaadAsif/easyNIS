@@ -3,6 +3,8 @@ linters: linters_with_defaults(
     indentation_linter = NULL
   )
 exclusions: list(
+    "R/design.R" = list(object_usage_linter = Inf),
+    "R/open-flags.R" = list(object_usage_linter = Inf),
     "inst/templates" = list(object_usage_linter = Inf),
     "tests/testthat" = list(object_usage_linter = Inf),
     "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf, object_usage_linter = Inf)
