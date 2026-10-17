@@ -127,3 +127,11 @@ test_that("plain double-quoted CSV files still parse", {
   ), path)
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })
+
+test_that("a byte-order mark before the header is tolerated", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw(paste0(
+    "'ICD-10-CM CODE','CCSR CATEGORY 1'\n'X100','ZZZ001'\n"))), path)
+  expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
+})
