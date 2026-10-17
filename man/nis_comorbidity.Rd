@@ -24,7 +24,8 @@ replaced.}
 \code{.data} with one logical column per condition (\verb{<prefix>hf}, ...),
 \verb{<prefix>n} (conditions flagged), \verb{<prefix>any}, and the integer
 \verb{<prefix>mortality_index} and \verb{<prefix>readmission_index} scores, using the
-names and weights from \code{medicalcoder}.
+names and weights from \code{medicalcoder}. Rows with no usable \verb{I10_DX*} code
+are \code{NA} in all of them; see the Assumptions section.
 }
 \description{
 Reshapes the wide \code{I10_DX1}, \code{I10_DX2}, ... columns of a collected data frame
@@ -51,9 +52,16 @@ include complications that arose during the stay.
 diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
 excludes it). Codes in \code{I10_DX2} onward are secondary.
-\item Codes are upper-cased with periods and spaces removed. Blank, missing,
-malformed or unmapped codes contribute nothing; a discharge with no
-usable code gets zeros.
+\item \strong{ICD-10 only.} Only the \verb{I10_DX*} columns are read. A discharge with no
+usable \verb{I10_DX*} code (all blank, missing or malformed), such as an ICD-9
+discharge from before October 2015, gets \code{NA} in every added column, and
+the function warns with the number of such rows. Do not treat those \code{NA}
+values as "no comorbidity".
+\item Codes are upper-cased with periods and spaces removed. Blank, missing or
+malformed codes are ignored, and an unmapped code adds no condition. A
+discharge with at least one usable but unmapped code gets zeros.
+\item The long reshaping holds about 40 diagnosis columns by every row in memory.
+Use it on a cohort, not on the full national file.
 }
 }
 
