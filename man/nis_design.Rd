@@ -4,7 +4,14 @@
 \alias{nis_design}
 \title{Prepare a cohort survey design}
 \usage{
-nis_design(.data, cohort, keep, annualize = FALSE, dollars = NULL)
+nis_design(
+  .data,
+  cohort,
+  keep,
+  annualize = FALSE,
+  dollars = NULL,
+  charges = "TOTCHG"
+)
 }
 \arguments{
 \item{.data}{Lazy Arrow query or data frame.}
@@ -18,7 +25,13 @@ are counted.}
 \item{annualize}{Divide discharge weights by the number of included years.}
 
 \item{dollars}{Optional reference dollar year for adjusted costs and charges.
-When supplied, keep \code{CCR_NIS} and either \code{TOTCHG} or \code{TOTCHG_2023}.}
+When supplied, keep \code{CCR_NIS} and the \code{charges} column.}
+
+\item{charges}{Name of the total-charge column used for adjusted costs and
+charges. Defaults to \code{"TOTCHG"}. Use \code{"TOTCHG_2023"} for 2023-only
+analyses, or build a pooled column explicitly with
+\code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))} before
+calling; either choice mixes charge definitions across years.}
 }
 \value{
 A filtered \code{srvyr::tbl_svy} survey design.
@@ -32,8 +45,12 @@ cohort; it cannot define a new cohort.
 Hospital geography columns are optional. Hospital and stratum identifiers
 are scoped by year (\code{YEAR} + \code{HOSP_NIS} and \code{YEAR} + \code{NIS_STRATUM}), because
 HCUP reassigns hospital numbers annually and 2023 stratum codes are
-sequential. For 2023 charges, keep either \code{TOTCHG} or \code{TOTCHG_2023} with
-\code{CCR_NIS}; the latter supplies the harmonized \code{TOTCHG} value.
+sequential. Costs and charges use \code{TOTCHG} only, unless \code{charges} names
+another column such as \code{TOTCHG_2023}; nothing is coalesced silently, because
+the 2023 field is not comparable to earlier-year \code{TOTCHG}. The 2023 layout
+facts (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and \code{HOSP_DIVISION}, sequential
+strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
+data.
 }
 \details{
 Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,

@@ -12,10 +12,17 @@ nis_open(path, years = NULL)
 \item{years}{Optional years to open. Defaults to every matching year.}
 }
 \value{
-A lazy Arrow query with case-normalized columns. For 2023 layouts,
-\code{TOTCHG_2023} is retained and also supplies the harmonized \code{TOTCHG} column
-used by existing cost workflows. The 2023 field is HCUP-adjusted for
-national estimates and is not directly comparable to earlier-year charges.
+A lazy Arrow query with case-normalized columns. Experimental 2023
+layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
+because the 2023 field is HCUP-adjusted for national estimates and is not
+comparable to earlier-year charges. Opening a query that contains
+\code{TOTCHG_2023} warns once per session. To use it, pass
+\code{charges = "TOTCHG_2023"} to \code{\link[=nis_design]{nis_design()}} or \code{\link[=nis_cost]{nis_cost()}}, or pool
+explicitly with \code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))}.
+
+The 2023 layout facts used here (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and
+\code{HOSP_DIVISION}, sequential \code{NIS_STRATUM}) are UNVERIFIED against official
+HCUP 2023 documentation and real 2023 data; none were available for testing.
 }
 \description{
 Open annual NIS Parquet files lazily

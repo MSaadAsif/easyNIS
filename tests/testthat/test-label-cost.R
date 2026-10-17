@@ -120,4 +120,11 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
   expect_identical(attr(adjusted$cost_adj, "label"), "Hospital cost (2022 USD)")
   expect_identical(attr(adjusted$charges_adj, "label"), "Total charges (2022 USD)")
   expect_error(nis_cost(data, dollars = 2025), "2012 through 2024")
+
+  other <- dplyr::tibble(YEAR = 2023, TOTCHG = 1, TOTCHG_2023 = 4000, CCR_NIS = 0.5)
+  explicit <- nis_cost(other, dollars = 2023, charges = "TOTCHG_2023")
+  expect_equal(as.numeric(explicit$charges_adj), 4000)
+  expect_equal(as.numeric(explicit$cost_adj), 2000)
+  expect_equal(as.numeric(nis_cost(other, dollars = 2023)$charges_adj), 1)
+  expect_error(nis_cost(other, dollars = 2023, charges = "MISSING"), "MISSING")
 })

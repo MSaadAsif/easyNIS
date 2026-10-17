@@ -40,30 +40,59 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
   arrow::write_parquet(data_2022, file.path(year_2022, "part-0.parquet"))
   arrow::write_parquet(data_2023, file.path(year_2023, "part-0.parquet"))
 
-  latest <- nis_open(path, years = 2023L)
+  rlang::reset_warning_verbosity("easyNIS_totchg_2023")
+  expect_warning(
+    latest <- nis_open(path, years = 2023L),
+    "not comparable"
+  )
+  expect_no_warning(nis_open(path, years = 2023L))
   expect_true(inherits(latest, "arrow_dplyr_query"))
   expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% names(latest)))
   expect_true("TOTCHG_2023" %in% names(latest))
+  expect_false("TOTCHG" %in% names(latest))
+
+  pooled_query <- suppressWarnings(nis_open(path, years = 2022:2023))
+  collected <- dplyr::collect(pooled_query)
+  expect_identical(collected$TOTCHG[order(collected$YEAR, collected$HOSP_NIS)],
+    c(1000, 1100, NA, NA))
   expect_identical(
-    latest |> dplyr::select(TOTCHG) |> dplyr::collect() |> dplyr::pull(),
-    c(2000, 2200)
+    collected$TOTCHG_2023[order(collected$YEAR, collected$HOSP_NIS)],
+    c(NA, NA, 2000, 2200)
+  )
+
+  # 2023 charges require an explicit opt-in; TOTCHG alone has no 2023 values.
+  expect_error(
+    nis_design(latest, eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023),
+    "TOTCHG"
   )
   latest_design <- latest |>
-    nis_design(eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023)
+    nis_design(eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023,
+      charges = "TOTCHG_2023")
   expect_equal(nrow(latest_design$variables), 2L)
-  expect_true(all(is.finite(latest_design$variables$cost_adj)))
+  expect_equal(sort(latest_design$variables$cost_adj), c(500, 550))
 
-  combined <- nis_open(path, years = 2022:2023) |>
-    nis_design(eligible, keep = c(AGE, TOTCHG_2023, CCR_NIS), dollars = 2023)
-  variables <- combined$variables
+  # Default pooled design uses TOTCHG only: 2023 rows stay missing.
+  default_pool <- pooled_query |>
+    nis_design(eligible, keep = c(AGE, TOTCHG, CCR_NIS), dollars = 2023)
+  variables <- default_pool$variables
+  order_rows <- order(variables$YEAR, variables$HOSP_NIS)
+  expect_false("TOTCHG_2023" %in% names(variables))
+  expect_true(all(is.na(variables$cost_adj[variables$YEAR == 2023L])))
+  expect_true(all(is.finite(variables$cost_adj[variables$YEAR == 2022L])))
   expect_setequal(variables$.nis_psu,
     c("2022::101", "2022::102", "2023::101", "2023::102"))
   expect_setequal(variables$.nis_stratum, c("2022::1", "2023::1"))
+
+  # An analyst may pool charge definitions with one explicit mutate.
+  explicit <- pooled_query |>
+    dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG)) |>
+    nis_design(eligible, keep = c(AGE, TOTCHG, CCR_NIS), dollars = 2023)
+  explicit_vars <- explicit$variables
   expect_equal(
-    variables$TOTCHG[order(variables$YEAR, variables$HOSP_NIS)],
+    explicit_vars$TOTCHG[order(explicit_vars$YEAR, explicit_vars$HOSP_NIS)],
     c(1000, 1100, 2000, 2200)
   )
-  expect_true(all(is.finite(variables$cost_adj)))
+  expect_true(all(is.finite(explicit_vars$cost_adj)))
 })
 
 test_that("ICD flags match prefixes by slot and behave the same on Arrow", {
