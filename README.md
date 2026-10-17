@@ -45,12 +45,13 @@ for `DX1`, `DX2`, ... and `PR1`, `PR2`, ...; the default `"icd10"` checks
 only `I10_DX*`/`I10_PR*`. Positions and prefix semantics are unchanged.
 `nis_example(2012:2016)` demonstrates both eras using invented records.
 
-The 2015 Q1–Q3 diagnosis/procedure file uses ICD-9 slots; Q4 uses separate
-`I10_` slots, not shared `DX*`/`PR*` slots. Join each quarter-specific file
-to Core by `KEY_NIS` before supplying annual Parquet data. Preserve the full
-Core population and official names; easyNIS does not perform these joins.
-Retain `DXVER` and `PRVER` (9 or 10): HCUP recommends `DXVER` to identify
-the 2015 split because `DQTR` can be missing. Flags exclude non-missing
+2015 Q1–Q3 discharges are ICD-9 and Q4 discharges are ICD-10 (confirmed in
+the NIS Introduction). The layout below is assumed from secondhand excerpts,
+not verified against HCUP files: ICD-9 codes in `DX*`/`PR*`, ICD-10 in
+separate `I10_` slots, quarter-specific diagnosis/procedure files joined to
+Core by `KEY_NIS`. easyNIS performs no joins; preserve the full Core
+population and official names. Retain `DXVER` and `PRVER` (9 or 10), which
+HCUP is understood to recommend over `DQTR` for the 2015 split. Flags exclude non-missing
 version indicators that disagree with the requested system, out-of-era
 years, and incompatible 2015 quarters. Missing metadata relies on the
 official slot namespace and missing inapplicable slots; reused/shared slots
