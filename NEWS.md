@@ -47,6 +47,9 @@
 
 ## Experimental helpers
 
+- `nis_design()` now excludes non-finite `YEAR`, `HOSP_NIS`, and `NIS_STRATUM`
+  values along with invalid discharge weights. `nis_reweight()` preserves
+  column labels when rebuilding designs, including after comorbidity scoring.
 - Added experimental `nis_reweight()` for multiplying cohort survey weights
   while retaining placeholder rows, with an optional commented WeightIt and
   cobalt example in the study template.
