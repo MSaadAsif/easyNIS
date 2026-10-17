@@ -10,6 +10,11 @@
 
 ## Core workflow
 
+- Quarto study reports now handle empty cohorts, one-level exposures, constant
+  outcomes, and unusable model matrices with explicit status messages. Single-
+  year reports omit the year adjustment, and DOCX trend tables display years
+  without thousands separators. Report caches now include study definitions,
+  external data-root identity, report inputs, and rendering dependencies.
 - `nis_design()` now warns when the charge column is entirely missing for a
   year, or when a year has hospitals but no cohort discharges. `annualize`
   divides by the number of distinct `YEAR` values, so a partial year counts
