@@ -10,6 +10,11 @@ expected results, before/after regression evidence where applicable, and local
 source/installed-workflow results. Link the current CI run and independent review.
 Keep private input paths and licensed validation receipts out of this description.
 
+## Privacy
+
+- [ ] The change contains no licensed inputs, record-level data, private paths, local validation receipts, or record-derived output.
+- [ ] Any examples or fixtures use invented data, and any tables or outputs have been reviewed for disclosure risk.
+
 ## Remaining gates
 
 State any experimental behavior, scientific approval, annual metadata, conversion
