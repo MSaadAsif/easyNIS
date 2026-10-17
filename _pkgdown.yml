@@ -1,11 +1,17 @@
-destination: site
-
+url: https://msaadasif.github.io/easyNIS/
+destination: _site
 template:
   bootstrap: 5
 
 navbar:
   structure:
     left: [intro, reference, articles]
+    right: [github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/MSaadAsif/easyNIS
+      aria-label: GitHub
 
 articles:
   - title: Guides
@@ -15,23 +21,25 @@ articles:
       - porting
 
 reference:
-  - title: Open data
+  - title: Open and flag data
     contents:
       - nis_example
       - nis_open
-  - title: Flag diagnosis and procedure codes
-    contents:
       - nis_flag_dx
       - nis_flag_pr
-      - nis_ccsr_codes
-  - title: Prepare the analysis design
+  - title: Survey design and weighting
     contents:
       - nis_design
       - nis_reweight
+  - title: Comorbidity and code reference files
+    contents:
       - nis_comorbidity
+      - nis_ccsr_codes
+  - title: Labels and costs
+    contents:
       - nis_label
       - nis_cost
-  - title: Suppress and report results
+  - title: Suppress and start a study
     contents:
       - nis_suppress
       - nis_new_study
