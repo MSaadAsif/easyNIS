@@ -11,11 +11,10 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(easyNIS)
 can_report <- rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))
-knitr::opts_chunk$set(eval = can_report)
 ```
 
 easyNIS takes you from annual National Inpatient Sample (NIS) Parquet files to
-a survey-weighted table, with the HCUP small-cell rule applied. This guide
+a survey-weighted table, with primary small cells suppressed. This guide
 walks through the steps on `nis_example()` data: invented discharges that have
 the NIS column layout but no real records. Replace the example path with the
 directory that holds your own `NIS_<year>.parquet` files to run a real study.
@@ -23,7 +22,8 @@ directory that holds your own `NIS_<year>.parquet` files to run a real study.
 ## Open the data
 
 `nis_open()` opens the annual files lazily, so nothing is read into memory
-until you ask for it. Column names are normalized to upper case across years.
+until you ask for it. Mixed-case NIS column names are normalized across years;
+wholly lower-case names are left unchanged.
 
 ```{r open}
 path <- nis_example(years = 2019:2020)
@@ -38,7 +38,8 @@ nis |>
 
 `nis_flag_dx()` and `nis_flag_pr()` add one logical column per named set of
 ICD-10 code prefixes. Each diagnosis or procedure slot is checked on its own,
-and the work stays lazy.
+and the work stays lazy. Prefixes ignore case, periods, and spaces; stored
+codes must use the NIS upper-case, period-free layout.
 
 ```{r flag}
 nis <- nis |>
@@ -91,7 +92,10 @@ srvyr::summarise(
 `gtsummary::tbl_svysummary()` builds a weighted table from the design, and
 `survey::svyglm()` fits a model that uses the survey structure.
 
-```{r table}
+The table chunks need the optional gtsummary, cardx, survey, and gt packages.
+Install them before running this guide if they are not already available.
+
+```{r table, eval=can_report}
 table_one <- gtsummary::tbl_svysummary(
   design,
   by = palliative_care,
@@ -100,13 +104,13 @@ table_one <- gtsummary::tbl_svysummary(
   gtsummary::add_overall()
 ```
 
-```{r model}
+```{r model, eval=rlang::is_installed("survey")}
 fit <- survey::svyglm(
-  LOS ~ palliative_care + AGE + FEMALE,
+  LOS ~ palliative_care + AGE + FEMALE + factor(YEAR),
   design = design
 )
 
-gtsummary::tbl_regression(fit)
+summary(fit)
 ```
 
 ## Suppress small cells
@@ -116,7 +120,7 @@ discharges. `nis_suppress()` masks displayed statistics whose unweighted count
 is at or below the threshold and adds a footnote that says so. It masks
 primary cells only, so check related totals before you publish.
 
-```{r suppress}
+```{r suppress, eval=can_report}
 nis_suppress(table_one, threshold = 10)
 ```
 
