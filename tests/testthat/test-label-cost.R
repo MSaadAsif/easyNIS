@@ -1,3 +1,24 @@
+test_that("labels require collected data", {
+  expect_error(nis_label(list(AGE = 40)), "collected data frame")
+})
+
+test_that("cost adjustment validates inputs and preserves missing amounts", {
+  data <- data.frame(YEAR = 2020, TOTCHG = c(NA_real_, 1000),
+    CCR_NIS = c(0.25, NA_real_))
+  adjusted <- nis_cost(data, dollars = 2020)
+  expect_true(all(is.na(adjusted$cost_adj)))
+  expect_equal(as.numeric(adjusted$charges_adj), c(NA_real_, 1000))
+  expect_error(nis_cost(data["YEAR"], 2020), "missing required")
+  data$TOTCHG <- as.character(data$TOTCHG)
+  expect_error(nis_cost(data, 2020), "must be numeric")
+  data$TOTCHG <- c(NA_real_, 1000)
+  data$YEAR <- c(NA_real_, 2025)
+  expect_error(nis_cost(data, 2020), "without a CPI-U index")
+  for (years in list(numeric(), NA_real_, 2015, 2025, 2019.5)) {
+    expect_error(nis_example(years), "whole years")
+  }
+})
+
 test_that("nis_label maps common codes and preserves existing labels", {
   data <- dplyr::tibble(
     DIED = c(0, 1, 0),
