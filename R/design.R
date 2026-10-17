@@ -173,7 +173,11 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     }, logical(1))]
     if (length(missing_charge_years) > 0L) {
       cli::cli_warn(c(
-        "`{charges}` is entirely missing in {cli::qty(length(missing_charge_years))}year{?s} {.val {sort(missing_charge_years)}}; adjusted costs and charges are `NA` there.",
+        paste0(
+          "`{charges}` is entirely missing in ",
+          "{cli::qty(length(missing_charge_years))}year{?s} {.val {sort(missing_charge_years)}}; ",
+          "adjusted costs and charges are `NA` there."
+        ),
         i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
       ))
     }
