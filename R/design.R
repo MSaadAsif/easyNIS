@@ -27,7 +27,12 @@
 #'   counted and treated as outside the cohort. Only valid-design discharges
 #'   are counted.
 #' @param keep Tidyselect expression naming analysis columns to collect.
-#' @param annualize Divide discharge weights by the number of included years.
+#' @param annualize Divide discharge weights by the number of distinct `YEAR`
+#'   values among valid-design discharges. A year counts as one whole year
+#'   however much of it is present, so a partial-year era such as the ICD-10
+#'   fourth quarter of 2015 counts the same as a full year, and a year with no
+#'   cohort discharges still counts. Divide by your own factor with
+#'   [nis_reweight()] if you need a different convention.
 #' @param dollars Optional reference dollar year for adjusted costs and charges.
 #'   When supplied, keep `CCR_NIS` and the `charges` column.
 #' @param charges Name of the total-charge column used for adjusted costs and
@@ -136,6 +141,15 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals,
     by = c("YEAR", "HOSP_NIS"))
 
+  hospital_years <- sort(unique(hospital_rows$YEAR))
+  no_cohort_years <- setdiff(hospital_years, cohort_rows$YEAR)
+  if (length(no_cohort_years) > 0L) {
+    cli::cli_warn(c(
+      "No cohort discharges in {cli::qty(length(no_cohort_years))}year{?s} {.val {no_cohort_years}}.",
+      i = "Those years contribute only placeholder rows, but still count as a year for `annualize`."
+    ))
+  }
+
   placeholders <- cohort_rows[rep(NA_integer_, nrow(empty_hospitals)), , drop = FALSE]
   if (nrow(empty_hospitals) > 0L) {
     for (field in design_fields) placeholders[[field]] <- empty_hospitals[[field]]
@@ -153,6 +167,16 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   }
   combined <- nis_label(combined)
   if (has_cost_inputs) {
+    charge_years <- unique(cohort_rows$YEAR)
+    missing_charge_years <- charge_years[vapply(charge_years, function(year) {
+      all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
+    }, logical(1))]
+    if (length(missing_charge_years) > 0L) {
+      cli::cli_warn(c(
+        "`{charges}` is entirely missing in {cli::qty(length(missing_charge_years))}year{?s} {.val {sort(missing_charge_years)}}; adjusted costs and charges are `NA` there.",
+        i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
+      ))
+    }
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
     combined <- nis_cost(combined, dollars = dollars, charges = charges)
   }

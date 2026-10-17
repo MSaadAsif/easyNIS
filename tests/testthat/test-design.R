@@ -349,3 +349,47 @@ test_that("nis_reweight accepts a column and validates propensity weights", {
   expect_error(nis_reweight(designs$full, rep(1, nrow(designs$full$variables))),
     "must be a result of")
 })
+
+test_that("nis_design warns when the charge column is missing for a whole year", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2016L, 2017L), each = 2L),
+    HOSP_NIS = rep(1:2, 2L), NIS_STRATUM = 1L, DISCWT = 1,
+    eligible = TRUE, TOTCHG = c(1000, 1100, NA, NA), CCR_NIS = 0.25
+  )
+  expect_warning(
+    design <- nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2020),
+    "entirely missing in year 2017"
+  )
+  expect_true(all(is.na(design$variables$cost_adj[design$variables$YEAR == 2017])))
+
+  data$TOTCHG[3L] <- 900
+  expect_no_warning(
+    nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2020)
+  )
+})
+
+test_that("nis_design warns about years with hospitals but no cohort discharges", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2014L, 2015L, 2016L), each = 2L),
+    HOSP_NIS = rep(1:2, 3L), NIS_STRATUM = 1L, DISCWT = 1,
+    eligible = rep(c(FALSE, TRUE, TRUE), each = 2L)
+  )
+  expect_warning(
+    suppressMessages(nis_design(data, eligible, keep = YEAR)),
+    "No cohort discharges in year 2014"
+  )
+  data$eligible[1L] <- TRUE
+  expect_no_warning(suppressMessages(nis_design(data, eligible, keep = YEAR)))
+})
+
+test_that("annualize divides by the distinct years, counting empty and partial years", {
+  data <- dplyr::tibble(
+    YEAR = rep(c(2015L, 2016L), each = 2L),
+    HOSP_NIS = rep(1:2, 2L), NIS_STRATUM = 1L, DISCWT = c(4, 4, 6, 6),
+    eligible = c(FALSE, FALSE, TRUE, TRUE)
+  )
+  design <- suppressWarnings(suppressMessages(
+    nis_design(data, eligible, keep = YEAR, annualize = TRUE)
+  ))
+  expect_equal(design$variables$.nis_weight, c(3, 3))
+})
