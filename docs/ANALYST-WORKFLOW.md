@@ -59,7 +59,9 @@ Most studies use 2018–2020; recent studies use 2017–2022.
 - `nis_label()` applies HCUP value labels, reference levels and variable
   labels, so studies no longer need `labels.R`.
 - `nis_cost()` computes cost from `CCR_NIS` with a bundled CPI-U table.
-- `nis_suppress()` masks gtsummary cells based on 10 or fewer discharges.
+- `nis_suppress()` masks gtsummary cells based on 10 or fewer discharges, and
+  the overall cell in the same row. Other derivable cells still need review
+  before sharing.
 - `nis_new_study()` creates a study folder from the Quarto template; an
   invented `nis_example()` dataset replaces `TESTING` switches.
 
