@@ -1,3 +1,24 @@
+test_that("labels require collected data", {
+  expect_error(nis_label(list(AGE = 40)), "collected data frame")
+})
+
+test_that("cost adjustment validates inputs and preserves missing amounts", {
+  data <- data.frame(YEAR = 2020, TOTCHG = c(NA_real_, 1000),
+    CCR_NIS = c(0.25, NA_real_))
+  adjusted <- nis_cost(data, dollars = 2020)
+  expect_true(all(is.na(adjusted$cost_adj)))
+  expect_equal(as.numeric(adjusted$charges_adj), c(NA_real_, 1000))
+  expect_error(nis_cost(data["YEAR"], 2020), "missing required")
+  data$TOTCHG <- as.character(data$TOTCHG)
+  expect_error(nis_cost(data, 2020), "must be numeric")
+  data$TOTCHG <- c(NA_real_, 1000)
+  data$YEAR <- c(NA_real_, 2025)
+  expect_error(nis_cost(data, 2020), "without a CPI-U index")
+  for (years in list(numeric(), NA_real_, 2011, 2025, 2019.5)) {
+    expect_error(nis_example(years), "whole years")
+  }
+})
+
 test_that("nis_label maps common codes and preserves existing labels", {
   data <- dplyr::tibble(
     DIED = c(0, 1, 0),
@@ -5,6 +26,8 @@ test_that("nis_label maps common codes and preserves existing labels", {
     RACE = c(1, 2, 3),
     PAY1 = c(1, 2, 3),
     DISPUNIFORM = c(20, 21, 99),
+    PL_NCHS2 = c(21, 22, 21),
+    TOTCHG_2023 = c(1000, 2000, 3000),
     AGE = c(40, -9, -8),
     LOS = c(2, -6, 5),
     ynel1 = structure(c(0, 1, NA_real_), label = "Existing Elixhauser label")
@@ -20,6 +43,9 @@ test_that("nis_label maps common codes and preserves existing labels", {
     "Died in hospital", "Code 21",
     "Alive, destination unknown"
   ))
+  # 2023-only fields have no audited labels, so they pass through untouched.
+  expect_identical(labelled$PL_NCHS2, data$PL_NCHS2)
+  expect_identical(labelled$TOTCHG_2023, data$TOTCHG_2023)
   expect_equal(as.numeric(labelled$AGE), c(40, -9, -8))
   expect_equal(as.numeric(labelled$LOS), c(2, -6, 5))
   expect_identical(attr(labelled$AGE, "label"), "Age, years")
@@ -113,4 +139,25 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
   expect_identical(attr(adjusted$cost_adj, "label"), "Hospital cost (2022 USD)")
   expect_identical(attr(adjusted$charges_adj, "label"), "Total charges (2022 USD)")
   expect_error(nis_cost(data, dollars = 2025), "2012 through 2024")
+
+  other <- dplyr::tibble(YEAR = 2023, TOTCHG = 1, TOTCHG_2023 = 4000, CCR_NIS = 0.5)
+  explicit <- nis_cost(other, dollars = 2023, charges = "TOTCHG_2023")
+  expect_equal(as.numeric(explicit$charges_adj), 4000)
+  expect_equal(as.numeric(explicit$cost_adj), 2000)
+  expect_equal(as.numeric(nis_cost(other, dollars = 2023)$charges_adj), 1)
+  expect_error(nis_cost(other, dollars = 2023, charges = "MISSING"), "MISSING")
+})
+
+test_that("common labels and cost adjustment work in experimental ICD-9 years", {
+  data <- dplyr::tibble(
+    YEAR = 2012:2015, PAY1 = rep(1L, 4L), DIED = c(0L, 1L, 0L, 1L),
+    DX1 = rep("12345", 4L), TOTCHG = rep(1000, 4L), CCR_NIS = rep(0.25, 4L)
+  )
+  labelled <- nis_label(data)
+  expect_identical(as.character(labelled$PAY1), rep("Medicare", 4L))
+  expect_identical(as.character(labelled$DIED), c("No", "Yes", "No", "Yes"))
+  expect_identical(labelled$DX1, data$DX1)
+  adjusted <- nis_cost(data, dollars = 2024)
+  expect_equal(as.numeric(adjusted$cost_adj),
+    250 * 313.689 / c(229.594, 232.957, 236.736, 237.017))
 })

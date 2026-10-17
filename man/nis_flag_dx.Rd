@@ -2,9 +2,14 @@
 % Please edit documentation in R/open-flags.R
 \name{nis_flag_dx}
 \alias{nis_flag_dx}
-\title{Add ICD-10 diagnosis prefix flags}
+\title{Add diagnosis prefix flags}
 \usage{
-nis_flag_dx(.data, ..., position = c("any", "principal", "secondary"))
+nis_flag_dx(
+  .data,
+  ...,
+  position = c("any", "principal", "secondary"),
+  system = c("icd10", "icd9")
+)
 }
 \arguments{
 \item{.data}{A data frame or lazy Arrow query.}
@@ -13,6 +18,9 @@ nis_flag_dx(.data, ..., position = c("any", "principal", "secondary"))
 
 \item{position}{Slots to check: all slots, the principal slot, or secondary
 slots only.}
+
+\item{system}{Code system of the slots to check: \code{"icd10"} (default) or
+\code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
 }
 \value{
 \code{.data} with one logical column per named definition.
@@ -23,4 +31,39 @@ case-insensitive, and periods and spaces in them are ignored. Slot values are
 compared as stored, byte for byte, because NIS stores upper-case codes
 without periods; malformed UTF-8 therefore cannot raise an error. Matching
 stays lazy on Arrow queries and avoids per-row text normalization.
+}
+\details{
+\code{system} picks which slots are tested. \code{"icd10"} reads \code{I10_DX1}, \code{I10_DX2},
+...; \code{"icd9"} (experimental) reads \code{DX1}, \code{DX2}, ... as stored in NIS 2012
+through Q3 2015. A prefix is only ever compared with slots of the chosen
+system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
+
+In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
+ICD-10 codes. HCUP is understood to recommend \code{DXVER} (9 or 10) to
+distinguish them, because \code{DQTR} can be missing (UNVERIFIED: secondhand); \code{PRVER} describes the procedure system.
+Non-missing version indicators must agree with \code{system}; non-missing
+\code{YEAR} and, in 2015, \code{DQTR} must also agree. Conflicting or invalid
+indicators yield \code{FALSE}. Missing indicators rely on the slot namespace:
+callers must preserve the official names and leave inapplicable slots
+missing. Shared slots containing both systems are not supported.
+\code{FALSE} means "not flagged under that code system", not "condition absent".
+A study that crosses October 2015 needs
+analyst-supplied code sets for both systems, flagged in two calls and
+combined, for example
+\code{nis_flag_dx(hf10 = "I50") |> nis_flag_dx(hf9 = "428", system = "icd9") |> dplyr::mutate(hf = hf10 | hf9)}. easyNIS ships no code lists and no ICD-9 to
+ICD-10 crosswalk, and even with both code sets, counts of a condition can
+break at the transition.
+}
+\examples{
+nis <- nis_open(nis_example(years = 2019:2020))
+nis |>
+  nis_flag_dx(heart_failure = "I50") |>
+  dplyr::count(heart_failure) |>
+  dplyr::collect()
+
+# Several prefixes, restricted to the principal diagnosis
+nis |>
+  nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
+  dplyr::count(hf_or_diabetes) |>
+  dplyr::collect()
 }

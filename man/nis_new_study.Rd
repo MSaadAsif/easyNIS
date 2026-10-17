@@ -17,6 +17,7 @@ Copy the packaged Quarto study template to a new directory. The destination
 must not already exist.
 }
 \examples{
-study_path <- file.path(tempdir(), "nis-study-example")
-if (!dir.exists(study_path)) nis_new_study(study_path)
+study_path <- tempfile("nis-study-example-")
+nis_new_study(study_path)
+list.files(study_path, all.files = TRUE, no.. = TRUE)
 }

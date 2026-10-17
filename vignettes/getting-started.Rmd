@@ -1,0 +1,148 @@
+---
+title: "Getting started with easyNIS"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with easyNIS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+easyNIS takes you from annual National Inpatient Sample (NIS) Parquet files to
+a survey-weighted table, with primary small cells suppressed. This guide
+walks through the steps on `nis_example()` data: invented discharges that have
+the NIS column layout but no real records. Replace the example path with the
+directory that holds your own `NIS_<year>.parquet` files to run a real study.
+
+## Open the data
+
+`nis_open()` opens the annual files lazily, so nothing is read into memory
+until you ask for it. Mixed-case NIS column names are normalized across years;
+wholly lower-case names are left unchanged.
+
+```{r open}
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path)
+
+nis |>
+  dplyr::count(YEAR) |>
+  dplyr::collect()
+```
+
+## Flag diagnoses and procedures
+
+`nis_flag_dx()` and `nis_flag_pr()` add one logical column per named set of
+ICD-10 code prefixes. Each diagnosis or procedure slot is checked on its own,
+and the work stays lazy. Prefixes ignore case, periods, and spaces; stored
+codes must use the NIS upper-case, period-free layout.
+
+```{r flag}
+nis <- nis |>
+  nis_flag_dx(
+    heart_failure = "I50",
+    palliative_care = "Z515"
+  ) |>
+  nis_flag_pr(ablation = "02L")
+
+nis |>
+  dplyr::count(heart_failure, palliative_care) |>
+  dplyr::collect()
+```
+
+Use `position = "principal"` to look at the principal diagnosis only. To
+build the prefix lists from an HCUP CCSR reference file that you download
+yourself, see `nis_ccsr_codes()`.
+
+## Build the survey design
+
+`nis_design()` takes a cohort expression and the columns to keep, collects the
+cohort, and returns a nested survey design. It adds a placeholder row for each
+hospital-year with no cohort discharges, so variance estimates account for the
+whole sample. It also labels coded fields, and, when `TOTCHG` and `CCR_NIS` are
+kept, adds inflation-adjusted `cost_adj` and `charges_adj`.
+
+```{r design}
+design <- nis_design(
+  nis,
+  cohort = heart_failure & AGE >= 18,
+  keep = c(AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS, palliative_care),
+  dollars = 2024
+)
+```
+
+Discharges with a missing or invalid design field are excluded with a
+warning that gives their number. The design-based tools in the survey and
+srvyr packages work on the result as they would on any other design.
+
+```{r summarise}
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_los = srvyr::survey_mean(LOS)
+)
+```
+
+## Table 1 and a model
+
+`gtsummary::tbl_svysummary()` builds a weighted table from the design, and
+`survey::svyglm()` fits a model that uses the survey structure.
+
+The table chunks need the optional gtsummary, cardx, survey, and gt packages.
+Install them before running this guide if they are not already available.
+
+```{r table, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
+table_one <- gtsummary::tbl_svysummary(
+  design,
+  by = palliative_care,
+  include = c(AGE, FEMALE, LOS, cost_adj)
+) |>
+  gtsummary::add_overall()
+```
+
+```{r model, eval=rlang::is_installed("survey")}
+fit <- survey::svyglm(
+  LOS ~ palliative_care + AGE + FEMALE + factor(YEAR),
+  design = design
+)
+
+summary(fit)
+```
+
+## Suppress small cells
+
+HCUP data use agreements require suppressing cells that describe 10 or fewer
+discharges. `nis_suppress()` masks displayed statistics whose unweighted count
+is at or below the threshold, along with the overall cell in the same row, and
+adds a footnote that says so. Review tables for other derivable cells, such as
+column totals, before you share them.
+
+```{r suppress, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
+nis_suppress(table_one, threshold = 10)
+```
+
+## Start a study folder
+
+`nis_new_study()` copies a Quarto template to a new directory. The template
+reproduces the steps above as a report with cohort flow, Table 1, outcomes,
+yearly trends, and regression tables. Its `analysis.qmd` runs on invented data
+until you set its `data_path` parameter.
+
+```{r new-study}
+study <- tempfile("my-nis-study-")
+nis_new_study(study)
+list.files(study, all.files = TRUE, no.. = TRUE)
+```
+
+Edit the definitions block in `analysis.qmd` for your cohort, then render it
+with Quarto.
+
+## Where next
+
+The "Porting an existing NIS study to easyNIS" vignette maps common
+regular-expression and recoding steps to easyNIS. `nis_reweight()` applies
+propensity weights to a design, and `nis_comorbidity()` adds AHRQ Elixhauser
+columns; both are experimental.
