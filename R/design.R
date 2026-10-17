@@ -91,7 +91,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     .data,
     .nis_cohort = !!cohort_quo,
     .nis_valid = dplyr::coalesce(
-      YEAR > 0 & HOSP_NIS > 0 & NIS_STRATUM > 0 & is.finite(DISCWT) & DISCWT > 0,
+      is.finite(YEAR) & YEAR > 0 &
+        is.finite(HOSP_NIS) & HOSP_NIS > 0 &
+        is.finite(NIS_STRATUM) & NIS_STRATUM > 0 &
+        is.finite(DISCWT) & DISCWT > 0,
       FALSE
     )
   )
@@ -266,7 +269,13 @@ nis_reweight <- function(design, weights) {
   }
 
   variables$.nis_weight <- variables$.nis_weight * weight_values
-  nis_cohort_design(dplyr::bind_rows(variables, placeholders))
+  combined <- dplyr::bind_rows(variables, placeholders)
+  # bind_rows() drops variable labels; restore them before rebuilding the design.
+  for (name in names(variables)) {
+    label <- attr(variables[[name]], "label", exact = TRUE)
+    if (!is.null(label)) attr(combined[[name]], "label") <- label
+  }
+  nis_cohort_design(combined)
 }
 
 # Cohort rows plus placeholder rows (`.in_cohort == FALSE`) in one nested

@@ -168,6 +168,18 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
 
   enriched <- nis_comorbidity(design)
 
+  labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
+  labels <- lapply(labelled_fields, function(field) {
+    attr(design$variables[[field]], "label", exact = TRUE)
+  })
+  names(labels) <- labelled_fields
+  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
+  for (field in labelled_fields) {
+    expect_identical(
+      attr(enriched$variables[[field]], "label", exact = TRUE), labels[[field]]
+    )
+  }
+
   expect_s3_class(enriched, "tbl_svy")
   expect_identical(enriched$cluster, design$cluster)
   expect_identical(enriched$strata, design$strata)
@@ -192,6 +204,13 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
   ))
   enriched <- nis_comorbidity(design)
 
+  labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
+  labels <- lapply(labelled_fields, function(field) {
+    attr(design$variables[[field]], "label", exact = TRUE)
+  })
+  names(labels) <- labelled_fields
+  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
+
   expect_identical(
     attr(enriched, "nis_placeholder_rows"),
     attr(design, "nis_placeholder_rows")
@@ -204,6 +223,18 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
   multipliers <- 0.6 + (seq_len(nrow(enriched$variables)) %% 7) / 10
   reweighted <- nis_reweight(enriched, multipliers)
   reference <- nis_reweight(design, multipliers)
+  for (field in labelled_fields) {
+    expect_identical(
+      attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
+    )
+  }
+  comorbid_after_reweight <- nis_comorbidity(reference)
+  for (field in labelled_fields) {
+    expect_identical(
+      attr(comorbid_after_reweight$variables[[field]], "label", exact = TRUE),
+      labels[[field]]
+    )
+  }
 
   expect_s3_class(reweighted, "tbl_svy")
   expect_true(all(c("cmrb_hf", "cmrb_n") %in% names(reweighted$variables)))
