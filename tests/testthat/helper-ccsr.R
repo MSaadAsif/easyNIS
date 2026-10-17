@@ -38,17 +38,17 @@ write_ccsr_xlsx <- function(path, rows = ccsr_fixture_rows(),
     '<Default Extension="xml" ContentType="application/xml"/>',
     '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
     '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>',
-    '</Types>'), ns), file.path(dir, "[Content_Types].xml"))
+    "</Types>"), ns), file.path(dir, "[Content_Types].xml"))
   writeLines(sprintf(paste0('<?xml version="1.0"?><Relationships xmlns="%s/package/2006/relationships">',
     '<Relationship Id="rId1" Type="%s/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>',
-    '</Relationships>'), ns, ns), file.path(dir, "_rels", ".rels"))
+    "</Relationships>"), ns, ns), file.path(dir, "_rels", ".rels"))
   writeLines(sprintf(paste0('<?xml version="1.0"?><workbook xmlns="%s/spreadsheetml/2006/main" ',
     'xmlns:r="%s/officeDocument/2006/relationships"><sheets>',
     '<sheet name="%s" sheetId="1" r:id="rId1"/></sheets></workbook>'), ns, ns, sheet),
     file.path(dir, "xl", "workbook.xml"))
   writeLines(sprintf(paste0('<?xml version="1.0"?><Relationships xmlns="%s/package/2006/relationships">',
     '<Relationship Id="rId1" Type="%s/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>',
-    '</Relationships>'), ns, ns), file.path(dir, "xl", "_rels", "workbook.xml.rels"))
+    "</Relationships>"), ns, ns), file.path(dir, "xl", "_rels", "workbook.xml.rels"))
   writeLines(sprintf('<?xml version="1.0"?><worksheet xmlns="%s/spreadsheetml/2006/main"><sheetData>%s</sheetData></worksheet>',
     ns, paste(sheet_rows, collapse = "")), file.path(dir, "xl", "worksheets", "sheet1.xml"))
   zip::zip(normalizePath(path, mustWork = FALSE),

@@ -138,7 +138,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
     combined <- nis_cost(combined, dollars = dollars)
   }
 
+  # nolint next: object_usage_linter. Used by cli interpolation below.
   hospitals <- length(unique(paste(cohort_rows$YEAR, cohort_rows$HOSP_NIS)))
+  # nolint next: object_usage_linter. Used by cli interpolation below.
   weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
   cli::cli_inform(paste0(
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
