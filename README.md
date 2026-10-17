@@ -6,7 +6,7 @@
 [![Lint](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml)
 [![Codecov test coverage](https://codecov.io/gh/MSaadAsif/easyNIS/branch/main/graph/badge.svg)](https://codecov.io/gh/MSaadAsif/easyNIS)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE)
 
 ## Why easyNIS?
 
@@ -66,7 +66,7 @@ The package accepts NIS data years 2012 onward. This describes the supported inp
 - **CCSR CSV/Excel layouts:** The reader validates expected fields and code shape, but its assumptions about downloaded HCUP reference-file layouts are **UNVERIFIED**. No CCSR content is bundled.
 - **Variance and cost methods:** The zero-domain placeholder-row variance method and cost adjustment remain experimental pending scientific approval. CPI-U adjustment uses the included annual series; cost estimates additionally require the appropriate `CCR_NIS`. Review methods and outputs for your study.
 
-Read the [Getting started vignette](https://msaadasif.github.io/easyNIS/articles/getting-started.html) and the [porting guide](https://msaadasif.github.io/easyNIS/articles/porting.html) for worked workflows. The local [analyst workflow note](docs/ANALYST-WORKFLOW.md) explains the redesign context.
+Read the [Getting started vignette](https://msaadasif.github.io/easyNIS/articles/getting-started.html) and the [porting guide](https://msaadasif.github.io/easyNIS/articles/porting.html) for worked workflows. The [analyst workflow note](https://github.com/MSaadAsif/easyNIS/blob/main/docs/ANALYST-WORKFLOW.md) explains the redesign context.
 
 ## Data use and privacy
 
@@ -88,4 +88,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, style, and privacy req
 
 ## License
 
-easyNIS is available under the MIT License. See [LICENSE](LICENSE).
+easyNIS is available under the MIT License. See the [LICENSE file](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).
