@@ -141,7 +141,7 @@ read_ccsr_map <- function(file) {
 # Files without that wrapping fall back to standard CSV parsing.
 read_ccsr_csv <- function(file) {
   lines <- readLines(file, encoding = "UTF-8", warn = FALSE)
-  lines <- sub("^﻿", "", lines)
+  lines <- sub("^\ufeff", "", lines)
   lines <- lines[nzchar(trimws(lines))]
   if (length(lines) == 0L) {
     cli::cli_abort("`file` is empty.")
@@ -150,7 +150,7 @@ read_ccsr_csv <- function(file) {
     return(utils::read.csv(text = lines, colClasses = "character",
       check.names = FALSE, na.strings = character()))
   }
-  sentinel <- ""
+  sentinel <- "\001"
   fields <- lapply(lines, function(line) {
     inner <- substr(line, 2L, nchar(line) - 1L)
     parts <- strsplit(paste0(inner, sentinel), "','", fixed = TRUE)[[1L]]
