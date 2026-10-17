@@ -24,7 +24,6 @@ Imports:
 Suggests:
     broom.helpers,
     cardx,
-    cobalt,
     forcats,
     flextable,
     ggplot2,
@@ -38,7 +37,6 @@ Suggests:
     rmarkdown,
     survey,
     testthat (>= 3.1.7),
-    WeightIt,
     zip
 VignetteBuilder: knitr
 Encoding: UTF-8
