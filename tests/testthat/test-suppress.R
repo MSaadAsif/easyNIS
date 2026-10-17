@@ -1,3 +1,43 @@
+test_that("nis_suppress rejects objects without survey summary cards", {
+  expect_error(nis_suppress(data.frame()), "tbl_svysummary")
+  expect_error(
+    nis_suppress(structure(list(), class = "tbl_svysummary")),
+    "tbl_svysummary"
+  )
+})
+
+test_that("suppression uses unweighted boundary and missing counts", {
+  data <- data.frame(
+    group = rep(c("A", "B"), each = 12L),
+    value = c(seq_len(10L), NA, NA, seq_len(11L), NA),
+    binary = c(rep(1L, 10L), 0L, 0L, rep(1L, 11L), 0L),
+    PSU = seq_len(24L),
+    weight = 100
+  )
+  design <- survey::svydesign(ids = ~PSU, weights = ~weight, data = data)
+  table <- gtsummary::tbl_svysummary(
+    design,
+    by = group,
+    include = c(value, binary),
+    type = list(value ~ "continuous", binary ~ "dichotomous"),
+    value = list(binary ~ 1L),
+    missing = "ifany"
+  )
+  suppressed <- nis_suppress(table)
+  labels <- suppressed$table_body$row_type == "label"
+  expect_identical(enc2utf8(suppressed$table_body$stat_1[labels]),
+    rep("\u226410", 2L))
+  expect_identical(suppressed$table_body$stat_2[labels],
+    table$table_body$stat_2[labels])
+  missing <- suppressed$table_body$row_type == "missing"
+  expect_true(any(missing))
+  expect_true(all(enc2utf8(suppressed$table_body$stat_1[missing]) == "\u226410"))
+  expect_true(all(enc2utf8(suppressed$table_body$stat_2[missing]) == "\u226410"))
+  for (threshold in list(NA_real_, Inf, 0.5, "10", c(1, 2))) {
+    expect_error(nis_suppress(table, threshold), "non-negative whole number")
+  }
+})
+
 test_that("nis_suppress masks low unweighted counts and adds the DUA footnote", {
   path <- nis_example(2017)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)

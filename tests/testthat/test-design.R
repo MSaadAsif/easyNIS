@@ -1,3 +1,30 @@
+test_that("design validation rejects ambiguous or incomplete inputs", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(nis_open(path))
+  expect_error(nis_design(data, TRUE, AGE, annualize = NA), "annualize")
+  expect_error(nis_design(data["AGE"], TRUE, AGE), "missing design")
+  data$.nis_weight <- 1
+  expect_error(nis_design(data, TRUE, AGE), "reserved")
+  data$.nis_weight <- NULL
+  data$.analysis <- 1
+  expect_error(nis_design(data, TRUE, .analysis), "dot-prefixed")
+  expect_error(nis_design(data, TRUE, AGE, dollars = 2024), "Keep both")
+  data$NIS_STRATUM[[1L]] <- 2L
+  expect_error(nis_design(data, TRUE, AGE), "one stratum")
+})
+
+test_that("reweighting rejects a design narrowed after cohort definition", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  design <- nis_open(path) |>
+    nis_flag_dx(heart_failure = "I50") |>
+    nis_design(heart_failure, keep = AGE)
+  narrowed <- dplyr::filter(design, AGE > min(AGE))
+  expect_error(nis_reweight(narrowed, rep(1, nrow(narrowed$variables))),
+    "has been narrowed")
+})
+
 test_that("nis_design placeholder designs match full-data domain estimates", {
   designs <- comparison_designs()
   on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
