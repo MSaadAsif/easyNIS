@@ -5,6 +5,11 @@
 #' placeholder-row method is experimental and is gated against a full-data
 #' design. After this function returns, `filter()` may only narrow the declared
 #' cohort; it cannot define a new cohort.
+#' Hospital geography columns are optional. Hospital and stratum identifiers
+#' are scoped by year (`YEAR` + `HOSP_NIS` and `YEAR` + `NIS_STRATUM`), because
+#' HCUP reassigns hospital numbers annually and 2023 stratum codes are
+#' sequential. For 2023 charges, keep either `TOTCHG` or `TOTCHG_2023` with
+#' `CCR_NIS`; the latter supplies the harmonized `TOTCHG` value.
 #'
 #' Discharges whose `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` is missing,
 #' non-finite, or not positive cannot be placed in a survey design. They are
@@ -20,6 +25,7 @@
 #' @param keep Tidyselect expression naming analysis columns to collect.
 #' @param annualize Divide discharge weights by the number of included years.
 #' @param dollars Optional reference dollar year for adjusted costs and charges.
+#'   When supplied, keep `CCR_NIS` and either `TOTCHG` or `TOTCHG_2023`.
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
@@ -46,6 +52,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
     cli::cli_abort("`keep` cannot select internal or dot-prefixed columns.")
   }
   selected <- unique(c(design_fields, keep_names))
+  if ("TOTCHG_2023" %in% keep_names && "TOTCHG" %in% data_names) {
+    selected <- union(selected, "TOTCHG")
+  }
 
   cohort_quo <- rlang::enquo(cohort)
   prepared <- dplyr::mutate(
@@ -114,11 +123,21 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL) {
   year_count <- length(unique(hospital_rows$YEAR))
   combined$.nis_weight <- combined$DISCWT / if (annualize) year_count else 1
 
-  combined <- nis_label(combined)
-  has_cost_inputs <- all(c("TOTCHG", "CCR_NIS") %in% keep_names)
+  has_charge_input <- any(c("TOTCHG", "TOTCHG_2023") %in% keep_names)
+  has_cost_inputs <- has_charge_input && "CCR_NIS" %in% keep_names
   if (!is.null(dollars) && !has_cost_inputs) {
-    cli::cli_abort("Keep both `TOTCHG` and `CCR_NIS` when requesting `dollars`.")
+    cli::cli_abort(
+      "Keep `CCR_NIS` and either `TOTCHG` or `TOTCHG_2023` when requesting `dollars`."
+    )
   }
+  if ("TOTCHG_2023" %in% keep_names) {
+    combined$TOTCHG <- if ("TOTCHG" %in% names(combined)) {
+      dplyr::coalesce(combined$TOTCHG_2023, combined$TOTCHG)
+    } else {
+      combined$TOTCHG_2023
+    }
+  }
+  combined <- nis_label(combined)
   if (has_cost_inputs) {
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
     combined <- nis_cost(combined, dollars = dollars)

@@ -17,7 +17,8 @@ are counted.}
 
 \item{annualize}{Divide discharge weights by the number of included years.}
 
-\item{dollars}{Optional reference dollar year for adjusted costs and charges.}
+\item{dollars}{Optional reference dollar year for adjusted costs and charges.
+When supplied, keep \code{CCR_NIS} and either \code{TOTCHG} or \code{TOTCHG_2023}.}
 }
 \value{
 A filtered \code{srvyr::tbl_svy} survey design.
@@ -28,6 +29,11 @@ no cohort discharges, then builds a nested NIS survey design. The
 placeholder-row method is experimental and is gated against a full-data
 design. After this function returns, \code{filter()} may only narrow the declared
 cohort; it cannot define a new cohort.
+Hospital geography columns are optional. Hospital and stratum identifiers
+are scoped by year (\code{YEAR} + \code{HOSP_NIS} and \code{YEAR} + \code{NIS_STRATUM}), because
+HCUP reassigns hospital numbers annually and 2023 stratum codes are
+sequential. For 2023 charges, keep either \code{TOTCHG} or \code{TOTCHG_2023} with
+\code{CCR_NIS}; the latter supplies the harmonized \code{TOTCHG} value.
 }
 \details{
 Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,

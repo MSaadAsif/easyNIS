@@ -3,7 +3,10 @@
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
 #' @param years Optional years to open. Defaults to every matching year.
 #'
-#' @return A lazy Arrow query with case-normalized columns.
+#' @return A lazy Arrow query with case-normalized columns. For 2023 layouts,
+#'   `TOTCHG_2023` is retained and also supplies the harmonized `TOTCHG` column
+#'   used by existing cost workflows. The 2023 field is HCUP-adjusted for
+#'   national estimates and is not directly comparable to earlier-year charges.
 #' @export
 nis_open <- function(path, years = NULL) {
   if (!dir.exists(path)) {
@@ -67,7 +70,19 @@ nis_open <- function(path, years = NULL) {
     }, fields)
     query <- dplyr::mutate(query, !!canonical := !!merged)
   }
-  dplyr::select(query, dplyr::all_of(names(name_groups)))
+  output_names <- names(name_groups)
+  if ("TOTCHG_2023" %in% output_names) {
+    if ("TOTCHG" %in% output_names) {
+      query <- dplyr::mutate(
+        query,
+        TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG)
+      )
+    } else {
+      query <- dplyr::mutate(query, TOTCHG = TOTCHG_2023)
+    }
+    output_names <- union(output_names, "TOTCHG")
+  }
+  dplyr::select(query, dplyr::all_of(output_names))
 }
 
 #' Add ICD-10 diagnosis prefix flags

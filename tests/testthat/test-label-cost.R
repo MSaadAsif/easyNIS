@@ -5,6 +5,8 @@ test_that("nis_label maps common codes and preserves existing labels", {
     RACE = c(1, 2, 3),
     PAY1 = c(1, 2, 3),
     DISPUNIFORM = c(20, 21, 99),
+    PL_NCHS2 = c(21, 22, 21),
+    TOTCHG_2023 = c(1000, 2000, 3000),
     AGE = c(40, -9, -8),
     LOS = c(2, -6, 5),
     ynel1 = structure(c(0, 1, NA_real_), label = "Existing Elixhauser label")
@@ -20,6 +22,11 @@ test_that("nis_label maps common codes and preserves existing labels", {
     "Died in hospital", "Code 21",
     "Alive, destination unknown"
   ))
+  expect_identical(as.character(labelled$PL_NCHS2), c(
+    "Metropolitan", "Non-metropolitan", "Metropolitan"
+  ))
+  expect_identical(attr(labelled$TOTCHG_2023, "label"),
+    "Total charges, USD, adjusted for national estimates (2023)")
   expect_equal(as.numeric(labelled$AGE), c(40, -9, -8))
   expect_equal(as.numeric(labelled$LOS), c(2, -6, 5))
   expect_identical(attr(labelled$AGE, "label"), "Age, years")
