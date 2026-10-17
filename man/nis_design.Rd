@@ -22,7 +22,12 @@ are counted.}
 
 \item{keep}{Tidyselect expression naming analysis columns to collect.}
 
-\item{annualize}{Divide discharge weights by the number of included years.}
+\item{annualize}{Divide discharge weights by the number of distinct \code{YEAR}
+values among valid-design discharges. A year counts as one whole year
+however much of it is present, so a partial-year era such as the ICD-10
+fourth quarter of 2015 counts the same as a full year, and a year with no
+cohort discharges still counts. Divide by your own factor with
+\code{\link[=nis_reweight]{nis_reweight()}} if you need a different convention.}
 
 \item{dollars}{Optional reference dollar year for adjusted costs and charges.
 When supplied, keep \code{CCR_NIS} and the \code{charges} column.}

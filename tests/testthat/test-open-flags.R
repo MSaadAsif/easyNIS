@@ -72,8 +72,11 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
   expect_equal(sort(latest_design$variables$cost_adj), c(500, 550))
 
   # Default pooled design uses TOTCHG only: 2023 rows stay missing.
-  default_pool <- pooled_query |>
-    nis_design(eligible, keep = c(AGE, TOTCHG, CCR_NIS), dollars = 2023)
+  expect_warning(
+    default_pool <- pooled_query |>
+      nis_design(eligible, keep = c(AGE, TOTCHG, CCR_NIS), dollars = 2023),
+    "TOTCHG.*entirely missing in year 2023"
+  )
   variables <- default_pool$variables
   order_rows <- order(variables$YEAR, variables$HOSP_NIS)
   expect_false("TOTCHG_2023" %in% names(variables))
