@@ -82,7 +82,7 @@ Keep custom study-derived variables in `mutate()`. Set their factor order
 explicitly with `forcats::fct_relevel()`, and override the displayed label at
 the table where it is used:
 
-```{r design}
+```{r design, eval=rlang::is_installed("forcats")}
 study_design <- nis_flagged |>
   nis_design(
     cohort = cohort_dx & AGE >= 50,
@@ -110,7 +110,7 @@ study_design <- nis_flagged |>
 Use `gtsummary` label overrides for derived variables; HCUP labels already
 cover the common coded fields:
 
-```{r table-labels}
+```{r table-labels, eval=rlang::is_installed(c("forcats", "gtsummary", "cardx", "survey", "gt"))}
 table_one <- gtsummary::tbl_svysummary(
   study_design,
   by = exposed,

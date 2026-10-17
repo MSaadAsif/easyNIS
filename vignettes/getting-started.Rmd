@@ -10,7 +10,6 @@ vignette: >
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(easyNIS)
-can_report <- rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))
 ```
 
 easyNIS takes you from annual National Inpatient Sample (NIS) Parquet files to
@@ -95,7 +94,7 @@ srvyr::summarise(
 The table chunks need the optional gtsummary, cardx, survey, and gt packages.
 Install them before running this guide if they are not already available.
 
-```{r table, eval=can_report}
+```{r table, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
 table_one <- gtsummary::tbl_svysummary(
   design,
   by = palliative_care,
@@ -120,7 +119,7 @@ discharges. `nis_suppress()` masks displayed statistics whose unweighted count
 is at or below the threshold and adds a footnote that says so. It masks
 primary cells only, so check related totals before you publish.
 
-```{r suppress, eval=can_report}
+```{r suppress, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
 nis_suppress(table_one, threshold = 10)
 ```
 

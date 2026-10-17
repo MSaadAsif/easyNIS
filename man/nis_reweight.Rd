@@ -10,7 +10,10 @@ nis_reweight(design, weights)
 \item{design}{A result of \code{\link[=nis_design]{nis_design()}}.}
 
 \item{weights}{Numeric weights aligned with the cohort rows of \code{design}, or
-an unquoted numeric column name in the design data.}
+an unquoted numeric column name in the design data. They are matched to
+rows by position, so take them from \code{design$variables} in that order (for
+example, fit the propensity model on \code{design$variables}) and do not
+reorder or subset the rows first.}
 }
 \value{
 A filtered \code{srvyr::tbl_svy} survey design.
@@ -22,6 +25,17 @@ and rebuilds the nested survey design. This experimental method is intended
 for analysts who have validated their weighting specification against a
 full-data reference design.
 }
+\section{Weighted totals}{
+
+The result multiplies the discharge weights by \code{weights}, so
+\code{survey_total()} and similar totals no longer estimate national discharge
+counts. Use the result for ratios, means and model estimates, and report
+national counts from the design before reweighting. Each call multiplies the
+weights again, so call \code{nis_reweight()} once on the result of
+\code{\link[=nis_design]{nis_design()}}; calling it on an already reweighted design compounds the
+weights.
+}
+
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
@@ -29,5 +43,5 @@ design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
 
 # Illustrative weights only; use weights from your own validated model
 reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-srvyr::summarise(reweighted, discharges = srvyr::survey_total())
+srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
 }
