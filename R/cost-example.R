@@ -21,8 +21,12 @@ attr(.cpi_u, "source") <- paste(
 
 #' Adjust NIS charges and costs to a reference dollar year
 #'
-#' @param data A data frame with `YEAR`, `TOTCHG`, and `CCR_NIS`.
+#' @param data A data frame with `YEAR`, the `charges` column, and `CCR_NIS`.
 #' @param dollars Reference dollar year, from 2012 through 2024.
+#' @param charges Name of the total-charge column. Defaults to `"TOTCHG"`.
+#'   Use `"TOTCHG_2023"` only knowingly: HCUP adjusts that field for states
+#'   missing from 2023, so it is not comparable to earlier-year `TOTCHG`, and it
+#'   is missing for earlier years.
 #'
 #' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD.
 #' @export
@@ -31,8 +35,11 @@ attr(.cpi_u, "source") <- paste(
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect()
 #' head(nis_cost(charges, dollars = 2024))
-nis_cost <- function(data, dollars) {
-  required <- c("YEAR", "TOTCHG", "CCR_NIS")
+nis_cost <- function(data, dollars, charges = "TOTCHG") {
+  if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
+    cli::cli_abort("`charges` must be a single column name.")
+  }
+  required <- c("YEAR", charges, "CCR_NIS")
   missing <- setdiff(required, names(data))
   if (length(missing) > 0L) {
     cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.")
@@ -41,9 +48,9 @@ nis_cost <- function(data, dollars) {
       dollars != as.integer(dollars) || !dollars %in% .cpi_u$year) {
     cli::cli_abort("`dollars` must be one year from 2012 through 2024.")
   }
-  if (!is.numeric(data$YEAR) || !is.numeric(data$TOTCHG) ||
+  if (!is.numeric(data$YEAR) || !is.numeric(data[[charges]]) ||
       !is.numeric(data$CCR_NIS)) {
-    cli::cli_abort("`YEAR`, `TOTCHG`, and `CCR_NIS` must be numeric.")
+    cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.")
   }
   index <- match(data$YEAR, .cpi_u$year)
   if (anyNA(index)) {
@@ -51,8 +58,8 @@ nis_cost <- function(data, dollars) {
   }
 
   reference_index <- .cpi_u$index[match(as.integer(dollars), .cpi_u$year)]
-  data$cost_adj <- data$TOTCHG * data$CCR_NIS * reference_index / .cpi_u$index[index]
-  data$charges_adj <- data$TOTCHG * reference_index / .cpi_u$index[index]
+  data$cost_adj <- data[[charges]] * data$CCR_NIS * reference_index / .cpi_u$index[index]
+  data$charges_adj <- data[[charges]] * reference_index / .cpi_u$index[index]
   attr(data$cost_adj, "label") <- paste0("Hospital cost (", dollars, " USD)")
   attr(data$charges_adj, "label") <- paste0("Total charges (", dollars, " USD)")
   data

@@ -48,6 +48,8 @@
   "RACE", 4, "Asian or Pacific Islander", "Race, uniform coding",
   "RACE", 5, "Native American", "Race, uniform coding",
   "RACE", 6, "Other", "Race, uniform coding",
+  "PL_NCHS2", 21, "Metropolitan", "Patient location, NCHS urban-rural code (collapsed)",
+  "PL_NCHS2", 22, "Non-metropolitan", "Patient location, NCHS urban-rural code (collapsed)",
   "PL_NCHS", 1, "Central metro, population 1 million or more", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 2, "Fringe metro, population 1 million or more", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 3, "Metro, population 250,000-999,999", "Patient location, NCHS urban-rural code",
@@ -116,6 +118,7 @@
   "AGE", NA_real_, NA_character_, "Age, years",
   "LOS", NA_real_, NA_character_, "Length of stay, days",
   "TOTCHG", NA_real_, NA_character_, "Total charges, USD",
+  "TOTCHG_2023", NA_real_, NA_character_, "Total charges, USD, adjusted for national estimates (2023)",
   "CCR_NIS", NA_real_, NA_character_, "Cost-to-charge ratio",
   "YEAR", NA_real_, NA_character_, "Discharge year",
   "DISCWT", NA_real_, NA_character_, "Discharge weight",
@@ -141,7 +144,9 @@ attr(.hcup_labels, "source") <- paste(
 #' @return `data` with known coded elements as factors and variable labels in
 #'   `attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
 #'   with one warning per variable. Existing labels and labelled comorbidity
-#'   fields are preserved. The operation is idempotent.
+#'   fields are preserved. The 2023 `PL_NCHS2` collapsed geography field and
+#'   `TOTCHG_2023` total-charge field are labelled when present. The operation
+#'   is idempotent.
 #'
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
