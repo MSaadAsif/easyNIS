@@ -12,6 +12,7 @@
 ^GLOSSARY\.md$
 ^LICENSE\.md$
 ^docs$
+^site$
 ^local-data($|[/\\])
 ^local-validation($|[/\\])
 ^private($|[/\\])

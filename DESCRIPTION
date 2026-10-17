@@ -13,7 +13,7 @@ Description: Pipe-friendly tools for working with Healthcare Cost and
     propensity-based reweighting, applies HCUP labels, and adjusts charges for
     inflation. ICD-9 and NIS 2023 support are experimental.
 License: MIT + file LICENSE
-URL: https://github.com/MSaadAsif/easyNIS, https://MSaadAsif.github.io/easyNIS
+URL: https://github.com/MSaadAsif/easyNIS
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
 Depends: R (>= 4.1.0)
 Imports:
