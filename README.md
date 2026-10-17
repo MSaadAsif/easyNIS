@@ -17,6 +17,12 @@ NIS analysis often repeats the same file opening, code-prefix matching, survey-d
 pak::pak("MSaadAsif/easyNIS")
 ```
 
+To install the pinned 0.2.0 release:
+
+```r
+pak::pak("MSaadAsif/easyNIS@v0.2.0")
+```
+
 ## Quick start
 
 This complete example uses only the package's invented offline fixture. It does not need HCUP files.
