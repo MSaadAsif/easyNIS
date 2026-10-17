@@ -2,9 +2,14 @@
 % Please edit documentation in R/open-flags.R
 \name{nis_flag_pr}
 \alias{nis_flag_pr}
-\title{Add ICD-10 procedure prefix flags}
+\title{Add procedure prefix flags}
 \usage{
-nis_flag_pr(.data, ..., position = c("any", "principal"))
+nis_flag_pr(
+  .data,
+  ...,
+  position = c("any", "principal"),
+  system = c("icd10", "icd9")
+)
 }
 \arguments{
 \item{.data}{A data frame or lazy Arrow query.}
@@ -12,16 +17,19 @@ nis_flag_pr(.data, ..., position = c("any", "principal"))
 \item{...}{Named flag definitions, such as \code{ablation = "02L"}.}
 
 \item{position}{Slots to check: all slots or the principal slot only.}
+
+\item{system}{Code system of the slots to check: \code{"icd10"} (default) or
+\code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
 }
 \value{
 \code{.data} with one logical column per named definition.
 }
 \description{
-Each procedure slot is checked separately. Supplied prefixes are
-case-insensitive, and periods and spaces in them are ignored. Slot values are
-compared as stored, byte for byte, because NIS stores upper-case codes
-without periods; malformed UTF-8 therefore cannot raise an error. Matching
-stays lazy on Arrow queries and avoids per-row text normalization.
+Each procedure slot is checked separately, with the same prefix rules, byte
+for byte comparison, and \code{system} semantics as \code{\link[=nis_flag_dx]{nis_flag_dx()}}. \code{"icd10"}
+reads \code{I10_PR1}, ...; \code{"icd9"} (experimental) reads \code{PR1}, ... Prefixes only
+match slots of the chosen system, so a flag over a mixed 2015 query is
+\code{FALSE} on discharges coded in the other system.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))
