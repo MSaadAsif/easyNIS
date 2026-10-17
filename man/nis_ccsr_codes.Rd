@@ -39,6 +39,13 @@ assignment of a single category to a principal diagnosis, so combine it
 with \code{position = "principal"} in \code{\link[=nis_flag_dx]{nis_flag_dx()}}. Procedure reference files
 have no default assignment.
 
+UNVERIFIED: the file layouts above are assumed from secondhand descriptions
+of HCUP downloads, not checked against a current release. The reader checks
+that every row has as many fields as the header and that every code looks
+like an ICD-10 code (3 to 7 letters or digits), and it stops with an error
+otherwise. Check the returned codes against your reference file before you
+rely on them.
+
 This function is experimental.
 }
 \examples{

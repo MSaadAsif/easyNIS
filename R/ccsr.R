@@ -19,6 +19,13 @@
 #' with `position = "principal"` in [nis_flag_dx()]. Procedure reference files
 #' have no default assignment.
 #'
+#' UNVERIFIED: the file layouts above are assumed from secondhand descriptions
+#' of HCUP downloads, not checked against a current release. The reader checks
+#' that every row has as many fields as the header and that every code looks
+#' like an ICD-10 code (3 to 7 letters or digits), and it stops with an error
+#' otherwise. Check the returned codes against your reference file before you
+#' rely on them.
+#'
 #' This function is experimental.
 #'
 #' @param file Path to the HCUP CCSR reference file.
@@ -83,8 +90,7 @@ read_ccsr_map <- function(file) {
   raw <- if (grepl("[.]xlsx?$", file, ignore.case = TRUE)) {
     read_ccsr_sheet(file)
   } else {
-    utils::read.csv(file, colClasses = "character", check.names = FALSE,
-      fileEncoding = "UTF-8-BOM", na.strings = character())
+    read_ccsr_csv(file)
   }
 
   key <- gsub("[^a-z0-9]", "", tolower(names(raw)))
@@ -102,6 +108,14 @@ read_ccsr_map <- function(file) {
     toupper(x)
   }
   code <- gsub("[.[:space:]]", "", clean(raw[[code_col[1L]]]))
+  bad <- unique(code[!is.na(code) & !grepl("^[A-Z0-9]{3,7}$", code)])
+  if (length(bad) > 0L) {
+    cli::cli_abort(c(
+      "`file` has values in its code column that are not ICD-10 codes.",
+      "x" = "First offending value{?s}: {.val {utils::head(bad, 3L)}}",
+      "i" = "The file may be malformed or in an unsupported layout."
+    ))
+  }
   long_default <- grep("^inpatientdefaultccsr", key)
   wide_default <- grep("^defaultccsrcategoryip$", key)
 
@@ -119,6 +133,46 @@ read_ccsr_map <- function(file) {
   })
   map <- do.call(rbind, pairs)
   map[!is.na(map$code) & !is.na(map$category), , drop = FALSE]
+}
+
+# HCUP comma-separated files wrap every field in single quotes, and
+# descriptions can contain commas and apostrophes. A field boundary is
+# therefore the three-character sequence ',' rather than a bare comma.
+# Files without that wrapping fall back to standard CSV parsing.
+read_ccsr_csv <- function(file) {
+  lines <- readLines(file, encoding = "UTF-8", warn = FALSE)
+  lines <- sub("^﻿", "", lines)
+  lines <- lines[nzchar(trimws(lines))]
+  if (length(lines) == 0L) {
+    cli::cli_abort("`file` is empty.")
+  }
+  if (!grepl("^'.*'$", lines[1L])) {
+    return(utils::read.csv(text = lines, colClasses = "character",
+      check.names = FALSE, na.strings = character()))
+  }
+  sentinel <- ""
+  fields <- lapply(lines, function(line) {
+    inner <- substr(line, 2L, nchar(line) - 1L)
+    parts <- strsplit(paste0(inner, sentinel), "','", fixed = TRUE)[[1L]]
+    parts[length(parts)] <- sub(sentinel, "", parts[length(parts)], fixed = TRUE)
+    parts
+  })
+  width <- lengths(fields)
+  wrong <- which(width != width[1L] | !grepl("^'.*'$", lines))
+  if (length(wrong) > 0L) {
+    shown <- utils::head(wrong, 3L)
+    expected <- width[1L]
+    cli::cli_abort(c(
+      "`file` is not a well-formed single-quoted CSV.",
+      "x" = "Line {shown} should have {expected} quoted fields like the header."
+    ))
+  }
+  body <- as.data.frame(do.call(rbind, fields[-1L]), stringsAsFactors = FALSE)
+  if (nrow(body) == 0L) {
+    body <- as.data.frame(matrix(character(), 0L, width[1L]))
+  }
+  names(body) <- fields[[1L]]
+  body
 }
 
 # HCUP workbooks put title rows above the header, so find the header row.

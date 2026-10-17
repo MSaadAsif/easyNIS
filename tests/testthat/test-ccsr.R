@@ -78,3 +78,52 @@ test_that("CCSR codes feed nis_flag_dx and nis_flag_pr as prefixes", {
   flagged <- nis_flag_dx(data, grp = codes)
   expect_equal(flagged$grp, c(TRUE, TRUE, TRUE, FALSE))
 })
+
+test_that("quoted descriptions with commas and apostrophes do not shift fields", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  writeLines(c(
+    "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','Default CCSR CATEGORY IP','Default CCSR CATEGORY DESCRIPTION IP','CCSR CATEGORY 1','CCSR CATEGORY 1 DESCRIPTION'",
+    "'X100','Invented disease, type one','ZZZ001','Invented, category','ZZZ001','Invented, category'",
+    "'X101','Invented's disease','ZZZ002','Owner's category','ZZZ002','Owner's category'",
+    "'X102','Both, and Invented's, here','ZZZ002','c','ZZZ002',''",
+    "'X.103','d','ZZZ001','c','ZZZ001','c'"
+  ), path)
+
+  expect_equal(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X103"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ002"), c("X101", "X102"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE),
+    c("X101", "X102"))
+})
+
+test_that("malformed CSV rows and non-ICD codes are rejected clearly", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  header <- "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','CCSR CATEGORY 1'"
+
+  writeLines(c(header, "'X100','d','ZZZ001'", "'X101','d','x','ZZZ001'"), path)
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "Line 3")
+
+  writeLines(c(header, "'X100','d','ZZZ001'", "X101,d,ZZZ001"), path)
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "well-formed")
+
+  writeLines(c(header, "'Invented disease','d','ZZZ001'"), path)
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "not ICD-10 codes")
+
+  writeLines(c(header, "'AB','d','ZZZ001'"), path)
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "not ICD-10 codes")
+
+  writeLines(character(), path)
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "empty")
+})
+
+test_that("plain double-quoted CSV files still parse", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  writeLines(c(
+    'ICD-10-CM CODE,ICD-10-CM CODE DESCRIPTION,CCSR CATEGORY 1',
+    'X100,"Invented, disease",ZZZ001',
+    'X101,d,ZZZ002'
+  ), path)
+  expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
+})
