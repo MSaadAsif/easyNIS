@@ -124,8 +124,8 @@ nis_open <- function(path, years = NULL) {
 #' system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
 #'
 #' In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
-#' ICD-10 codes. HCUP recommends `DXVER` (9 or 10) to distinguish them,
-#' because `DQTR` can be missing; `PRVER` describes the procedure system.
+#' ICD-10 codes. HCUP is understood to recommend `DXVER` (9 or 10) to
+#' distinguish them, because `DQTR` can be missing (UNVERIFIED: secondhand); `PRVER` describes the procedure system.
 #' Non-missing version indicators must agree with `system`; non-missing
 #' `YEAR` and, in 2015, `DQTR` must also agree. Conflicting or invalid
 #' indicators yield `FALSE`. Missing indicators rely on the slot namespace:

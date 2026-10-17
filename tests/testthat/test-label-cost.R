@@ -43,11 +43,9 @@ test_that("nis_label maps common codes and preserves existing labels", {
     "Died in hospital", "Code 21",
     "Alive, destination unknown"
   ))
-  expect_identical(as.character(labelled$PL_NCHS2), c(
-    "Metropolitan", "Non-metropolitan", "Metropolitan"
-  ))
-  expect_identical(attr(labelled$TOTCHG_2023, "label"),
-    "Total charges, USD, adjusted for national estimates (2023)")
+  # 2023-only fields have no audited labels, so they pass through untouched.
+  expect_identical(labelled$PL_NCHS2, data$PL_NCHS2)
+  expect_identical(labelled$TOTCHG_2023, data$TOTCHG_2023)
   expect_equal(as.numeric(labelled$AGE), c(40, -9, -8))
   expect_equal(as.numeric(labelled$LOS), c(2, -6, 5))
   expect_identical(attr(labelled$AGE, "label"), "Age, years")

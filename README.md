@@ -72,12 +72,13 @@ only `I10_DX*`/`I10_PR*`. Positions and prefix semantics are unchanged.
 `nis_example(2012:2016)` demonstrates both eras using invented records.
 
 2015 Q1–Q3 discharges are ICD-9 and Q4 discharges are ICD-10 (confirmed in
-the NIS Introduction). The layout below is assumed from secondhand excerpts,
-not verified against HCUP files: ICD-9 codes in `DX*`/`PR*`, ICD-10 in
+the NIS Introduction). The layout below is UNVERIFIED, assumed from
+secondhand excerpts and not checked against HCUP files: ICD-9 codes in `DX*`/`PR*`, ICD-10 in
 separate `I10_` slots, quarter-specific diagnosis/procedure files joined to
 Core by `KEY_NIS`. easyNIS performs no joins; preserve the full Core
 population and official names. Retain `DXVER` and `PRVER` (9 or 10), which
-HCUP is understood to recommend over `DQTR` for the 2015 split. Flags exclude non-missing
+HCUP is understood to recommend over `DQTR` for the 2015 split (UNVERIFIED).
+Flags exclude non-missing
 version indicators that disagree with the requested system, out-of-era
 years, and incompatible 2015 quarters. Missing metadata relies on the
 official slot namespace and missing inapplicable slots; reused/shared slots
@@ -88,8 +89,9 @@ For cross-era studies, supply independently justified diagnosis and procedure
 prefix vectors for each system, call the flagger once per system, then combine
 the resulting flags explicitly with `dplyr::mutate()`. There are no bundled
 clinical code lists or crosswalks. October 1, 2015 is a coding discontinuity;
-combining flags does not establish trend comparability. Common existing
-`nis_label()` mappings and `nis_cost()` CPI-U values cover 2012–2015, but
+combining flags does not establish trend comparability. `nis_cost()` CPI-U
+values cover 2012–2015. `nis_label()` has been tested for 2012–2015 data only
+for `PAY1` and `DIED`; other labels are UNVERIFIED for that era. Further,
 ICD-9-specific derived indicators are not automatically mapped to ICD-10
 indicators. Supply the correct annual CCR; no cost file is bundled.
 
@@ -105,5 +107,6 @@ never altered: HCUP adjusts `TOTCHG_2023` for states unavailable in 2023, so it
 is not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
 use `TOTCHG` unless you opt in with `charges = "TOTCHG_2023"`, or pool
 deliberately with `mutate(TOTCHG = coalesce(TOTCHG_2023, TOTCHG))`. Opening a
-query with `TOTCHG_2023` warns once per session. The removed `RACE` field is
-optional, and the coarser `PL_NCHS2` field is labelled when present.
+query with `TOTCHG_2023` warns once per session. Fields absent from
+the 2023 layout stay optional, and `nis_label()` leaves 2023-only fields such as
+`PL_NCHS2` and `TOTCHG_2023` unlabelled.

@@ -19,8 +19,8 @@ following has been checked against a primary file or document):
   files linked to Core by `KEY_NIS`, with `DX*`/`PR*` for ICD-9 and
   `I10_DX*`/`I10_PR*` for ICD-10.
 - `DXVER` and `PRVER` take the values 9 and 10 for the ICD-9 and ICD-10
-  systems, and HCUP recommends `DXVER` over `DQTR` for the 2015 split because
-  discharge quarter can be missing.
+  systems, and HCUP is understood to recommend `DXVER` over `DQTR` for the 2015
+  split because discharge quarter can be missing (UNVERIFIED: secondhand).
 
 Re-check these against the HCUP documentation before relying on the feature
 for real files.

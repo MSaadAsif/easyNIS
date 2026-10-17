@@ -48,8 +48,6 @@
   "RACE", 4, "Asian or Pacific Islander", "Race, uniform coding",
   "RACE", 5, "Native American", "Race, uniform coding",
   "RACE", 6, "Other", "Race, uniform coding",
-  "PL_NCHS2", 21, "Metropolitan", "Patient location, NCHS urban-rural code (collapsed)",
-  "PL_NCHS2", 22, "Non-metropolitan", "Patient location, NCHS urban-rural code (collapsed)",
   "PL_NCHS", 1, "Central metro, population 1 million or more", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 2, "Fringe metro, population 1 million or more", "Patient location, NCHS urban-rural code",
   "PL_NCHS", 3, "Metro, population 250,000-999,999", "Patient location, NCHS urban-rural code",
@@ -118,7 +116,6 @@
   "AGE", NA_real_, NA_character_, "Age, years",
   "LOS", NA_real_, NA_character_, "Length of stay, days",
   "TOTCHG", NA_real_, NA_character_, "Total charges, USD",
-  "TOTCHG_2023", NA_real_, NA_character_, "Total charges, USD, adjusted for national estimates (2023)",
   "CCR_NIS", NA_real_, NA_character_, "Cost-to-charge ratio",
   "YEAR", NA_real_, NA_character_, "Discharge year",
   "DISCWT", NA_real_, NA_character_, "Discharge weight",
@@ -134,7 +131,8 @@
 )
 attr(.hcup_labels, "source") <- paste(
   "HCUP 2020 NIS Introduction, Appendix III, Data Elements;",
-  "local analyst recoding helper cross-check"
+  "local analyst recoding helper cross-check.",
+  "Elements introduced after 2020, such as PL_NCHS2 and TOTCHG_2023, are not labelled."
 )
 
 #' Apply HCUP labels
@@ -144,8 +142,8 @@ attr(.hcup_labels, "source") <- paste(
 #' @return `data` with known coded elements as factors and variable labels in
 #'   `attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
 #'   with one warning per variable. Existing labels and labelled comorbidity
-#'   fields are preserved. The 2023 `PL_NCHS2` collapsed geography field and
-#'   `TOTCHG_2023` total-charge field are labelled when present. The operation
+#'   fields are preserved. Elements without a table entry, including the 2023
+#'   `PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The operation
 #'   is idempotent.
 #'
 #' Negative numeric sentinels are not converted to missing values. The supplied
