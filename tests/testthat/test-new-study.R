@@ -103,8 +103,17 @@ test_that("the packaged Quarto template follows the scaffold contract", {
   expect_equal(sum(example_branches > 0L), 1L)
   expect_match(analysis, "gtsummary::tbl_regression(", fixed = TRUE)
   expect_match(analysis, "exponentiate = outcomes$exponentiate[[i]]", fixed = TRUE)
-  expect_match(analysis, "split(seq_len(nrow(outcomes)), outcomes$family)", fixed = TRUE)
-  expect_match(analysis, "tbls = model_tables[rows]", fixed = TRUE)
+  expect_match(analysis, "split(valid_models, outcomes$family[valid_models])", fixed = TRUE)
+  expect_match(analysis, "tbls = model_tables[as.character(rows)]", fixed = TRUE)
+  expect_match(analysis, "nis_study_fit_model(", fixed = TRUE)
+  expect_match(analysis, "knitr::knit_print(table)", fixed = TRUE)
+  expect_match(analysis, "if (!has_cohort)", fixed = TRUE)
+  expect_match(analysis, "length(params$years) > 1L", fixed = TRUE)
+  expect_match(analysis, "nis_study_cache_key(", fixed = TRUE)
+  expect_match(analysis, "nis_study_report_cache_key(", fixed = TRUE)
+  expect_match(analysis, 'knitr::knit_code$get("definitions")', fixed = TRUE)
+  expect_match(analysis, "YEAR = as.character(YEAR)", fixed = TRUE)
+  expect_match(analysis, "`Discharge year` = YEAR", fixed = TRUE)
   expect_false(grepl("heart[- ]failure|cardiac", combined, ignore.case = TRUE))
   expect_true(regexpr("nis_design(", analysis, fixed = TRUE) <
               regexpr("filter(", analysis, fixed = TRUE))
@@ -112,4 +121,86 @@ test_that("the packaged Quarto template follows the scaffold contract", {
   expect_false(any(vapply(drive_roots, grepl, logical(1), x = combined,
                           fixed = TRUE)))
   expect_false(grepl("/Users/|/home/|/private/", combined))
+})
+
+test_that("study model preflight describes empty, sparse, and unstable inputs", {
+  model_status <- getFromNamespace("nis_study_model_data_status", "easyNIS")
+  expect_match(model_status(data.frame(), "outcome", "exposed"), "no rows")
+  expect_match(
+    model_status(data.frame(outcome = 0:2, exposed = FALSE), "outcome", "exposed"),
+    "fewer than two observed levels"
+  )
+  expect_match(
+    model_status(data.frame(outcome = 1, exposed = c(FALSE, TRUE)), "outcome", "exposed"),
+    "fewer than two observed values"
+  )
+  expect_match(
+    model_status(data.frame(outcome = c(0, 1), exposed = c(FALSE, TRUE), x = c(1, Inf)),
+                 "outcome", "exposed", outcome ~ exposed + x),
+    "non-finite values on complete-case rows"
+  )
+  expect_match(
+    model_status(data.frame(outcome = c(0, 1, 0, 1), exposed = c(FALSE, TRUE, FALSE, TRUE),
+                            x = c(1, 2, 1, 2)),
+                 "outcome", "exposed", outcome ~ exposed + x),
+    "rank-deficient"
+  )
+  expect_null(model_status(
+    data.frame(outcome = c(0, 1, NA), exposed = c(FALSE, TRUE, TRUE)),
+    "outcome", "exposed"
+  ))
+})
+
+test_that("study cache keys change when definitions or external data roots change", {
+  make_key <- getFromNamespace("nis_study_cache_key", "easyNIS")
+  root <- tempfile("nis-cache-key-")
+  dir.create(root)
+  on.exit(unlink(root, recursive = TRUE), add = TRUE)
+  data_a <- file.path(root, "a")
+  data_b <- file.path(root, "b")
+  dir.create(data_a)
+  dir.create(data_b)
+  file_a <- file.path(data_a, "part.parquet")
+  file_b <- file.path(data_b, "part.parquet")
+  writeBin(as.raw(1:4), file_a)
+  writeBin(as.raw(c(1, 2, 3, 5)), file_b)
+  fixed_time <- as.POSIXct("2020-01-01 00:00:00", tz = "UTC")
+  Sys.setFileTime(file_a, fixed_time)
+  Sys.setFileTime(file_b, fixed_time)
+  make <- function(path, file, definition = "x <- x + 1L") {
+    make_key(
+      input_path = path, is_example = FALSE, data_files = file,
+      years = 2017:2018, codes = list(dx = "I50"), cohort = "dx & AGE >= 18",
+      annualize = FALSE,
+      source_chunks = list(setup = 'options(survey.lonely.psu = "adjust")',
+                           definitions = definition),
+      survey_options = list(lonely_psu = "adjust", adjust_domain_lonely = TRUE)
+    )
+  }
+  key_a <- make(data_a, file_a)
+  key_b <- make(data_b, file_b)
+  expect_false(identical(key_a$data, key_b$data))
+  expect_false(identical(key_a, make(data_a, file_a, "x <- x + 2L")))
+  expect_identical(key_a, make(data_a, file_a, "# comment\nx <- x + 1L"))
+})
+
+test_that("report cache keys include model inputs, format, and dependency versions", {
+  make_key <- getFromNamespace("nis_study_report_cache_key", "easyNIS")
+  design <- list(cache_key = "design")
+  args <- list(
+    design_key = design,
+    exposure = "exposed",
+    covariates = c("AGE", "factor(YEAR)"),
+    outcomes = data.frame(outcome = "DIED", family = "quasibinomial"),
+    package_versions = c(gtsummary = "2.0.0", gt = "<not-installed>")
+  )
+  html <- do.call(make_key, c(args, list(output_format = "html")))
+  docx <- do.call(make_key, c(args, list(output_format = "docx")))
+  updated_args <- args
+  updated_args$package_versions <- c(
+    gtsummary = "2.1.0", gt = "<not-installed>"
+  )
+  updated <- do.call(make_key, c(updated_args, list(output_format = "html")))
+  expect_false(identical(html, docx))
+  expect_false(identical(html, updated))
 })
