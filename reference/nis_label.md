@@ -1,0 +1,47 @@
+# Apply HCUP labels
+
+Apply HCUP labels
+
+## Usage
+
+``` r
+nis_label(data)
+```
+
+## Arguments
+
+- data:
+
+  A collected data frame.
+
+## Value
+
+`data` with known coded elements as factors and variable labels in
+`attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
+with one warning per variable. Existing labels and labelled comorbidity
+fields are preserved. Elements without a table entry, including the 2023
+`PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The
+operation is idempotent.
+
+Negative numeric sentinels are not converted to missing values. The
+supplied HCUP documentation represents missing numeric values as system
+missing and does not document negative sentinels for any element handled
+here.
+
+## Examples
+
+``` r
+demographics <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(AGE, FEMALE, RACE) |>
+  dplyr::collect()
+head(nis_label(demographics))
+#> # A tibble: 6 × 3
+#>     AGE FEMALE RACE                     
+#>   <dbl> <fct>  <fct>                    
+#> 1    28 Female Hispanic                 
+#> 2    35 Male   Asian or Pacific Islander
+#> 3    42 Female Native American          
+#> 4    49 Male   Other                    
+#> 5    56 Female White                    
+#> 6    63 Male   Black                    
+```
