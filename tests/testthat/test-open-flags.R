@@ -13,7 +13,7 @@ test_that("nis_open stays lazy and unifies the 2022 APR-DRG case drift", {
   expect_equal(nrow(aprdrg), 576L)
   expect_true(all(aprdrg$APRDRG_RISK_MORTALITY[aprdrg$YEAR == 2022] %in% 0:4))
   expect_true(all(aprdrg$APRDRG_RISK_MORTALITY[aprdrg$YEAR < 2022] %in% 0:4))
-  expect_error(nis_open(path, years = 2015), "ICD-9")
+  expect_error(nis_open(path, years = 2015), "No NIS Parquet entry")
   expect_error(nis_open(path, years = 2011), "before 2012")
 })
 
@@ -119,4 +119,131 @@ test_that("ICD flags read the current lazy projection, not the stored columns", 
   expect_identical(actual$first_slot, c(TRUE, TRUE, TRUE, TRUE, TRUE))
   expect_identical(actual$late_slot, c(FALSE, TRUE, FALSE, TRUE, FALSE))
   expect_identical(actual$procedure, c(TRUE, FALSE, TRUE, FALSE, TRUE))
+})
+
+test_that("ICD-9 flags test only DX/PR slots and ICD-10 flags only I10_ slots", {
+  malformed <- rawToChar(as.raw(c(0x34, 0x32, 0x38, 0xff)))
+  data <- dplyr::tibble(
+    DQTR = c(1L, 2L, 3L, 4L, 4L, 1L),
+    DXVER = c(9L, 9L, 9L, 10L, 10L, 9L),
+    DX1 = c("4280", "42823", "4869", NA, NA, malformed),
+    DX2 = c("25000", "V667", "4280", NA, NA, "4281"),
+    DXCCS1 = c("108", "108", "122", NA, NA, "108"),
+    PR1 = c("3722", "8154", NA, NA, NA, "3722"),
+    PR2 = c(NA, "3722", "3727", NA, NA, NA),
+    PRDAY1 = c(1L, 2L, 3L, NA, NA, 1L),
+    I10_DX1 = c(NA, NA, NA, "I5022", "J189", NA),
+    I10_DX2 = c(NA, NA, NA, "E119", "I509", NA),
+    I10_PR1 = c(NA, NA, NA, "02703ZZ", "0JH60DZ", NA)
+  )
+  data_path <- tempfile("nis-icd9-")
+  dir.create(data_path)
+  on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
+  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- arrow::open_dataset(data_path)
+
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(hf9 = "428", any_hf9 = c("4280", "4281", "V66"),
+        system = "icd9") |>
+      nis_flag_dx(principal9 = "428", system = "icd9", position = "principal") |>
+      nis_flag_dx(secondary9 = "4 28", system = "icd9", position = "secondary") |>
+      nis_flag_dx(hf10 = "I50") |>
+      nis_flag_pr(proc9 = "37.2", system = "icd9") |>
+      nis_flag_pr(first9 = "81", system = "icd9", position = "principal") |>
+      nis_flag_pr(proc10 = "02703")
+  }
+  expected <- add_flags(data)
+  lazy <- add_flags(query)
+  expect_true(inherits(lazy, "arrow_dplyr_query"))
+  actual <- dplyr::collect(lazy)
+  expect_identical(actual, expected)
+
+  expect_identical(actual$hf9, c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE))
+  expect_identical(actual$any_hf9, c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE))
+  expect_identical(actual$principal9, c(TRUE, TRUE, FALSE, FALSE, FALSE, TRUE))
+  expect_identical(actual$secondary9, c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE))
+  expect_identical(actual$hf10, c(FALSE, FALSE, FALSE, TRUE, TRUE, FALSE))
+  expect_identical(actual$proc9, c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE))
+  expect_identical(actual$first9, c(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE))
+  expect_identical(actual$proc10, c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE))
+})
+
+test_that("a prefix never crosses code systems in a mixed query", {
+  data <- dplyr::tibble(
+    DX1 = c("4280", NA),
+    I10_DX1 = c(NA, "4280X")
+  )
+  flagged <- data |>
+    nis_flag_dx(as_icd9 = "428", system = "icd9") |>
+    nis_flag_dx(as_icd10 = "428")
+  expect_identical(flagged$as_icd9, c(TRUE, FALSE))
+  expect_identical(flagged$as_icd10, c(FALSE, TRUE))
+})
+
+test_that("version, year and 2015 quarter metadata prevent wrong-era matches", {
+  data <- dplyr::tibble(
+    YEAR = c(2012L, 2015L, 2015L, 2015L, 2015L, 2016L, 2015L, NA, 2015L),
+    DQTR = c(4L, 1L, 4L, NA, 2L, 1L, 0L, NA, 4L),
+    DXVER = c(9L, 9L, 10L, 10L, 10L, NA, NA, NA, 8L),
+    PRVER = c(9L, 9L, 10L, 9L, 10L, NA, NA, NA, 8L),
+    DX1 = "12345", DX30 = "V0001", PR15 = "0123",
+    I10_DX1 = "A1234", I10_PR1 = "0AAAAAA"
+  )
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(old = c("123", "V00"), system = "icd9") |>
+      nis_flag_pr(old_proc = "012", system = "icd9") |>
+      nis_flag_dx(new = "A12") |>
+      nis_flag_pr(new_proc = "0AA")
+  }
+  actual <- add_flags(data)
+  expect_identical(actual$old, c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE))
+  expect_identical(actual$old_proc, c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE))
+  expect_identical(actual$new, c(FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE))
+  expect_identical(actual$new_proc, c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE, FALSE))
+  expect_identical(add_flags(arrow::arrow_table(data)) |> dplyr::collect(), actual)
+  projected <- arrow::arrow_table(data) |> dplyr::mutate(DXVER = 10L)
+  expect_false(any((add_flags(projected) |> dplyr::collect())$old))
+})
+
+test_that("invented 2015 split stays lazy across pooled years", {
+  path <- nis_example(2012:2016)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  expect_message(query <- nis_open(path), "Experimental")
+  lazy <- query |>
+    nis_flag_dx(old = "123", system = "icd9") |>
+    nis_flag_pr(old_proc = "012", system = "icd9") |>
+    nis_flag_dx(new = "I50")
+  expect_s3_class(lazy, "arrow_dplyr_query")
+  data <- dplyr::collect(lazy)
+  expect_setequal(data$YEAR, 2012:2016)
+  expect_equal(nrow(data), 480L)
+  expect_true(all(is.na(data$DX1[data$YEAR == 2015L & data$DQTR == 4L])))
+  expect_true(all(is.na(data$I10_DX1[data$YEAR == 2015L & data$DQTR <= 3L])))
+  expect_false(any(data$old[data$YEAR >= 2016L | (data$YEAR == 2015L & data$DQTR == 4L)]))
+  expect_false(any(data$new[data$YEAR < 2015L | (data$YEAR == 2015L & data$DQTR <= 3L)]))
+  expect_true(any(data$old[data$YEAR == 2015L]))
+  expect_true(any(data$new[data$YEAR == 2015L]))
+  expect_error(nis_example(2011), "2012 through 2024")
+  expect_error(nis_example(Inf), "2012 through 2024")
+})
+
+test_that("missing slot columns for a code system give a system-specific error", {
+  icd10_only <- dplyr::tibble(I10_DX1 = "I509", I10_PR1 = "02703ZZ")
+  icd9_only <- dplyr::tibble(DX1 = "4280", PR1 = "3722", DXVER = 9L)
+  expect_error(nis_flag_dx(icd10_only, x = "428", system = "icd9"), "ICD-9 DX columns")
+  expect_error(nis_flag_pr(icd10_only, x = "37", system = "icd9"), "ICD-9 PR columns")
+  expect_error(nis_flag_dx(icd9_only, x = "I50"), "ICD-10 DX columns")
+  expect_error(nis_flag_dx(icd10_only, x = "I50", system = "icd8"), "should be one of")
+})
+
+test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", {
+  path <- nis_example(2012:2013)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  expect_message(query <- nis_open(path, years = 2012), "ICD-9")
+  expect_true(all(c("DX1", "DX25", "PR15") %in% names(query)))
+  expect_false(any(grepl("^I10_", names(query))))
+  expect_error(nis_open(path, years = 2011), "before 2012")
+  expect_error(nis_open(path, years = 2015), "No NIS Parquet entry")
 })

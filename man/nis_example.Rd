@@ -7,7 +7,9 @@
 nis_example(years = 2017:2022)
 }
 \arguments{
-\item{years}{Years to create, from 2016 through 2024.}
+\item{years}{Years to create, from 2012 through 2024. Years before 2016
+are experimental. The 2015 fixture has separate ICD-9 and ICD-10 slots,
+with invented codes and version indicators; it is not a clinical crosswalk.}
 }
 \value{
 The temporary directory containing \verb{NIS_<year>.parquet/} entries.

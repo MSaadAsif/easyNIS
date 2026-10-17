@@ -9,7 +9,10 @@ nis_open(path, years = NULL)
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
 
-\item{years}{Optional years to open. Defaults to every matching year.}
+\item{years}{Optional years to open, 2012 or later. Defaults to every
+matching year. Years before 2016 are experimental: they hold ICD-9-CM
+codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
+\code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
 }
 \value{
 A lazy Arrow query with case-normalized columns.
