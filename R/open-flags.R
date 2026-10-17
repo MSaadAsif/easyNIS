@@ -1,7 +1,10 @@
 #' Open annual NIS Parquet files lazily
 #'
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
-#' @param years Optional years to open. Defaults to every matching year.
+#' @param years Optional years to open, 2012 or later. Defaults to every
+#'   matching year. Years before 2016 are experimental: they hold ICD-9-CM
+#'   codes in `DX*`/`PR*` slots, and 2015 holds both systems (see
+#'   [nis_flag_dx()]).
 #'
 #' @return A lazy Arrow query with case-normalized columns.
 #' @export
@@ -29,12 +32,15 @@ nis_open <- function(path, years = NULL) {
   if (any(years < 2012L)) {
     cli::cli_abort("NIS years before 2012 are not supported.")
   }
-  if (any(years < 2016L)) {
-    cli::cli_abort("ICD-9 years are not yet supported; use 2016 or later.")
-  }
   missing <- setdiff(years, found)
   if (length(missing) > 0L) {
     cli::cli_abort("No NIS Parquet entry was found for year{?s} {.val {missing}}.")
+  }
+  if (any(years < 2016L)) {
+    cli::cli_inform(c(
+      "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
+      i = "Flag them with {.code system = \"icd9\"}; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4) slots."
+    ))
   }
 
   year_entries <- entries[match(years, found)]
@@ -70,7 +76,7 @@ nis_open <- function(path, years = NULL) {
   dplyr::select(query, dplyr::all_of(names(name_groups)))
 }
 
-#' Add ICD-10 diagnosis prefix flags
+#' Add diagnosis prefix flags
 #'
 #' Each diagnosis slot is checked separately. Supplied prefixes are
 #' case-insensitive, and periods and spaces in them are ignored. Slot values are
@@ -78,36 +84,66 @@ nis_open <- function(path, years = NULL) {
 #' without periods; malformed UTF-8 therefore cannot raise an error. Matching
 #' stays lazy on Arrow queries and avoids per-row text normalization.
 #'
+#' `system` picks which slots are tested. `"icd10"` reads `I10_DX1`, `I10_DX2`,
+#' ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as stored in NIS 2012
+#' through Q3 2015. A prefix is only ever compared with slots of the chosen
+#' system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
+#'
+#' In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
+#' ICD-10 codes. HCUP recommends `DXVER` (9 or 10) to distinguish them,
+#' because `DQTR` can be missing; `PRVER` describes the procedure system.
+#' Non-missing version indicators must agree with `system`; non-missing
+#' `YEAR` and, in 2015, `DQTR` must also agree. Conflicting or invalid
+#' indicators yield `FALSE`. Missing indicators rely on the slot namespace:
+#' callers must preserve the official names and leave inapplicable slots
+#' missing. Shared slots containing both systems are not supported.
+#' `FALSE` means "not flagged under that code system", not "condition absent".
+#' A study that crosses October 2015 needs
+#' analyst-supplied code sets for both systems, flagged in two calls and
+#' combined, for example
+#' `nis_flag_dx(hf10 = "I50") |> nis_flag_dx(hf9 = "428", system = "icd9") |>
+#' dplyr::mutate(hf = hf10 | hf9)`. easyNIS ships no code lists and no ICD-9 to
+#' ICD-10 crosswalk, and even with both code sets, counts of a condition can
+#' break at the transition.
+#'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
+#' @param system Code system of the slots to check: `"icd10"` (default) or
+#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
 #' @return `.data` with one logical column per named definition.
 #' @export
-nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary")) {
-  nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position))
+nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"),
+                        system = c("icd10", "icd9")) {
+  nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position),
+    system = match.arg(system))
 }
 
-#' Add ICD-10 procedure prefix flags
+#' Add procedure prefix flags
 #'
-#' Each procedure slot is checked separately. Supplied prefixes are
-#' case-insensitive, and periods and spaces in them are ignored. Slot values are
-#' compared as stored, byte for byte, because NIS stores upper-case codes
-#' without periods; malformed UTF-8 therefore cannot raise an error. Matching
-#' stays lazy on Arrow queries and avoids per-row text normalization.
+#' Each procedure slot is checked separately, with the same prefix rules, byte
+#' for byte comparison, and `system` semantics as [nis_flag_dx()]. `"icd10"`
+#' reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ... Prefixes only
+#' match slots of the chosen system, so a flag over a mixed 2015 query is
+#' `FALSE` on discharges coded in the other system.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
 #' @param position Slots to check: all slots or the principal slot only.
+#' @param system Code system of the slots to check: `"icd10"` (default) or
+#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
 #' @return `.data` with one logical column per named definition.
 #' @export
-nis_flag_pr <- function(.data, ..., position = c("any", "principal")) {
-  nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position))
+nis_flag_pr <- function(.data, ..., position = c("any", "principal"),
+                        system = c("icd10", "icd9")) {
+  nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position),
+    system = match.arg(system))
 }
 
-nis_flag_codes <- function(.data, slots, ..., position) {
+nis_flag_codes <- function(.data, slots, ..., position, system) {
   definitions <- rlang::enquos(..., .named = TRUE)
   if (length(definitions) == 0L || any(names(definitions) == "")) {
     cli::cli_abort("Supply one or more named code-prefix definitions.")
@@ -131,15 +167,16 @@ nis_flag_codes <- function(.data, slots, ..., position) {
     unique(value)
   })
 
-  slot_names <- grep(paste0("^I10_", slots, "[0-9]+$"), names(.data), value = TRUE)
-  slot_number <- as.integer(sub(paste0("^I10_", slots), "", slot_names))
+  stem <- paste0(if (system == "icd10") "I10_", slots)
+  slot_names <- grep(paste0("^", stem, "[0-9]+$"), names(.data), value = TRUE)
+  slot_number <- as.integer(sub(paste0("^", stem), "", slot_names))
   if (position == "principal") {
     slot_names <- slot_names[slot_number == 1L]
   } else if (position == "secondary") {
     slot_names <- slot_names[slot_number > 1L]
   }
   if (length(slot_names) == 0L) {
-    cli::cli_abort("No ICD-10 {slots} columns match the requested position.")
+    cli::cli_abort("No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} {slots} columns ({stem}<n>) match the requested position.")
   }
 
   flags <- if (is.data.frame(.data)) {
@@ -149,7 +186,39 @@ nis_flag_codes <- function(.data, slots, ..., position) {
     lapply(prefixes, arrow_match, slots = projection[slot_names])
   }
 
+  eligibility <- code_system_filter(names(.data), slots, system)
+  if (!is.null(eligibility)) {
+    flags <- lapply(flags, function(flag) {
+      rlang::expr((!!eligibility) & (!!flag))
+    })
+  }
   dplyr::mutate(.data, !!!flags)
+}
+
+code_system_filter <- function(columns, slots, system) {
+  conditions <- list()
+  version_name <- paste0(slots, "VER")
+  version <- if (system == "icd9") 9L else 10L
+  if (version_name %in% columns) {
+    field <- rlang::sym(version_name)
+    conditions <- c(conditions, list(rlang::expr(is.na(!!field) | !!field == !!version)))
+  }
+  if ("YEAR" %in% columns) {
+    year_range <- if (system == "icd9") {
+      rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
+    } else {
+      rlang::expr(YEAR >= 2015L)
+    }
+    conditions <- c(conditions, list(rlang::expr(is.na(YEAR) | !!year_range)))
+    if ("DQTR" %in% columns) {
+      quarters <- if (system == "icd9") 1:3 else 4L
+      conditions <- c(conditions, list(rlang::expr(
+        is.na(YEAR) | YEAR != 2015L | is.na(DQTR) | DQTR %in% !!quarters
+      )))
+    }
+  }
+  if (length(conditions) == 0L) return(NULL)
+  Reduce(function(left, right) rlang::expr((!!left) & (!!right)), conditions)
 }
 
 # Data frames use `startsWith()`, which compares bytes and never errors on

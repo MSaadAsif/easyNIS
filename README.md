@@ -1,6 +1,7 @@
 # easyNIS
 
-Pipe-friendly tools for NIS 2016+ ICD-10 data. Open annual Parquet directories
+Pipe-friendly tools for NIS 2012+ data, with experimental ICD-9 support through
+September 2015 alongside the default ICD-10 workflow. Open annual Parquet directories
 lazily, flag code prefixes, then build a survey design with `nis_design()`.
 
 ```r
@@ -35,3 +36,35 @@ experimental pending scientific approval.
 
 Use `nis_example()` for invented offline data. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output.
+
+## Experimental 2012–2015 support
+
+`nis_open()` accepts 2012 onward; earlier years are rejected. Use
+`nis_flag_dx(..., system = "icd9")` and `nis_flag_pr(..., system = "icd9")`
+for `DX1`, `DX2`, ... and `PR1`, `PR2`, ...; the default `"icd10"` checks
+only `I10_DX*`/`I10_PR*`. Positions and prefix semantics are unchanged.
+`nis_example(2012:2016)` demonstrates both eras using invented records.
+
+The 2015 Q1–Q3 diagnosis/procedure file uses ICD-9 slots; Q4 uses separate
+`I10_` slots, not shared `DX*`/`PR*` slots. Join each quarter-specific file
+to Core by `KEY_NIS` before supplying annual Parquet data. Preserve the full
+Core population and official names; easyNIS does not perform these joins.
+Retain `DXVER` and `PRVER` (9 or 10): HCUP recommends `DXVER` to identify
+the 2015 split because `DQTR` can be missing. Flags exclude non-missing
+version indicators that disagree with the requested system, out-of-era
+years, and incompatible 2015 quarters. Missing metadata relies on the
+official slot namespace and missing inapplicable slots; reused/shared slots
+are unsupported. A `FALSE` flag means not flagged in that system, not a
+clinical assertion of absence.
+
+For cross-era studies, supply independently justified diagnosis and procedure
+prefix vectors for each system, call the flagger once per system, then combine
+the resulting flags explicitly with `dplyr::mutate()`. There are no bundled
+clinical code lists or crosswalks. October 1, 2015 is a coding discontinuity;
+combining flags does not establish trend comparability. Common existing
+`nis_label()` mappings and `nis_cost()` CPI-U values cover 2012–2015, but
+ICD-9-specific derived indicators are not automatically mapped to ICD-10
+indicators. Supply the correct annual CCR; no cost file is bundled.
+
+The evidence level (verified versus assumed layout facts) and input
+assumptions are recorded in `docs/ICD9-SUPPORT.md`.

@@ -114,3 +114,17 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
   expect_identical(attr(adjusted$charges_adj, "label"), "Total charges (2022 USD)")
   expect_error(nis_cost(data, dollars = 2025), "2012 through 2024")
 })
+
+test_that("common labels and cost adjustment work in experimental ICD-9 years", {
+  data <- dplyr::tibble(
+    YEAR = 2012:2015, PAY1 = rep(1L, 4L), DIED = c(0L, 1L, 0L, 1L),
+    DX1 = rep("12345", 4L), TOTCHG = rep(1000, 4L), CCR_NIS = rep(0.25, 4L)
+  )
+  labelled <- nis_label(data)
+  expect_identical(as.character(labelled$PAY1), rep("Medicare", 4L))
+  expect_identical(as.character(labelled$DIED), c("No", "Yes", "No", "Yes"))
+  expect_identical(labelled$DX1, data$DX1)
+  adjusted <- nis_cost(data, dollars = 2024)
+  expect_equal(as.numeric(adjusted$cost_adj),
+    250 * 313.689 / c(229.594, 232.957, 236.736, 237.017))
+})

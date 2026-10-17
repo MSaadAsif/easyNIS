@@ -55,14 +55,17 @@ nis_cost <- function(data, dollars) {
 
 #' Write an invented NIS-shaped Parquet dataset
 #'
-#' @param years Years to create, from 2016 through 2024.
+#' @param years Years to create, from 2012 through 2024. Years before 2016
+#'   are experimental. The 2015 fixture has separate ICD-9 and ICD-10 slots,
+#'   with invented codes and version indicators; it is not a clinical crosswalk.
 #'
 #' @return The temporary directory containing `NIS_<year>.parquet/` entries.
 #' @export
 nis_example <- function(years = 2017:2022) {
   if (!is.numeric(years) || length(years) == 0L || anyNA(years) ||
-      any(years != as.integer(years)) || any(years < 2016L) || any(years > 2024L)) {
-    cli::cli_abort("`years` must contain whole years from 2016 through 2024.")
+      any(!is.finite(years)) || any(years != as.integer(years)) ||
+      any(years < 2012L) || any(years > 2024L)) {
+    cli::cli_abort("`years` must contain whole years from 2012 through 2024.")
   }
   years <- unique(as.integer(years))
   path <- tempfile("nis-example-")
@@ -125,6 +128,29 @@ nis_example <- function(years = 2017:2022) {
     records$I10_PR2 <- ifelse(within_hospital %% 3L == 0L, "02L73DK", NA_character_)
     for (slot in 3:40) records[[paste0("I10_DX", slot)]] <- NA_character_
     for (slot in 3:25) records[[paste0("I10_PR", slot)]] <- NA_character_
+
+    if (year < 2016L) {
+      is_icd9 <- year < 2015L | records$DQTR <= 3L
+      records$DXVER <- ifelse(is_icd9, 9L, 10L)
+      records$PRVER <- records$DXVER
+      records$DX1 <- ifelse(is_icd9, ifelse(has_cohort, "12345", "67890"), NA_character_)
+      records$DX2 <- ifelse(is_icd9, "V0001", NA_character_)
+      records$PR1 <- ifelse(is_icd9, "0123", NA_character_)
+      for (slot in 3:30) records[[paste0("DX", slot)]] <- NA_character_
+      for (slot in 2:15) records[[paste0("PR", slot)]] <- NA_character_
+      records$NDX <- ifelse(is_icd9, 2L, NA_integer_)
+      records$NPR <- ifelse(is_icd9, 1L, NA_integer_)
+      icd10_columns <- grep("^I10_", names(records), value = TRUE)
+      for (column in icd10_columns) records[[column]][is_icd9] <- NA
+      if (year < 2015L) {
+        records <- dplyr::select(records, -dplyr::all_of(icd10_columns))
+        records <- dplyr::select(records, -dplyr::all_of(paste0("DX", 26:30)))
+      } else {
+        records <- dplyr::select(records, -dplyr::all_of(c(
+          paste0("I10_DX", 31:40), paste0("I10_PR", 16:25)
+        )))
+      }
+    }
 
     mortality_name <- if (year == 2022L) {
       "APRDRG_RISK_MORTALITY"

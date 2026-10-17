@@ -42,8 +42,10 @@ Most studies use 2018–2020; recent studies use 2017–2022.
 
 ## Direction
 
-- Scope: NIS 2012 onward; first target 2017–2022 (ICD-10-CM/PCS only).
-  ICD-9 years (2012–Q3 2015) are a later increment.
+- Scope: NIS 2012 onward; 2016+ remains the default ICD-10 workflow.
+  Experimental ICD-9 flags cover 2012–Q3 2015 with an explicit `system`
+  argument. The 2015 Q4 slots are separate; see `ICD9-SUPPORT.md` for
+  evidence level, input assumptions, and transition limitations.
 - Thin and pipe-first: data-first functions that return tibbles or srvyr
   designs. Build on arrow, dplyr, srvyr, survey and gtsummary; do not wrap
   what one dplyr or srvyr line already does.

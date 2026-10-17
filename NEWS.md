@@ -1,5 +1,9 @@
 # easyNIS 0.1.0.9000
 
+- Added experimental 2012–2015 opening, explicit `system = "icd9"` prefix
+  flags, metadata guards, and invented historical/split-2015 fixtures.
+  ICD-10 remains the default; cross-era clinical definitions are analyst supplied.
+
 - Replaced the archived API with lazy annual Parquet opening, ICD-10 prefix
   flags, a domain survey design, HCUP labels, CPI-adjusted charges and costs,
   cell suppression, and an invented six-year fixture.
