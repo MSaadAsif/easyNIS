@@ -27,6 +27,7 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          extra-packages: any::pkgdown
           needs: website
       - name: Build site
         run: pkgdown::build_site(new_process = FALSE, install = TRUE)
