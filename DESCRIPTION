@@ -8,10 +8,11 @@ Authors@R: c(
     person("Ali", role = "aut"))
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
-    diagnosis and procedure code prefixes, preparing survey designs, applying
-    supported HCUP labels, adjusting charges and costs, and reviewing
+    diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
+    experimental Elixhauser indicators, preparing survey designs and weights,
+    applying supported HCUP labels, adjusting charges and costs, and reviewing
     disclosure risks. Experimental methods and annual-layout assumptions are
-    documented and are not scientific or layout validation.
+    not independently verified or scientifically approved.
 License: MIT + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS,
     https://msaadasif.github.io/easyNIS/

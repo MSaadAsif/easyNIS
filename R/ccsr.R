@@ -20,11 +20,10 @@
 #' have no default assignment.
 #'
 #' UNVERIFIED: the file layouts above are assumed from secondhand descriptions
-#' of HCUP downloads, not checked against a current release. The reader checks
-#' that every row has as many fields as the header and that every code looks
-#' like an ICD-10 code (3 to 7 letters or digits), and it stops with an error
-#' otherwise. Check the returned codes against your reference file before you
-#' rely on them.
+#' of HCUP downloads, not checked against a current release. The single-quoted
+#' CSV reader checks row field counts; all supported formats check that codes
+#' look like ICD-10 codes (3 to 7 letters or digits). Check the returned codes
+#' against your reference file before you rely on them.
 #'
 #' This function is experimental.
 #'
