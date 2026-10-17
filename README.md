@@ -55,7 +55,9 @@ design <- nis_comorbidity(design)
 design <- nis_reweight(design, runif(nrow(design$variables), 0.5, 1.5))
 ```
 
-See `vignette("porting")` for moving an existing NIS study to easyNIS.
+Start with `vignette("getting-started")` for an invented-data walkthrough from
+opening files to a suppressed table and survey model. See `vignette("porting")`
+for moving an existing NIS study to easyNIS.
 
 Use `nis_example()` for invented offline data. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output.

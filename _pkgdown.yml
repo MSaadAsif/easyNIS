@@ -1,4 +1,5 @@
-url: https://msaad.asif.github.io/easyNIS/
+template:
+  bootstrap: 5
 
 navbar:
   structure:
