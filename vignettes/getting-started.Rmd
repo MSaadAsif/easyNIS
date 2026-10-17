@@ -116,8 +116,9 @@ summary(fit)
 
 HCUP data use agreements require suppressing cells that describe 10 or fewer
 discharges. `nis_suppress()` masks displayed statistics whose unweighted count
-is at or below the threshold and adds a footnote that says so. It masks
-primary cells only, so check related totals before you publish.
+is at or below the threshold, along with the overall cell in the same row, and
+adds a footnote that says so. Review tables for other derivable cells, such as
+column totals, before you share them.
 
 ```{r suppress, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
 nis_suppress(table_one, threshold = 10)

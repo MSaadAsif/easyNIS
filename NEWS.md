@@ -39,6 +39,11 @@
   each slot. Supplied prefixes ignore case, periods, and spaces; stored NIS
   codes are compared byte for byte without text normalization, so malformed
   UTF-8 cannot raise a matching error.
+- `nis_suppress()` now also masks the overall (`add_overall()`) cell in any row
+  where a by-group cell is masked, so the masked count cannot be recovered by
+  subtraction. Other derivable cells, such as those from column totals across
+  levels, are still not masked; its footnote and the study template say to
+  review tables before sharing.
 
 ## Experimental helpers
 
