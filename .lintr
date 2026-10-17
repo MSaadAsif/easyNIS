@@ -1,1 +1,10 @@
-linters: lintr::linters_with_defaults()
+linters: linters_with_defaults(
+    line_length_linter(120),
+    indentation_linter = NULL
+  )
+exclusions: list(
+    "inst/templates" = list(object_usage_linter = Inf),
+    "tests/testthat" = list(object_usage_linter = Inf),
+    "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf, object_usage_linter = Inf)
+  )
+encoding: "UTF-8"

@@ -164,10 +164,14 @@ nis_label <- function(data) {
     binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
 
     if (any(value_rows) || binary_comorbidity) {
-      codes <- if (binary_comorbidity) c("0", "1") else {
+      codes <- if (binary_comorbidity) {
+        c("0", "1")
+      } else {
         as.character(definition$code[value_rows])
       }
-      values <- if (binary_comorbidity) c("No", "Yes") else {
+      values <- if (binary_comorbidity) {
+        c("No", "Yes")
+      } else {
         definition$value_label[value_rows]
       }
       raw <- as.character(x)
@@ -185,7 +189,10 @@ nis_label <- function(data) {
         }
         if (any(unknown)) {
           cli::cli_warn(
-            "Unknown code(s) in {.var {variable}}: {paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+            paste0(
+              "Unknown code(s) in {.var {variable}}: ",
+              "{paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+            )
           )
         }
         labels <- ifelse(is.na(raw), NA_character_,
