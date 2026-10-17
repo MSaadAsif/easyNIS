@@ -7,8 +7,9 @@
 #' @return The normalized path to the created study directory.
 #' @export
 #' @examples
-#' study_path <- file.path(tempdir(), "nis-study-example")
-#' if (!dir.exists(study_path)) nis_new_study(study_path)
+#' study_path <- tempfile("nis-study-example-")
+#' nis_new_study(study_path)
+#' list.files(study_path, all.files = TRUE, no.. = TRUE)
 nis_new_study <- function(path) {
   if (!is.character(path) || length(path) != 1L || is.na(path) ||
       !nzchar(trimws(path))) {
