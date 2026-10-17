@@ -41,9 +41,10 @@ Experimental helpers, each optional:
 - `nis_ccsr_codes()` lists the ICD-10 codes in an HCUP CCSR category from the
   reference file you downloaded (readxl reads the Excel version).
 - `nis_comorbidity()` adds AHRQ Elixhauser flags and index scores (needs
-  `medicalcoder`).
+  `medicalcoder`). It is ICD-10 only; rows without an `I10_DX*` code get `NA`.
 - `nis_reweight()` multiplies cohort weights, for example by propensity
-  weights, and keeps the placeholder rows.
+  weights, and keeps the placeholder rows. Call it once; weighted totals are
+  then no longer national counts.
 
 ```r
 codes <- nis_ccsr_codes("DXCCSR-Reference-File-v2025-1.xlsx", "CIR019",

@@ -202,7 +202,19 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
 #'
 #' @param design A result of [nis_design()].
 #' @param weights Numeric weights aligned with the cohort rows of `design`, or
-#'   an unquoted numeric column name in the design data.
+#'   an unquoted numeric column name in the design data. They are matched to
+#'   rows by position, so take them from `design$variables` in that order (for
+#'   example, fit the propensity model on `design$variables`) and do not
+#'   reorder or subset the rows first.
+#'
+#' @section Weighted totals:
+#' The result multiplies the discharge weights by `weights`, so
+#' `survey_total()` and similar totals no longer estimate national discharge
+#' counts. Use the result for ratios, means and model estimates, and report
+#' national counts from the design before reweighting. Each call multiplies the
+#' weights again, so call `nis_reweight()` once on the result of
+#' [nis_design()]; calling it on an already reweighted design compounds the
+#' weights.
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @export
@@ -213,7 +225,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
 #'
 #' # Illustrative weights only; use weights from your own validated model
 #' reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-#' srvyr::summarise(reweighted, discharges = srvyr::survey_total())
+#' srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
 nis_reweight <- function(design, weights) {
   placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
   cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)
