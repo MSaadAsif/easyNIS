@@ -40,9 +40,10 @@ codes <- list(
 
 cohort <- rlang::expr(principal_dx & AGE >= 18)
 exposure <- "exposed"
+# The default adjusts for year only when more than one year is selected.
 covariates <- c(
   "AGE", "FEMALE",
-  "factor(YEAR)" # Adjust for changes in the NIS sample across pooled years.
+  if (length(params$years) > 1L) "factor(YEAR)"
 )
 annualize <- FALSE
 outcomes <- dplyr::tibble(
@@ -55,17 +56,38 @@ nis_data <- nis_data |>
   nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
   nis_flag_dx(exposed = codes$exposure, position = "any")
 
-# Cache key: the cached design is rebuilt when any of these change. The
-# invented example is left out of the file check because its folder is new on
-# every render.
+# The example data is small and content-hashed because its temporary directory
+# changes on every render. User-provided files use path, size, and modification
+# time to avoid rescanning large Parquet inputs. Parsed setup/definitions code,
+# package functions, dependency versions, and survey options complete the key;
+# prose and comments do not invalidate the design. Changes made by sourced
+# scripts or mutable environment state are not detected; include their explicit
+# values in a cache key or rerun affected chunks.
 data_files <- list.files(input_path, pattern = "[.]parquet$",
-  recursive = TRUE, full.names = TRUE)[!is_example]
-data_info <- file.info(data_files)
-design_key <- list(
-  package = as.character(utils::packageVersion("easyNIS")),
-  years = params$years, codes = codes, cohort = rlang::expr_text(cohort),
+  recursive = TRUE, full.names = TRUE)
+design_key <- easyNIS:::nis_study_cache_key(
+  input_path = input_path,
+  is_example = is_example,
+  data_files = data_files,
+  years = params$years,
+  codes = codes,
+  cohort = rlang::expr_text(cohort),
   annualize = annualize,
-  data = list(basename(data_files), data_info$size, data_info$mtime)
+  source_chunks = list(
+    setup = knitr::knit_code$get("setup"),
+    definitions = knitr::knit_code$get("definitions")
+  ),
+  survey_options = list(
+    lonely_psu = getOption("survey.lonely.psu"),
+    adjust_domain_lonely = getOption("survey.adjust.domain.lonely")
+  )
+)
+report_key <- easyNIS:::nis_study_report_cache_key(
+  design_key = design_key,
+  exposure = exposure,
+  covariates = covariates,
+  outcomes = outcomes,
+  output_format = knitr::is_html_output()
 )
 ```
 
@@ -90,6 +112,14 @@ study_design <- rlang::inject(
 ```{r}
 #| label: design-summary
 cohort_n <- nrow(study_design$variables)
+has_cohort <- cohort_n > 0L
+exposure_values <- if (has_cohort && exposure %in% names(study_design$variables)) {
+  study_design$variables[[exposure]]
+} else {
+  logical()
+}
+exposure_levels <- unique(exposure_values[!is.na(exposure_values)])
+has_exposure_comparison <- length(exposure_levels) >= 2L
 n_hospitals <- dplyr::n_distinct(
   study_design$variables$YEAR,
   study_design$variables$HOSP_NIS
@@ -117,6 +147,8 @@ hospitals with cohort discharges. Cost and charges are adjusted to
 `r as.character(utils::packageVersion("dplyr"))`, and gtsummary
 `r as.character(utils::packageVersion("gtsummary"))`.
 
+`r if (!has_cohort) "Cohort-dependent summaries and models are unavailable because the cohort has no rows in the survey design." else if (!has_exposure_comparison) paste0("The exposure comparison is unavailable because ", exposure, " has fewer than two observed levels in the cohort.") else "The cohort has at least two observed exposure levels; comparative summaries and models will be evaluated."`
+
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
@@ -134,7 +166,7 @@ flow_summary <- function(data, step) {
   data |>
     dplyr::summarise(
       n = dplyr::n(),
-      weighted_discharges = sum(DISCWT, na.rm = TRUE)
+      weighted_discharges = sum(DISCWT, na.rm = TRUE) # nolint: object_usage_linter. Data-masked field in the lazy query.
     ) |>
     dplyr::collect() |>
     dplyr::mutate(step = step)
@@ -183,19 +215,34 @@ if (knitr::is_html_output()) {
 #| label: table-one
 #| cache: true
 #| dependson: design
-table_one <- gtsummary::tbl_svysummary(
-  study_design,
-  by = exposed,
-  include = c(AGE, FEMALE, DIED, LOS, cost_adj)
-) |>
-  gtsummary::add_p() |>
-  gtsummary::add_overall() |>
-  nis_suppress(threshold = 10)
-
-if (knitr::is_html_output()) {
-  gtsummary::as_gt(table_one)
+#| cache.extra: !expr report_key
+if (!has_cohort) {
+  knitr::asis_output(
+    "Table 1 is unavailable because the cohort has no rows in the survey design."
+  )
 } else {
-  gtsummary::as_flex_table(table_one)
+  table_one <- if (has_exposure_comparison) {
+    gtsummary::tbl_svysummary(
+      study_design,
+      by = exposed,
+      include = c(AGE, FEMALE, DIED, LOS, cost_adj)
+    ) |>
+      gtsummary::add_p() |>
+      gtsummary::add_overall() |>
+      nis_suppress(threshold = 10)
+  } else {
+    gtsummary::tbl_svysummary(
+      study_design,
+      include = c(AGE, FEMALE, DIED, LOS, cost_adj)
+    ) |>
+      nis_suppress(threshold = 10)
+  }
+
+  if (knitr::is_html_output()) {
+    gtsummary::as_gt(table_one)
+  } else {
+    gtsummary::as_flex_table(table_one)
+  }
 }
 ```
 
@@ -205,17 +252,24 @@ if (knitr::is_html_output()) {
 #| label: outcomes
 #| cache: true
 #| dependson: design
-outcome_table <- gtsummary::tbl_svysummary(
-  study_design,
-  include = c(DIED, LOS, cost_adj),
-  statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
-) |>
-  nis_suppress(threshold = 10)
-
-if (knitr::is_html_output()) {
-  gtsummary::as_gt(outcome_table)
+#| cache.extra: !expr report_key
+if (!has_cohort) {
+  knitr::asis_output(
+    "Outcome summaries are unavailable because the cohort has no rows in the survey design."
+  )
 } else {
-  gtsummary::as_flex_table(outcome_table)
+  outcome_table <- gtsummary::tbl_svysummary(
+    study_design,
+    include = c(DIED, LOS, cost_adj),
+    statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
+  ) |>
+    nis_suppress(threshold = 10)
+
+  if (knitr::is_html_output()) {
+    gtsummary::as_gt(outcome_table)
+  } else {
+    gtsummary::as_flex_table(outcome_table)
+  }
 }
 ```
 
@@ -228,6 +282,12 @@ masks each displayed estimate and count for those years.
 #| label: trends
 #| cache: true
 #| dependson: design
+#| cache.extra: !expr report_key
+if (!has_cohort) {
+  knitr::asis_output(
+    "Trends are unavailable because the cohort has no rows in the survey design."
+  )
+} else {
 trend <- study_design |>
   dplyr::mutate(
     .died = as.numeric(DIED == "Yes"),
@@ -273,6 +333,7 @@ ggplot2::ggplot(
 
 trend_display <- trend |>
   dplyr::mutate(
+    YEAR = as.character(YEAR),
     discharges = dplyr::if_else(
       n_unweighted <= 10, "≤10",
       format(n_unweighted, big.mark = ",", trim = TRUE)
@@ -290,26 +351,32 @@ trend_display <- trend |>
       formatC(mean_los, format = "f", digits = 2)
     )
   ) |>
-  dplyr::select(YEAR, discharges, weighted_N, mortality, mean_LOS)
+  dplyr::select(
+    `Discharge year` = YEAR, discharges, weighted_N, mortality, mean_LOS
+  )
 
 if (knitr::is_html_output()) {
   gt::gt(trend_display)
 } else {
   flextable::flextable(trend_display)
 }
+}
 ```
 
 ## Multivariable models
 
-Regression coefficients and confidence intervals are model estimates rather
-than discharge counts, so the regression tables are displayed.
+Models use the exposure and covariates declared above. A model is shown only
+when the observed data and fitted estimates are finite and usable. A valid
+model with a design warning remains visible, with that warning shown below.
+Unavailable models include the reason; the declared model specification is
+not changed to make a model fit.
 
 ```{r}
 #| label: models
 #| cache: true
 #| dependson: design
-#| cache.extra: !expr list(exposure, covariates, outcomes)
-models <- purrr::map(seq_len(nrow(outcomes)), function(i) {
+#| cache.extra: !expr report_key
+model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
   model_family <- switch(
     current$family[[1L]],
@@ -320,32 +387,70 @@ models <- purrr::map(seq_len(nrow(outcomes)), function(i) {
     c(exposure, covariates),
     response = current$outcome[[1L]]
   )
-  survey::svyglm(formula, design = study_design, family = model_family)
+  easyNIS:::nis_study_fit_model(
+    formula,
+    design = study_design,
+    family = model_family,
+    outcome = current$outcome[[1L]],
+    exposure = exposure
+  )
 })
 
-model_tables <- purrr::map(seq_along(models), function(i) {
+valid_models <- which(vapply(model_results, function(result) {
+  !is.null(result$model)
+}, logical(1)))
+model_tables <- purrr::map(valid_models, function(i) {
   gtsummary::tbl_regression(
-    models[[i]],
+    model_results[[i]]$model,
     exponentiate = outcomes$exponentiate[[i]]
   )
 })
 
-family_tables <- purrr::map(split(seq_len(nrow(outcomes)), outcomes$family), function(rows) {
+names(model_tables) <- as.character(valid_models)
+family_rows <- split(valid_models, outcomes$family[valid_models])
+family_tables <- purrr::map(family_rows, function(rows) {
   gtsummary::tbl_merge(
-    tbls = model_tables[rows],
+    tbls = model_tables[as.character(rows)],
     tab_spanner = paste0("**", outcomes$outcome[rows], "**")
   )
+})
+
+model_notes <- purrr::map_chr(seq_along(model_results), function(i) {
+  result <- model_results[[i]]
+  outcome <- outcomes$outcome[[i]]
+  if (!is.null(result$status)) {
+    return(paste0("**", outcome, " unavailable:** ", result$status))
+  }
+  if (length(result$warnings) > 0L) {
+    return(paste0(
+      "**", outcome, " model warning:** ",
+      paste(unique(result$warnings), collapse = "; ")
+    ))
+  }
+  ""
 })
 ```
 
 ```{r}
 #| label: model-tables
-for (family_table in family_tables) {
-  if (knitr::is_html_output()) {
-    print(gtsummary::as_gt(family_table))
+rendered_tables <- purrr::map_chr(family_tables, function(family_table) {
+  table <- if (knitr::is_html_output()) {
+    gtsummary::as_gt(family_table)
   } else {
-    print(gtsummary::as_flex_table(family_table))
+    gtsummary::as_flex_table(family_table)
   }
+  rendered <- knitr::knit_print(table)
+  metadata <- attr(rendered, "knit_meta", exact = TRUE)
+  if (length(metadata) > 0L) {
+    knitr::knit_meta_add(metadata)
+  }
+  as.character(rendered)
+})
+model_output <- c(model_notes[nzchar(model_notes)], rendered_tables)
+if (length(model_output) == 0L) {
+  knitr::asis_output("No model tables or model status messages were produced.")
+} else {
+  knitr::asis_output(paste(model_output, collapse = "\n\n"))
 }
 ```
 
@@ -354,8 +459,6 @@ for (family_table in family_tables) {
 
 Fit propensity weights to cohort rows from the design. The resulting survey
 design keeps the placeholder rows needed for domain variance estimation.
-This block needs two packages that easyNIS does not depend on; install them
-first with `install.packages(c("WeightIt", "cobalt"))`.
 
 ```r
 cohort_data <- study_design$variables
