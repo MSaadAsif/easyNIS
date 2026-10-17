@@ -196,12 +196,16 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   invalid <- data
   invalid$DISCWT[c(1L, 5L)] <- c(-9, NA)
   invalid$NIS_STRATUM[9L] <- -9
-  valid <- data[-c(1L, 5L, 9L), ]
+  invalid$YEAR[10L] <- Inf
+  invalid$HOSP_NIS[11L] <- Inf
+  invalid$NIS_STRATUM[12L] <- Inf
+  invalid$DISCWT[13L] <- NaN
+  valid <- data[-c(1L, 5L, 9L, 10L, 11L, 12L, 13L), ]
 
   expected <- nis_design(valid, heart_failure, keep = c(AGE, LOS))
   expect_warning(
     from_frame <- nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
-    "Excluded 3 discharges"
+    "Excluded 7 discharges"
   )
 
   invalid_path <- tempfile("nis-invalid-")
@@ -212,7 +216,7 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
     from_arrow <- nis_design(
       arrow::open_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
     ),
-    "Excluded 3 discharges"
+    "Excluded 7 discharges"
   )
 
   for (design in list(from_frame, from_arrow)) {
@@ -268,7 +272,18 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
 
   design <- designs$placeholder
   multipliers <- 0.6 + (seq_len(nrow(design$variables)) %% 7) / 10
+  labelled_fields <- c("YEAR", "AGE", "FEMALE", "DIED", "LOS")
+  labels <- lapply(labelled_fields, function(field) {
+    attr(design$variables[[field]], "label", exact = TRUE)
+  })
+  names(labels) <- labelled_fields
+  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
   reweighted <- nis_reweight(design, multipliers)
+  for (field in labelled_fields) {
+    expect_identical(
+      attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
+    )
+  }
 
   reference_data <- designs$full_data
   reference_data$.nis_weight[reference_data$.in_cohort] <-
