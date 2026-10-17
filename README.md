@@ -4,7 +4,6 @@
 
 [![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
 [![Lint](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml)
-[![Codecov test coverage](https://codecov.io/gh/MSaadAsif/easyNIS/branch/main/graph/badge.svg)](https://codecov.io/gh/MSaadAsif/easyNIS)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE)
 
@@ -84,7 +83,7 @@ Please also cite the HCUP NIS and any methods or code-set references used in you
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, style, and privacy requirements. Please use GitHub Issues for bugs and feature requests; use GitHub Discussions for questions when enabled.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, style, and privacy requirements. Please use GitHub Issues for bugs, feature requests, and questions; report security or privacy concerns as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
