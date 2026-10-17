@@ -2,14 +2,18 @@
 #'
 #' Replaces displayed statistics when their corresponding unweighted count is
 #' at or below `threshold`. Counts come from the `cards` computed by
-#' `gtsummary::tbl_svysummary()`. This masks primary cells only; it does not
-#' perform complementary suppression, so related totals may still reveal a
-#' masked count.
+#' `gtsummary::tbl_svysummary()`. Primary masking is applied, and when a
+#' by-group cell is masked the overall cell (`stat_0`) in the same row is masked
+#' too, so `gtsummary::add_overall()` cannot reveal it by subtraction. Other
+#' complements, such as those derived from column totals across levels, are not
+#' masked, so analysts must review tables for other derivable cells before
+#' sharing them.
 #'
-#' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`.
+#' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
+#'   and `add_overall()`.
 #' @param threshold Maximum unweighted cell count to suppress.
 #'
-#' @return The table with small statistics masked and a HCUP DUA footnote.
+#' @return The table with small statistics masked and a footnote saying so.
 #' @export
 nis_suppress <- function(x, threshold = 10) {
   if (!inherits(x, "tbl_svysummary") || is.null(x$cards$tbl_svysummary)) {
@@ -57,6 +61,7 @@ nis_suppress <- function(x, threshold = 10) {
       next
     }
 
+    group_masked <- FALSE
     for (column in stat_columns) {
       matches <- which(cards$variable == variable &
         cards$context == context & cards$stat_name == stat_name &
@@ -72,7 +77,11 @@ nis_suppress <- function(x, threshold = 10) {
       count <- if (length(counts) == 1L) counts else sum(counts, na.rm = TRUE)
       if (is.finite(count) && count <= threshold) {
         body[[column]][[row]] <- paste0("\u2264", threshold)
+        group_masked <- group_masked || !identical(column, "stat_0")
       }
+    }
+    if (group_masked && "stat_0" %in% stat_columns) {
+      body$stat_0[[row]] <- paste0("\u2264", threshold)
     }
   }
 
@@ -80,8 +89,12 @@ nis_suppress <- function(x, threshold = 10) {
   gtsummary::modify_footnote_header(
     x,
     footnote = paste0(
-      "Suppressed at unweighted n \u2264 ", threshold,
-      " under the HCUP Data Use Agreement small-cell rule."
+      "Cells based on \u2264", threshold, " unweighted discharges are masked",
+      if (length(stat_columns) > 1L && "stat_0" %in% stat_columns) {
+        " (with the overall cell in the same row)"
+      },
+      "; review tables for other derivable cells before sharing, per the ",
+      "HCUP Data Use Agreement."
     ),
     columns = gtsummary::all_stat_cols(),
     replace = FALSE,

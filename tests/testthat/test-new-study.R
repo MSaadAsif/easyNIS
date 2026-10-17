@@ -76,7 +76,11 @@ test_that("the packaged Quarto template follows the scaffold contract", {
   dua_marker <- c(
     charToRaw("Cells based on "),
     as.raw(c(0xe2, 0x89, 0xa4)),
-    charToRaw("10 unweighted discharges are suppressed per the HCUP Data Use Agreement.")
+    charToRaw(paste0(
+      "10 unweighted discharges are masked (with the overall cell in the same row); ",
+      "review tables for other derivable cells before sharing, ",
+      "per the HCUP Data Use Agreement."
+    ))
   )
   marker_starts <- seq_len(length(analysis_raw) - length(dua_marker) + 1L)
   expect_true(any(vapply(marker_starts, function(start) {

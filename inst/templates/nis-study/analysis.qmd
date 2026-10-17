@@ -120,7 +120,7 @@ hospitals with cohort discharges. Cost and charges are adjusted to
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
-**Cells based on ≤10 unweighted discharges are suppressed per the HCUP Data Use Agreement.**
+**Cells based on ≤10 unweighted discharges are masked (with the overall cell in the same row); review tables for other derivable cells before sharing, per the HCUP Data Use Agreement.**
 
 ## Cohort flow
 
