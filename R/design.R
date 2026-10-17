@@ -182,6 +182,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       ))
     }
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
+    # nolint next: object_usage_linter. nis_cost() supports custom charge columns.
     combined <- nis_cost(combined, dollars = dollars, charges = charges)
   }
 
