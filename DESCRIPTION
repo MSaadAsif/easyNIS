@@ -1,6 +1,6 @@
 Package: easyNIS
 Title: Tidy Workflows for the National Inpatient Sample
-Version: 0.1.0.9000
+Version: 0.2.0.9000
 Authors@R: c(
     person("Muhammad", "Saad", role = c("aut", "cre"),
            email = "msaadasif.md@gmail.com",
@@ -8,8 +8,10 @@ Authors@R: c(
     person("Ali", role = "aut"))
 Description: Pipe-friendly tools for working with Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files. Opens annual
-    files lazily, flags ICD-10 code prefixes, prepares a survey design, applies
-    HCUP labels, and adjusts charges for inflation.
+    files lazily, flags diagnosis and procedure codes, looks up CCSR codes,
+    calculates comorbidity scores, prepares survey designs, supports
+    propensity-based reweighting, applies HCUP labels, and adjusts charges for
+    inflation. ICD-9 and NIS 2023 support are experimental.
 License: MIT + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
@@ -24,15 +26,21 @@ Imports:
 Suggests:
     broom.helpers,
     cardx,
+    forcats,
     flextable,
     ggplot2,
     gtsummary,
     gt,
     knitr,
+    medicalcoder (>= 0.10.0),
     purrr,
     quarto,
+    readxl,
+    rmarkdown,
     survey,
-    testthat (>= 3.1.7)
+    testthat (>= 3.1.7),
+    zip
+VignetteBuilder: knitr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3

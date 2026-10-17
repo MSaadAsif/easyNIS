@@ -1,8 +1,10 @@
 ^\.agents($|[/\\])
 ^\.audit($|[/\\])
 ^\.claude($|[/\\])
+^\.git$
 ^\.easynis-local\.ps1$
 ^\.github$
+^\.lintr$
 ^\.Rproj\.user$
 ^\.Rproj$
 ^AGENTS\.md$
@@ -10,9 +12,11 @@
 ^GLOSSARY\.md$
 ^LICENSE\.md$
 ^docs$
+^site$
 ^local-data($|[/\\])
 ^local-validation($|[/\\])
 ^private($|[/\\])
 ^worktrees($|[/\\])
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
+^_pkgdown\.yml$

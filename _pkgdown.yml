@@ -1,0 +1,37 @@
+destination: site
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+
+articles:
+  - title: Guides
+    navbar: Guides
+    contents:
+      - getting-started
+      - porting
+
+reference:
+  - title: Open data
+    contents:
+      - nis_example
+      - nis_open
+  - title: Flag diagnosis and procedure codes
+    contents:
+      - nis_flag_dx
+      - nis_flag_pr
+      - nis_ccsr_codes
+  - title: Prepare the analysis design
+    contents:
+      - nis_design
+      - nis_reweight
+      - nis_comorbidity
+      - nis_label
+      - nis_cost
+  - title: Suppress and report results
+    contents:
+      - nis_suppress
+      - nis_new_study
