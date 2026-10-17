@@ -1,0 +1,6 @@
+docs/
+*_files/
+*_cache/
+.quarto/
+*.html
+*.docx
