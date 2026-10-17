@@ -22,12 +22,12 @@
 #'   condition is not flagged from the principal diagnosis alone where AHRQ
 #'   excludes it). Codes in `I10_DX2` onward are secondary.
 #' * **ICD-10 only.** Only the `I10_DX*` columns are read. A discharge with no
-#'   usable `I10_DX*` code (all blank, missing or malformed), such as an ICD-9
+#'   usable `I10_DX*` code (all blank, missing or invalid UTF-8), such as an ICD-9
 #'   discharge from before October 2015, gets `NA` in every added column, and
 #'   the function warns with the number of such rows. Do not treat those `NA`
 #'   values as "no comorbidity".
 #' * Codes are upper-cased with periods and spaces removed. Blank, missing or
-#'   malformed codes are ignored, and an unmapped code adds no condition. A
+#'   invalid UTF-8 codes are ignored, and an unmapped code adds no condition. A
 #'   discharge with at least one usable but unmapped code gets zeros.
 #' * The long reshaping holds about 40 diagnosis columns by every row in memory.
 #'   Use it on a cohort, not on the full national file.

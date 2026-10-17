@@ -92,7 +92,7 @@ nis_open <- function(path, years = NULL) {
     merged <- Reduce(function(left, right) {
       rlang::expr(dplyr::coalesce(!!left, !!right))
     }, fields)
-    query <- dplyr::mutate(query, !!canonical := !!merged)
+    query <- dplyr::mutate(query, !!canonical := !!merged) # nolint: object_usage_linter. dplyr name injection.
   }
   output_names <- names(name_groups)
   if ("TOTCHG_2023" %in% output_names) {
@@ -259,6 +259,7 @@ code_system_filter <- function(columns, slots, system) {
     conditions <- c(conditions, list(rlang::expr(is.na(!!field) | !!field == !!version)))
   }
   if ("YEAR" %in% columns) {
+    # nolint start: object_usage_linter. rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
@@ -272,6 +273,7 @@ code_system_filter <- function(columns, slots, system) {
         is.na(YEAR) | YEAR != 2015L | is.na(!!quarter) | !!quarter %in% !!quarters
       )))
     }
+    # nolint end
   }
   if (length(conditions) == 0L) return(NULL)
   Reduce(function(left, right) rlang::expr((!!left) & (!!right)), conditions)

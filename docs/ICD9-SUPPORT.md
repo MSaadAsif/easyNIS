@@ -2,15 +2,10 @@
 
 ## Evidence level
 
-Verified (read directly during development, October 17, 2026):
-
-- The local NIS 2020 Introduction states that discharges in 2015 Q1-Q3 are
-  coded in ICD-9-CM and Q4 in ICD-10-CM/PCS, and that earlier annual files
-  are ICD-9-CM only.
-
-Assumed (secondhand: search-engine excerpts of HCUP layout documents; the
-HCUP pages could not be fetched directly in this environment, so none of the
-following has been checked against a primary file or document):
+The coding transition is described in the HCUP NIS introductions linked below:
+2015 Q1-Q3 discharges use ICD-9-CM and Q4 uses ICD-10-CM/PCS; earlier annual
+files use ICD-9-CM. The implementation's field-layout assumptions remain
+unverified against official layout files or real NIS data:
 
 - Pre-2015 files use `DX1`-`DX25` and `PR1`-`PR15`; the 2015 Q1-Q3 files may
   use up to `DX30`. Slot discovery therefore uses numeric suffixes, not fixed
@@ -18,12 +13,11 @@ following has been checked against a primary file or document):
 - 2015 Q1-Q3 and Q4 diagnosis/procedure data are distributed as separate
   files linked to Core by `KEY_NIS`, with `DX*`/`PR*` for ICD-9 and
   `I10_DX*`/`I10_PR*` for ICD-10.
-- `DXVER` and `PRVER` take the values 9 and 10 for the ICD-9 and ICD-10
-  systems, and HCUP is understood to recommend `DXVER` over `DQTR` for the 2015
-  split because discharge quarter can be missing (UNVERIFIED: secondhand).
+- `DXVER` and `PRVER` values and their suitability for selecting a coding
+  system relative to `DQTR` have not been validated for this implementation.
 
-Re-check these against the HCUP documentation before relying on the feature
-for real files.
+Check these details against the current HCUP documentation before relying on
+the feature for real files.
 
 Pointers (public documentation, not patient records):
 
