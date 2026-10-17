@@ -40,10 +40,12 @@
   codes are compared byte for byte without text normalization, so malformed
   UTF-8 cannot raise a matching error.
 - `nis_suppress()` now also masks the overall (`add_overall()`) cell in any row
-  where a by-group cell is masked, so the masked count cannot be recovered by
-  subtraction. Other derivable cells, such as those from column totals across
-  levels, are still not masked; its footnote and the study template say to
-  review tables before sharing.
+  where a by-group cell is masked. It marks that secondary mask as `Masked`
+  unless the overall cell is itself at or below the threshold. Continuous2
+  statistic rows use their output column's non-missing count and error when
+  that count is missing, ambiguous, or non-finite for a displayed statistic.
+  Other derivable cells, such as those from column totals across levels, are
+  still not masked; its footnote says to review tables before sharing.
 
 ## Experimental helpers
 
