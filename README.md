@@ -1,113 +1,91 @@
 # easyNIS
 
-[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
+**A tidy, reproducible workflow for opening, defining cohorts in, and analysing HCUP National Inpatient Sample (NIS) data with survey weights.**
 
-Pipe-friendly tools for NIS 2012+ data, with experimental ICD-9 support through
-September 2015 alongside the default ICD-10 workflow. Open annual Parquet directories
-lazily, flag code prefixes, then build a survey design with `nis_design()`.
+[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
+[![Lint](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml)
+[![Codecov test coverage](https://codecov.io/gh/MSaadAsif/easyNIS/branch/main/graph/badge.svg)](https://codecov.io/gh/MSaadAsif/easyNIS)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE)
+
+## Why easyNIS?
+
+NIS analysis often repeats the same file opening, code-prefix matching, survey-design setup, and disclosure review in every study. easyNIS provides pipe-friendly helpers for those steps while leaving study definitions and statistical decisions with the analyst. Annual Parquet files open lazily through Arrow; `nis_design()` prepares a `srvyr` design; and `nis_example()` supplies invented offline data for learning and examples.
+
+## Install
 
 ```r
-# Install from GitHub once.
 pak::pak("MSaadAsif/easyNIS")
+```
 
+## Quick start
+
+This complete example uses only the package's invented offline fixture. It does not need HCUP files.
+
+```r
 library(easyNIS)
 
-# Create a Quarto study folder and render analysis.qmd to HTML or DOCX.
-nis_new_study("my-nis-study")
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path) |>
+  nis_flag_dx(heart_failure = "I50")
 
-# Or start with the core analysis pipeline.
-nis <- nis_open("path/to/nis", years = 2017:2022) |>
-  nis_flag_dx(heart_failure = "I50", position = "principal")
 design <- nis_design(
-  nis, heart_failure,
-  keep = c(AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS)
+  nis,
+  cohort = heart_failure & AGE >= 18,
+  keep = c(AGE, FEMALE, DIED, LOS)
 )
-gtsummary::tbl_svysummary(design, include = c(AGE, FEMALE, DIED))
-survey::svyglm(DIED ~ AGE + factor(YEAR), design, family = quasibinomial())
+
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE)
+)
 ```
 
-`nis_open()` returns a lazy Arrow query. `nis_flag_dx()` and `nis_flag_pr()`
-compare stored codes byte for byte (NIS codes are upper case without periods),
-so they stay fast across all 40 diagnosis slots and cannot fail on malformed
-text. `nis_design()` scans the design columns once, then collects cohort rows
-and one placeholder per hospital-year without cohort cases. It excludes
-discharges with a missing or non-positive `DISCWT`, `NIS_STRATUM`, or
-`HOSP_NIS`, with a warning. Later `filter()` calls may only narrow the declared
-cohort. The placeholder variance method and cost adjustment remain
-experimental pending scientific approval.
+The example records and code values are invented. To analyse real data, use files you are authorized to access and follow the HCUP Data Use Agreement.
 
-Experimental helpers, each optional:
+## Functions by task
 
-- `nis_ccsr_codes()` lists the ICD-10 codes in an HCUP CCSR category from the
-  reference file you downloaded (readxl reads the Excel version).
-- `nis_comorbidity()` adds AHRQ Elixhauser flags and index scores (needs
-  `medicalcoder`). It is ICD-10 only; rows without an `I10_DX*` code get `NA`.
-- `nis_reweight()` multiplies cohort weights, for example by propensity
-  weights, and keeps the placeholder rows. Call it once; weighted totals are
-  then no longer national counts.
+| Task | Functions |
+| --- | --- |
+| Open and flag | `nis_example()` creates invented Parquet fixtures; `nis_open()` opens annual Parquet data lazily; `nis_flag_dx()` and `nis_flag_pr()` add diagnosis and procedure prefix flags. |
+| Design and weighting | `nis_design()` prepares a survey design for a declared cohort; `nis_reweight()` multiplies its cohort weights (experimental). |
+| Comorbidity and CCSR | `nis_comorbidity()` adds AHRQ Elixhauser Refined indicators through `medicalcoder` (experimental); `nis_ccsr_codes()` reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified). |
+| Labels and costs | `nis_label()` applies supported HCUP labels; `nis_cost()` adjusts charges and cost estimates using the package's CPI-U series and `CCR_NIS` (experimental method). |
+| Suppression and study setup | `nis_suppress()` masks small unweighted cells in a `gtsummary` result; `nis_new_study()` creates a Quarto study folder from the package template. |
+
+See the [function reference](https://msaadasif.github.io/easyNIS/reference/index.html) for arguments and details.
+
+## Supported years and limitations
+
+The package accepts NIS data years 2012 onward. This describes the supported input range, not verification of every annual layout or scientific approval of the methods.
+
+- **ICD-10:** The default diagnosis and procedure flaggers target the `I10_DX*` and `I10_PR*` slots.
+- **ICD-9, 2012–2015:** Experimental. The code treats 2012–2014 and 2015 Q1–Q3 as ICD-9, with Q4 2015 ICD-10. The 2015 coding transition is documented, but some annual slot-layout and version-metadata assumptions are **UNVERIFIED** against primary HCUP layouts. `docs/ICD9-SUPPORT.md` records the evidence and assumptions. No crosswalk or clinical code list is bundled.
+- **NIS 2023:** Experimental and **UNVERIFIED** against official 2023 documentation or real 2023 data. Assumptions include the `TOTCHG_2023` field, removed geography fields, and sequential stratum identifiers. The distinct 2023 charge field is not silently combined with `TOTCHG`.
+- **CCSR CSV/Excel layouts:** The reader validates expected fields and code shape, but its assumptions about downloaded HCUP reference-file layouts are **UNVERIFIED**. No CCSR content is bundled.
+- **Variance and cost methods:** The zero-domain placeholder-row variance method and cost adjustment remain experimental pending scientific approval. CPI-U adjustment uses the included annual series; cost estimates additionally require the appropriate `CCR_NIS`. Review methods and outputs for your study.
+
+Read the [Getting started vignette](https://msaadasif.github.io/easyNIS/articles/getting-started.html) and the [porting guide](https://msaadasif.github.io/easyNIS/articles/porting.html) for worked workflows. The [analyst workflow note](https://github.com/MSaadAsif/easyNIS/blob/main/docs/ANALYST-WORKFLOW.md) explains the redesign context.
+
+## Data use and privacy
+
+NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; easyNIS suppresses unweighted cells at or below 10 by default in its suppression helper, but suppression does not automatically prevent every form of inference. Follow your institution's disclosure rules and the applicable HCUP requirements.
+
+## Citation
+
+If easyNIS supports your work, cite the package and the version used. In R, run:
 
 ```r
-codes <- nis_ccsr_codes("DXCCSR-Reference-File-v2025-1.xlsx", "CIR019",
-  default_only = TRUE)
-nis <- nis_flag_dx(nis, heart_failure = codes, position = "principal")
-
-# Keep the diagnosis columns in the design, then enrich it.
-design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
-design <- nis_comorbidity(design)
-design <- nis_reweight(design, runif(nrow(design$variables), 0.5, 1.5))
+citation("easyNIS")
 ```
 
-Start with `vignette("getting-started")` for an invented-data walkthrough from
-opening files to a suppressed table and survey model. See `vignette("porting")`
-for moving an existing NIS study to easyNIS.
+Please also cite the HCUP NIS and any methods or code-set references used in your analysis.
 
-Use `nis_example()` for invented offline data. Never commit licensed inputs,
-private paths, local validation receipts, or record-derived output.
+## Contributing
 
-## Experimental 2012–2015 support
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, style, and privacy requirements. Please use GitHub Issues for bugs and feature requests; use GitHub Discussions for questions when enabled.
 
-`nis_open()` accepts 2012 onward; earlier years are rejected. Use
-`nis_flag_dx(..., system = "icd9")` and `nis_flag_pr(..., system = "icd9")`
-for `DX1`, `DX2`, ... and `PR1`, `PR2`, ...; the default `"icd10"` checks
-only `I10_DX*`/`I10_PR*`. Positions and prefix semantics are unchanged.
-`nis_example(2012:2016)` demonstrates both eras using invented records.
+## License
 
-2015 Q1–Q3 discharges are ICD-9 and Q4 discharges are ICD-10 (confirmed in
-the NIS Introduction). The layout below is UNVERIFIED, assumed from
-secondhand excerpts and not checked against HCUP files: ICD-9 codes in `DX*`/`PR*`, ICD-10 in
-separate `I10_` slots, quarter-specific diagnosis/procedure files joined to
-Core by `KEY_NIS`. easyNIS performs no joins; preserve the full Core
-population and official names. Retain `DXVER` and `PRVER` (9 or 10), which
-HCUP is understood to recommend over `DQTR` for the 2015 split (UNVERIFIED).
-Flags exclude non-missing
-version indicators that disagree with the requested system, out-of-era
-years, and incompatible 2015 quarters. Missing metadata relies on the
-official slot namespace and missing inapplicable slots; reused/shared slots
-are unsupported. A `FALSE` flag means not flagged in that system, not a
-clinical assertion of absence.
-
-For cross-era studies, supply independently justified diagnosis and procedure
-prefix vectors for each system, call the flagger once per system, then combine
-the resulting flags explicitly with `dplyr::mutate()`. There are no bundled
-clinical code lists or crosswalks. October 1, 2015 is a coding discontinuity;
-combining flags does not establish trend comparability. `nis_cost()` CPI-U
-values cover 2012–2015. `nis_label()` has been tested for 2012–2015 data only
-for `PAY1` and `DIED`; other labels are UNVERIFIED for that era. Further,
-ICD-9-specific derived indicators are not automatically mapped to ICD-10
-indicators. Supply the correct annual CCR; no cost file is bundled.
-
-The evidence level (verified versus assumed layout facts) and input
-assumptions are recorded in `docs/ICD9-SUPPORT.md`.
-
-NIS 2023 layout support is experimental and UNVERIFIED against official HCUP
-2023 documentation and real 2023 data (none was available for testing).
-`nis_open()` accepts the 2023 layout without `HOSP_REGION` and `HOSP_DIVISION`,
-retains `HOSP_NIS` and `NIS_STRATUM`, and scopes both design identifiers by
-`YEAR`. The 2023 `TOTCHG_2023` field is kept as its own column and `TOTCHG` is
-never altered: HCUP adjusts `TOTCHG_2023` for states unavailable in 2023, so it
-is not comparable with earlier-year charges. `nis_design()` and `nis_cost()`
-use `TOTCHG` unless you opt in with `charges = "TOTCHG_2023"`, or pool
-deliberately with `mutate(TOTCHG = coalesce(TOTCHG_2023, TOTCHG))`. Opening a
-query with `TOTCHG_2023` warns once per session. Fields absent from
-the 2023 layout stay optional, and `nis_label()` leaves 2023-only fields such as
-`PL_NCHS2` and `TOTCHG_2023` unlabelled.
+easyNIS is available under the MIT License. See the [LICENSE file](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).

@@ -16,6 +16,7 @@
 *.duckdb.wal
 *.log
 /site/
+/_site/
 # Licensed or record-derived files stay ignored; invented fixtures have one explicit home.
 *.parquet
 *.dta

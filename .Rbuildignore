@@ -9,6 +9,8 @@
 ^\.Rproj$
 ^AGENTS\.md$
 ^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
+^SECURITY\.md$
 ^GLOSSARY\.md$
 ^LICENSE\.md$
 ^docs$
@@ -20,3 +22,4 @@
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
 ^_pkgdown\.yml$
+^_site($|[/\\])
