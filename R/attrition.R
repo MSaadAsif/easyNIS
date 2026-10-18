@@ -17,7 +17,7 @@
 #'   criterion. When `by_year = TRUE`, `YEAR` is the first column.
 #' @export
 #' @examples
-#' toy_nis <- tibble::tibble(
+#' toy_nis <- dplyr::tibble(
 #'   AGE = c(16, 45, 60, 72, 55),
 #'   ELECTIVE = c(1, 1, 0, 1, 1),
 #'   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
@@ -42,9 +42,6 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   }
 
   labels <- names(criteria)
-  labels[labels == ""] <- vapply(criteria[labels == ""], function(criterion) {
-    rlang::as_label(rlang::get_expr(criterion))
-  }, character(1))
 
   keep_names <- paste0(".nis_attrition_keep_", seq_along(criteria))
   while (any(keep_names %in% names(.data))) {
@@ -84,7 +81,7 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
     cli::cli_abort("`YEAR` must not contain missing values when `by_year` is `TRUE`.")
   }
   if (by_year && nrow(counts) == 0L) {
-    return(tibble::tibble(
+    return(dplyr::tibble(
       YEAR = counts$YEAR,
       step = integer(),
       criterion = character(),
@@ -110,7 +107,7 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
     dropped <- c(0, n[-length(n)] - n[-1L])
     dropped_weighted <- c(0, weighted[-length(weighted)] - weighted[-1L])
     denominator <- n[[1L]]
-    result <- tibble::tibble(
+    result <- dplyr::tibble(
       step = seq.int(0L, length(criteria)),
       criterion = c("All discharges", labels),
       n_unweighted = as.integer(n),
