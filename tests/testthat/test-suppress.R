@@ -102,6 +102,89 @@ test_that("nis_suppress applies data-frame complementary masking by stratum", {
   expect_identical(class(result), class(data))
 })
 
+test_that("nis_suppress applies the two-hospital rule to data-frame cells", {
+  data <- data.frame(
+    group = c("one", "two", "small", "safe"),
+    n = c(14, 14, 4, 20),
+    hospitals = c(1, 2, 1, 3),
+    estimate = c(14.5, 14.5, 4.5, 20.5)
+  )
+  result <- nis_suppress(
+    data, count_col = "n", hospital_col = "hospitals",
+    weighted_cols = "estimate", secondary = FALSE
+  )
+
+  expect_identical(result$n,
+    c("<2 hospitals", "14", "\u226410", "20"))
+  expect_identical(result$estimate,
+    c("<2 hospitals", "14.5", "\u226410", "20.5"))
+})
+
+test_that("the hospital rule leaves zero-count cells unmasked", {
+  data <- data.frame(n = c(0, 14), hospitals = c(0, 1))
+  result <- nis_suppress(data, count_col = "n", hospital_col = "hospitals")
+  expect_identical(result$n, c("0", "<2 hospitals"))
+  expect_identical(result$hospitals, c("0", "<2 hospitals"))
+})
+
+test_that("hospital primary masks join complementary masking", {
+  data <- data.frame(
+    group = c("A", "A", "A"), n = c(14, 18, 25),
+    hospitals = c(1, 3, 4), estimate = c(14.5, 18.5, 25.5)
+  )
+  result <- nis_suppress(
+    data, count_col = "n", hospital_col = "hospitals",
+    weighted_cols = "estimate", by = "group"
+  )
+  expect_identical(result$n, c("<2 hospitals", "Masked", "25"))
+  expect_identical(result$estimate, c("<2 hospitals", "Masked", "25.5"))
+})
+
+test_that("nis_suppress rejects missing hospital counts explicitly", {
+  data <- data.frame(n = 14, hospitals = NA_real_)
+  expect_error(
+    nis_suppress(data, count_col = "n", hospital_col = "hospitals"),
+    "without missing values"
+  )
+})
+
+test_that("nis_cell_counts uses year-scoped hospital identities", {
+  records <- data.frame(
+    YEAR = c(rep(2020, 7), rep(2021, 7), 2021),
+    HOSP_NIS = c(rep(1, 7), rep(c(1, 2), c(4, 3)), 2),
+    group = c(rep("A", 14), "B")
+  )
+  counts <- nis_cell_counts(records, by = "group")
+  expect_identical(counts$group, c("A", "B"))
+  expect_identical(counts$n, c(14L, 1L))
+  expect_identical(counts$hospitals, c(3L, 1L))
+  masked <- nis_suppress(
+    counts, count_col = "n", hospital_col = "hospitals", secondary = FALSE
+  )
+  expect_identical(masked$n, c("14", "\u226410"))
+  expect_identical(masked$hospitals, c("3", "\u226410"))
+})
+
+test_that("nis_cell_counts excludes zero-domain placeholder rows", {
+  data <- dplyr::tibble(
+    YEAR = c(2017, 2017, 2017),
+    HOSP_NIS = c(1, 2, 3),
+    NIS_STRATUM = c(1, 1, 1),
+    DISCWT = c(1, 1, 1),
+    eligible = c(TRUE, TRUE, FALSE),
+    group = c("A", "A", "A")
+  )
+  design <- nis_design(data, eligible, keep = group)
+  counts <- nis_cell_counts(design, by = "group")
+  cohort_counts <- nis_cell_counts(data[data$eligible, ], by = "group")
+
+  expect_equal(counts, cohort_counts)
+  expect_identical(counts$n, 2L)
+  expect_identical(counts$hospitals, 2L)
+  expect_equal(nrow(attr(design, "nis_placeholder_rows")), 1L)
+  expect_false(attr(design, "nis_placeholder_rows")$.in_cohort[[1L]])
+})
+
 test_that("nis_suppress groups interleaved data-frame strata without reordering", {
   data <- data.frame(
     group = c("A", "B", "A", "B"),

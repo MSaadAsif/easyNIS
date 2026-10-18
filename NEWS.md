@@ -12,6 +12,9 @@
   point estimates; these are not design-based estimates.
 - `nis_suppress()` now accepts data frames with `count_col`, `weighted_cols`,
   and `by`, and supports single-dimension complementary suppression.
+- `nis_suppress()` accepts `hospital_col` to mask cells based on fewer than two
+  contributing hospitals; `nis_cell_counts()` computes unweighted discharge
+  and year-scoped hospital counts from record-level data or an `nis_design()`.
 
 # easyNIS 0.2.0
 

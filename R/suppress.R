@@ -18,6 +18,12 @@
 #' @param count_col For data frames, the unweighted-count column name (required).
 #' @param weighted_cols For data frames, other columns to mask on primary and
 #'   secondary rows.
+#' @param hospital_col Optional data-frame column containing the number of
+#'   distinct contributing hospitals for each cell. Cells with fewer than two
+#'   hospitals are marked `<2 hospitals`. Missing
+#'   or invalid hospital counts are errors. Hospital identifiers must be
+#'   counted by year; [nis_cell_counts()] computes counts from record-level
+#'   data or an `nis_design()` result.
 #' @param by Optional data-frame grouping column names defining strata for
 #'   complementary suppression.
 #' @param secondary Apply complementary suppression. For data frames this masks
@@ -41,9 +47,12 @@
 #'     include = c(AGE, FEMALE)
 #'   )
 #'   nis_suppress(table, threshold = 10)
+#'
+#' # For data-frame summaries, join per-cell counts from record-level data and
+#' # pass the resulting hospital column as `hospital_col`.
 #' }
 nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL,
-                         by = NULL, secondary = TRUE) {
+                         by = NULL, secondary = TRUE, hospital_col = NULL) {
   dots <- rlang::dots_list(...)
   if (length(dots) > 0L) {
     cli::cli_abort("Unused arguments in `...`.")
@@ -75,12 +84,30 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
     count_col <- check_columns(count_col, "count_col")
     weighted_cols <- check_columns(weighted_cols, "weighted_cols")
     by <- check_columns(by, "by")
+    hospital_col <- check_columns(hospital_col, "hospital_col")
+    if (length(hospital_col) > 1L) {
+      cli::cli_abort("`hospital_col` must name one column.")
+    }
     counts <- x[[count_col]]
     if (!is.numeric(counts)) {
       cli::cli_abort("`count_col` must refer to a numeric column.")
     }
 
-    primary <- !is.na(counts) & is.finite(counts) & counts > 0 & counts <= threshold
+    hospital_primary <- rep(FALSE, nrow(x))
+    if (length(hospital_col)) {
+      hospital_counts <- x[[hospital_col]]
+      if (!is.numeric(hospital_counts)) {
+        cli::cli_abort("`hospital_col` must refer to a numeric column.")
+      }
+      if (anyNA(hospital_counts) || any(!is.finite(hospital_counts)) ||
+          any(hospital_counts < 0) || any(hospital_counts != floor(hospital_counts))) {
+        cli::cli_abort("`hospital_col` must contain finite, non-negative whole counts without missing values.")
+      }
+      hospital_primary <- !is.na(counts) & is.finite(counts) &
+        counts > 0 & hospital_counts < 2
+    }
+    count_primary <- !is.na(counts) & is.finite(counts) & counts > 0 & counts <= threshold
+    primary <- count_primary | hospital_primary
     secondary_rows <- rep(FALSE, nrow(x))
     if (secondary && any(primary)) {
       group_id <- if (length(by) == 0L) {
@@ -101,10 +128,11 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
         }
       }
     }
-    columns <- unique(c(count_col, weighted_cols))
+    columns <- unique(c(count_col, weighted_cols, hospital_col))
     for (column in columns) {
       values <- as.character(x[[column]])
-      values[primary] <- paste0("\u2264", threshold)
+      values[count_primary] <- paste0("\u2264", threshold)
+      values[hospital_primary & !count_primary] <- "<2 hospitals"
       values[secondary_rows] <- "Masked"
       x[[column]] <- values
     }
@@ -114,8 +142,9 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
   if (!inherits(x, "tbl_svysummary") || is.null(x$cards$tbl_svysummary)) {
     cli::cli_abort("`x` must be a table created by `gtsummary::tbl_svysummary()`.")
   }
-  if (!missing(count_col) || !is.null(weighted_cols) || !is.null(by)) {
-    cli::cli_abort("`count_col`, `weighted_cols`, and `by` apply only to data frames.")
+  if (!missing(count_col) || !is.null(weighted_cols) || !is.null(by) ||
+      !is.null(hospital_col)) {
+    cli::cli_abort("`count_col`, `weighted_cols`, `by`, and `hospital_col` apply only to data frames.")
   }
   if (!identical(secondary, TRUE)) {
     cli::cli_abort("`secondary` applies only to data frames.")
