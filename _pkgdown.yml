@@ -19,6 +19,7 @@ articles:
     contents:
       - getting-started
       - porting
+      - articles/design-validation
 
 reference:
   - title: Open and flag data

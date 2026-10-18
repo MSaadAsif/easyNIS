@@ -56,6 +56,12 @@ test_that("nis_design placeholder designs match full-data domain estimates", {
     expect_equal(coef(total_placeholder), coef(total_full), tolerance = 1e-8)
     expect_equal(survey::SE(total_placeholder), survey::SE(total_full), tolerance = 1e-8)
 
+    ratio_full <- survey::svyratio(~LOS, ~AGE, full)
+    ratio_placeholder <- survey::svyratio(~LOS, ~AGE, placeholder)
+    expect_equal(coef(ratio_placeholder), coef(ratio_full), tolerance = 1e-8)
+    expect_equal(vcov(ratio_placeholder), vcov(ratio_full), tolerance = 1e-8)
+    expect_equal(confint(mean_placeholder), confint(mean_full), tolerance = 1e-8)
+
     by_full <- survey::svyby(~AGE, ~FEMALE, full, survey::svymean, vartype = "se")
     by_placeholder <- survey::svyby(
       ~AGE, ~FEMALE, placeholder, survey::svymean, vartype = "se"
@@ -114,6 +120,62 @@ test_that("nis_design placeholder designs match full-data domain estimates", {
       tolerance = 1e-8
     )
   }
+})
+
+test_that("partial-year and invalid-row designs match the full-data reference", {
+  designs <- suppressWarnings(comparison_designs(years = 2015:2016,
+    partial_2015 = TRUE, annualize = TRUE, invalid_rows = TRUE))
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+  expect_equal(nrow(designs$placeholder$variables), nrow(designs$full$variables))
+  expect_equal(coef(survey::svytotal(~AGE, designs$placeholder)),
+    coef(survey::svytotal(~AGE, designs$full_unannualized)) / 2,
+    tolerance = 1e-8)
+  expect_equal(survey::svyratio(~LOS, ~AGE, designs$placeholder) |> coef(),
+    survey::svyratio(~LOS, ~AGE, designs$full) |> coef(), tolerance = 1e-8)
+})
+
+test_that("annualization distinguishes data coverage from cohort quarter coverage", {
+  full_year <- dplyr::tibble(
+    YEAR = 2016L, DQTR = rep(1:4, each = 2L),
+    HOSP_NIS = 1:8, NIS_STRATUM = 1L, DISCWT = 2,
+    eligible = rep(c(TRUE, FALSE), 4L)
+  )
+  # A rare cohort in one quarter is not evidence that the data is partial.
+  expect_no_warning(nis_design(
+    full_year, eligible, keep = YEAR, annualize = TRUE
+  ))
+
+  prefilt_q1_q3 <- full_year[full_year$DQTR <= 3L, ]
+  expect_warning(
+    nis_design(prefilt_q1_q3, eligible, keep = YEAR, annualize = TRUE),
+    "Annualization includes year\\(s\\) with incomplete data-quarter coverage: 2016"
+  )
+
+  # Full 2015 data coverage plus a Q4-only cohort signals the ICD-10 era.
+  pooled <- dplyr::tibble(
+    YEAR = c(rep(2015L, 4L), rep(2016L, 4L)),
+    DQTR = rep(1:4, 2L), HOSP_NIS = 1:8, NIS_STRATUM = 1L,
+    DISCWT = 2, eligible = c(rep(FALSE, 3L), TRUE, rep(TRUE, 4L))
+  )
+  expect_warning(
+    nis_design(pooled, eligible, keep = YEAR, annualize = TRUE),
+    "only ICD-10-coded 2015 discharges \\(Q4\\)"
+  )
+  pooled$eligible[pooled$YEAR == 2015L] <- pooled$DQTR[pooled$YEAR == 2015L] <= 3L
+  expect_warning(
+    nis_design(pooled, eligible, keep = YEAR, annualize = TRUE),
+    "only ICD-9-coded 2015 discharges \\(Q1-Q3\\)"
+  )
+  pooled$eligible <- c(rep(FALSE, 3L), TRUE, rep(TRUE, 4L))
+  expect_no_warning(nis_design(
+    pooled[pooled$YEAR == 2016L, ], eligible, keep = YEAR, annualize = TRUE
+  ))
+
+  no_quarter <- dplyr::select(pooled, -DQTR)
+  expect_message(
+    nis_design(no_quarter, eligible, keep = YEAR, annualize = TRUE),
+    "Cannot check the 2015 ICD-9/ICD-10 split"
+  )
 })
 
 test_that("annualized weights divide by the number of years and missing cohorts are excluded", {
