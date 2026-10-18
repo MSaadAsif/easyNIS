@@ -37,8 +37,9 @@ slots.}
 \value{
 A collected tibble with the period column, \code{code_group},
 \code{n_cohort_unweighted}, \code{n_unweighted}, \code{n_weighted}, \code{pct_within_year},
-and \code{yoy_pct_change}. Year-over-year change is the relative percent change
-in \code{pct_within_year}; it is \code{NA} for the first period and when the previous
+and \code{yoy_pct_change}. The change is the relative percent change in
+\code{pct_within_year} versus the previous observed period in sorted order. It
+is \code{NA} for the first period, a missing period, or when the previous
 period's percentage is zero.
 }
 \description{
@@ -47,6 +48,10 @@ discharge is counted once per group, even when multiple slots match.
 Prefix matching follows \code{\link[=nis_flag_pr]{nis_flag_pr()}} or \code{\link[=nis_flag_dx]{nis_flag_dx()}}, according to
 \code{type}. The complete grid of observed periods and code groups is returned,
 with zero counts where a group has no matches.
+Counts apply only to the selected code system; zero does not mean the code
+is absent under another system. Audits across the 2015 ICD transition need
+separate calls for each system. The change compares with the previous
+observed period in sorted order.
 }
 \examples{
 toy_data <- dplyr::tibble(
