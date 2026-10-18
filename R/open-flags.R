@@ -236,15 +236,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   }
 
   prefixes <- lapply(definitions, function(definition) {
-    value <- rlang::eval_tidy(definition)
-    if (!is.character(value) || length(value) == 0L || anyNA(value)) {
-      cli::cli_abort("Code prefixes must be non-missing character vectors.")
-    }
-    value <- toupper(gsub("[.[:space:]]", "", value))
-    if (any(!grepl("^[A-Z0-9]+$", value))) {
-      cli::cli_abort("Code prefixes may contain only letters and numbers.")
-    }
-    unique(value)
+    normalize_prefixes(rlang::eval_tidy(definition))
   })
 
   stem <- paste0(if (system == "icd10") "I10_", slots)
@@ -276,6 +268,20 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     })
   }
   dplyr::mutate(.data, !!!flags)
+}
+
+normalize_prefixes <- function(value, arg = NULL) {
+  if (!is.character(value) || length(value) == 0L || anyNA(value)) {
+    if (is.null(arg)) {
+      cli::cli_abort("Code prefixes must be non-missing character vectors.")
+    }
+    cli::cli_abort("{arg} must be non-missing character prefixes.")
+  }
+  value <- toupper(gsub("[.[:space:]]", "", value))
+  if (any(!grepl("^[A-Z0-9]+$", value))) {
+    cli::cli_abort("Code prefixes may contain only letters and numbers.")
+  }
+  unique(value)
 }
 
 code_system_filter <- function(columns, slots, system) {
