@@ -20,6 +20,9 @@
 nis_cell_counts <- function(.data, by) {
   if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
     .data <- .data$variables
+    if (".in_cohort" %in% names(.data)) {
+      .data <- dplyr::filter(.data, .in_cohort)
+    }
   }
   if (!is.data.frame(.data)) {
     cli::cli_abort("`.data` must be a record-level data frame or `nis_design()` result.")

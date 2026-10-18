@@ -48,8 +48,8 @@
 #'   )
 #'   nis_suppress(table, threshold = 10)
 #'
-#' For data-frame summaries, join per-cell counts from record-level data and
-#' pass the resulting hospital column as `hospital_col`.
+#' # For data-frame summaries, join per-cell counts from record-level data and
+#' # pass the resulting hospital column as `hospital_col`.
 #' }
 nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL,
                          by = NULL, secondary = TRUE, hospital_col = NULL) {
@@ -103,7 +103,8 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
           any(hospital_counts < 0) || any(hospital_counts != floor(hospital_counts))) {
         cli::cli_abort("`hospital_col` must contain finite, non-negative whole counts without missing values.")
       }
-      hospital_primary <- hospital_counts < 2
+      hospital_primary <- !is.na(counts) & is.finite(counts) &
+        counts > 0 & hospital_counts < 2
     }
     count_primary <- !is.na(counts) & is.finite(counts) & counts > 0 & counts <= threshold
     primary <- count_primary | hospital_primary
@@ -127,7 +128,7 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
         }
       }
     }
-    columns <- unique(c(count_col, weighted_cols))
+    columns <- unique(c(count_col, weighted_cols, hospital_col))
     for (column in columns) {
       values <- as.character(x[[column]])
       values[count_primary] <- paste0("\u2264", threshold)
