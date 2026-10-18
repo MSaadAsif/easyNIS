@@ -81,8 +81,8 @@ test_that("nis_suppress handles data frames and paired weighted columns", {
 
   expect_s3_class(result, "tbl_df")
   expect_identical(result$group, data$group)
-  expect_identical(result$n, c("≤10", "20", "0", NA_character_))
-  expect_identical(result$estimate, c("≤10", "40.5", "0", "7.75"))
+  expect_identical(result$n, c("\u226410", "20", "0", NA_character_))
+  expect_identical(result$estimate, c("\u226410", "40.5", "0", "7.75"))
 })
 
 test_that("nis_suppress applies data-frame complementary masking by stratum", {
@@ -94,24 +94,42 @@ test_that("nis_suppress applies data-frame complementary masking by stratum", {
   result <- nis_suppress(data, threshold = 5, count_col = "n",
     weighted_cols = "estimate", by = "group")
 
-  expect_identical(result$n, c("≤5", "Masked", "30", "≤5", "Masked", "40"))
+  expect_identical(result$n,
+    c("\u22645", "Masked", "30", "\u22645", "Masked", "40"))
   expect_identical(result$estimate,
-    c("≤5", "Masked", "30.5", "≤5", "Masked", "40.5"))
+    c("\u22645", "Masked", "30.5", "\u22645", "Masked", "40.5"))
   expect_identical(result$group, data$group)
+  expect_identical(class(result), class(data))
+})
+
+test_that("nis_suppress groups interleaved data-frame strata without reordering", {
+  data <- data.frame(
+    group = c("A", "B", "A", "B"),
+    n = c(2, 3, 20, 30),
+    estimate = c(2.5, 3.5, 20.5, 30.5)
+  )
+  result <- nis_suppress(data, threshold = 5, count_col = "n",
+    weighted_cols = "estimate", by = "group")
+
+  expect_identical(class(result), class(data))
+  expect_identical(result$group, data$group)
+  expect_identical(result$n, c("\u22645", "\u22645", "Masked", "Masked"))
+  expect_identical(result$estimate,
+    c("\u22645", "\u22645", "Masked", "Masked"))
 })
 
 test_that("nis_suppress skips complementary masking with multiple primary rows", {
   data <- data.frame(n = c(1, 4, 20), estimate = c(1.5, 4.5, 20.5))
   result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate")
-  expect_identical(result$n, c("≤10", "≤10", "20"))
-  expect_identical(result$estimate, c("≤10", "≤10", "20.5"))
+  expect_identical(result$n, c("\u226410", "\u226410", "20"))
+  expect_identical(result$estimate, c("\u226410", "\u226410", "20.5"))
 
   no_secondary <- nis_suppress(
     data.frame(n = c(4, 20), estimate = c(4.5, 20.5)),
     count_col = "n", weighted_cols = "estimate", secondary = FALSE
   )
-  expect_identical(no_secondary$n, c("≤10", "20"))
-  expect_identical(no_secondary$estimate, c("≤10", "20.5"))
+  expect_identical(no_secondary$n, c("\u226410", "20"))
+  expect_identical(no_secondary$estimate, c("\u226410", "20.5"))
 })
 
 test_that("nis_suppress validates data-frame columns and input-specific options", {
@@ -279,7 +297,7 @@ suppress_row <- function(table, variable, label) {
   row
 }
 
-is_masked <- function(cell) identical(enc2utf8(cell), "≤10")
+is_masked <- function(cell) identical(enc2utf8(cell), "\u226410")
 is_secondary_masked <- function(cell) identical(cell, "Masked")
 
 test_that("nis_suppress masks the overall cell beside a masked group cell", {
