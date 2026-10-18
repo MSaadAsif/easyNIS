@@ -16,13 +16,23 @@ subsetting. Fixtures come from `nis_example()` and contain no licensed records.
 
 - Complete pooled years (2017–2019), with cohort and non-cohort discharges
   across hospitals and years.
-- A 2015-like partial cohort: Q4 only in 2015, pooled with a complete 2016.
+- Complete 2015 and 2016 data with a cohort limited to Q4 2015, which tests
+  detection of the ICD-10-coded era.
 - Invalid design rows in the input; the reference removes the same rows failing
   positive, finite `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` checks.
 - Annualized weights, divided by the count of valid-design years, including
   the partial year as one year.
-- Complete quarter coverage is silent; incomplete cohort quarter coverage
-  warns when annualizing.
+- A rare cohort represented in only one quarter of a full data year is silent;
+  pre-filtering the data to Q1-Q3 warns because valid-design data then has only
+  three quarters.
+- A Q4-only cohort in 2015 warns that it covers the ICD-10-coded part of the
+  year, while a complete cohort year is silent. Without `DQTR`, the 2015 split
+  cannot be checked and an informational message says so.
+
+Quarter coverage is computed by grouping valid-design rows in the lazy query
+by `YEAR` and `DQTR`, then collecting that small summary. Cohort-quarter checks
+use only true cohort discharges, so zero-domain placeholder rows do not affect
+the result.
 
 ## Compared statistics
 

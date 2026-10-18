@@ -134,18 +134,48 @@ test_that("partial-year and invalid-row designs match the full-data reference", 
     survey::svyratio(~LOS, ~AGE, designs$full) |> coef(), tolerance = 1e-8)
 })
 
-test_that("annualization warns for cohort years with incomplete quarter coverage", {
-  data <- dplyr::tibble(
-    YEAR = c(rep(2015L, 3L), rep(2016L, 4L)),
-    DQTR = c(1:3, 1:4), HOSP_NIS = 1:7, NIS_STRATUM = 1L,
-    DISCWT = 2, eligible = TRUE
+test_that("annualization distinguishes data coverage from cohort quarter coverage", {
+  full_year <- dplyr::tibble(
+    YEAR = 2016L, DQTR = rep(1:4, each = 2L),
+    HOSP_NIS = 1:8, NIS_STRATUM = 1L, DISCWT = 2,
+    eligible = rep(c(TRUE, FALSE), 4L)
+  )
+  # A rare cohort in one quarter is not evidence that the data is partial.
+  expect_no_warning(nis_design(
+    full_year, eligible, keep = YEAR, annualize = TRUE
+  ))
+
+  prefilt_q1_q3 <- full_year[full_year$DQTR <= 3L, ]
+  expect_warning(
+    nis_design(prefilt_q1_q3, eligible, keep = YEAR, annualize = TRUE),
+    "Annualization includes year\\(s\\) with incomplete data-quarter coverage: 2016"
+  )
+
+  # Full 2015 data coverage plus a Q4-only cohort signals the ICD-10 era.
+  pooled <- dplyr::tibble(
+    YEAR = c(rep(2015L, 4L), rep(2016L, 4L)),
+    DQTR = rep(1:4, 2L), HOSP_NIS = 1:8, NIS_STRATUM = 1L,
+    DISCWT = 2, eligible = c(rep(FALSE, 3L), TRUE, rep(TRUE, 4L))
   )
   expect_warning(
-    nis_design(data, eligible, keep = YEAR, annualize = TRUE),
-    "Annualization includes partial cohort year(s): 2015"
+    nis_design(pooled, eligible, keep = YEAR, annualize = TRUE),
+    "only ICD-10-coded 2015 discharges \\(Q4\\)"
   )
-  expect_no_warning(nis_design(data[data$YEAR == 2016, ], eligible,
-    keep = YEAR, annualize = TRUE))
+  pooled$eligible[pooled$YEAR == 2015L] <- pooled$DQTR[pooled$YEAR == 2015L] <= 3L
+  expect_warning(
+    nis_design(pooled, eligible, keep = YEAR, annualize = TRUE),
+    "only ICD-9-coded 2015 discharges \\(Q1-Q3\\)"
+  )
+  pooled$eligible <- c(rep(FALSE, 3L), TRUE, rep(TRUE, 4L))
+  expect_no_warning(nis_design(
+    pooled[pooled$YEAR == 2016L, ], eligible, keep = YEAR, annualize = TRUE
+  ))
+
+  no_quarter <- dplyr::select(pooled, -DQTR)
+  expect_message(
+    nis_design(no_quarter, eligible, keep = YEAR, annualize = TRUE),
+    "Cannot check the 2015 ICD-9/ICD-10 split"
+  )
 })
 
 test_that("annualized weights divide by the number of years and missing cohorts are excluded", {
