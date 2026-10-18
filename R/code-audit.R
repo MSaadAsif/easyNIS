@@ -77,39 +77,36 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
   data <- .data
   if (!rlang::quo_is_null(cohort_quo)) {
     cohort_expression <- rlang::quo_get_expr(cohort_quo)
-    if (identical(cohort_expression, TRUE)) {
-      # A constant true cohort needs no filter.
-    } else if (is.logical(cohort_expression) && length(cohort_expression) == 1L &&
+    if (is.logical(cohort_expression) && length(cohort_expression) == 1L &&
         (is.na(cohort_expression) || identical(cohort_expression, FALSE))) {
       period <- rlang::sym(by)
+      # Arrow requires a column expression; it rejects literal FALSE/NA filters.
       data <- dplyr::filter(data, !is.na(!!period) & !!period != !!period)
     } else {
       data <- dplyr::filter(data, !!cohort_quo)
     }
   }
 
-  flag_names <- paste0(".nis_audit_flag_", seq_along(codes))
-  while (any(flag_names %in% names(data))) {
-    flag_names <- paste0(flag_names, "_")
-  }
+  input_names <- names(.data)
+  temp_candidates <- c(
+    paste0(".nis_audit_flag_", seq_along(codes)),
+    ".nis_audit_cohort",
+    paste0(".nis_audit_n_", seq_along(codes)),
+    paste0(".nis_audit_w_", seq_along(codes))
+  )
+  temp_names <- make.unique(
+    c(input_names, temp_candidates), sep = "_")[-seq_along(input_names)]
+  flag_names <- temp_names[seq_along(codes)]
   names(codes) <- flag_names
   flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
   data <- do.call(flag_function, c(list(.data = data), codes,
     list(system = system)))
 
-  used_names <- c(names(.data), by)
-  unique_temp_name <- function(name) {
-    while (name %in% used_names) name <- paste0(name, "_")
-    used_names <<- c(used_names, name)
-    name
-  }
-  cohort_count_name <- unique_temp_name(".nis_audit_cohort")
-  count_names <- vapply(seq_along(codes), function(i) {
-    unique_temp_name(paste0(".nis_audit_n_", i))
-  }, character(1))
-  weight_names <- vapply(seq_along(codes), function(i) {
-    unique_temp_name(paste0(".nis_audit_w_", i))
-  }, character(1))
+  cohort_count_name <- temp_names[[length(codes) + 1L]]
+  count_start <- length(codes) + 2L
+  count_names <- temp_names[count_start:(count_start + length(codes) - 1L)]
+  weight_start <- count_start + length(codes)
+  weight_names <- temp_names[weight_start:(weight_start + length(codes) - 1L)]
 
   expressions <- list()
   expressions[[cohort_count_name]] <- rlang::expr(dplyr::n())
