@@ -2,6 +2,13 @@
 
 ## New features
 
+- `nis_cost()` records charge/CCR fields, CPI-U source and multipliers, base
+  year, invalid CCR and missing charge counts, and adjusted-output meanings.
+  Zero or negative CCR values now produce `NA` in `cost_adj` (previously zero
+  CCR produced zero cost and negative CCR produced a negative cost); one
+  informational message reports how many rows have missing or invalid CCR
+  (`nis_design()` reports cohort rows only). Use
+  `nis_cost_provenance()` on its result or the `nis_design()` survey design.
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
 - `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
