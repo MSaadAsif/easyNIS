@@ -33,6 +33,26 @@ test_that("procedure timing evaluates every relation and the earliest index day"
   expect_error(nis_flag_pr_timing(data, "ix", "out", window = 1L), "NULL")
 })
 
+test_that("procedure timing accepts integer and mixed numeric day columns", {
+  integer_days <- dplyr::tibble(
+    I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),
+    PRDAY1 = c(0L, 2L), PRDAY2 = c(1L, 1L)
+  )
+  expect_identical(
+    nis_flag_pr_timing(integer_days, "IX", "OUT")$outcome_post_index,
+    c(TRUE, FALSE)
+  )
+
+  mixed_days <- dplyr::tibble(
+    I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),
+    PRDAY1 = c(0L, 2L), PRDAY2 = c(1, 1)
+  )
+  expect_identical(
+    nis_flag_pr_timing(mixed_days, "IX", "OUT")$outcome_post_index,
+    c(TRUE, FALSE)
+  )
+})
+
 test_that("procedure timing matches the documented four-row example", {
   data <- dplyr::tibble(
     I10_PR1 = rep("02UG0JZ", 4L),
