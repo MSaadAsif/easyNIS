@@ -1,0 +1,45 @@
+---
+title: "Survey design validation protocol"
+description: "Cases and reference calculations used to validate nis_design()."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Survey design validation protocol}
+  %\VignetteEngine{ knitr::rmarkdown }
+  %\VignetteEncoding{UTF-8}
+---
+
+This protocol compares the placeholder-row design returned by `nis_design()`
+with a survey design built from the full invented data, before domain
+subsetting. Fixtures come from `nis_example()` and contain no licensed records.
+
+## Cases
+
+- Complete pooled years (2017–2019), with cohort and non-cohort discharges
+  across hospitals and years.
+- A 2015-like partial cohort: Q4 only in 2015, pooled with a complete 2016.
+- Invalid design rows in the input; the reference removes the same rows failing
+  positive, finite `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` checks.
+- Annualized weights, divided by the count of valid-design years, including
+  the partial year as one year.
+- Complete quarter coverage is silent; incomplete cohort quarter coverage
+  warns when annualizing.
+
+## Compared statistics
+
+At absolute tolerance `1e-8`, compare survey means and standard errors,
+weighted totals and standard errors, `svyratio()` estimates and variance,
+`confint()` for means, `svyby()` estimates and standard errors, logistic and
+Gaussian `svyglm()` coefficients and covariance matrices, and median
+`svyquantile()` estimates. Compare design degrees of freedom exactly and the
+gtsummary p-values at `1e-8`. Annualized totals are compared with full-data
+reference totals divided by the number of valid-design years.
+
+## Reference construction
+
+Start from collected `nis_example()` data and compute `.in_cohort` for every
+row. Build year-qualified PSU and stratum identifiers and use original or
+annualized `DISCWT` values in `srvyr::as_survey_design(..., nest = TRUE)`.
+Apply `dplyr::filter(.in_cohort)` only after constructing that full-data design.
+For invalid-row cases, filter out exactly the rows that `nis_design()` excludes
+before building the reference. This preserves non-cohort observations in each
+hospital-year so domain estimates have the same sampling structure.

@@ -56,6 +56,12 @@ test_that("nis_design placeholder designs match full-data domain estimates", {
     expect_equal(coef(total_placeholder), coef(total_full), tolerance = 1e-8)
     expect_equal(survey::SE(total_placeholder), survey::SE(total_full), tolerance = 1e-8)
 
+    ratio_full <- survey::svyratio(~LOS, ~AGE, full)
+    ratio_placeholder <- survey::svyratio(~LOS, ~AGE, placeholder)
+    expect_equal(coef(ratio_placeholder), coef(ratio_full), tolerance = 1e-8)
+    expect_equal(vcov(ratio_placeholder), vcov(ratio_full), tolerance = 1e-8)
+    expect_equal(confint(mean_placeholder), confint(mean_full), tolerance = 1e-8)
+
     by_full <- survey::svyby(~AGE, ~FEMALE, full, survey::svymean, vartype = "se")
     by_placeholder <- survey::svyby(
       ~AGE, ~FEMALE, placeholder, survey::svymean, vartype = "se"
@@ -114,6 +120,32 @@ test_that("nis_design placeholder designs match full-data domain estimates", {
       tolerance = 1e-8
     )
   }
+})
+
+test_that("partial-year and invalid-row designs match the full-data reference", {
+  designs <- suppressWarnings(comparison_designs(years = 2015:2016,
+    partial_2015 = TRUE, annualize = TRUE, invalid_rows = TRUE))
+  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
+  expect_equal(nrow(designs$placeholder$variables), nrow(designs$full$variables))
+  expect_equal(coef(survey::svytotal(~AGE, designs$placeholder)),
+    coef(survey::svytotal(~AGE, designs$full_unannualized)) / 2,
+    tolerance = 1e-8)
+  expect_equal(survey::svyratio(~LOS, ~AGE, designs$placeholder) |> coef(),
+    survey::svyratio(~LOS, ~AGE, designs$full) |> coef(), tolerance = 1e-8)
+})
+
+test_that("annualization warns for cohort years with incomplete quarter coverage", {
+  data <- dplyr::tibble(
+    YEAR = c(rep(2015L, 3L), rep(2016L, 4L)),
+    DQTR = c(1:3, 1:4), HOSP_NIS = 1:7, NIS_STRATUM = 1L,
+    DISCWT = 2, eligible = TRUE
+  )
+  expect_warning(
+    nis_design(data, eligible, keep = YEAR, annualize = TRUE),
+    "Annualization includes partial cohort year(s): 2015"
+  )
+  expect_no_warning(nis_design(data[data$YEAR == 2016, ], eligible,
+    keep = YEAR, annualize = TRUE))
 })
 
 test_that("annualized weights divide by the number of years and missing cohorts are excluded", {

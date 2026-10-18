@@ -26,7 +26,10 @@ are counted.}
 values among valid-design discharges. A year counts as one whole year
 however much of it is present, so a partial-year era such as the ICD-10
 fourth quarter of 2015 counts the same as a full year, and a year with no
-cohort discharges still counts. Divide by your own factor with
+cohort discharges still counts. When \code{DQTR} is present, a warning
+identifies cohort years represented in
+fewer than four quarters. Exclude partial years or use
+\code{annualize = FALSE} and apply a suitable fractional-year factor with
 \code{\link[=nis_reweight]{nis_reweight()}} if you need a different convention.}
 
 \item{dollars}{Optional reference dollar year for adjusted costs and charges.

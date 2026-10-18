@@ -45,7 +45,9 @@
 #'   values among valid-design discharges. A year counts as one whole year
 #'   however much of it is present, so a partial-year era such as the ICD-10
 #'   fourth quarter of 2015 counts the same as a full year, and a year with no
-#'   cohort discharges still counts. Divide by your own factor with
+#'   cohort discharges still counts. When `DQTR` is present, a warning identifies
+#'   cohort years represented in fewer than four quarters. Exclude partial years
+#'   or use `annualize = FALSE` and apply a suitable fractional-year factor with
 #'   [nis_reweight()] if you need a different convention.
 #' @param dollars Optional reference dollar year for adjusted costs and charges.
 #'   When supplied, keep `CCR_NIS` and the `charges` column.
@@ -99,6 +101,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     cli::cli_abort("`keep` cannot select internal or dot-prefixed columns.")
   }
   selected <- unique(c(design_fields, keep_names))
+  collected_fields <- unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
 
   cohort_quo <- rlang::enquo(cohort)
   # nolint start: object_usage_linter. Data-masked dplyr expressions.
@@ -174,7 +177,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   # nolint start: object_usage_linter. Data-masked dplyr expressions.
   collected <- prepared |>
     dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
-    dplyr::select(dplyr::all_of(selected), .nis_cohort) |>
+    dplyr::select(dplyr::all_of(collected_fields), .nis_cohort) |>
     nis_collect()
   # nolint end
   if (!is.logical(collected$.nis_cohort)) {
@@ -183,6 +186,29 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   missing_count <- sum(is.na(collected$.nis_cohort))
   if (missing_count > 0L) {
     cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
+  }
+  if (annualize && "DQTR" %in% names(collected)) {
+    cohort_for_coverage <- collected[which(collected$.nis_cohort), , drop = FALSE]
+    quarter_coverage <- lapply(sort(unique(cohort_for_coverage$YEAR)), function(year) {
+      quarters <- sort(unique(cohort_for_coverage$DQTR[
+        cohort_for_coverage$YEAR == year &
+          is.finite(cohort_for_coverage$DQTR) &
+          cohort_for_coverage$DQTR %in% 1:4
+      ]))
+      list(year = year, quarters = quarters)
+    })
+    partial_years <- Filter(function(x) length(x$quarters) < 4L, quarter_coverage)
+    if (length(partial_years) > 0L) {
+      coverage_text <- vapply(partial_years, function(x) {
+        present <- if (length(x$quarters)) paste0("Q", x$quarters, collapse = ", ") else "none"
+        paste0(x$year, " (", present, ")")
+      }, character(1))
+      cli::cli_warn(c(
+        paste0("Annualization includes partial cohort year(s): ",
+          paste(coverage_text, collapse = "; "), "."),
+        i = "Each year still counts as one whole year. Exclude partial years or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
+      ))
+    }
   }
   cohort_rows <- collected[which(collected$.nis_cohort), selected, drop = FALSE]
   cohort_rows$.in_cohort <- rep(TRUE, nrow(cohort_rows))

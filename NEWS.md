@@ -51,7 +51,10 @@
   unbiased estimates.
 - `nis_design()` warns when charges are entirely missing for a year or when
   that year has hospitals but no cohort discharges. `annualize` divides by
-  the number of distinct `YEAR` values, so a partial year counts as one.
+  the number of distinct `YEAR` values, so a partial year counts as one. When
+  `DQTR` is present, annualized designs warn with cohort years represented in
+  fewer than four quarters and explain how to exclude or separately reweight
+  those years.
 - Added experimental `nis_reweight()` to multiply cohort survey weights while
   retaining placeholder rows. It preserves column labels when rebuilding
   designs, including after comorbidity scoring. Weights are matched by
