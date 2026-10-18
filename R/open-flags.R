@@ -6,7 +6,22 @@
 #'   codes in `DX*`/`PR*` slots, and 2015 holds both systems (see
 #'   [nis_flag_dx()]).
 #'
-#' @return A lazy Arrow query with case-normalized columns. Experimental 2023
+#' @param engine Query engine: `"arrow"` (default) or `"duckdb"`. DuckDB
+#'   queries are backed by Arrow's Parquet scanner and do not use DuckDB's
+#'   native Parquet reader.
+#'
+#' @details `engine = "duckdb"` requires the optional `duckdb` and `dbplyr`
+#'   packages. It returns a DuckDB-backed dbplyr table. The connection is
+#'   closed when the returned table is no longer referenced. The Arrow-specific
+#'   helpers `nis_flag_dx()`, `nis_flag_pr()`, and `nis_design()` currently
+#'   require the default Arrow engine (or a data frame where supported).
+#'   Arrow can scan a Parquet string containing invalid UTF-8 bytes, but this
+#'   engine does not promise to repair them; a collected test value retained
+#'   its invalid byte.
+#'
+#' @return With `engine = "arrow"`, a lazy Arrow query; with
+#'   `engine = "duckdb"`, a DuckDB-backed dbplyr table. Both have
+#'   case-normalized columns. Experimental 2023
 #'   layouts keep `TOTCHG_2023` as its own column and leave `TOTCHG` untouched,
 #'   because the 2023 field is HCUP-adjusted for national estimates and is not
 #'   comparable to earlier-year charges. Opening a query that contains
@@ -29,7 +44,8 @@
 #' nis_open(path, years = 2020) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
-nis_open <- function(path, years = NULL) {
+nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
+  engine <- match.arg(engine)
   if (!dir.exists(path)) {
     cli::cli_abort("`path` must name an existing directory.")
   }
@@ -107,7 +123,19 @@ nis_open <- function(path, years = NULL) {
       .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
     )
   }
-  dplyr::select(query, dplyr::all_of(output_names))
+  query <- dplyr::select(query, dplyr::all_of(output_names))
+  if (engine == "arrow") return(query)
+
+  rlang::check_installed(c("duckdb", "dbplyr"), reason =
+    "`engine = \"duckdb\"` requires the optional packages")
+  con <- duckdb::dbConnect(duckdb::duckdb())
+  tbl <- arrow::to_duckdb(query, con = con)
+  finalizer <- new.env(parent = emptyenv())
+  reg.finalizer(finalizer, function(e) {
+    if (duckdb::dbIsValid(con)) duckdb::dbDisconnect(con, shutdown = TRUE)
+  }, onexit = TRUE)
+  tbl$src$.easyNIS_connection_finalizer <- finalizer
+  tbl
 }
 
 #' Add diagnosis prefix flags
