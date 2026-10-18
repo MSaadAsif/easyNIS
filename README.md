@@ -58,7 +58,7 @@ The example records and code values are invented. To analyse real data, use file
 | Cohort reporting and audits | `nis_attrition()` summarizes cohort attrition; `nis_audit_code_transition()` audits code-system transitions; `nis_dx_sensitivity()` reports descriptive point estimates for diagnosis sensitivity analyses. |
 | Comorbidity and CCSR | `nis_comorbidity()` adds AHRQ Elixhauser Refined indicators through `medicalcoder` (experimental); `nis_ccsr_codes()` reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified). |
 | Labels and costs | `nis_label()` applies supported HCUP labels; `nis_cost()` adjusts charges and cost estimates using the package's CPI-U series and `CCR_NIS` (experimental method). |
-| Suppression and study setup | `nis_suppress()` masks small cells in a `gtsummary` result or data frame; `nis_new_study()` creates a Quarto study folder from the package template. |
+| Suppression and study setup | `nis_suppress()` masks small cells and, when supplied with contributing-hospital counts, cells based on fewer than two hospitals; `nis_cell_counts()` creates unweighted discharge and year-scoped hospital counts from records or an `nis_design()` result; `nis_new_study()` creates a Quarto study folder from the package template. |
 
 See the [function reference](https://msaadasif.github.io/easyNIS/reference/index.html) for arguments and details.
 
@@ -76,7 +76,7 @@ Read the [Getting started vignette](https://msaadasif.github.io/easyNIS/articles
 
 ## Data use and privacy
 
-NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; easyNIS suppresses unweighted cells at or below 10 by default in its suppression helper, but suppression does not automatically prevent every form of inference. Follow your institution's disclosure rules and the applicable HCUP requirements.
+NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; `nis_suppress()` masks unweighted cells at or below 10 by default. To apply HCUP's two-hospital rule to data-frame summaries, join `nis_cell_counts()` results and pass `hospital_col`; `gtsummary` summary cards do not contain cell-level hospital counts. Suppression does not automatically prevent every form of inference. Follow your institution's disclosure rules and the applicable HCUP requirements.
 
 ## Citation
 

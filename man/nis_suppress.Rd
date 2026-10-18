@@ -11,7 +11,8 @@ nis_suppress(
   count_col,
   weighted_cols = NULL,
   by = NULL,
-  secondary = TRUE
+  secondary = TRUE,
+  hospital_col = NULL
 )
 }
 \arguments{
@@ -26,6 +27,12 @@ or \code{add_overall()}, or a data frame/tibble.}
 
 \item{weighted_cols}{For data frames, other columns to mask on primary and
 secondary rows.}
+
+\item{hospital_col}{Optional data-frame column containing the number of
+distinct contributing hospitals for each cell. Cells with fewer than two
+hospitals are marked \code{<2 hospitals}. Missing or invalid hospital counts
+are errors. Hospital identifiers must be counted by year; \code{nis_cell_counts()}
+computes counts from record-level data or an \code{nis_design()} result.}
 
 \item{by}{Optional data-frame grouping column names defining strata for
 complementary suppression.}
@@ -65,4 +72,8 @@ if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
   )
   nis_suppress(table, threshold = 10)
 }
+
+# For data-frame summaries, join per-cell counts and pass hospital_col:
+# summary |> dplyr::left_join(nis_cell_counts(design, by = "group"), by = "group") |>
+#   nis_suppress(count_col = "n", hospital_col = "hospitals")
 }

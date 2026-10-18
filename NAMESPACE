@@ -3,6 +3,7 @@
 export(nis_attrition)
 export(nis_audit_code_transition)
 export(nis_ccsr_codes)
+export(nis_cell_counts)
 export(nis_comorbidity)
 export(nis_cost)
 export(nis_design)
