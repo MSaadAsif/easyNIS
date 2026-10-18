@@ -4,7 +4,7 @@
 \alias{nis_open}
 \title{Open annual NIS Parquet files lazily}
 \usage{
-nis_open(path, years = NULL)
+nis_open(path, years = NULL, engine = c("arrow", "duckdb"))
 }
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
@@ -13,9 +13,15 @@ nis_open(path, years = NULL)
 matching year. Years before 2016 are experimental: they hold ICD-9-CM
 codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
+
+\item{engine}{Query engine: \code{"arrow"} (default) or \code{"duckdb"}. DuckDB
+queries are backed by Arrow's Parquet scanner and do not use DuckDB's
+native Parquet reader.}
 }
 \value{
-A lazy Arrow query with case-normalized columns. Experimental 2023
+With \code{engine = "arrow"}, a lazy Arrow query; with
+\code{engine = "duckdb"}, a DuckDB-backed dbplyr table. Both have
+case-normalized columns. Experimental 2023
 layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
 because the 2023 field is HCUP-adjusted for national estimates and is not
 comparable to earlier-year charges. Opening a query that contains
@@ -29,6 +35,16 @@ HCUP 2023 documentation and real 2023 data; none were available for testing.
 }
 \description{
 Open annual NIS Parquet files lazily
+}
+\details{
+\code{engine = "duckdb"} requires the optional \code{duckdb} and \code{dbplyr}
+packages. It returns a DuckDB-backed dbplyr table. The connection is
+closed when the returned table is no longer referenced. The Arrow-specific
+helpers \code{nis_flag_dx()}, \code{nis_flag_pr()}, and \code{nis_design()} currently
+require the default Arrow engine (or a data frame where supported).
+Arrow can scan a Parquet string containing invalid UTF-8 bytes, but this
+engine does not promise to repair them; a collected test value retained
+its invalid byte.
 }
 \examples{
 path <- nis_example(years = 2019:2020)
