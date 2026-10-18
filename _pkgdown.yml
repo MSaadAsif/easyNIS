@@ -26,11 +26,18 @@ reference:
       - nis_example
       - nis_open
       - nis_flag_dx
+      - nis_flag_dx_position
       - nis_flag_pr
+      - nis_flag_pr_timing
   - title: Survey design and weighting
     contents:
       - nis_design
       - nis_reweight
+  - title: Cohort reporting and audits
+    contents:
+      - nis_attrition
+      - nis_audit_code_transition
+      - nis_dx_sensitivity
   - title: Comorbidity and code reference files
     contents:
       - nis_comorbidity

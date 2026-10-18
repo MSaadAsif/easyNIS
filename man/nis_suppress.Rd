@@ -4,21 +4,47 @@
 \alias{nis_suppress}
 \title{Suppress small unweighted cells in a survey summary}
 \usage{
-nis_suppress(x, threshold = 10)
+nis_suppress(
+  x,
+  threshold = 10,
+  ...,
+  count_col,
+  weighted_cols = NULL,
+  by = NULL,
+  secondary = TRUE
+)
 }
 \arguments{
 \item{x}{A \code{gtsummary::tbl_svysummary()} result, optionally with \code{add_p()}
-or \code{add_overall()}.}
+or \code{add_overall()}, or a data frame/tibble.}
 
 \item{threshold}{Maximum unweighted cell count to suppress.}
+
+\item{...}{Reserved for compatibility; unused arguments are errors.}
+
+\item{count_col}{For data frames, the unweighted-count column name (required).}
+
+\item{weighted_cols}{For data frames, other columns to mask on primary and
+secondary rows.}
+
+\item{by}{Optional data-frame grouping column names defining strata for
+complementary suppression.}
+
+\item{secondary}{Apply complementary suppression. For data frames this masks
+the smallest remaining positive count when exactly one row in a stratum is
+primary-masked. This is single-dimension complementary suppression, not a
+full cell-suppression solver; totals rows must be handled or excluded by
+the user.}
 }
 \value{
-The table with primary and secondary masks and a footnote describing
-them.
+For data frames, the same table with masked columns converted to
+character. For \code{gtsummary} results, the table with primary and secondary
+masks and a footnote describing them.
 }
 \description{
-Replaces displayed statistics when their corresponding unweighted count is
-at or below \code{threshold}. Counts come from the \code{cards} computed by
+For a \code{gtsummary::tbl_svysummary()} result, replaces displayed statistics
+when their corresponding unweighted count is at or below \code{threshold}. Counts
+come from the \code{cards} computed by
 \code{gtsummary::tbl_svysummary()}. Continuous2 statistic rows use the
 non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
