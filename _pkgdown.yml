@@ -29,6 +29,7 @@ reference:
       - nis_flag_dx_position
       - nis_flag_pr
       - nis_flag_pr_timing
+      - nis_prday_completeness
   - title: Survey design and weighting
     contents:
       - nis_design

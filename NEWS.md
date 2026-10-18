@@ -2,6 +2,8 @@
 
 ## New features
 
+- Added `nis_prday_completeness()` for unweighted PRDAY completeness summaries
+  by year and matched procedure slot.
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
 - `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
