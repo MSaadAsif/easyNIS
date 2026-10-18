@@ -5,6 +5,10 @@
 #' Prefix matching follows [nis_flag_pr()] or [nis_flag_dx()], according to
 #' `type`. The complete grid of observed periods and code groups is returned,
 #' with zero counts where a group has no matches.
+#' Counts apply only to the selected code system; zero does not mean the code
+#' is absent under another system. Audits across the 2015 ICD transition need
+#' separate calls for each system. The change compares with the previous
+#' observed period in sorted order.
 #'
 #' @param .data A data frame or lazy Arrow query.
 #' @param codes A named character vector or named list of character vectors.
@@ -21,8 +25,9 @@
 #'
 #' @return A collected tibble with the period column, `code_group`,
 #'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, `pct_within_year`,
-#'   and `yoy_pct_change`. Year-over-year change is the relative percent change
-#'   in `pct_within_year`; it is `NA` for the first period and when the previous
+#'   and `yoy_pct_change`. The change is the relative percent change in
+#'   `pct_within_year` versus the previous observed period in sorted order. It
+#'   is `NA` for the first period, a missing period, or when the previous
 #'   period's percentage is zero.
 #' @export
 #' @examples
@@ -45,6 +50,11 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
       !by %in% names(.data)) {
     cli::cli_abort("`by` must be the name of one existing column.")
   }
+  output_names <- c("code_group", "n_cohort_unweighted", "n_unweighted",
+    "n_weighted", "pct_within_year", "yoy_pct_change")
+  if (by %in% output_names) {
+    cli::cli_abort("`by` must not have the same name as a summary column.")
+  }
   if (!is.character(weight_var) || length(weight_var) != 1L ||
       is.na(weight_var) || !nzchar(weight_var) ||
       !weight_var %in% names(.data)) {
@@ -66,7 +76,16 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
   cohort_quo <- rlang::enquo(cohort)
   data <- .data
   if (!rlang::quo_is_null(cohort_quo)) {
-    data <- dplyr::filter(data, !!cohort_quo)
+    cohort_expression <- rlang::quo_get_expr(cohort_quo)
+    if (identical(cohort_expression, TRUE)) {
+      # A constant true cohort needs no filter.
+    } else if (is.logical(cohort_expression) && length(cohort_expression) == 1L &&
+        (is.na(cohort_expression) || identical(cohort_expression, FALSE))) {
+      period <- rlang::sym(by)
+      data <- dplyr::filter(data, !is.na(!!period) & !!period != !!period)
+    } else {
+      data <- dplyr::filter(data, !!cohort_quo)
+    }
   }
 
   flag_names <- paste0(".nis_audit_flag_", seq_along(codes))
@@ -125,6 +144,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
     previous <- c(NA_real_, pct[-length(pct)])
     change <- ifelse(is.na(previous) | previous == 0, NA_real_,
       100 * (pct - previous) / previous)
+    change[is.na(summary[[by]])] <- NA_real_
     dplyr::tibble(
       code_group = code_groups[[i]],
       n_cohort_unweighted = n_cohort,

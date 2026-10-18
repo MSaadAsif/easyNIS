@@ -27,10 +27,10 @@ test_that("code transition audit completes the period and code-group grid", {
 
 test_that("code transition audit filters the cohort before counting", {
   data <- dplyr::tibble(
-    YEAR = c(2020L, 2020L, 2021L),
-    I10_DX1 = c("I501", "I502", "J189"),
-    DISCWT = c(2, 3, 5),
-    AGE = c(30L, 17L, 40L)
+    YEAR = c(2020L, 2020L, 2020L, 2021L),
+    I10_DX1 = c("I501", "I502", "I501", "J189"),
+    DISCWT = c(2, 3, 7, 5),
+    AGE = c(30L, 17L, NA_integer_, 40L)
   )
   result <- nis_audit_code_transition(data, list(hf = c("I50")),
     cohort = AGE >= 18, type = "dx")
@@ -44,6 +44,7 @@ test_that("code transition audit agrees between data frames and lazy Arrow", {
   data <- dplyr::tibble(
     YEAR = c(2019L, 2019L, 2020L, 2020L),
     I10_PR1 = c("02UG0JZ", "02803ZZ", "02803ZZ", NA_character_),
+    I10_DX1 = c("I509", "J189", "I50", "I501"),
     I10_PR2 = c("02UG0JZ", NA_character_, NA_character_, NA_character_),
     DISCWT = c(5, 4, 7, 2),
     AGE = c(40L, 50L, 60L, 16L)
@@ -57,8 +58,13 @@ test_that("code transition audit agrees between data frames and lazy Arrow", {
 
   from_frame <- nis_audit_code_transition(data, codes, cohort = AGE >= 18)
   from_arrow <- nis_audit_code_transition(query, codes, cohort = AGE >= 18)
+  from_frame_dx <- nis_audit_code_transition(data, list(hf = "I50"),
+    cohort = AGE >= 18, type = "dx")
+  from_arrow_dx <- nis_audit_code_transition(query, list(hf = "I50"),
+    cohort = AGE >= 18, type = "dx")
 
   expect_identical(from_arrow, from_frame)
+  expect_identical(from_arrow_dx, from_frame_dx)
 })
 
 test_that("code transition audit validates named groups and columns", {
@@ -66,6 +72,9 @@ test_that("code transition audit validates named groups and columns", {
   expect_error(nis_audit_code_transition(data, c("02UG0JZ")), "named")
   expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ", a = "02UG0JZ")), "unique")
   expect_error(nis_audit_code_transition(data, list(a = NA_character_)), "non-missing")
+  data$n_unweighted <- 1L
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"),
+    by = "n_unweighted"), "summary column")
 })
 
 test_that("code transition audit avoids temporary names in user data", {
@@ -84,4 +93,33 @@ test_that("code transition audit avoids temporary names in user data", {
   expect_equal(result$n_cohort_unweighted, 2L)
   expect_equal(result$n_unweighted, 1L)
   expect_equal(result$n_weighted, 3)
+})
+
+test_that("code transition audit returns the empty grid for an empty cohort", {
+  data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "02UG0JZ", DISCWT = 1)
+  result <- nis_audit_code_transition(data, c(myectomy = "02UG0JZ"),
+    cohort = FALSE)
+
+  expect_equal(nrow(result), 0L)
+  expect_named(result, c("YEAR", "code_group", "n_cohort_unweighted",
+    "n_unweighted", "n_weighted", "pct_within_year", "yoy_pct_change"))
+
+  path <- tempfile("nis-audit-empty-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
+  from_arrow <- nis_audit_code_transition(arrow::open_dataset(path),
+    c(myectomy = "02UG0JZ"), cohort = FALSE)
+  expect_identical(from_arrow, result)
+})
+
+test_that("missing periods have no year-over-year percentage change", {
+  data <- dplyr::tibble(
+    YEAR = c(2019L, 2020L, NA_integer_),
+    I10_PR1 = c("02UG0JZ", NA_character_, "02UG0JZ"),
+    DISCWT = c(1, 1, 1)
+  )
+  result <- nis_audit_code_transition(data, c(myectomy = "02UG0JZ"))
+
+  expect_true(is.na(result$yoy_pct_change[[3L]]))
 })
