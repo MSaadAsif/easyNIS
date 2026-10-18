@@ -87,49 +87,69 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   }
   index_matches <- lapply(procedure_names, match_slot, prefixes = index_pr)
   outcome_matches <- lapply(procedure_names, match_slot, prefixes = outcome_pr)
-  if (!is_frame) {
-    temporary_names <- make.unique(c(names(.data), paste0(
-      ".easyNIS_pr_timing_match_",
-      seq_len(length(index_matches) + length(outcome_matches))
-    )))[length(names(.data)) + seq_len(length(index_matches) + length(outcome_matches))]
-    match_columns <- stats::setNames(c(index_matches, outcome_matches), temporary_names)
-    # Arrow expressions must be assigned directly before shared rlang
-    # expressions can refer to their result columns.
-    .data <- dplyr::mutate(.data, !!!match_columns)
-    index_matches <- rlang::syms(temporary_names[seq_along(index_matches)])
-    outcome_matches <- rlang::syms(temporary_names[length(index_matches) +
-      seq_along(outcome_matches)])
-  }
+  temporary_names <- make.unique(c(names(.data), paste0(
+    ".easyNIS_pr_timing_match_", seq_len(length(index_matches) + length(outcome_matches))
+  )))[length(names(.data)) + seq_len(length(index_matches) + length(outcome_matches))]
+  .data <- dplyr::mutate(.data,
+    !!!stats::setNames(c(index_matches, outcome_matches), temporary_names))
+  index_matches <- rlang::syms(temporary_names[seq_along(index_matches)])
+  outcome_matches <- rlang::syms(temporary_names[length(index_matches) +
+    seq_along(outcome_matches)])
   days <- lapply(slots, function(slot) {
     day_name <- unname(day_by_slot[as.character(slot)])
     if (length(day_name) == 0L || is.na(day_name)) rlang::expr(NA_real_) else
       rlang::sym(day_name)
   })
-
   valid_day <- function(day) rlang::expr(dplyr::if_else(!!day >= 0, !!day, NA_real_))
   index_days <- Map(function(day, matched) {
+    day <- valid_day(day)
     if (missing_day == "assume_same_day") {
       rlang::expr(dplyr::if_else(!!matched,
-        dplyr::coalesce(!!valid_day(day), 0), NA_real_))
+        dplyr::coalesce(!!day, 0), NA_real_))
     } else {
-      rlang::expr(dplyr::if_else(!!matched, !!valid_day(day), NA_real_))
+      rlang::expr(dplyr::if_else(!!matched, !!day, NA_real_))
     }
   }, days, index_matches)
-  index_day <- Reduce(timing_min_expr, index_days)
+  index_names <- make.unique(c(names(.data), paste0(
+    ".easyNIS_pr_timing_index_day_", seq_along(index_days)
+  )))[length(names(.data)) + seq_along(index_days)]
+  .data <- dplyr::mutate(.data, !!!stats::setNames(index_days, index_names))
+  temporary_names <- c(temporary_names, index_names)
+  index_days <- rlang::syms(index_names)
+  index_valid <- timing_or_expr(lapply(index_days, function(day) {
+    rlang::expr(!is.na(!!day))
+  }))
+  if (!is_frame) {
+    projection <- dplyr::select(.data, dplyr::everything())$selected_columns
+    # Arrow's `pmin()` binding expands null handling recursively; use its flat min kernel.
+    min_index_day <- Reduce(function(left, right) {
+      arrow::Expression$create("min_element_wise", left, right,
+        options = list(skip_nulls = TRUE))
+    }, projection[index_names])
+  } else {
+    min_index_day <- rlang::expr(pmin(!!!index_days, na.rm = TRUE))
+  }
+  min_name <- make.unique(c(names(.data), ".easyNIS_pr_timing_min_index_day"))[
+    length(names(.data)) + 1L
+  ]
+  .data <- dplyr::mutate(.data, !!min_name := dplyr::if_else(
+    !!index_valid, !!min_index_day, NA_real_))
+  temporary_names <- c(temporary_names, min_name)
+  index_day <- rlang::sym(min_name)
   index_present <- timing_or_expr(index_matches)
   outcome_present <- timing_or_expr(outcome_matches)
+  unknown_day_match <- function(day, matched) {
+    rlang::expr(!!matched & (is.na(!!day) | !!day < 0))
+  }
   missing_match <- timing_or_expr(c(
-    Map(function(day, matched) rlang::expr(!!matched & (is.na(!!day) | !!day < 0)),
-      days, index_matches),
-    Map(function(day, matched) rlang::expr(!!matched & (is.na(!!day) | !!day < 0)),
-      days, outcome_matches)
+    Map(unknown_day_match, days, index_matches),
+    Map(unknown_day_match, days, outcome_matches)
   ))
 
   checks <- Map(function(day, matched) {
-    outcome_day <- if (missing_day == "assume_same_day") {
-      rlang::expr(dplyr::coalesce(!!valid_day(day), 0))
-    } else {
-      valid_day(day)
+    outcome_day <- valid_day(day)
+    if (missing_day == "assume_same_day") {
+      outcome_day <- rlang::expr(dplyr::coalesce(!!outcome_day, 0))
     }
     comparison <- switch(relation,
       on_or_after = rlang::expr(!!outcome_day >= !!index_day),
@@ -159,16 +179,9 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
     result <- rlang::expr((!!eligibility) & (!!result))
   }
   .data <- dplyr::mutate(.data, !!name := !!result)
-  if (is_frame) .data else dplyr::select(.data, -dplyr::all_of(temporary_names))
+  dplyr::select(.data, -dplyr::all_of(temporary_names))
 }
 
 timing_or_expr <- function(terms) {
-  Reduce(function(left, right) rlang::expr(dplyr::coalesce((!!left) | (!!right), FALSE)),
-    terms)
-}
-
-timing_min_expr <- function(left, right) {
-  rlang::expr(dplyr::if_else(is.na(!!left), !!right,
-    dplyr::if_else(is.na(!!right), !!left,
-      dplyr::if_else(!!left <= !!right, !!left, !!right))))
+  rlang::expr(dplyr::coalesce(!!reduce_or(terms), FALSE))
 }
