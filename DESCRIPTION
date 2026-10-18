@@ -1,6 +1,6 @@
 Package: easyNIS
 Title: Tidy Workflows for the National Inpatient Sample
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R: c(
     person("Muhammad", "Saad", role = c("aut", "cre"),
            email = "msaadasif.md@gmail.com",
@@ -28,11 +28,13 @@ Imports:
 Suggests:
     broom.helpers,
     cardx,
-    forcats,
+    dbplyr,
+    duckdb,
     flextable,
+    forcats,
     ggplot2,
-    gtsummary,
     gt,
+    gtsummary,
     knitr,
     medicalcoder (>= 0.10.0),
     purrr,
