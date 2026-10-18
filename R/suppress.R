@@ -86,13 +86,9 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
       group_id <- if (length(by) == 0L) {
         rep(1L, nrow(x))
       } else {
-        key <- x[by]
-        # `duplicated.data.frame()` treats matching NA group values as equal.
-        first <- !duplicated(key)
-        ids <- integer(nrow(x))
-        ids[first] <- seq_len(sum(first))
-        ids <- cummax(ids)
-        ids
+        dplyr::group_indices(dplyr::group_by(
+          x, dplyr::across(dplyr::all_of(by))
+        ))
       }
       for (group in unique(group_id)) {
         rows <- which(group_id == group)
