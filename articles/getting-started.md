@@ -26,8 +26,8 @@ nis |>
 #> # A tibble: 2 × 2
 #>    YEAR     n
 #>   <int> <int>
-#> 1  2020    96
-#> 2  2019    96
+#> 1  2019    96
+#> 2  2020    96
 ```
 
 ## Flag diagnoses and procedures
@@ -147,7 +147,7 @@ summary(fit)
 #> palliative_careYes  1.679e+00  9.073e-01   1.850   0.1014    
 #> AGE                -5.156e-03  1.310e-02  -0.394   0.7041    
 #> FEMALEFemale       -9.736e-01  3.230e-01  -3.014   0.0167 *  
-#> factor(YEAR)2020   -6.013e-16  4.318e-01   0.000   1.0000    
+#> factor(YEAR)2020   -7.866e-16  4.318e-01   0.000   1.0000    
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
@@ -185,7 +185,7 @@ until you set its `data_path` parameter.
 
 study <- tempfile("my-nis-study-")
 nis_new_study(study)
-#> [1] "/tmp/RtmpYvO0G4/my-nis-study-1c12152e8c24"
+#> [1] "/tmp/RtmpV7qRpp/my-nis-study-1cf7782e0a5e"
 list.files(study, all.files = TRUE, no.. = TRUE)
 #> [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"
 ```

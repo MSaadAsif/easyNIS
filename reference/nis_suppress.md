@@ -1,7 +1,10 @@
 # Suppress small unweighted cells in a survey summary
 
-Replaces displayed statistics when their corresponding unweighted count
-is at or below `threshold`. Counts come from the `cards` computed by
+For a
+[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
+result, replaces displayed statistics when their corresponding
+unweighted count is at or below `threshold`. Counts come from the
+`cards` computed by
 [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
 Continuous2 statistic rows use the non-missing count for their
 corresponding output column. If that count is absent, ambiguous, or
@@ -14,7 +17,15 @@ need analyst review before sharing.
 ## Usage
 
 ``` r
-nis_suppress(x, threshold = 10)
+nis_suppress(
+  x,
+  threshold = 10,
+  ...,
+  count_col,
+  weighted_cols = NULL,
+  by = NULL,
+  secondary = TRUE
+)
 ```
 
 ## Arguments
@@ -23,16 +34,43 @@ nis_suppress(x, threshold = 10)
 
   A
   [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-  result, optionally with `add_p()` or `add_overall()`.
+  result, optionally with `add_p()` or `add_overall()`, or a data
+  frame/tibble.
 
 - threshold:
 
   Maximum unweighted cell count to suppress.
 
+- ...:
+
+  Reserved for compatibility; unused arguments are errors.
+
+- count_col:
+
+  For data frames, the unweighted-count column name (required).
+
+- weighted_cols:
+
+  For data frames, other columns to mask on primary and secondary rows.
+
+- by:
+
+  Optional data-frame grouping column names defining strata for
+  complementary suppression.
+
+- secondary:
+
+  Apply complementary suppression. For data frames this masks the
+  smallest remaining positive count when exactly one row in a stratum is
+  primary-masked. This is single-dimension complementary suppression,
+  not a full cell-suppression solver; totals rows must be handled or
+  excluded by the user.
+
 ## Value
 
-The table with primary and secondary masks and a footnote describing
-them.
+For data frames, the same table with masked columns converted to
+character. For `gtsummary` results, the table with primary and secondary
+masks and a footnote describing them.
 
 ## Examples
 

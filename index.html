@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">easyNIS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -110,12 +110,17 @@
 <tr>
 <td>Open and flag</td>
 <td>
-<code><a href="reference/nis_example.html">nis_example()</a></code> creates invented Parquet fixtures; <code><a href="reference/nis_open.html">nis_open()</a></code> opens annual Parquet data lazily; <code><a href="reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="reference/nis_flag_pr.html">nis_flag_pr()</a></code> add diagnosis and procedure prefix flags.</td>
+<code><a href="reference/nis_example.html">nis_example()</a></code> creates invented Parquet fixtures; <code><a href="reference/nis_open.html">nis_open()</a></code> opens annual Parquet data lazily with Arrow or the DuckDB engine; <code><a href="reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="reference/nis_flag_pr.html">nis_flag_pr()</a></code> add diagnosis and procedure prefix flags; <code><a href="reference/nis_flag_dx_position.html">nis_flag_dx_position()</a></code> flags diagnosis positions; <code><a href="reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> flags procedure timing.</td>
 </tr>
 <tr>
 <td>Design and weighting</td>
 <td>
 <code><a href="reference/nis_design.html">nis_design()</a></code> prepares a survey design for a declared cohort; <code><a href="reference/nis_reweight.html">nis_reweight()</a></code> multiplies its cohort weights (experimental).</td>
+</tr>
+<tr>
+<td>Cohort reporting and audits</td>
+<td>
+<code><a href="reference/nis_attrition.html">nis_attrition()</a></code> summarizes cohort attrition; <code><a href="reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> audits code-system transitions; <code><a href="reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> reports descriptive point estimates for diagnosis sensitivity analyses.</td>
 </tr>
 <tr>
 <td>Comorbidity and CCSR</td>
@@ -130,7 +135,7 @@
 <tr>
 <td>Suppression and study setup</td>
 <td>
-<code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks small unweighted cells in a <code>gtsummary</code> result; <code><a href="reference/nis_new_study.html">nis_new_study()</a></code> creates a Quarto study folder from the package template.</td>
+<code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks small cells in a <code>gtsummary</code> result or data frame; <code><a href="reference/nis_new_study.html">nis_new_study()</a></code> creates a Quarto study folder from the package template.</td>
 </tr>
 </tbody>
 </table>

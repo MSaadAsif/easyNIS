@@ -71,11 +71,12 @@ Agreement.
 
 | Task | Functions |
 |----|----|
-| Open and flag | [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md) creates invented Parquet fixtures; [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md) opens annual Parquet data lazily; [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md) and [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md) add diagnosis and procedure prefix flags. |
+| Open and flag | [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md) creates invented Parquet fixtures; [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md) opens annual Parquet data lazily with Arrow or the DuckDB engine; [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md) and [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md) add diagnosis and procedure prefix flags; [`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md) flags diagnosis positions; [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md) flags procedure timing. |
 | Design and weighting | [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md) prepares a survey design for a declared cohort; [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md) multiplies its cohort weights (experimental). |
+| Cohort reporting and audits | [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md) summarizes cohort attrition; [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md) audits code-system transitions; [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md) reports descriptive point estimates for diagnosis sensitivity analyses. |
 | Comorbidity and CCSR | [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md) adds AHRQ Elixhauser Refined indicators through `medicalcoder` (experimental); [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md) reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified). |
 | Labels and costs | [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md) applies supported HCUP labels; [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md) adjusts charges and cost estimates using the package’s CPI-U series and `CCR_NIS` (experimental method). |
-| Suppression and study setup | [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md) masks small unweighted cells in a `gtsummary` result; [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) creates a Quarto study folder from the package template. |
+| Suppression and study setup | [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md) masks small cells in a `gtsummary` result or data frame; [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) creates a Quarto study folder from the package template. |
 
 See the [function
 reference](https://msaadasif.github.io/easyNIS/reference/index.html) for
@@ -163,8 +164,12 @@ file](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).
   : Open annual NIS Parquet files lazily
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   : Add diagnosis prefix flags
+- [`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md)
+  : Add diagnosis position flags
 - [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
   : Add procedure prefix flags
+- [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+  : Flag procedure timing relative to an index procedure
 
 ## Survey design and weighting
 
@@ -172,6 +177,15 @@ file](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).
   : Prepare a cohort survey design
 - [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   : Reweight a cohort survey design
+
+## Cohort reporting and audits
+
+- [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
+  : Summarize sequential cohort attrition
+- [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
+  : Audit code-group frequencies across periods
+- [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
+  : Summarize diagnosis-position sensitivity
 
 ## Comorbidity and code reference files
 

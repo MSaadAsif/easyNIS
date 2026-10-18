@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">easyNIS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,20 @@
       <small>Source: <a href="https://github.com/MSaadAsif/easyNIS/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
+<div class="section level3">
+<h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
+<ul><li>Added <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> for procedure timing flags.</li>
+<li>Added <code><a href="../reference/nis_attrition.html">nis_attrition()</a></code> for cohort attrition summaries.</li>
+<li>
+<code>nis_open(engine = "duckdb")</code> provides an Arrow-backed DuckDB/dbplyr query path; <code>duckdb</code> and <code>dbplyr</code> are suggested dependencies. Flag and design helpers remain Arrow-only.</li>
+<li>Added <code><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> to summarize code-system transitions.</li>
+<li>Added <code><a href="../reference/nis_flag_dx_position.html">nis_flag_dx_position()</a></code> and <code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> for descriptive point estimates; these are not design-based estimates.</li>
+<li>
+<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now accepts data frames with <code>count_col</code>, <code>weighted_cols</code>, and <code>by</code>, and supports single-dimension complementary suppression.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="easynis-020">easyNIS 0.2.0<a class="anchor" aria-label="anchor" href="#easynis-020"></a></h2>
 <div class="section level3">
