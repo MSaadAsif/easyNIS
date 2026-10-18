@@ -1,7 +1,8 @@
 #' Suppress small unweighted cells in a survey summary
 #'
-#' Replaces displayed statistics when their corresponding unweighted count is
-#' at or below `threshold`. Counts come from the `cards` computed by
+#' For a `gtsummary::tbl_svysummary()` result, replaces displayed statistics
+#' when their corresponding unweighted count is at or below `threshold`. Counts
+#' come from the `cards` computed by
 #' `gtsummary::tbl_svysummary()`. Continuous2 statistic rows use the
 #' non-missing count for their corresponding output column. If that count is
 #' absent, ambiguous, or non-finite for a displayed statistic, the function
@@ -11,11 +12,23 @@
 #' still need analyst review before sharing.
 #'
 #' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
-#'   or `add_overall()`.
+#'   or `add_overall()`, or a data frame/tibble.
 #' @param threshold Maximum unweighted cell count to suppress.
+#' @param ... Reserved for compatibility; unused arguments are errors.
+#' @param count_col For data frames, the unweighted-count column name (required).
+#' @param weighted_cols For data frames, other columns to mask on primary and
+#'   secondary rows.
+#' @param by Optional data-frame grouping column names defining strata for
+#'   complementary suppression.
+#' @param secondary Apply complementary suppression. For data frames this masks
+#'   the smallest remaining positive count when exactly one row in a stratum is
+#'   primary-masked. This is single-dimension complementary suppression, not a
+#'   full cell-suppression solver; totals rows must be handled or excluded by
+#'   the user.
 #'
-#' @return The table with primary and secondary masks and a footnote describing
-#'   them.
+#' @return For data frames, the same table with masked columns converted to
+#'   character. For `gtsummary` results, the table with primary and secondary
+#'   masks and a footnote describing them.
 #' @export
 #' @examples
 #' if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
@@ -29,13 +42,87 @@
 #'   )
 #'   nis_suppress(table, threshold = 10)
 #' }
-nis_suppress <- function(x, threshold = 10) {
-  if (!inherits(x, "tbl_svysummary") || is.null(x$cards$tbl_svysummary)) {
-    cli::cli_abort("`x` must be a table created by `gtsummary::tbl_svysummary()`.")
+nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL,
+                         by = NULL, secondary = TRUE) {
+  dots <- rlang::dots_list(...)
+  if (length(dots) > 0L) {
+    cli::cli_abort("Unused arguments in `...`.")
   }
   if (length(threshold) != 1L || !is.numeric(threshold) || is.na(threshold) ||
       !is.finite(threshold) || threshold < 0 || threshold != as.integer(threshold)) {
     cli::cli_abort("`threshold` must be one non-negative whole number.")
+  }
+
+  if (is.data.frame(x) && !inherits(x, "tbl_svysummary")) {
+    if (missing(count_col) || length(count_col) != 1L ||
+        !is.character(count_col) || is.na(count_col) || !nzchar(count_col)) {
+      cli::cli_abort("`count_col` must name the unweighted-count column.")
+    }
+    if (!is.logical(secondary) || length(secondary) != 1L || is.na(secondary)) {
+      cli::cli_abort("`secondary` must be `TRUE` or `FALSE`.")
+    }
+    check_columns <- function(columns, arg) {
+      if (is.null(columns)) return(character())
+      if (!is.character(columns) || anyNA(columns)) {
+        cli::cli_abort("`{arg}` must be a character vector of column names.")
+      }
+      absent <- setdiff(columns, names(x))
+      if (length(absent)) {
+        cli::cli_abort("Column {.val {absent}} specified in `{arg}` not found in `x`.")
+      }
+      columns
+    }
+    count_col <- check_columns(count_col, "count_col")
+    weighted_cols <- check_columns(weighted_cols, "weighted_cols")
+    by <- check_columns(by, "by")
+    counts <- x[[count_col]]
+    if (!is.numeric(counts)) {
+      cli::cli_abort("`count_col` must refer to a numeric column.")
+    }
+
+    primary <- !is.na(counts) & is.finite(counts) & counts > 0 & counts <= threshold
+    secondary_rows <- rep(FALSE, nrow(x))
+    if (secondary && any(primary)) {
+      group_id <- if (length(by) == 0L) {
+        rep(1L, nrow(x))
+      } else {
+        key <- x[by]
+        # `duplicated.data.frame()` treats matching NA group values as equal.
+        first <- !duplicated(key)
+        ids <- integer(nrow(x))
+        ids[first] <- seq_len(sum(first))
+        ids <- cummax(ids)
+        ids
+      }
+      for (group in unique(group_id)) {
+        rows <- which(group_id == group)
+        masked <- rows[primary[rows]]
+        if (length(masked) != 1L || length(rows) < 2L) next
+        candidates <- rows[!primary[rows] & !is.na(counts[rows]) &
+          is.finite(counts[rows]) & counts[rows] > 0]
+        if (length(candidates)) {
+          secondary_rows[candidates[[which.min(counts[candidates])]]] <- TRUE
+        }
+      }
+    }
+    columns <- unique(c(count_col, weighted_cols))
+    for (column in columns) {
+      values <- as.character(x[[column]])
+      values[primary] <- paste0("\u2264", threshold)
+      values[secondary_rows] <- "Masked"
+      x[[column]] <- values
+    }
+    return(x)
+  }
+
+  if (!inherits(x, "tbl_svysummary") || is.null(x$cards$tbl_svysummary)) {
+    cli::cli_abort("`x` must be a table created by `gtsummary::tbl_svysummary()`.")
+  }
+  if (!missing(count_col) || !is.null(weighted_cols) || !is.null(by)) {
+    cli::cli_abort("`count_col`, `weighted_cols`, and `by` apply only to data frames.")
+  }
+  if (!identical(secondary, TRUE)) {
+    cli::cli_abort("`secondary` applies only to data frames.")
   }
 
   body <- x$table_body
