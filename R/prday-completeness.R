@@ -76,30 +76,44 @@ nis_prday_completeness <- function(.data, pr,
     })
   }
 
-  summaries <- lapply(seq_along(slots), function(i) {
+  counts <- list()
+  for (i in seq_along(slots)) {
     slot <- slots[[i]]
     match <- matches[[i]]
     day_name <- unname(day_by_slot[as.character(slot)])
-    counts <- list(
-      matched_slots = rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
-    )
+    suffix <- paste0("__", i)
+    counts[[paste0("matched_slots", suffix)]] <-
+      rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     if (length(day_name) == 0L || is.na(day_name)) {
-      counts$known_day <- rlang::expr(0L)
-      counts$missing_day <- rlang::expr(0L)
-      counts$sentinel_invalid_day <- rlang::expr(0L)
-      counts$absent_prday_column <- rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
+      counts[[paste0("known_day", suffix)]] <- rlang::expr(0L)
+      counts[[paste0("missing_day", suffix)]] <- rlang::expr(0L)
+      counts[[paste0("sentinel_invalid_day", suffix)]] <- rlang::expr(0L)
+      counts[[paste0("absent_prday_column", suffix)]] <-
+        rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     } else {
       day <- rlang::sym(day_name)
-      counts$known_day <- rlang::expr(sum(as.integer(!!match & !is.na(!!day) & !!day >= 0), na.rm = TRUE))
-      counts$missing_day <- rlang::expr(sum(as.integer(!!match & is.na(!!day)), na.rm = TRUE))
-      counts$sentinel_invalid_day <- rlang::expr(sum(as.integer(!!match & !is.na(!!day) & !!day < 0), na.rm = TRUE))
-      counts$absent_prday_column <- rlang::expr(0L)
+      counts[[paste0("known_day", suffix)]] <- rlang::expr(
+        sum(as.integer(!!match & !is.na(!!day) & !!day >= 0), na.rm = TRUE))
+      counts[[paste0("missing_day", suffix)]] <- rlang::expr(
+        sum(as.integer(!!match & is.na(!!day)), na.rm = TRUE))
+      counts[[paste0("sentinel_invalid_day", suffix)]] <- rlang::expr(
+        sum(as.integer(!!match & !is.na(!!day) & !!day < 0), na.rm = TRUE))
+      counts[[paste0("absent_prday_column", suffix)]] <- rlang::expr(0L)
     }
-    .data |>
-      dplyr::group_by(YEAR) |>
-      dplyr::summarise(!!!counts, .groups = "drop") |>
-      nis_collect() |>
-      dplyr::mutate(slot = as.integer(slot), .before = 1L)
+  }
+  wide <- .data |>
+    dplyr::group_by(YEAR) |>
+    dplyr::summarise(!!!counts, .groups = "drop") |>
+    nis_collect()
+  metrics <- c("matched_slots", "known_day", "missing_day",
+    "sentinel_invalid_day", "absent_prday_column")
+  summaries <- lapply(seq_along(slots), function(i) {
+    suffix <- paste0("__", i)
+    summary <- data.frame(YEAR = wide$YEAR, slot = as.integer(slots[[i]]))
+    for (metric in metrics) {
+      summary[[metric]] <- wide[[paste0(metric, suffix)]]
+    }
+    dplyr::as_tibble(summary)
   })
   output <- dplyr::bind_rows(summaries) |>
     dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_,

@@ -281,6 +281,49 @@ test_that("PRDAY completeness aggregates on DuckDB queries", {
   expect_equal(result$sentinel_invalid_day, 1L)
 })
 
+test_that("PRDAY completeness matches the prior per-slot result for three slots", {
+  data <- dplyr::tibble(
+    YEAR = c(2020L, 2020L, 2021L, 2021L),
+    I10_PR1 = c("IX", "OTHER", "IX", "IX"),
+    I10_PR2 = c("OTHER", "IX", "IX", "IX"),
+    I10_PR3 = c("IX", "IX", "OTHER", "IX"),
+    PRDAY1 = c(0L, 1L, -99L, NA_integer_),
+    PRDAY2 = c(NA_integer_, 0L, 1L, -88L),
+    PRDAY3 = c(-99L, 0L, 1L, 2L)
+  )
+  prefixes <- "IX"
+  previous_per_slot <- lapply(seq_len(3L), function(slot) {
+    procedure <- data[[paste0("I10_PR", slot)]]
+    day <- data[[paste0("PRDAY", slot)]]
+    matched <- !is.na(procedure) & startsWith(procedure, prefixes)
+    data |>
+      dplyr::mutate(
+        matched = matched,
+        known = matched & !is.na(day) & day >= 0,
+        missing = matched & is.na(day),
+        invalid = matched & !is.na(day) & day < 0
+      ) |>
+      dplyr::group_by(YEAR) |>
+      dplyr::summarise(
+        matched_slots = sum(as.integer(matched), na.rm = TRUE),
+        known_day = sum(as.integer(known), na.rm = TRUE),
+        missing_day = sum(as.integer(missing), na.rm = TRUE),
+        sentinel_invalid_day = sum(as.integer(invalid), na.rm = TRUE),
+        absent_prday_column = 0L,
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(slot = as.integer(slot), .before = 1L)
+  }) |>
+    dplyr::bind_rows() |>
+    dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_,
+      100 * known_day / matched_slots)) |>
+    dplyr::select(YEAR, slot, matched_slots, known_day, missing_day,
+      sentinel_invalid_day, absent_prday_column, pct_known) |>
+    dplyr::arrange(YEAR, slot)
+
+  expect_identical(nis_prday_completeness(data, prefixes), previous_per_slot)
+})
+
 test_that("PRDAY completeness classifies days like procedure timing", {
   data <- dplyr::tibble(
     YEAR = rep(2020L, 4L),
