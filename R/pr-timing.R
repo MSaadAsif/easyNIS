@@ -58,8 +58,8 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   } else if (!is.null(window)) {
     cli::cli_abort("window must be NULL unless relation is within_days.")
   }
-  index_pr <- timing_prefixes(index_pr, "index_pr")
-  outcome_pr <- timing_prefixes(outcome_pr, "outcome_pr")
+  index_pr <- normalize_prefixes(index_pr, "index_pr")
+  outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr")
 
   stem <- if (system == "icd10") "I10_PR" else "PR"
   procedure_names <- grep(paste0("^", stem, "[0-9]+$"), names(.data), value = TRUE)
@@ -80,16 +80,26 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   is_frame <- is.data.frame(.data)
   projection <- if (is_frame) NULL else
     dplyr::select(.data, dplyr::everything())$selected_columns
+  match_slot <- if (is_frame) {
+    function(prefixes, column) frame_match(prefixes, column)
+  } else {
+    function(prefixes, column) arrow_match(prefixes, projection[column])
+  }
+  index_matches <- lapply(procedure_names, match_slot, prefixes = index_pr)
+  outcome_matches <- lapply(procedure_names, match_slot, prefixes = outcome_pr)
   if (!is_frame) {
-    return(arrow_pr_timing(.data, name, procedure_names, slots, day_by_slot,
-      index_pr, outcome_pr, projection, relation, window, missing_day, system))
+    temporary_names <- make.unique(c(names(.data), paste0(
+      ".easyNIS_pr_timing_match_",
+      seq_len(length(index_matches) + length(outcome_matches))
+    )))[length(names(.data)) + seq_len(length(index_matches) + length(outcome_matches))]
+    match_columns <- stats::setNames(c(index_matches, outcome_matches), temporary_names)
+    # Arrow expressions must be assigned directly before shared rlang
+    # expressions can refer to their result columns.
+    .data <- dplyr::mutate(.data, !!!match_columns)
+    index_matches <- rlang::syms(temporary_names[seq_along(index_matches)])
+    outcome_matches <- rlang::syms(temporary_names[length(index_matches) +
+      seq_along(outcome_matches)])
   }
-
-  slot_match <- function(column, prefixes) {
-    frame_match(prefixes, column)
-  }
-  index_matches <- lapply(procedure_names, slot_match, prefixes = index_pr)
-  outcome_matches <- lapply(procedure_names, slot_match, prefixes = outcome_pr)
   days <- lapply(slots, function(slot) {
     day_name <- unname(day_by_slot[as.character(slot)])
     if (length(day_name) == 0L || is.na(day_name)) rlang::expr(NA_real_) else
@@ -148,18 +158,8 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   if (!is.null(eligibility)) {
     result <- rlang::expr((!!eligibility) & (!!result))
   }
-  dplyr::mutate(.data, !!name := !!result)
-}
-
-timing_prefixes <- function(value, arg) {
-  if (!is.character(value) || length(value) == 0L || anyNA(value)) {
-    cli::cli_abort("{arg} must be non-missing character prefixes.")
-  }
-  value <- toupper(gsub("[.[:space:]]", "", value))
-  if (any(!grepl("^[A-Z0-9]+$", value))) {
-    cli::cli_abort("Code prefixes may contain only letters and numbers.")
-  }
-  unique(value)
+  .data <- dplyr::mutate(.data, !!name := !!result)
+  if (is_frame) .data else dplyr::select(.data, -dplyr::all_of(temporary_names))
 }
 
 timing_or_expr <- function(terms) {
@@ -171,122 +171,4 @@ timing_min_expr <- function(left, right) {
   rlang::expr(dplyr::if_else(is.na(!!left), !!right,
     dplyr::if_else(is.na(!!right), !!left,
       dplyr::if_else(!!left <= !!right, !!left, !!right))))
-}
-
-arrow_pr_timing <- function(data, name, procedure_names, slots, day_by_slot,
-                            index_pr, outcome_pr, projection, relation, window,
-                            missing_day, system) {
-  kernel <- arrow::Expression$create
-  scalar <- arrow::Expression$scalar
-  combine <- function(op, left, right) kernel(op, left, right)
-  any_expr <- function(terms) {
-    Reduce(function(left, right) combine("or_kleene", left, right), terms)
-  }
-  matches <- function(prefixes) {
-    lapply(procedure_names, function(column) {
-      arrow_match(prefixes, projection[column])
-    })
-  }
-  index_matches <- matches(index_pr)
-  outcome_matches <- matches(outcome_pr)
-  days <- lapply(slots, function(slot) {
-    day_name <- unname(day_by_slot[as.character(slot)])
-    if (length(day_name) == 0L || is.na(day_name)) scalar(NA_integer_) else
-      projection[[day_name]]
-  })
-  valid_day <- function(day) kernel("if_else",
-    kernel("greater_equal", day, scalar(0L)), day, scalar(NA_integer_))
-  missing_day_expr <- function(day) combine("or_kleene",
-    kernel("is_null", day), kernel("less", day, scalar(0L)))
-  index_days <- Map(function(day, matched) {
-    value <- valid_day(day)
-    if (missing_day == "assume_same_day") {
-      value <- kernel("coalesce", value, scalar(0L))
-    }
-    kernel("if_else", matched, value, scalar(NA_integer_))
-  }, days, index_matches)
-  index_day <- Reduce(function(left, right) {
-    kernel("if_else", kernel("is_null", left), right,
-      kernel("if_else", kernel("is_null", right), left,
-        kernel("if_else", kernel("less_equal", left, right), left, right)))
-  }, index_days)
-  index_present <- any_expr(index_matches)
-  outcome_present <- any_expr(outcome_matches)
-  missing_match <- any_expr(c(
-    Map(function(day, matched) combine("and_kleene", matched,
-      missing_day_expr(day)), days, index_matches),
-    Map(function(day, matched) combine("and_kleene", matched,
-      missing_day_expr(day)), days, outcome_matches)
-  ))
-  checks <- Map(function(day, matched) {
-    outcome_day <- valid_day(day)
-    if (missing_day == "assume_same_day") {
-      outcome_day <- kernel("coalesce", outcome_day, scalar(0L))
-    }
-    comparison <- switch(relation,
-      on_or_after = kernel("greater_equal", outcome_day, index_day),
-      after = kernel("greater", outcome_day, index_day),
-      before = kernel("less", outcome_day, index_day),
-      same_day = kernel("equal", outcome_day, index_day),
-      within_days = combine("and_kleene",
-        kernel("greater_equal", kernel("subtract", outcome_day, index_day), scalar(0L)),
-        kernel("less_equal", kernel("subtract", outcome_day, index_day), scalar(window)))
-    )
-    combine("and_kleene", matched, comparison)
-  }, days, outcome_matches)
-  success <- any_expr(checks)
-  procedures_present <- combine("and_kleene", index_present, outcome_present)
-  value <- if (missing_day == "indeterminate") {
-    kernel("if_else", kernel("coalesce", procedures_present, scalar(FALSE)), 
-      kernel("if_else", kernel("coalesce", success, scalar(FALSE)), scalar(TRUE),
-        kernel("if_else", missing_match, scalar(NA), scalar(FALSE))),
-      scalar(FALSE))
-  } else {
-    kernel("if_else", kernel("coalesce", procedures_present, scalar(FALSE)),
-      kernel("coalesce", success, scalar(FALSE)), scalar(FALSE))
-  }
-  eligibility <- arrow_system_filter(names(data), projection, system, kernel,
-    scalar, combine)
-  if (!is.null(eligibility)) {
-    value <- combine("and_kleene", eligibility, value)
-  }
-  dplyr::mutate(data, !!name := value)
-}
-
-arrow_system_filter <- function(columns, projection, system, kernel, scalar,
-                                combine) {
-  conditions <- list()
-  version_name <- "PRVER"
-  version <- if (system == "icd9") 9L else 10L
-  if (version_name %in% columns) {
-    field <- projection[[version_name]]
-    conditions <- c(conditions, list(combine("or_kleene",
-      kernel("is_null", field), kernel("equal", field, scalar(version)))))
-  }
-  if ("YEAR" %in% columns) {
-    year <- projection[["YEAR"]]
-    year_ok <- if (system == "icd9") {
-      combine("and_kleene", kernel("greater_equal", year, scalar(2012L)),
-        kernel("less_equal", year, scalar(2015L)))
-    } else {
-      kernel("greater_equal", year, scalar(2015L))
-    }
-    conditions <- c(conditions, list(combine("or_kleene",
-      kernel("is_null", year), year_ok)))
-    if ("DQTR" %in% columns) {
-      quarter <- projection[["DQTR"]]
-      allowed <- if (system == "icd9") {
-        Reduce(function(left, right) combine("or_kleene", left, right),
-          lapply(1:3, function(value) kernel("equal", quarter, scalar(value))))
-      } else {
-        kernel("equal", quarter, scalar(4L))
-      }
-      quarter_ok <- Reduce(function(left, right) combine("or_kleene", left, right),
-        list(kernel("is_null", year), kernel("not_equal", year, scalar(2015L)),
-          kernel("is_null", quarter), allowed))
-      conditions <- c(conditions, list(quarter_ok))
-    }
-  }
-  if (length(conditions) == 0L) return(NULL)
-  Reduce(function(left, right) combine("and_kleene", left, right), conditions)
 }
