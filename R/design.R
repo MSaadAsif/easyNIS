@@ -234,6 +234,17 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
     # nolint next: object_usage_linter. Function is defined in this package.
     combined <- nis_cost(combined, dollars = dollars, charges = charges)
+    cost_provenance <- attr(combined, "nis_cost_provenance", exact = TRUE)
+    # Placeholder rows have no discharge CCR by construction; provenance counts
+    # only real cohort rows and excludes these synthetic rows.
+    cost_provenance$rows_missing_or_invalid_ccr <- sum(
+      !dplyr::coalesce(
+        is.finite(cohort_rows$CCR_NIS) & cohort_rows$CCR_NIS > 0,
+        FALSE
+      )
+    )
+  } else {
+    cost_provenance <- NULL
   }
 
   # nolint next: object_usage_linter. Used by cli interpolation below.
@@ -246,6 +257,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   ))
   design <- nis_cohort_design(combined)
   attr(design, "nis_excluded") <- excluded
+  if (!is.null(cost_provenance)) {
+    attr(design, "nis_cost_provenance") <- cost_provenance
+  }
   design
 }
 
@@ -321,6 +335,10 @@ nis_reweight <- function(design, weights) {
   }
   reweighted <- nis_cohort_design(combined)
   attr(reweighted, "nis_excluded") <- attr(design, "nis_excluded", exact = TRUE)
+  cost_provenance <- attr(design, "nis_cost_provenance", exact = TRUE)
+  if (!is.null(cost_provenance)) {
+    attr(reweighted, "nis_cost_provenance") <- cost_provenance
+  }
   reweighted
 }
 

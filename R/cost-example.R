@@ -21,14 +21,17 @@ attr(.cpi_u, "source") <- paste(
 
 #' Adjust NIS charges and costs to a reference dollar year
 #'
-#' @param data A data frame with `YEAR`, the `charges` column, and `CCR_NIS`.
+#' @param data A collected data frame with `YEAR`, the `charges` column, and
+#'   `CCR_NIS`. Lazy Arrow and DuckDB queries must be collected first.
 #' @param dollars Reference dollar year, from 2012 through 2024.
 #' @param charges Name of the total-charge column. Defaults to `"TOTCHG"`.
 #'   Use `"TOTCHG_2023"` only knowingly: HCUP adjusts that field for states
 #'   missing from 2023, so it is not comparable to earlier-year `TOTCHG`, and it
 #'   is missing for earlier years.
 #'
-#' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD.
+#' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD. The
+#'   in-memory data frame has `nis_cost_provenance` metadata; retrieve it with
+#'   [nis_cost_provenance()].
 #' @export
 #' @examples
 #' charges <- nis_open(nis_example(years = 2019:2020)) |>
@@ -36,6 +39,9 @@ attr(.cpi_u, "source") <- paste(
 #'   dplyr::collect()
 #' head(nis_cost(charges, dollars = 2024))
 nis_cost <- function(data, dollars, charges = "TOTCHG") {
+  if (!is.data.frame(data)) {
+    cli::cli_abort("`data` must be a collected data frame.")
+  }
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.")
   }
@@ -58,11 +64,56 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   }
 
   reference_index <- .cpi_u$index[match(as.integer(dollars), .cpi_u$year)]
-  data$cost_adj <- data[[charges]] * data$CCR_NIS * reference_index / .cpi_u$index[index]
+  ccr <- data$CCR_NIS
+  valid_ccr <- is.finite(ccr) & ccr > 0
+  invalid_ccr_count <- sum(!dplyr::coalesce(valid_ccr, FALSE))
+  data$cost_adj <- ifelse(valid_ccr,
+    data[[charges]] * ccr * reference_index / .cpi_u$index[index], NA_real_)
   data$charges_adj <- data[[charges]] * reference_index / .cpi_u$index[index]
   attr(data$cost_adj, "label") <- paste0("Hospital cost (", dollars, " USD)")
   attr(data$charges_adj, "label") <- paste0("Total charges (", dollars, " USD)")
+  multipliers <- data.frame(
+    year = .cpi_u$year,
+    multiplier = reference_index / .cpi_u$index,
+    stringsAsFactors = FALSE
+  )
+  provenance <- list(
+    charge_field = charges,
+    ccr_field = "CCR_NIS",
+    inflation_index = "CPI-U All items, U.S. city average (annual average)",
+    inflation_index_source = attr(.cpi_u, "source", exact = TRUE),
+    base_year = as.integer(dollars),
+    multipliers = multipliers,
+    rows_missing_or_invalid_ccr = invalid_ccr_count,
+    ccr_treatment = "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained.",
+    output_types = c(
+      charges_adj = "Inflation-adjusted charges",
+      cost_adj = "Estimated cost via CCR_NIS"
+    )
+  )
+  attr(data, "nis_cost_provenance") <- provenance
   data
+}
+
+#' Read cost adjustment provenance
+#'
+#' Returns the metadata recorded by [nis_cost()] or [nis_design()] when cost
+#' adjustment was requested. Data frame operations may drop custom attributes;
+#' call this on the direct `nis_cost()` result or on the survey design returned
+#' by `nis_design()`.
+#'
+#' @param x A data frame returned by [nis_cost()] or a survey design returned
+#'   by [nis_design()].
+#'
+#' @return A list describing the charge and CCR fields, CPI-U source and base
+#'   year, annual multipliers, invalid CCR count and treatment, and output
+#'   meanings. Returns `NULL` when no cost adjustment provenance is present.
+#' @export
+nis_cost_provenance <- function(x) {
+  if (!is.data.frame(x) && !inherits(x, "tbl_svy")) {
+    cli::cli_abort("`x` must be a data frame or survey design.")
+  }
+  attr(x, "nis_cost_provenance", exact = TRUE)
 }
 
 #' Write an invented NIS-shaped Parquet dataset

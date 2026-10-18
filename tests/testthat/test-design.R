@@ -14,6 +14,30 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
 
+test_that("nis_design carries cost provenance through the survey workflow", {
+  data <- dplyr::tibble(
+    YEAR = rep(2020, 4),
+    HOSP_NIS = rep(1:2, each = 2),
+    NIS_STRATUM = 1,
+    DISCWT = 1,
+    eligible = TRUE,
+    TOTCHG = c(100, 200, 300, 400),
+    CCR_NIS = c(0.25, NA_real_, 0.4, 0.5)
+  )
+  design <- nis_design(
+    data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022
+  )
+
+  provenance <- nis_cost_provenance(design)
+  expect_identical(provenance$charge_field, "TOTCHG")
+  expect_identical(provenance$base_year, 2022L)
+  expect_equal(provenance$rows_missing_or_invalid_ccr, 1L)
+  expect_true(all(c("charges_adj", "cost_adj") %in% names(design$variables)))
+
+  reweighted <- nis_reweight(design, rep(1, nrow(design$variables)))
+  expect_identical(nis_cost_provenance(reweighted), provenance)
+})
+
 test_that("reweighting rejects a design narrowed after cohort definition", {
   path <- nis_example(2019)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
