@@ -28,6 +28,8 @@ Imports:
 Suggests:
     broom.helpers,
     cardx,
+    dbplyr,
+    duckdb,
     forcats,
     flextable,
     ggplot2,
