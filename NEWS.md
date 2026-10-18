@@ -2,6 +2,9 @@
 
 ## New features
 
+- `nis_design()` warns when annualized cohort years represented in `DQTR` have
+  fewer than four quarters, and explains how to exclude or separately reweight
+  those years.
 - `nis_cost()` records charge/CCR fields, CPI-U source and multipliers, base
   year, invalid CCR and missing charge counts, and adjusted-output meanings.
   Zero or negative CCR values now produce `NA` in `cost_adj` (previously zero
@@ -9,6 +12,8 @@
   informational message reports how many rows have missing or invalid CCR
   (`nis_design()` reports cohort rows only). Use
   `nis_cost_provenance()` on its result or the `nis_design()` survey design.
+- Added `nis_prday_completeness()` for unweighted PRDAY completeness summaries
+  by year and matched procedure slot.
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
 - `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
@@ -61,10 +66,7 @@
   unbiased estimates.
 - `nis_design()` warns when charges are entirely missing for a year or when
   that year has hospitals but no cohort discharges. `annualize` divides by
-  the number of distinct `YEAR` values, so a partial year counts as one. When
-  `DQTR` is present, annualized designs warn with cohort years represented in
-  fewer than four quarters and explain how to exclude or separately reweight
-  those years.
+  the number of distinct `YEAR` values, so a partial year counts as one.
 - Added experimental `nis_reweight()` to multiply cohort survey weights while
   retaining placeholder rows. It preserves column labels when rebuilding
   designs, including after comorbidity scoring. Weights are matched by

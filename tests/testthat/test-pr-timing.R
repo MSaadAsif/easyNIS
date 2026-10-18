@@ -238,3 +238,105 @@ test_that("procedure timing agrees across Arrow policies and many slots", {
     }
   }
 })
+
+test_that("PRDAY completeness counts matching slots by year and slot", {
+  data <- dplyr::tibble(
+    YEAR = c(2020L, 2020L, 2021L, 2021L),
+    I10_PR1 = c("IX", "IX", "IX", "OTHER"),
+    I10_PR2 = c("OUT", "OUT", "OUT", "OUT"),
+    PRDAY1 = c(0L, -99L, 0L, 0L),
+    PRDAY2 = c(0L, NA_integer_, -88L, 1L)
+  )
+  actual <- nis_prday_completeness(data, c("ix", "out"))
+  expect_identical(actual, dplyr::tibble(
+    YEAR = c(2020L, 2020L, 2021L, 2021L), slot = c(1L, 2L, 1L, 2L),
+    matched_slots = c(2L, 2L, 1L, 2L), known_day = c(1L, 1L, 1L, 1L),
+    missing_day = c(0L, 1L, 0L, 0L),
+    sentinel_invalid_day = c(1L, 0L, 0L, 1L),
+    absent_prday_column = c(0L, 0L, 0L, 0L), pct_known = c(50, 50, 100, 50)
+  ))
+
+  no_slot_day <- dplyr::select(data, -PRDAY2)
+  absent <- nis_prday_completeness(no_slot_day, "out")
+  absent_slot2 <- dplyr::filter(absent, slot == 2L)
+  expect_identical(absent_slot2$absent_prday_column, c(2L, 2L))
+  expect_identical(absent_slot2$matched_slots, c(2L, 2L))
+
+  arrow_result <- nis_prday_completeness(arrow::arrow_table(data),
+    c("ix", "out"))
+  expect_equal(arrow_result, actual)
+})
+
+test_that("PRDAY completeness aggregates on DuckDB queries", {
+  skip_if_not_installed("duckdb")
+  skip_if_not_installed("dbplyr")
+  data <- dplyr::tibble(YEAR = c(2020L, 2020L), I10_PR1 = c("IX", "IX"),
+    PRDAY1 = c(0L, -99L))
+  con <- duckdb::dbConnect(duckdb::duckdb())
+  on.exit(duckdb::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  query <- arrow::to_duckdb(arrow::arrow_table(data), con = con)
+  result <- nis_prday_completeness(query, "IX")
+  expect_equal(result$matched_slots, 2L)
+  expect_equal(result$known_day, 1L)
+  expect_equal(result$sentinel_invalid_day, 1L)
+})
+
+test_that("PRDAY completeness matches the prior per-slot result for three slots", {
+  data <- dplyr::tibble(
+    YEAR = c(2020L, 2020L, 2021L, 2021L),
+    I10_PR1 = c("IX", "OTHER", "IX", "IX"),
+    I10_PR2 = c("OTHER", "IX", "IX", "IX"),
+    I10_PR3 = c("IX", "IX", "OTHER", "IX"),
+    PRDAY1 = c(0L, 1L, -99L, NA_integer_),
+    PRDAY2 = c(NA_integer_, 0L, 1L, -88L),
+    PRDAY3 = c(-99L, 0L, 1L, 2L)
+  )
+  prefixes <- "IX"
+  previous_per_slot <- lapply(seq_len(3L), function(slot) {
+    procedure <- data[[paste0("I10_PR", slot)]]
+    day <- data[[paste0("PRDAY", slot)]]
+    matched <- !is.na(procedure) & startsWith(procedure, prefixes)
+    data |>
+      dplyr::mutate(
+        matched = matched,
+        known = matched & !is.na(day) & day >= 0,
+        missing = matched & is.na(day),
+        invalid = matched & !is.na(day) & day < 0
+      ) |>
+      dplyr::group_by(YEAR) |>
+      dplyr::summarise(
+        matched_slots = sum(as.integer(matched), na.rm = TRUE),
+        known_day = sum(as.integer(known), na.rm = TRUE),
+        missing_day = sum(as.integer(missing), na.rm = TRUE),
+        sentinel_invalid_day = sum(as.integer(invalid), na.rm = TRUE),
+        absent_prday_column = 0L,
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(slot = as.integer(slot), .before = 1L)
+  }) |>
+    dplyr::bind_rows() |>
+    dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_,
+      100 * known_day / matched_slots)) |>
+    dplyr::select(YEAR, slot, matched_slots, known_day, missing_day,
+      sentinel_invalid_day, absent_prday_column, pct_known) |>
+    dplyr::arrange(YEAR, slot)
+
+  expect_identical(nis_prday_completeness(data, prefixes), previous_per_slot)
+})
+
+test_that("PRDAY completeness classifies days like procedure timing", {
+  data <- dplyr::tibble(
+    YEAR = rep(2020L, 4L),
+    I10_PR1 = rep("IX", 4L), I10_PR2 = rep("OUT", 4L),
+    PRDAY1 = rep(0L, 4L), PRDAY2 = c(0L, 1L, NA_integer_, -99L)
+  )
+  summary <- nis_prday_completeness(data, "OUT")
+  flag <- nis_flag_pr_timing(data, "IX", "OUT", relation = "same_day",
+    missing_day = "indeterminate")$outcome_post_index
+  expect_identical(flag, c(TRUE, FALSE, NA, NA))
+  expect_identical(summary$known_day[summary$slot == 2L],
+    as.integer(sum(!is.na(flag))))
+  expect_identical(summary$missing_day[summary$slot == 2L],
+    as.integer(sum(is.na(data$PRDAY2))))
+  expect_identical(summary$sentinel_invalid_day[summary$slot == 2L], 1L)
+})
