@@ -53,11 +53,12 @@ The example records and code values are invented. To analyse real data, use file
 
 | Task | Functions |
 | --- | --- |
-| Open and flag | `nis_example()` creates invented Parquet fixtures; `nis_open()` opens annual Parquet data lazily; `nis_flag_dx()` and `nis_flag_pr()` add diagnosis and procedure prefix flags. |
+| Open and flag | `nis_example()` creates invented Parquet fixtures; `nis_open()` opens annual Parquet data lazily with Arrow or the DuckDB engine; `nis_flag_dx()` and `nis_flag_pr()` add diagnosis and procedure prefix flags; `nis_flag_dx_position()` flags diagnosis positions; `nis_flag_pr_timing()` flags procedure timing. |
 | Design and weighting | `nis_design()` prepares a survey design for a declared cohort; `nis_reweight()` multiplies its cohort weights (experimental). |
+| Cohort reporting and audits | `nis_attrition()` summarizes cohort attrition; `nis_audit_code_transition()` audits code-system transitions; `nis_dx_sensitivity()` reports descriptive point estimates for diagnosis sensitivity analyses. |
 | Comorbidity and CCSR | `nis_comorbidity()` adds AHRQ Elixhauser Refined indicators through `medicalcoder` (experimental); `nis_ccsr_codes()` reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified). |
 | Labels and costs | `nis_label()` applies supported HCUP labels; `nis_cost()` adjusts charges and cost estimates using the package's CPI-U series and `CCR_NIS` (experimental method). |
-| Suppression and study setup | `nis_suppress()` masks small unweighted cells in a `gtsummary` result; `nis_new_study()` creates a Quarto study folder from the package template. |
+| Suppression and study setup | `nis_suppress()` masks small cells in a `gtsummary` result or data frame; `nis_new_study()` creates a Quarto study folder from the package template. |
 
 See the [function reference](https://msaadasif.github.io/easyNIS/reference/index.html) for arguments and details.
 

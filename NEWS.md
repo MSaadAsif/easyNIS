@@ -1,3 +1,18 @@
+# easyNIS (development version)
+
+## New features
+
+- Added `nis_flag_pr_timing()` for procedure timing flags.
+- Added `nis_attrition()` for cohort attrition summaries.
+- `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
+  path; `duckdb` and `dbplyr` are suggested dependencies. Flag and design
+  helpers remain Arrow-only.
+- Added `nis_audit_code_transition()` to summarize code-system transitions.
+- Added `nis_flag_dx_position()` and `nis_dx_sensitivity()` for descriptive
+  point estimates; these are not design-based estimates.
+- `nis_suppress()` now accepts data frames with `count_col`, `weighted_cols`,
+  and `by`, and supports single-dimension complementary suppression.
+
 # easyNIS 0.2.0
 
 ## Highlights
