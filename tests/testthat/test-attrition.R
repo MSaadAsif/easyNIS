@@ -43,7 +43,7 @@ test_that("nis_attrition excludes missing criteria and handles zero cohorts", {
 
   empty <- nis_attrition(data, none = FALSE, after = FALSE, weight_var = "weight")
   expect_equal(empty$n_unweighted, c(3L, 0L, 0L))
-  expect_true(all(is.na(empty$pct_retained[-1L]) == FALSE))
+  expect_equal(empty$pct_retained, c(100, 0, 0))
   zero <- nis_attrition(data[FALSE, ], none = FALSE, weight_var = "weight")
   expect_true(all(is.na(zero$pct_retained)))
 })

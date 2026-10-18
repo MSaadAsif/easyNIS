@@ -29,7 +29,7 @@ aggregated lazily for Arrow queries and returned as a collected tibble.
 Missing weights contribute zero to weighted totals.
 }
 \examples{
-toy_nis <- tibble::tibble(
+toy_nis <- dplyr::tibble(
   AGE = c(16, 45, 60, 72, 55),
   ELECTIVE = c(1, 1, 0, 1, 1),
   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),

@@ -40,7 +40,6 @@ Suggests:
     readxl,
     rmarkdown,
     survey,
-    tibble,
     testthat (>= 3.1.7),
     zip
 VignetteBuilder: knitr
