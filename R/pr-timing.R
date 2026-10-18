@@ -58,8 +58,8 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   } else if (!is.null(window)) {
     cli::cli_abort("window must be NULL unless relation is within_days.")
   }
-  index_pr <- normalize_prefixes(index_pr, "index_pr")
-  outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr")
+  index_pr <- normalize_prefixes(index_pr, "index_pr") # nolint: object_usage_linter
+  outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr") # nolint: object_usage_linter
 
   stem <- if (system == "icd10") "I10_PR" else "PR"
   procedure_names <- grep(paste0("^", stem, "[0-9]+$"), names(.data), value = TRUE)
@@ -174,7 +174,7 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
       dplyr::coalesce(!!success, FALSE)
     ))
   }
-  eligibility <- code_system_filter(names(.data), "PR", system)
+  eligibility <- code_system_filter(names(.data), "PR", system) # nolint: object_usage_linter
   if (!is.null(eligibility)) {
     result <- rlang::expr((!!eligibility) & (!!result))
   }
