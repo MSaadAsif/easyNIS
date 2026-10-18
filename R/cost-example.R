@@ -19,6 +19,20 @@ attr(.cpi_u, "source") <- paste(
   "not seasonally adjusted, series CUUR0000SA0; annual averages"
 )
 
+.nis_cost_inform_invalid_ccr <- function(count, cohort = FALSE) {
+  if (count > 0L) {
+    row_type <- if (cohort) " cohort row" else " row"
+    count_text <- paste0(
+      count, row_type,
+      if (count == 1L) " has" else "s have"
+    )
+    cli::cli_inform(paste0(
+      count_text,
+      " missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
+    ))
+  }
+}
+
 #' Adjust NIS charges and costs to a reference dollar year
 #'
 #' @param data A collected data frame with `YEAR`, the `charges` column, and
@@ -67,14 +81,19 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   ccr <- data$CCR_NIS
   valid_ccr <- is.finite(ccr) & ccr > 0
   invalid_ccr_count <- sum(!dplyr::coalesce(valid_ccr, FALSE))
-  data$cost_adj <- ifelse(valid_ccr,
-    data[[charges]] * ccr * reference_index / .cpi_u$index[index], NA_real_)
-  data$charges_adj <- data[[charges]] * reference_index / .cpi_u$index[index]
+  charges_value <- data[[charges]]
+  valid_charges <- is.finite(charges_value)
+  missing_charges_count <- sum(!dplyr::coalesce(valid_charges, FALSE))
+  data$cost_adj <- ifelse(valid_ccr & valid_charges,
+    charges_value * ccr * reference_index / .cpi_u$index[index], NA_real_)
+  data$charges_adj <- ifelse(valid_charges,
+    charges_value * reference_index / .cpi_u$index[index], NA_real_)
   attr(data$cost_adj, "label") <- paste0("Hospital cost (", dollars, " USD)")
   attr(data$charges_adj, "label") <- paste0("Total charges (", dollars, " USD)")
   multipliers <- data.frame(
-    year = .cpi_u$year,
-    multiplier = reference_index / .cpi_u$index,
+    year = .cpi_u$year[.cpi_u$year %in% unique(data$YEAR)],
+    multiplier = reference_index /
+      .cpi_u$index[.cpi_u$year %in% unique(data$YEAR)],
     stringsAsFactors = FALSE
   )
   provenance <- list(
@@ -85,6 +104,7 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
     base_year = as.integer(dollars),
     multipliers = multipliers,
     rows_missing_or_invalid_ccr = invalid_ccr_count,
+    rows_missing_charges = missing_charges_count,
     ccr_treatment = "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained.",
     output_types = c(
       charges_adj = "Inflation-adjusted charges",
@@ -92,6 +112,7 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
     )
   )
   attr(data, "nis_cost_provenance") <- provenance
+  .nis_cost_inform_invalid_ccr(invalid_ccr_count)
   data
 }
 
@@ -106,7 +127,7 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
 #'   by [nis_design()].
 #'
 #' @return A list describing the charge and CCR fields, CPI-U source and base
-#'   year, annual multipliers, invalid CCR count and treatment, and output
+#'   year, annual multipliers, invalid CCR and missing charge counts, and output
 #'   meanings. Returns `NULL` when no cost adjustment provenance is present.
 #' @export
 nis_cost_provenance <- function(x) {

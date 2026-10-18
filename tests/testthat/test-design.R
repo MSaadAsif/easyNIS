@@ -20,18 +20,29 @@ test_that("nis_design carries cost provenance through the survey workflow", {
     HOSP_NIS = rep(1:2, each = 2),
     NIS_STRATUM = 1,
     DISCWT = 1,
-    eligible = TRUE,
-    TOTCHG = c(100, 200, 300, 400),
+    eligible = c(TRUE, TRUE, FALSE, FALSE),
+    TOTCHG = c(100, NA_real_, 300, 400),
     CCR_NIS = c(0.25, NA_real_, 0.4, 0.5)
   )
-  design <- nis_design(
-    data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022
+  informs <- character()
+  design <- withCallingHandlers(
+    nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022),
+    rlang_message = function(condition) {
+      informs <<- c(informs, conditionMessage(condition))
+      invokeRestart("muffleMessage")
+    }
   )
+  expect_true(any(grepl(
+    "1 cohort row has missing or invalid `CCR_NIS`; `cost_adj` is `NA`",
+    informs,
+    fixed = TRUE
+  )))
 
   provenance <- nis_cost_provenance(design)
   expect_identical(provenance$charge_field, "TOTCHG")
   expect_identical(provenance$base_year, 2022L)
   expect_equal(provenance$rows_missing_or_invalid_ccr, 1L)
+  expect_equal(provenance$rows_missing_charges, 1L)
   expect_true(all(c("charges_adj", "cost_adj") %in% names(design$variables)))
 
   reweighted <- nis_reweight(design, rep(1, nrow(design$variables)))

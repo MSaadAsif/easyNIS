@@ -12,7 +12,7 @@ by \code{\link[=nis_design]{nis_design()}}.}
 }
 \value{
 A list describing the charge and CCR fields, CPI-U source and base
-year, annual multipliers, invalid CCR count and treatment, and output
+year, annual multipliers, invalid CCR and missing charge counts, and output
 meanings. Returns \code{NULL} when no cost adjustment provenance is present.
 }
 \description{

@@ -157,7 +157,17 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
     TOTCHG = c(1000, 2000, 3000, 4000, 5000, 6000),
     CCR_NIS = c(0.25, 0.5, NA_real_, 0, Inf, -0.1)
   )
-  adjusted <- nis_cost(data, dollars = 2022)
+  informs <- character()
+  adjusted <- withCallingHandlers(
+    nis_cost(data, dollars = 2022),
+    rlang_message = function(condition) {
+      informs <<- c(informs, conditionMessage(condition))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_identical(informs, paste0(
+    "4 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
+  ))
 
   expect_equal(as.numeric(adjusted$charges_adj[1:2]), c(
     1000 * 292.655 / 258.811,
@@ -188,11 +198,27 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
     provenance$multipliers$year == 2020
   ], 292.655 / 258.811)
   expect_equal(provenance$rows_missing_or_invalid_ccr, 4L)
+  expect_identical(provenance$multipliers$year, sort(unique(data$YEAR)))
   expect_match(provenance$ccr_treatment, "produce NA cost_adj")
   expect_identical(provenance$output_types, c(
     charges_adj = "Inflation-adjusted charges",
     cost_adj = "Estimated cost via CCR_NIS"
   ))
+})
+
+test_that("nis_cost records non-finite charges and makes both outputs missing", {
+  data <- dplyr::tibble(
+    YEAR = c(2020, 2021, 2022),
+    TOTCHG = c(100, NA_real_, Inf),
+    CCR_NIS = c(0.25, 0.5, 0.75)
+  )
+
+  adjusted <- nis_cost(data, dollars = 2022)
+
+  expect_true(all(is.na(adjusted$charges_adj[2:3])))
+  expect_true(all(is.na(adjusted$cost_adj[2:3])))
+  expect_equal(nis_cost_provenance(adjusted)$rows_missing_charges, 2L)
+  expect_equal(nis_cost_provenance(adjusted)$rows_missing_or_invalid_ccr, 0L)
 })
 
 test_that("common labels and cost adjustment work in experimental ICD-9 years", {
