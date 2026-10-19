@@ -5,7 +5,7 @@ title: "Why easyNIS: a guide for NIS analysts"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment = "#>", collapse = TRUE,
                       tidy = FALSE)
-devtools::load_all()
+library(easyNIS)
 ```
 
 ## Why it matters
