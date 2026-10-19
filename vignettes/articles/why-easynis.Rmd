@@ -1,0 +1,83 @@
+---
+title: "Why easyNIS: a guide for NIS analysts"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, comment = "#>",
+                      collapse = TRUE, tidy = FALSE)
+```
+
+easyNIS turns recurring NIS work into a short, reviewable R workflow: lazily open annual Parquet files, flag code prefixes, build a domain survey design, summarize, and suppress small cells. You keep control of the clinical cohort and analysis choices. Examples use invented data; no licensed records are needed to learn the workflow.
+
+## Before and after: a pooled adult cohort estimate
+
+The hand-rolled version below reads and combines files, filters to adults, then designs the already-filtered data. That ordering drops sampled hospitals with no cohort cases. Pooling also needs year-scoped hospital IDs, annualized weights need an explicit convention, and published cells need a small-cell review.
+
+```{r hand-rolled}
+path <- nis_example(years = 2019:2020)
+files <- list.files(path, pattern = "[.]parquet$", full.names = TRUE)
+all_years <- purrr::map(files, function(file) arrow::open_dataset(file) |>
+  dplyr::collect()
+) |>
+  dplyr::bind_rows()
+cohort <- all_years |> dplyr::filter(AGE >= 18)
+design <- survey::svydesign(
+  ids = ~HOSP_NIS,
+  strata = ~NIS_STRATUM,
+  weights = ~DISCWT,
+  data = cohort, nest = TRUE
+)
+survey::svytotal(~AGE, design)
+```
+
+Filtering before `svydesign()` drops sampled hospitals with no cohort cases. The pooled IDs omit `YEAR`, `DISCWT` is not annualized, and no small-cell check follows the estimate.
+
+```{r easyNIS-equivalent}
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path)
+design <- nis_design(nis, cohort = AGE >= 18,
+                     keep = c(AGE), annualize = TRUE)
+survey::svytotal(~AGE, design)
+```
+
+`nis_design()` builds the design before applying the cohort domain, scopes hospital and stratum identifiers by year, and makes the weight convention explicit. Its returned design is restricted to the cohort; zero-domain placeholders stay internal for design rebuilding.
+
+## Built-in safety checks
+
+- `nis_design()`: warns “Annualization includes year(s) with incomplete data-quarter coverage”; flags 2015 cohorts with only “ICD-9-coded 2015 discharges (Q1–Q3)” or only Q4; informs when `DQTR` is unavailable for the split check.
+- `nis_suppress(hospital_col=)`: masks cells represented at fewer than two hospitals, alongside cells at or below the discharge threshold.
+- `nis_cost_provenance()`: records charge and CCR inputs, CPI-U multipliers, base year, and invalid CCR rows; invalid CCR costs are `NA`.
+- `nis_prday_completeness()`: counts known, missing, negative/sentinel, and absent procedure-day fields by year and slot.
+
+## One workflow
+
+The same design feeds weighted summaries and models. Suppress the resulting table before sharing it; the function also reports the suppression rule.
+
+```{r workflow}
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, cohort = AGE >= 18,
+  keep = c(AGE, LOS, heart_failure), annualize = TRUE)
+table_one <- gtsummary::tbl_svysummary(design, by = heart_failure,
+  include = c(AGE, LOS)) |> nis_suppress(threshold = 10)
+fit <- survey::svyglm(LOS ~ heart_failure + AGE, design = design)
+```
+
+Code-era selection is explicit. Slot timing stays matched to its procedure slot; cell counts are year-scoped.
+
+```{r focused-tools}
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path)
+records <- nis |> dplyr::collect() |>
+  dplyr::mutate(group = ifelse(AGE >= 50, "older", "younger"))
+toy <- data.frame(I10_PR1 = c("02UG0JZ", "0JH604Z"), PRDAY1 = c(0L, 1L))
+charges <- records |> dplyr::select(YEAR, TOTCHG, CCR_NIS)
+historical <- nis_open(nis_example(years = 2015)) |>
+  nis_flag_dx(historical = "428", system = "icd9")
+timing <- nis_flag_pr_timing(toy, "02UG0", "0JH60", relation = "after")
+counts <- nis_cell_counts(records, by = "group")
+costs <- nis_cost(charges, dollars = 2024)
+nis_cost_provenance(costs)
+```
+
+**What easyNIS does not do / what is still experimental.** It does not replace HCUP documentation, clinical code-set decisions, or study-specific design review. The placeholder-row variance strategy, cost method, ICD-9 support, and AHRQ Elixhauser comorbidity computation are experimental. Suppression reduces disclosure risk but does not rule out every deduction; review derived totals and follow your institution’s DUA process.

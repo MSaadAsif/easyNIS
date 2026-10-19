@@ -17,6 +17,7 @@ articles:
   - title: Guides
     navbar: Guides
     contents:
+      - why-easynis
       - getting-started
       - porting
       - articles/design-validation
