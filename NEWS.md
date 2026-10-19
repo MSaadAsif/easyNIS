@@ -2,9 +2,11 @@
 
 ## New features
 
-- `nis_design()` warns when annualized cohort years represented in `DQTR` have
-  fewer than four quarters, and explains how to exclude or separately reweight
-  those years.
+- `nis_design()` warns when annualized valid-design data represented in `DQTR`
+  have fewer than four quarters, and explains how to exclude or separately
+  reweight those years. It also warns when a 2015 cohort contains only
+  ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4), and
+  informs when `DQTR` is missing so the 2015 split cannot be checked.
 - `nis_cost()` records charge/CCR fields, CPI-U source and multipliers, base
   year, invalid CCR and missing charge counts, and adjusted-output meanings.
   Zero or negative CCR values now produce `NA` in `cost_adj` (previously zero
