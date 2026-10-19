@@ -52,6 +52,8 @@ survey::svymean(~LOS, design)
 
 `nis_design()` creates the survey design before applying the cohort domain, scopes hospital and stratum IDs by year, and annualizes the weights while retaining the design-based variance calculation.
 
+On this invented data the difference is not cosmetic. The hand-rolled total (124.8) is the two-year sum reported as if it were one year: twice the annual estimate of 62.4. Its standard error is also proportionally much smaller, about 4% of the estimate against about 14% from `nis_design()`. Publishing the hand-rolled figure would double the annual count and, compared with the domain design, overstate its precision.
+
 | Common hand-rolled problem | easyNIS | Function |
 |---|---|---|
 | Read and hold every annual file to work across years | Open annual Parquet data lazily; use Arrow by default or DuckDB with `engine = "duckdb"` | `nis_open()` |
