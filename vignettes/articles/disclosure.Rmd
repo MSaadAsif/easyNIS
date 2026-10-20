@@ -21,15 +21,16 @@ Suppression is a review aid, not a guarantee against every disclosure path.
 ## Count data-frame cells
 
 `nis_cell_counts()` counts unweighted discharges and distinct hospitals using
-year-scoped hospital IDs. This invented fixture has a small cell and a cell
-with support from only one hospital.
+year-scoped hospital IDs. This invented fixture has one cell with a small count
+and a separate cell with more than 10 discharges but support from only one
+hospital.
 
 ```{r counts}
 records <- data.frame(
-  YEAR = c(2020, 2020, 2020, 2020),
-  HOSP_NIS = c(1, 1, 2, 3),
-  group = c("A", "A", "A", "B"),
-  estimate = c(2.1, 2.1, 2.1, 8.4)
+  YEAR = rep(2020, 14),
+  HOSP_NIS = c(1, 1, 2, rep(3, 11)),
+  group = c(rep("A", 3), rep("B", 11)),
+  estimate = c(rep(2.1, 3), rep(8.4, 11))
 )
 cell_estimates <- dplyr::summarise(
   dplyr::group_by(records, group),
@@ -41,8 +42,9 @@ cells <- nis_cell_counts(records, by = "group") |>
 cells
 ```
 
-`A` is represented by two hospitals; `B` has one. Counts are unweighted and
-the displayed `estimate` is only a made-up value.
+`A` has three discharges across two hospitals; `B` has 11 discharges at one
+hospital. Counts are unweighted and the displayed `estimate` is only a made-up
+value.
 
 ## Suppress data frames
 
@@ -59,9 +61,9 @@ nis_suppress(
 )
 ```
 
-The output masks the small count and associated estimate in `A` and identifies
-`B` as supported by fewer than two hospitals. When a table has totals or
-grouped subtotals, inspect them for complementary disclosure.
+The output suppresses `A` under the inclusive ≤10 discharge rule and marks `B`
+under the two-hospital rule, despite its count being above 10. When a table has
+totals or grouped subtotals, inspect them for complementary disclosure.
 
 ## Suppress a gtsummary table
 

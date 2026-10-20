@@ -26,20 +26,20 @@ These results demonstrate the workflow and are not NIS population estimates.
 
 ## Articles
 
-- [Get started](articles/getting-started.html)
-- [Opening NIS data](articles/opening-data.html)
-- [Defining cohorts](articles/cohorts.html)
-- [Survey design and weighting](articles/survey-design.html)
-- [Descriptives and regression](articles/descriptives-models.html)
-- [Disclosure and suppression](articles/disclosure.html)
-- [Costs](articles/costs.html)
-- [Comorbidity](articles/comorbidity.html)
-- [Code transitions and sensitivity](articles/code-transitions.html)
-- [Data notes by year](articles/year-notes.html)
-- [Glossary](articles/glossary.html)
-- [Porting a study](articles/porting.html) · [Background](articles/why-easynis.html)
+- [Get started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
+- [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html)
+- [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html)
+- [Survey design and weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html)
+- [Descriptives and regression](https://msaadasif.github.io/easyNIS/articles/descriptives-models.html)
+- [Disclosure and suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html)
+- [Costs](https://msaadasif.github.io/easyNIS/articles/costs.html)
+- [Comorbidity](https://msaadasif.github.io/easyNIS/articles/comorbidity.html)
+- [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html)
+- [Data notes by year](https://msaadasif.github.io/easyNIS/articles/year-notes.html)
+- [Glossary](https://msaadasif.github.io/easyNIS/articles/glossary.html)
+- [Porting a study](https://msaadasif.github.io/easyNIS/articles/porting.html) · [Background](https://msaadasif.github.io/easyNIS/articles/why-easynis.html)
 
-Browse the [function reference](reference/index.html) for all exported topics.
+Browse the [function reference](https://msaadasif.github.io/easyNIS/reference/index.html) for all exported topics.
 
 ## Citation
 

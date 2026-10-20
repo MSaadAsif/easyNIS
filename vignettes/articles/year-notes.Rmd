@@ -34,6 +34,14 @@ is available, the function warns about years without four quarters and
 2015 cohorts confined to one coding era. Decide whether to exclude partial
 years or use another documented convention for the estimand.
 
+## Weights across the 2012 redesign
+
+Trend analyses spanning the 2012 NIS redesign use `TRENDWT` for records before
+2012 and `DISCWT` for records from 2012 onward. easyNIS supports 2012 and later
+and does not apply pre-2012 trend weights. Follow the [HCUP NIS trend weight
+guidance](https://hcup-us.ahrq.gov/db/nation/nis/trendwghts.jsp) when planning
+analyses that span the redesign.
+
 ## 2023 layout notes
 
 The package keeps `TOTCHG_2023` separate from earlier `TOTCHG` and notes

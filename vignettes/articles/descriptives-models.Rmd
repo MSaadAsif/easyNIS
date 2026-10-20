@@ -30,8 +30,10 @@ design <- nis_design(
 )
 ```
 
-The design contains adult fixture discharges, with non-cohort sampled records
-retained in its variance structure.
+The design contains adult cohort rows. For hospital-years with no cohort rows,
+`nis_design()` adds placeholder rows so those hospital-years remain represented
+in the design's variance structure. This placeholder method is experimental;
+review the design construction and its suitability for your analysis.
 
 ## Estimate weighted summaries
 
