@@ -29,6 +29,9 @@
 - `nis_suppress()` accepts `hospital_col` to mask cells based on fewer than two
   contributing hospitals; `nis_cell_counts()` computes unweighted discharge
   and year-scoped hospital counts from record-level data or an `nis_design()`.
+- `nis_suppress()` now suppresses zero discharge counts at or below the
+  threshold and rejects missing, non-finite, negative, or fractional
+  data-frame count values.
 
 # easyNIS 0.2.0
 

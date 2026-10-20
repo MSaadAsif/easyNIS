@@ -32,9 +32,10 @@
 #' and `by_year` counts; `by_year` includes years with exclusions when the
 #' year is itself valid. A discharge can fail more than one field.
 #'
-#' The query is scanned twice: once over the four design columns, and once to
-#' collect the cohort rows, so the cohort expression is evaluated one time over
-#' the full data.
+#' The query is scanned twice for design validation and cohort collection.
+#' When annualizing and `DQTR` is present, quarter coverage requires an
+#' additional summary scan. The cohort expression is evaluated once over the
+#' full data.
 #'
 #' @param .data Lazy Arrow query or data frame.
 #' @param cohort Logical data-masked cohort expression. Missing values are
@@ -196,7 +197,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       # small YEAR x DQTR summary, independent of cohort prevalence.
       data_quarters <- prepared |>
         dplyr::filter(.nis_valid) |>
-        dplyr::group_by(YEAR, DQTR) |>
+        dplyr::group_by(YEAR, .data$DQTR) |>
         dplyr::summarise(n = dplyr::n(), .groups = "drop") |>
         nis_collect()
       data_quarters <- data_quarters[
@@ -216,7 +217,11 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
         cli::cli_warn(c(
           paste0("Annualization includes year(s) with incomplete data-quarter coverage: ",
             paste(coverage_text, collapse = "; "), "."),
-          i = "Each listed year still counts as one whole year. Exclude partial years or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
+          i = paste0(
+            "Each listed year still counts as one whole year. Exclude partial ",
+            "years or set `annualize = FALSE` and apply a fractional-year ",
+            "factor with `nis_reweight()`."
+          )
         ))
       }
 
@@ -230,18 +235,29 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
         ]))
         if (length(cohort_quarters) == 1L && cohort_quarters == 4L) {
           cli::cli_warn(c(
-            "The cohort includes only ICD-10-coded 2015 discharges (Q4); 2015 counts as a whole year in annualization, although the cohort covers about one quarter of the year.",
+            paste0(
+              "The cohort includes only ICD-10-coded 2015 discharges (Q4); ",
+              "2015 counts as a whole year in annualization, although the ",
+              "cohort covers about one quarter of the year."
+            ),
             i = "Exclude 2015 or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
           ))
         } else if (length(cohort_quarters) > 0L && all(cohort_quarters %in% 1:3)) {
           cli::cli_warn(c(
-            "The cohort includes only ICD-9-coded 2015 discharges (Q1-Q3); 2015 counts as a whole year in annualization, although the cohort covers about three quarters of the year.",
+            paste0(
+              "The cohort includes only ICD-9-coded 2015 discharges (Q1-Q3); ",
+              "2015 counts as a whole year in annualization, although the ",
+              "cohort covers about three quarters of the year."
+            ),
             i = "Exclude 2015 or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
           ))
         }
       }
     } else if (2015L %in% design_years) {
-      cli::cli_inform("Cannot check the 2015 ICD-9/ICD-10 split because `DQTR` is unavailable; 2015 counts as a whole year in annualization.")
+      cli::cli_inform(paste0(
+        "Cannot check the 2015 ICD-9/ICD-10 split because `DQTR` is ",
+        "unavailable; 2015 counts as a whole year in annualization."
+      ))
     }
   }
   cohort_rows <- collected[which(collected$.nis_cohort), selected, drop = FALSE]
@@ -311,7 +327,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     )
     # Emit one message for cohort rows; placeholder rows are synthetic and
     # have no discharge CCR by construction.
-    .nis_cost_inform_invalid_ccr(
+    .nis_cost_inform_invalid_ccr( # nolint: object_usage_linter. Package helper.
       cost_provenance$rows_missing_or_invalid_ccr,
       cohort = TRUE
     )

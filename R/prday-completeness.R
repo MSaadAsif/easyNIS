@@ -63,7 +63,11 @@ nis_prday_completeness <- function(.data, pr,
       frame_match(pr, column)
     } else if (is_sql) {
       reduce_or(lapply(pr, function(prefix) {
-        rlang::expr(starts_with(as.character(!!rlang::sym(column)), !!prefix))
+        rlang::expr(
+          starts_with( # nolint: object_usage_linter. Tidyselect expression.
+            as.character(!!rlang::sym(column)), !!prefix
+          )
+        ) # nolint: object_usage_linter. Tidyselect expression.
       }))
     } else {
       arrow_match(pr, projection[column])
@@ -115,11 +119,13 @@ nis_prday_completeness <- function(.data, pr,
     }
     dplyr::as_tibble(summary)
   })
+  # nolint start: object_usage_linter. dplyr data-masked column names.
   output <- dplyr::bind_rows(summaries) |>
     dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_,
       100 * known_day / matched_slots)) |>
     dplyr::select(YEAR, slot, matched_slots, known_day, missing_day,
       sentinel_invalid_day, absent_prday_column, pct_known) |>
     dplyr::arrange(YEAR, slot)
+  # nolint end
   output
 }

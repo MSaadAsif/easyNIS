@@ -1,5 +1,10 @@
 ---
 title: "Why easyNIS: a guide for NIS analysts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Why easyNIS: a guide for NIS analysts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -42,7 +47,8 @@ The total of `one` is a weighted discharge count; the mean LOS also comes with a
 
 ```{r easyNIS-equivalent}
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50") |>
+nis <- nis_open(path) |>
+  nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(one = 1L)
 design <- nis_design(nis, cohort = AGE >= 18 & heart_failure,
                      keep = c(LOS, one), annualize = TRUE)
@@ -78,17 +84,22 @@ On this invented data the difference is not cosmetic. The hand-rolled total (124
 
 ## One workflow
 
-The same design can feed descriptive summaries and models. Apply suppression before sharing a table; the function reports the rule it used.
+The same design can feed descriptive summaries and models. The `tbl_svysummary()` suppression route checks discharge counts only. To apply both discharge and two-hospital rules before sharing cell counts, use `nis_cell_counts()` with data-frame suppression.
 
 ```{r workflow, results='hide'}
 path <- nis_example(years = 2019:2020)
 nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
 design <- nis_design(nis, cohort = AGE >= 18,
   keep = c(AGE, LOS, heart_failure), annualize = TRUE)
-table_one <- gtsummary::tbl_svysummary(design, by = heart_failure,
-  include = c(AGE, LOS)) |> nis_suppress(threshold = 10)
+table_one <- gtsummary::tbl_svysummary(
+  design, by = heart_failure, include = c(AGE, LOS)
+) |>
+  nis_suppress(threshold = 10)
+shareable_counts <- nis_cell_counts(nis, by = "heart_failure") |>
+  nis_suppress(count_col = "n", hospital_col = "hospitals")
 fit <- survey::svyglm(LOS ~ heart_failure + AGE, design = design)
 table_one
+shareable_counts
 summary(fit)
 ```
 

@@ -79,9 +79,10 @@ has a \code{nis_excluded} attribute containing aggregate \code{total}, \code{by_
 and \code{by_year} counts; \code{by_year} includes years with exclusions when the
 year is itself valid. A discharge can fail more than one field.
 
-The query is scanned twice: once over the four design columns, and once to
-collect the cohort rows, so the cohort expression is evaluated one time over
-the full data.
+The query is scanned twice for design validation and cohort collection.
+When annualizing and \code{DQTR} is present, quarter coverage requires an
+additional summary scan. The cohort expression is evaluated once over the
+full data.
 }
 
 \examples{

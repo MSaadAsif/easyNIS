@@ -105,7 +105,10 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
     multipliers = multipliers,
     rows_missing_or_invalid_ccr = invalid_ccr_count,
     rows_missing_charges = missing_charges_count,
-    ccr_treatment = "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained.",
+    ccr_treatment = paste0(
+      "Missing, non-finite, zero, or negative CCR_NIS values produce ",
+      "NA cost_adj; charges_adj is retained."
+    ),
     output_types = c(
       charges_adj = "Inflation-adjusted charges",
       cost_adj = "Estimated cost via CCR_NIS"

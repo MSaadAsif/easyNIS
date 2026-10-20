@@ -9,7 +9,9 @@
 #' errors; blank statistic cells do not require a count. When a by-group cell
 #' is masked, the overall cell (`stat_0`) in the same row is marked `Masked`,
 #' unless its own count is at or below the threshold. Other derivable cells
-#' still need analyst review before sharing.
+#' still need analyst review before sharing. This route checks discharge counts
+#' only; it cannot apply the two-hospital rule. Use `nis_cell_counts()` with the
+#' data-frame route to apply both disclosure rules.
 #'
 #' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
 #'   or `add_overall()`, or a data frame/tibble.
@@ -92,6 +94,12 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
     if (!is.numeric(counts)) {
       cli::cli_abort("`count_col` must refer to a numeric column.")
     }
+    if (anyNA(counts) || any(!is.finite(counts)) || any(counts < 0) ||
+        any(counts != floor(counts))) {
+      cli::cli_abort(
+        "`count_col` must contain finite, non-negative whole counts without missing values."
+      )
+    }
 
     hospital_primary <- rep(FALSE, nrow(x))
     if (length(hospital_col)) {
@@ -103,10 +111,9 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
           any(hospital_counts < 0) || any(hospital_counts != floor(hospital_counts))) {
         cli::cli_abort("`hospital_col` must contain finite, non-negative whole counts without missing values.")
       }
-      hospital_primary <- !is.na(counts) & is.finite(counts) &
-        counts > 0 & hospital_counts < 2
+      hospital_primary <- hospital_counts < 2
     }
-    count_primary <- !is.na(counts) & is.finite(counts) & counts > 0 & counts <= threshold
+    count_primary <- counts <= threshold
     primary <- count_primary | hospital_primary
     secondary_rows <- rep(FALSE, nrow(x))
     if (secondary && any(primary)) {
@@ -149,6 +156,10 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
   if (!identical(secondary, TRUE)) {
     cli::cli_abort("`secondary` applies only to data frames.")
   }
+
+  cli::cli_inform(
+    "`nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does not apply the two-hospital rule."
+  )
 
   body <- x$table_body
   cards <- x$cards$tbl_svysummary

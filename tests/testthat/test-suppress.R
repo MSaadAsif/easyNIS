@@ -23,7 +23,9 @@ test_that("suppression uses unweighted boundary and missing counts", {
     value = list(binary ~ 1L),
     missing = "ifany"
   )
-  suppressed <- nis_suppress(table)
+  expect_message(
+    suppressed <- nis_suppress(table), "two-hospital rule"
+  )
   labels <- suppressed$table_body$row_type == "label"
   expect_identical(enc2utf8(suppressed$table_body$stat_1[labels]),
     rep("\u226410", 2L))
@@ -72,17 +74,17 @@ test_that("nis_suppress masks low unweighted counts and adds the DUA footnote", 
 
 test_that("nis_suppress handles data frames and paired weighted columns", {
   data <- dplyr::tibble(
-    group = c("A", "A", "B", "B"),
-    n = c(4, 20, 0, NA_real_),
-    estimate = c(8.25, 40.5, 0, 7.75)
+    group = c("A", "A", "B"),
+    n = c(4, 20, 0),
+    estimate = c(8.25, 40.5, 0)
   )
   result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate",
     by = "group", secondary = FALSE)
 
   expect_s3_class(result, "tbl_df")
   expect_identical(result$group, data$group)
-  expect_identical(result$n, c("\u226410", "20", "0", NA_character_))
-  expect_identical(result$estimate, c("\u226410", "40.5", "0", "7.75"))
+  expect_identical(result$n, c("\u226410", "20", "\u226410"))
+  expect_identical(result$estimate, c("\u226410", "40.5", "\u226410"))
 })
 
 test_that("nis_suppress applies data-frame complementary masking by stratum", {
@@ -120,11 +122,22 @@ test_that("nis_suppress applies the two-hospital rule to data-frame cells", {
     c("<2 hospitals", "14.5", "\u226410", "20.5"))
 })
 
-test_that("the hospital rule leaves zero-count cells unmasked", {
+test_that("zero-count cells are suppressed", {
   data <- data.frame(n = c(0, 14), hospitals = c(0, 1))
   result <- nis_suppress(data, count_col = "n", hospital_col = "hospitals")
-  expect_identical(result$n, c("0", "<2 hospitals"))
-  expect_identical(result$hospitals, c("0", "<2 hospitals"))
+  expect_identical(result$n, c("\u226410", "<2 hospitals"))
+  expect_identical(result$hospitals, c("\u226410", "<2 hospitals"))
+})
+
+test_that("nis_suppress rejects invalid data-frame discharge counts", {
+  invalid_counts <- list(NA_real_, Inf, -1, 1.5)
+  for (count in invalid_counts) {
+    data <- data.frame(n = count)
+    expect_error(
+      nis_suppress(data, count_col = "n"),
+      "finite, non-negative whole counts without missing values"
+    )
+  }
 })
 
 test_that("hospital primary masks join complementary masking", {
