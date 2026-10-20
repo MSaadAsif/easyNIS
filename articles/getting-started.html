@@ -88,8 +88,8 @@ normalized across years; wholly lower-case names are left unchanged.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
 <span><span class="co">#&gt;    YEAR     n</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019    96</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>020    96</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>020    96</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019    96</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="flag-diagnoses-and-procedures">Flag diagnoses and procedures<a class="anchor" aria-label="anchor" href="#flag-diagnoses-and-procedures"></a>
@@ -191,7 +191,7 @@ available.</p>
 <span><span class="co">#&gt; palliative_careYes  1.679e+00  9.073e-01   1.850   0.1014    </span></span>
 <span><span class="co">#&gt; AGE                -5.156e-03  1.310e-02  -0.394   0.7041    </span></span>
 <span><span class="co">#&gt; FEMALEFemale       -9.736e-01  3.230e-01  -3.014   0.0167 *  </span></span>
-<span><span class="co">#&gt; factor(YEAR)2020   -7.866e-16  4.318e-01   0.000   1.0000    </span></span>
+<span><span class="co">#&gt; factor(YEAR)2020   -6.013e-16  4.318e-01   0.000   1.0000    </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -740,7 +740,7 @@ Its <code>analysis.qmd</code> runs on invented data until you set its
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"my-nis-study-"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/nis_new_study.html">nis_new_study</a></span><span class="op">(</span><span class="va">study</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/tmp/Rtmp6WMG25/my-nis-study-1e1464cb0f73"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmpjsPmbX/my-nis-study-1d5e26be2358"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">study</span>, all.files <span class="op">=</span> <span class="cn">TRUE</span>, no.. <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"</span></span></code></pre></div>
 <p>Edit the definitions block in <code>analysis.qmd</code> for your
