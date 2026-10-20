@@ -43,6 +43,14 @@ result of
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md);
 calling it on an already reweighted design compounds the weights.
 
+## See also
+
+[Survey design and
+weighting](https://msaadasif.github.io/easyNIS/reference/articles/survey-design.md).
+
+Other survey-design:
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+
 ## Examples
 
 ``` r

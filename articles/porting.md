@@ -182,3 +182,24 @@ contains no study records.
 
 The example directory can be removed after use with
 `unlink(example_path, recursive = TRUE)`.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Regex expressions may encode suffix rules that a prefix flag cannot
+>   reproduce. Review each code-set translation.
+> - A pooled analysis needs year-scoped hospital and stratum identifiers
+>   and a stated weight convention.
+> - Never treat
+>   [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+>   results as study or national estimates.
+
+Function references:
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
+and
+[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md).

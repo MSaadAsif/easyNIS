@@ -1,95 +1,81 @@
-# Getting started with easyNIS
+# Get started with easyNIS
 
-easyNIS takes you from annual National Inpatient Sample (NIS) Parquet
-files to a survey-weighted table, with primary small cells suppressed.
-This guide walks through the steps on
-[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-data: invented discharges that have the NIS column layout but no real
-records. Replace the example path with the directory that holds your own
-`NIS_<year>.parquet` files to run a real study.
+This guide opens invented discharges, defines a diagnosis cohort, builds
+a survey design, estimates weighted summaries, and checks disclosure.
+All input comes from
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md);
+it contains no real NIS records and results are for learning only.
 
-## Open the data
+## Open annual data
 
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-opens the annual files lazily, so nothing is read into memory until you
-ask for it. Mixed-case NIS column names are normalized across years;
-wholly lower-case names are left unchanged.
+scans Parquet files lazily. Collect only a small summary when you need
+to inspect records.
 
 ``` r
 
-path <- nis_example(years = 2019:2020)
-nis <- nis_open(path)
-
-nis |>
-  dplyr::count(YEAR) |>
-  dplyr::collect()
+nis <- nis_open(nis_example(years = 2019:2020))
+nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 2 × 2
 #>    YEAR     n
 #>   <int> <int>
-#> 1  2020    96
-#> 2  2019    96
+#> 1  2019    96
+#> 2  2020    96
 ```
 
-## Flag diagnoses and procedures
+The counts here describe the synthetic fixture by year. See [Opening NIS
+data](https://msaadasif.github.io/easyNIS/articles/opening-data.md) for
+column selection, engines, and year coverage.
 
-[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
-and
-[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
-add one logical column per named set of ICD-10 code prefixes. Each
-diagnosis or procedure slot is checked on its own, and the work stays
-lazy. Prefixes ignore case, periods, and spaces; stored codes must use
-the NIS upper-case, period-free layout.
+## Define a cohort
+
+Flags check each diagnosis slot independently. Prefixes are analyst
+supplied; easyNIS does not choose a clinical definition.
 
 ``` r
 
-nis <- nis |>
-  nis_flag_dx(
-    heart_failure = "I50",
-    palliative_care = "Z515"
-  ) |>
-  nis_flag_pr(ablation = "02L")
-
-nis |>
-  dplyr::count(heart_failure, palliative_care) |>
-  dplyr::collect()
-#> # A tibble: 4 × 3
-#>   heart_failure palliative_care     n
-#>   <lgl>         <lgl>           <int>
-#> 1 TRUE          FALSE              88
-#> 2 FALSE         FALSE              66
-#> 3 TRUE          TRUE               20
-#> 4 FALSE         TRUE               18
+nis <- nis |> nis_flag_dx(heart_failure = "I50")
+nis |> dplyr::count(heart_failure) |> dplyr::collect()
+#> # A tibble: 2 × 2
+#>   heart_failure     n
+#>   <lgl>         <int>
+#> 1 TRUE            108
+#> 2 FALSE            84
 ```
 
-Use `position = "principal"` to look at the principal diagnosis only. To
-build the prefix lists from an HCUP CCSR reference file that you
-download yourself, see
-[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md).
+The two rows show fixture records with and without a matching code.
+Review positions and code-system assumptions before using a flag; see
+[Defining
+cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.md).
 
-## Build the survey design
+## Build a survey design
 
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-takes a cohort expression and the columns to keep, collects the cohort,
-and returns a nested survey design. It adds a placeholder row for each
-hospital-year with no cohort discharges, so variance estimates account
-for the whole sample. It also labels coded fields, and, when `TOTCHG`
-and `CCR_NIS` are kept, adds inflation-adjusted `cost_adj` and
-`charges_adj`.
+The cohort is declared inside
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+This preserves sampled hospital-year information when no discharges meet
+the cohort.
 
 ``` r
 
 design <- nis_design(
   nis,
   cohort = heart_failure & AGE >= 18,
-  keep = c(AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS, palliative_care),
-  dollars = 2024
+  keep = c(AGE, FEMALE, LOS),
+  annualize = TRUE
 )
-#> Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.
+#> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
 ```
 
-Discharges with a missing or invalid design field are excluded with a
-warning that gives their number. The design-based tools in the survey
-and srvyr packages work on the result as they would on any other design.
+For a pooled design, `annualize = TRUE` divides discharge weights by the
+number of valid years. The rule treats each included year as a whole
+year; read [Survey design and
+weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md)
+before choosing it for a real analysis.
+
+## Estimate weighted summaries
+
+Use survey-aware summaries so standard errors account for strata and
+hospitals.
 
 ``` r
 
@@ -101,105 +87,48 @@ srvyr::summarise(
 #> # A tibble: 1 × 4
 #>   discharges discharges_se mean_los mean_los_se
 #>        <dbl>         <dbl>    <dbl>       <dbl>
-#> 1       125.          17.3     5.66       0.229
+#> 1       62.4          8.67     5.66       0.229
 ```
 
-## Table 1 and a model
+The estimated total and mean describe the fixture under its design
+fields, not national estimates. The standard errors are design based;
+ordinary row-level summaries would not represent this sampling design.
 
-[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-builds a weighted table from the design, and
-[`survey::svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html) fits a
-model that uses the survey structure.
+## Review disclosure
 
-The table chunks need the optional gtsummary, cardx, survey, and gt
-packages. Install them before running this guide if they are not already
-available.
+[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
+reports unweighted discharges and distinct year-scoped hospitals for
+each output cell.
 
 ``` r
 
-table_one <- gtsummary::tbl_svysummary(
-  design,
-  by = palliative_care,
-  include = c(AGE, FEMALE, LOS, cost_adj)
-) |>
-  gtsummary::add_overall()
+records <- dplyr::collect(nis)
+cells <- nis_cell_counts(records, by = "heart_failure")
+nis_suppress(cells, count_col = "n", hospital_col = "hospitals")
+#> # A tibble: 2 × 3
+#>   heart_failure n     hospitals
+#>   <lgl>         <chr> <chr>    
+#> 1 FALSE         84    24       
+#> 2 TRUE          108   18
 ```
 
-``` r
+Suppressed rows either meet the configured small-cell threshold or
+represent fewer than two hospitals. Review derived totals and follow the
+applicable HCUP Data Use Agreement. See [Disclosure and
+suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
 
-fit <- survey::svyglm(
-  LOS ~ palliative_care + AGE + FEMALE + factor(YEAR),
-  design = design
-)
+## Common pitfalls
 
-summary(fit)
-#> 
-#> Call:
-#> svyglm(formula = LOS ~ palliative_care + AGE + FEMALE + factor(YEAR), 
-#>     design = design)
-#> 
-#> Survey design:
-#> Called via srvyr
-#> 
-#> Coefficients:
-#>                      Estimate Std. Error t value Pr(>|t|)    
-#> (Intercept)         6.132e+00  6.441e-01   9.520 1.22e-05 ***
-#> palliative_careYes  1.679e+00  9.073e-01   1.850   0.1014    
-#> AGE                -5.156e-03  1.310e-02  -0.394   0.7041    
-#> FEMALEFemale       -9.736e-01  3.230e-01  -3.014   0.0167 *  
-#> factor(YEAR)2020   -6.013e-16  4.318e-01   0.000   1.0000    
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
-#> (Dispersion parameter for gaussian family taken to be 11.32638)
-#> 
-#> Number of Fisher Scoring iterations: 2
-```
+> **Common pitfalls**
+>
+> - Filtering to the cohort before building the design drops sampled
+>   hospital-years with no cohort records.
+> - Treating the invented fixture’s estimates as national results.
+> - Sharing a masked table without reviewing totals and other derivable
+>   cells.
 
-## Suppress small cells
-
-HCUP data use agreements require suppressing cells that describe 10 or
-fewer discharges.
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-masks displayed statistics whose unweighted count is at or below the
-threshold, along with the overall cell in the same row, and adds a
-footnote that says so. Review tables for other derivable cells, such as
-column totals, before you share them.
-
-``` r
-
-nis_suppress(table_one, threshold = 10)
-#> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does
-#> not apply the two-hospital rule.
-```
-
-[TABLE]
-
-## Start a study folder
-
+The exported
 [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
-copies a Quarto template to a new directory. The template reproduces the
-steps above as a report with cohort flow, Table 1, outcomes, yearly
-trends, and regression tables. Its `analysis.qmd` runs on invented data
-until you set its `data_path` parameter.
-
-``` r
-
-study <- tempfile("my-nis-study-")
-nis_new_study(study)
-#> [1] "/tmp/RtmpjsPmbX/my-nis-study-1d5e26be2358"
-list.files(study, all.files = TRUE, no.. = TRUE)
-#> [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"
-```
-
-Edit the definitions block in `analysis.qmd` for your cohort, then
-render it with Quarto.
-
-## Where next
-
-The “Porting an existing NIS study to easyNIS” vignette maps common
-regular-expression and recoding steps to easyNIS.
-[`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
-applies propensity weights to a design, and
-[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
-adds AHRQ Elixhauser columns; both are experimental.
+helper can copy a Quarto study skeleton; its template workflow is
+deferred. Start with the articles and function reference for a complete
+analysis workflow.

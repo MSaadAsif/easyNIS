@@ -2,11 +2,21 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/code-transitions: code-transitions.html
+  articles/cohorts: cohorts.html
+  articles/comorbidity: comorbidity.html
+  articles/costs: costs.html
+  articles/descriptives-models: descriptives-models.html
   articles/design-validation: design-validation.html
+  articles/disclosure: disclosure.html
   getting-started: getting-started.html
+  articles/glossary: glossary.html
+  articles/opening-data: opening-data.html
   porting: porting.html
+  articles/survey-design: survey-design.html
   articles/why-easynis: why-easynis.html
-last_built: 2026-10-20T16:39Z
+  articles/year-notes: year-notes.html
+last_built: 2026-10-20T18:05Z
 urls:
   reference: https://msaadasif.github.io/easyNIS/reference
   article: https://msaadasif.github.io/easyNIS/articles

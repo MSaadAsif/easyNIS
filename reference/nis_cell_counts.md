@@ -32,6 +32,14 @@ nis_cell_counts(.data, by)
 A data frame with the columns in `by`, `n` (unweighted discharges), and
 `hospitals` (distinct year-scoped hospitals).
 
+## See also
+
+[Disclosure and
+suppression](https://msaadasif.github.io/easyNIS/reference/articles/disclosure.md).
+
+Other disclosure:
+[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+
 ## Examples
 
 ``` r

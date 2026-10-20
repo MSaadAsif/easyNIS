@@ -52,6 +52,21 @@ weighted counts, shares of all prefix-positive presentations, and rates
 for requested outcomes. The principal presentation is a strict subset of
 any-position cases, so Cohen's kappa is not meaningful here.
 
+## See also
+
+[Code transitions and
+sensitivity](https://msaadasif.github.io/easyNIS/reference/articles/code-transitions.md).
+
+Other cohort-definition:
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
+[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
+[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+
 ## Examples
 
 ``` r

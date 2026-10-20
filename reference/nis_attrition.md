@@ -37,6 +37,21 @@ nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
 A tibble with one initial row (`step = 0`) and one row per criterion.
 When `by_year = TRUE`, `YEAR` is the first column.
 
+## See also
+
+[Defining
+cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+
+Other cohort-definition:
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
+[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
+[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
+[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+
 ## Examples
 
 ``` r

@@ -19,12 +19,17 @@ nis_new_study(path)
 
 The normalized path to the created study directory.
 
+## See also
+
+[Get started with
+easyNIS](https://msaadasif.github.io/easyNIS/reference/articles/getting-started.md).
+
 ## Examples
 
 ``` r
 study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
-#> [1] "/tmp/RtmpKF4MkA/nis-study-example-19ace5f9e2a"
+#> [1] "/tmp/Rtmpwvi9pp/nis-study-example-1b62711738db"
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 #> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"
 ```

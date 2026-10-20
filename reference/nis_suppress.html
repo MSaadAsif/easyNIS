@@ -37,16 +37,30 @@ data-frame route to apply both disclosure rules."><!-- dependencies from example
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
 
@@ -144,24 +158,25 @@ data or an <code><a href="nis_design.html">nis_design()</a></code> result.</p></
 character. For <code>gtsummary</code> results, the table with primary and secondary
 masks and a footnote describing them.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><a href="articles/disclosure.html">Disclosure and suppression</a>.</p>
+<p>Other disclosure:
+<code><a href="nis_cell_counts.html">nis_cell_counts()</a></code></p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/is_installed.html" class="external-link">is_installed</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"gtsummary"</span>, <span class="st">"cardx"</span>, <span class="st">"survey"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">RACE</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">table</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    <span class="va">design</span>,</span></span>
-<span class="r-in"><span>    by <span class="op">=</span> <span class="va">RACE</span>,</span></span>
-<span class="r-in"><span>    include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">nis_suppress</span><span class="op">(</span><span class="va">table</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># For data-frame summaries, join per-cell counts from record-level data and</span></span></span>
-<span class="r-in"><span><span class="co"># pass the resulting hospital column as `hospital_col`.</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">RACE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.</span>
+<span class="r-in"><span><span class="va">table</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">design</span>,</span></span>
+<span class="r-in"><span>  by <span class="op">=</span> <span class="va">RACE</span>,</span></span>
+<span class="r-in"><span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">nis_suppress</span><span class="op">(</span><span class="va">table</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> not apply the two-hospital rule.</span>
 <div class="gt-table"><div id="mwlefoodfi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">

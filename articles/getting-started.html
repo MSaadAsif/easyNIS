@@ -5,12 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Getting started with easyNIS • easyNIS</title>
+<title>Get started with easyNIS • easyNIS</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Getting started with easyNIS">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Get started with easyNIS">
+<meta name="description" content="A ten-minute, synthetic end-to-end NIS workflow.">
+<meta property="og:description" content="A ten-minute, synthetic end-to-end NIS workflow.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -29,18 +31,32 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="active nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="active nav-item dropdown">
+<li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
@@ -57,7 +73,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Getting started with easyNIS</h1>
+      <h1>Get started with easyNIS</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/MSaadAsif/easyNIS/blob/main/vignettes/getting-started.Rmd" class="external-link"><code>vignettes/getting-started.Rmd</code></a></small>
@@ -66,83 +82,66 @@
 
     
     
-<p>easyNIS takes you from annual National Inpatient Sample (NIS) Parquet
-files to a survey-weighted table, with primary small cells suppressed.
-This guide walks through the steps on <code><a href="../reference/nis_example.html">nis_example()</a></code> data:
-invented discharges that have the NIS column layout but no real records.
-Replace the example path with the directory that holds your own
-<code>NIS_&lt;year&gt;.parquet</code> files to run a real study.</p>
+<p>This guide opens invented discharges, defines a diagnosis cohort,
+builds a survey design, estimates weighted summaries, and checks
+disclosure. All input comes from <code><a href="../reference/nis_example.html">nis_example()</a></code>; it contains
+no real NIS records and results are for learning only.</p>
 <div class="section level2">
-<h2 id="open-the-data">Open the data<a class="anchor" aria-label="anchor" href="#open-the-data"></a>
+<h2 id="open-annual-data">Open annual data<a class="anchor" aria-label="anchor" href="#open-annual-data"></a>
 </h2>
-<p><code><a href="../reference/nis_open.html">nis_open()</a></code> opens the annual files lazily, so nothing is
-read into memory until you ask for it. Mixed-case NIS column names are
-normalized across years; wholly lower-case names are left unchanged.</p>
+<p><code><a href="../reference/nis_open.html">nis_open()</a></code> scans Parquet files lazily. Collect only a
+small summary when you need to inspect records.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
-<span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">nis</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
 <span><span class="co">#&gt;    YEAR     n</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>020    96</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019    96</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019    96</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>020    96</span></span></code></pre></div>
+<p>The counts here describe the synthetic fixture by year. See <a href="opening-data.html">Opening NIS data</a> for column selection,
+engines, and year coverage.</p>
 </div>
 <div class="section level2">
-<h2 id="flag-diagnoses-and-procedures">Flag diagnoses and procedures<a class="anchor" aria-label="anchor" href="#flag-diagnoses-and-procedures"></a>
+<h2 id="define-a-cohort">Define a cohort<a class="anchor" aria-label="anchor" href="#define-a-cohort"></a>
 </h2>
-<p><code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> add one
-logical column per named set of ICD-10 code prefixes. Each diagnosis or
-procedure slot is checked on its own, and the work stays lazy. Prefixes
-ignore case, periods, and spaces; stored codes must use the NIS
-upper-case, period-free layout.</p>
+<p>Flags check each diagnosis slot independently. Prefixes are analyst
+supplied; easyNIS does not choose a clinical definition.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span></span>
-<span>    heart_failure <span class="op">=</span> <span class="st">"I50"</span>,</span>
-<span>    palliative_care <span class="op">=</span> <span class="st">"Z515"</span></span>
-<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>ablation <span class="op">=</span> <span class="st">"02L"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">nis</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="va">palliative_care</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 3</span></span></span>
-<span><span class="co">#&gt;   heart_failure palliative_care     n</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> TRUE          FALSE              88</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> FALSE         FALSE              66</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> TRUE          TRUE               20</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> FALSE         TRUE               18</span></span></code></pre></div>
-<p>Use <code>position = "principal"</code> to look at the principal
-diagnosis only. To build the prefix lists from an HCUP CCSR reference
-file that you download yourself, see <code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code>.</p>
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
+<span><span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">heart_failure</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
+<span><span class="co">#&gt;   heart_failure     n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> TRUE            108</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> FALSE            84</span></span></code></pre></div>
+<p>The two rows show fixture records with and without a matching code.
+Review positions and code-system assumptions before using a flag; see <a href="cohorts.html">Defining cohorts</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="build-the-survey-design">Build the survey design<a class="anchor" aria-label="anchor" href="#build-the-survey-design"></a>
+<h2 id="build-a-survey-design">Build a survey design<a class="anchor" aria-label="anchor" href="#build-a-survey-design"></a>
 </h2>
-<p><code><a href="../reference/nis_design.html">nis_design()</a></code> takes a cohort expression and the columns
-to keep, collects the cohort, and returns a nested survey design. It
-adds a placeholder row for each hospital-year with no cohort discharges,
-so variance estimates account for the whole sample. It also labels coded
-fields, and, when <code>TOTCHG</code> and <code>CCR_NIS</code> are kept,
-adds inflation-adjusted <code>cost_adj</code> and
-<code>charges_adj</code>.</p>
+<p>The cohort is declared inside <code><a href="../reference/nis_design.html">nis_design()</a></code>. This
+preserves sampled hospital-year information when no discharges meet the
+cohort.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
 <span>  <span class="va">nis</span>,</span>
 <span>  cohort <span class="op">=</span> <span class="va">heart_failure</span> <span class="op">&amp;</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>,</span>
-<span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">DIED</span>, <span class="va">LOS</span>, <span class="va">TOTCHG</span>, <span class="va">CCR_NIS</span>, <span class="va">palliative_care</span><span class="op">)</span>,</span>
-<span>  dollars <span class="op">=</span> <span class="fl">2024</span></span>
+<span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">LOS</span><span class="op">)</span>,</span>
+<span>  annualize <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.</span></span></code></pre></div>
-<p>Discharges with a missing or invalid design field are excluded with a
-warning that gives their number. The design-based tools in the survey
-and srvyr packages work on the result as they would on any other
-design.</p>
+<span><span class="co">#&gt; Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.</span></span></code></pre></div>
+<p>For a pooled design, <code>annualize = TRUE</code> divides discharge
+weights by the number of valid years. The rule treats each included year
+as a whole year; read <a href="survey-design.html">Survey design and
+weighting</a> before choosing it for a real analysis.</p>
+</div>
+<div class="section level2">
+<h2 id="estimate-weighted-summaries">Estimate weighted summaries<a class="anchor" aria-label="anchor" href="#estimate-weighted-summaries"></a>
+</h2>
+<p>Use survey-aware summaries so standard errors account for strata and
+hospitals.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
 <span>  <span class="va">design</span>,</span>
@@ -152,608 +151,46 @@ design.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 4</span></span></span>
 <span><span class="co">#&gt;   discharges discharges_se mean_los mean_los_se</span></span>
 <span><span class="co">#&gt;        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>       125.          17.3     5.66       0.229</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>       62.4          8.67     5.66       0.229</span></span></code></pre></div>
+<p>The estimated total and mean describe the fixture under its design
+fields, not national estimates. The standard errors are design based;
+ordinary row-level summaries would not represent this sampling
+design.</p>
 </div>
 <div class="section level2">
-<h2 id="table-1-and-a-model">Table 1 and a model<a class="anchor" aria-label="anchor" href="#table-1-and-a-model"></a>
+<h2 id="review-disclosure">Review disclosure<a class="anchor" aria-label="anchor" href="#review-disclosure"></a>
 </h2>
-<p><code><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">gtsummary::tbl_svysummary()</a></code> builds a weighted table from
-the design, and <code><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">survey::svyglm()</a></code> fits a model that uses the
-survey structure.</p>
-<p>The table chunks need the optional gtsummary, cardx, survey, and gt
-packages. Install them before running this guide if they are not already
-available.</p>
+<p><code><a href="../reference/nis_cell_counts.html">nis_cell_counts()</a></code> reports unweighted discharges and
+distinct year-scoped hospitals for each output cell.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">table_one</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span>
-<span>  <span class="va">design</span>,</span>
-<span>  by <span class="op">=</span> <span class="va">palliative_care</span>,</span>
-<span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">LOS</span>, <span class="va">cost_adj</span><span class="op">)</span></span>
-<span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/add_overall.html" class="external-link">add_overall</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span></span>
-<span>  <span class="va">LOS</span> <span class="op">~</span> <span class="va">palliative_care</span> <span class="op">+</span> <span class="va">AGE</span> <span class="op">+</span> <span class="va">FEMALE</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span>,</span>
-<span>  design <span class="op">=</span> <span class="va">design</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; svyglm(formula = LOS ~ palliative_care + AGE + FEMALE + factor(YEAR), </span></span>
-<span><span class="co">#&gt;     design = design)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Survey design:</span></span>
-<span><span class="co">#&gt; Called via srvyr</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;                      Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)         6.132e+00  6.441e-01   9.520 1.22e-05 ***</span></span>
-<span><span class="co">#&gt; palliative_careYes  1.679e+00  9.073e-01   1.850   0.1014    </span></span>
-<span><span class="co">#&gt; AGE                -5.156e-03  1.310e-02  -0.394   0.7041    </span></span>
-<span><span class="co">#&gt; FEMALEFemale       -9.736e-01  3.230e-01  -3.014   0.0167 *  </span></span>
-<span><span class="co">#&gt; factor(YEAR)2020   -6.013e-16  4.318e-01   0.000   1.0000    </span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; (Dispersion parameter for gaussian family taken to be 11.32638)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Number of Fisher Scoring iterations: 2</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">records</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="va">nis</span><span class="op">)</span></span>
+<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">records</span>, by <span class="op">=</span> <span class="st">"heart_failure"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">cells</span>, count_col <span class="op">=</span> <span class="st">"n"</span>, hospital_col <span class="op">=</span> <span class="st">"hospitals"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
+<span><span class="co">#&gt;   heart_failure n     hospitals</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> FALSE         84    24       </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> TRUE          108   18</span></span></code></pre></div>
+<p>Suppressed rows either meet the configured small-cell threshold or
+represent fewer than two hospitals. Review derived totals and follow the
+applicable HCUP Data Use Agreement. See <a href="disclosure.html">Disclosure and suppression</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="suppress-small-cells">Suppress small cells<a class="anchor" aria-label="anchor" href="#suppress-small-cells"></a>
+<h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
 </h2>
-<p>HCUP data use agreements require suppressing cells that describe 10
-or fewer discharges. <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> masks displayed
-statistics whose unweighted count is at or below the threshold, along
-with the overall cell in the same row, and adds a footnote that says so.
-Review tables for other derivable cells, such as column totals, before
-you share them.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">table_one</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
-<span><span class="co">#&gt; `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does</span></span>
-<span><span class="co">#&gt; not apply the two-hospital rule.</span></span></code></pre></div>
-<div id="mwlefoodfi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#mwlefoodfi table {
-  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#mwlefoodfi thead, #mwlefoodfi tbody, #mwlefoodfi tfoot, #mwlefoodfi tr, #mwlefoodfi td, #mwlefoodfi th {
-  border-style: none;
-}
-
-#mwlefoodfi p {
-  margin: 0;
-  padding: 0;
-}
-
-#mwlefoodfi .gt_table {
-  display: table;
-  border-collapse: collapse;
-  line-height: normal;
-  margin-left: auto;
-  margin-right: auto;
-  color: #333333;
-  font-size: 16px;
-  font-weight: normal;
-  font-style: normal;
-  background-color: #FFFFFF;
-  width: auto;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #A8A8A8;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #A8A8A8;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_caption {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-#mwlefoodfi .gt_title {
-  color: #333333;
-  font-size: 125%;
-  font-weight: initial;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-color: #FFFFFF;
-  border-bottom-width: 0;
-}
-
-#mwlefoodfi .gt_subtitle {
-  color: #333333;
-  font-size: 85%;
-  font-weight: initial;
-  padding-top: 3px;
-  padding-bottom: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-color: #FFFFFF;
-  border-top-width: 0;
-}
-
-#mwlefoodfi .gt_heading {
-  background-color: #FFFFFF;
-  text-align: center;
-  border-bottom-color: #FFFFFF;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_bottom_border {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_col_headings {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_col_heading {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 6px;
-  padding-left: 5px;
-  padding-right: 5px;
-  overflow-x: hidden;
-}
-
-#mwlefoodfi .gt_column_spanner_outer {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
-#mwlefoodfi .gt_column_spanner_outer:first-child {
-  padding-left: 0;
-}
-
-#mwlefoodfi .gt_column_spanner_outer:last-child {
-  padding-right: 0;
-}
-
-#mwlefoodfi .gt_column_spanner {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  overflow-x: hidden;
-  display: inline-block;
-  width: 100%;
-}
-
-#mwlefoodfi .gt_spanner_row {
-  border-bottom-style: hidden;
-}
-
-#mwlefoodfi .gt_group_heading {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  text-align: left;
-}
-
-#mwlefoodfi .gt_empty_group_heading {
-  padding: 0.5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: middle;
-}
-
-#mwlefoodfi .gt_from_md > :first-child {
-  margin-top: 0;
-}
-
-#mwlefoodfi .gt_from_md > :last-child {
-  margin-bottom: 0;
-}
-
-#mwlefoodfi .gt_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin: 10px;
-  border-top-style: solid;
-  border-top-width: 1px;
-  border-top-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  overflow-x: hidden;
-}
-
-#mwlefoodfi .gt_stub {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#mwlefoodfi .gt_stub_row_group {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-  vertical-align: top;
-}
-
-#mwlefoodfi .gt_row_group_first td {
-  border-top-width: 2px;
-}
-
-#mwlefoodfi .gt_row_group_first th {
-  border-top-width: 2px;
-}
-
-#mwlefoodfi .gt_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#mwlefoodfi .gt_first_summary_row {
-  border-top-style: solid;
-  border-top-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_first_summary_row.thick {
-  border-top-width: 2px;
-}
-
-#mwlefoodfi .gt_last_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_grand_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#mwlefoodfi .gt_first_grand_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-style: double;
-  border-top-width: 6px;
-  border-top-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_last_grand_summary_row_top {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: double;
-  border-bottom-width: 6px;
-  border-bottom-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_striped {
-  background-color: rgba(128, 128, 128, 0.05);
-}
-
-#mwlefoodfi .gt_table_body {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_footnotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_footnote {
-  margin: 0px;
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#mwlefoodfi .gt_sourcenotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-
-#mwlefoodfi .gt_sourcenote {
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#mwlefoodfi .gt_left {
-  text-align: left;
-}
-
-#mwlefoodfi .gt_center {
-  text-align: center;
-}
-
-#mwlefoodfi .gt_right {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-#mwlefoodfi .gt_font_normal {
-  font-weight: normal;
-}
-
-#mwlefoodfi .gt_font_bold {
-  font-weight: bold;
-}
-
-#mwlefoodfi .gt_font_italic {
-  font-style: italic;
-}
-
-#mwlefoodfi .gt_super {
-  font-size: 65%;
-}
-
-#mwlefoodfi .gt_footnote_marks {
-  font-size: 75%;
-  vertical-align: 0.4em;
-  position: initial;
-}
-
-#mwlefoodfi .gt_asterisk {
-  font-size: 100%;
-  vertical-align: 0;
-}
-
-#mwlefoodfi .gt_indent_1 {
-  text-indent: 5px;
-}
-
-#mwlefoodfi .gt_indent_2 {
-  text-indent: 10px;
-}
-
-#mwlefoodfi .gt_indent_3 {
-  text-indent: 15px;
-}
-
-#mwlefoodfi .gt_indent_4 {
-  text-indent: 20px;
-}
-
-#mwlefoodfi .gt_indent_5 {
-  text-indent: 25px;
-}
-
-#mwlefoodfi .katex-display {
-  display: inline-flex !important;
-  margin-bottom: 0.75em !important;
-}
-
-#mwlefoodfi div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
-  height: 0px !important;
-}
-</style>
-<table class="table gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
-<thead><tr class="gt_col_headings">
-<th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label"><span class="gt_from_md"><strong>Characteristic</strong></span></th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_0">
-<span class="gt_from_md"><strong>Overall</strong><br>
-N = 125</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_1">
-<span class="gt_from_md"><strong>No</strong><br>
-N = 101</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_2">
-<span class="gt_from_md"><strong>Yes</strong><br>
-N = 23</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-    </tr></thead>
-<tbody class="gt_table_body">
-<tr>
-<td headers="label" class="gt_row gt_left">Age, years</td>
-<td headers="stat_0" class="gt_row gt_center">59 (41, 76)</td>
-<td headers="stat_1" class="gt_row gt_center">59 (38, 73)</td>
-<td headers="stat_2" class="gt_row gt_center">64 (49, 79)</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">Sex of patient</td>
-<td headers="stat_0" class="gt_row gt_center"><br></td>
-<td headers="stat_1" class="gt_row gt_center"><br></td>
-<td headers="stat_2" class="gt_row gt_center"><br></td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
-<td headers="stat_0" class="gt_row gt_center">Masked</td>
-<td headers="stat_1" class="gt_row gt_center">51 (50%)</td>
-<td headers="stat_2" class="gt_row gt_center">≤10</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
-<td headers="stat_0" class="gt_row gt_center">Masked</td>
-<td headers="stat_1" class="gt_row gt_center">50 (50%)</td>
-<td headers="stat_2" class="gt_row gt_center">≤10</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">Length of stay, days</td>
-<td headers="stat_0" class="gt_row gt_center">6.0 (3.0, 9.0)</td>
-<td headers="stat_1" class="gt_row gt_center">6.0 (2.0, 8.0)</td>
-<td headers="stat_2" class="gt_row gt_center">10.0 (3.0, 10.0)</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">Hospital cost (2024 USD)</td>
-<td headers="stat_0" class="gt_row gt_center">5,405 (5,257, 5,557)</td>
-<td headers="stat_1" class="gt_row gt_center">5,396 (5,253, 5,557)</td>
-<td headers="stat_2" class="gt_row gt_center">5,407 (5,272, 5,540)</td>
-</tr>
-</tbody>
-<tfoot>
-<tr class="gt_footnotes">
-<td class="gt_footnote" colspan="4">
-<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span> <span class="gt_from_md">Median (Q1, Q3); n (%)</span>
-</td>
-    </tr>
-<tr class="gt_footnotes">
-<td class="gt_footnote" colspan="4">
-<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10. Overall cells in rows with a masked by-group cell are marked 'Masked' unless their own count is at or below the threshold. Other derivable cells are not masked; review tables for other derivable cells before sharing under the HCUP Data Use Agreement.</td>
-    </tr>
-</tfoot>
-</table>
-</div>
-</div>
-<div class="section level2">
-<h2 id="start-a-study-folder">Start a study folder<a class="anchor" aria-label="anchor" href="#start-a-study-folder"></a>
-</h2>
-<p><code><a href="../reference/nis_new_study.html">nis_new_study()</a></code> copies a Quarto template to a new
-directory. The template reproduces the steps above as a report with
-cohort flow, Table 1, outcomes, yearly trends, and regression tables.
-Its <code>analysis.qmd</code> runs on invented data until you set its
-<code>data_path</code> parameter.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"my-nis-study-"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/nis_new_study.html">nis_new_study</a></span><span class="op">(</span><span class="va">study</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpjsPmbX/my-nis-study-1d5e26be2358"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">study</span>, all.files <span class="op">=</span> <span class="cn">TRUE</span>, no.. <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"</span></span></code></pre></div>
-<p>Edit the definitions block in <code>analysis.qmd</code> for your
-cohort, then render it with Quarto.</p>
-</div>
-<div class="section level2">
-<h2 id="where-next">Where next<a class="anchor" aria-label="anchor" href="#where-next"></a>
-</h2>
-<p>The “Porting an existing NIS study to easyNIS” vignette maps common
-regular-expression and recoding steps to easyNIS.
-<code><a href="../reference/nis_reweight.html">nis_reweight()</a></code> applies propensity weights to a design, and
-<code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> adds AHRQ Elixhauser columns; both are
-experimental.</p>
+<blockquote>
+<p><strong>Common pitfalls</strong></p>
+<ul>
+<li>Filtering to the cohort before building the design drops sampled
+hospital-years with no cohort records.</li>
+<li>Treating the invented fixture’s estimates as national results.</li>
+<li>Sharing a masked table without reviewing totals and other derivable
+cells.</li>
+</ul>
+</blockquote>
+<p>The exported <code><a href="../reference/nis_new_study.html">nis_new_study()</a></code> helper can copy a Quarto
+study skeleton; its template workflow is deferred. Start with the
+articles and function reference for a complete analysis workflow.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

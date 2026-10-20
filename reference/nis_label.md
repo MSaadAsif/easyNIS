@@ -28,6 +28,15 @@ supplied HCUP documentation represents missing numeric values as system
 missing and does not document negative sentinels for any element handled
 here.
 
+## See also
+
+[Opening NIS
+data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
+
+Other data-access:
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+
 ## Examples
 
 ``` r

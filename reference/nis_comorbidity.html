@@ -29,16 +29,30 @@ install.packages("medicalcoder").'></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
 
@@ -109,10 +123,12 @@ remain pending scientific approval.</p>
     <h2 id="assumptions">Assumptions<a class="anchor" aria-label="anchor" href="#assumptions"></a></h2>
 
 
-<ul><li><p><strong>Present on admission is not used.</strong> The public NIS has no POA flags, so
-every code is passed as present on admission (<code>poa = 1L</code>). Conditions that
-AHRQ restricts to POA codes are therefore flagged whenever coded, which can
-include complications that arose during the stay.</p></li>
+<ul><li><p><strong>Present on admission is approximated.</strong> NIS includes diagnosis POA fields
+(<code>DXPOA1</code>, <code>DXPOA2</code>, and so on), but this helper does not use them. It passes
+every diagnosis as present on admission (<code>poa = 1L</code>). AHRQ's refined
+Elixhauser method requires POA for 18 of its 38 measures, so this
+approximation can count a complication that arose during the stay as
+pre-existing for a POA-sensitive measure.</p></li>
 <li><p><strong>Principal diagnosis</strong> is <code>I10_DX1</code>. It is passed as the primary
 diagnosis, and <code>medicalcoder</code> applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
@@ -152,17 +168,18 @@ columns in the design instead, then pass the design here:</p>
 <p>For a <code>tbl_svy</code> the function replaces <code>design$variables</code> and leaves the
 design (clusters, strata, weights) untouched.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><a href="articles/comorbidity.html">Comorbidity indicators</a>.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/is_installed.html" class="external-link">is_installed</a></span><span class="op">(</span><span class="st">"medicalcoder"</span>, version <span class="op">=</span> <span class="st">"0.10.0"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="va">discharges</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">comorbid</span> <span class="op">&lt;-</span> <span class="fu">nis_comorbidity</span><span class="op">(</span><span class="va">discharges</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">comorbid</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_any"</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">discharges</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">comorbid</span> <span class="op">&lt;-</span> <span class="fu">nis_comorbidity</span><span class="op">(</span><span class="va">discharges</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">comorbid</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_any"</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 3</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     AGE cmrb_n cmrb_any</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
@@ -172,7 +189,6 @@ design (clusters, strata, weights) untouched.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>    49      0 FALSE   </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>    56      1 TRUE    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>    63      1 TRUE    </span>
-<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

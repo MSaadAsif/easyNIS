@@ -47,6 +47,21 @@ missing and all negative days (including HCUP sentinels) count as
 sentinel/invalid, matching
 [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md).
 
+## See also
+
+[Defining
+cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+
+Other cohort-definition:
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
+[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
+[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
+[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+
 ## Examples
 
 ``` r

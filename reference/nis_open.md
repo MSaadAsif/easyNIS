@@ -62,6 +62,15 @@ supported). Arrow can scan a Parquet string containing invalid UTF-8
 bytes, but this engine does not promise to repair them; a collected test
 value retained its invalid byte.
 
+## See also
+
+[Opening NIS
+data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
+
+Other data-access:
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
+[`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
+
 ## Examples
 
 ``` r

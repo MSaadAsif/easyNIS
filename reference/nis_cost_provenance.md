@@ -30,3 +30,53 @@ nis_cost_provenance(x)
 A list describing the charge and CCR fields, CPI-U source and base year,
 annual multipliers, invalid CCR and missing charge counts, and output
 meanings. Returns `NULL` when no cost adjustment provenance is present.
+
+## See also
+
+[Charges, costs, and
+provenance](https://msaadasif.github.io/easyNIS/reference/articles/costs.md).
+
+Other costs:
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
+
+## Examples
+
+``` r
+charges <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+  dplyr::collect() |>
+  nis_cost(dollars = 2024)
+nis_cost_provenance(charges)
+#> $charge_field
+#> [1] "TOTCHG"
+#> 
+#> $ccr_field
+#> [1] "CCR_NIS"
+#> 
+#> $inflation_index
+#> [1] "CPI-U All items, U.S. city average (annual average)"
+#> 
+#> $inflation_index_source
+#> [1] "U.S. Bureau of Labor Statistics, CPI-U All items, U.S. city average, not seasonally adjusted, series CUUR0000SA0; annual averages"
+#> 
+#> $base_year
+#> [1] 2024
+#> 
+#> $multipliers
+#>   year multiplier
+#> 1 2019   1.226992
+#> 
+#> $rows_missing_or_invalid_ccr
+#> [1] 0
+#> 
+#> $rows_missing_charges
+#> [1] 0
+#> 
+#> $ccr_treatment
+#> [1] "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained."
+#> 
+#> $output_types
+#>                  charges_adj                     cost_adj 
+#> "Inflation-adjusted charges" "Estimated cost via CCR_NIS" 
+#> 
+```

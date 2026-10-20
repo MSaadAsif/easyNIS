@@ -17,16 +17,30 @@ must not already exist."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
 
@@ -63,12 +77,16 @@ must not already exist.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>The normalized path to the created study directory.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><a href="articles/getting-started.html">Get started with easyNIS</a>.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">study_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"nis-study-example-"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">nis_new_study</span><span class="op">(</span><span class="va">study_path</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpKF4MkA/nis-study-example-19ace5f9e2a"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/Rtmpwvi9pp/nis-study-example-1b62711738db"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">study_path</span>, all.files <span class="op">=</span> <span class="cn">TRUE</span>, no.. <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"</span>
 </code></pre></div>

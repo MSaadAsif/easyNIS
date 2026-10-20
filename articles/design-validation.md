@@ -7,6 +7,37 @@ subsetting. Fixtures come from
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
 and contain no licensed records.
 
+## Run a synthetic design summary
+
+The example below builds a domain design from invented discharges and
+reports a weighted mean. Its values demonstrate the output structure;
+they are not NIS estimates.
+
+``` r
+
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(
+  nis,
+  cohort = heart_failure & AGE >= 18,
+  keep = c(AGE, LOS)
+)
+#> Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE)
+)
+#> # A tibble: 1 × 4
+#>   discharges discharges_se mean_age mean_age_se
+#>        <dbl>         <dbl>    <dbl>       <dbl>
+#> 1       125.          17.3     57.6       0.987
+```
+
+The total and mean are design-based summaries of the synthetic cohort.
+The standard errors use the NIS-style strata and hospital structure
+supplied in the fixture.
+
 ## Cases
 
 - Complete pooled years (2017–2019), with cohort and non-cohort
@@ -54,3 +85,18 @@ design. For invalid-row cases, filter out exactly the rows that
 excludes before building the reference. This preserves non-cohort
 observations in each hospital-year so domain estimates have the same
 sampling structure.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Comparing a design created after filtering to the full-design domain
+>   reference does not test the same variance calculation.
+> - Use invented fixture outputs only to check mechanics, not inference.
+> - Agreement in the listed cases does not validate assumptions beyond
+>   those cases.
+
+See
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+and [Survey design and
+weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md).

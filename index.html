@@ -31,18 +31,32 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/getting-started.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
@@ -56,133 +70,52 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="easynis">easyNIS<a class="anchor" aria-label="anchor" href="#easynis"></a>
 </h1></div>
-<p><strong>A tidy, reproducible workflow for opening, defining cohorts in, and analysing HCUP National Inpatient Sample (NIS) data with survey weights.</strong></p>
-<p><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/lint.yaml/badge.svg" alt="Lint"></a> <a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a> <a href="https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE" class="external-link"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a></p>
-<div class="section level2">
-<h2 id="why-easynis">Why easyNIS?<a class="anchor" aria-label="anchor" href="#why-easynis"></a>
-</h2>
-<p>NIS analysis often repeats the same file opening, code-prefix matching, survey-design setup, and disclosure review in every study. easyNIS provides pipe-friendly helpers for those steps while leaving study definitions and statistical decisions with the analyst. Annual Parquet files open lazily through Arrow; <code><a href="reference/nis_design.html">nis_design()</a></code> prepares a <code>srvyr</code> design; and <code><a href="reference/nis_example.html">nis_example()</a></code> supplies invented offline data for learning and examples.</p>
-</div>
+<p><strong>A tidy workflow for opening, defining cohorts in, and analyzing HCUP National Inpatient Sample (NIS) data.</strong> easyNIS opens annual Parquet files, flags codes, prepares survey designs, and helps review outputs. Methods and some year-specific support are experimental; consult the articles and official HCUP documentation before analysis.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"MSaadAsif/easyNIS"</span><span class="op">)</span></span></code></pre></div>
-<p>To install the pinned 0.2.0 release:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"MSaadAsif/easyNIS@v0.2.0"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<p>This complete example uses only the package’s invented offline fixture. It does not need HCUP files.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<p>This example runs entirely on invented <code><a href="reference/nis_example.html">nis_example()</a></code> data.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MSaadAsif/easyNIS" class="external-link">easyNIS</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
-<span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
-<span>  <span class="va">nis</span>,</span>
-<span>  cohort <span class="op">=</span> <span class="va">heart_failure</span> <span class="op">&amp;</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>,</span>
-<span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">DIED</span>, <span class="va">LOS</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
-<span>  <span class="va">design</span>,</span>
-<span>  discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  mean_age <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">AGE</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>The example records and code values are invented. To analyse real data, use files you are authorized to access and follow the HCUP Data Use Agreement.</p>
+<span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu"><a href="reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span> <span class="op">&amp;</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>,</span>
+<span>                     keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">DIED</span>, <span class="va">LOS</span><span class="op">)</span>, annualize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>                 mean_age <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">AGE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>These results demonstrate the workflow and are not NIS population estimates.</p>
 </div>
 <div class="section level2">
-<h2 id="functions-by-task">Functions by task<a class="anchor" aria-label="anchor" href="#functions-by-task"></a>
+<h2 id="articles">Articles<a class="anchor" aria-label="anchor" href="#articles"></a>
 </h2>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>Task</th>
-<th>Functions</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>Open and flag</td>
-<td>
-<code><a href="reference/nis_example.html">nis_example()</a></code> creates invented Parquet fixtures; <code><a href="reference/nis_open.html">nis_open()</a></code> opens annual Parquet data lazily with Arrow or the DuckDB engine; <code><a href="reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="reference/nis_flag_pr.html">nis_flag_pr()</a></code> add diagnosis and procedure prefix flags; <code><a href="reference/nis_flag_dx_position.html">nis_flag_dx_position()</a></code> flags diagnosis positions; <code><a href="reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> flags procedure timing.</td>
-</tr>
-<tr>
-<td>Design and weighting</td>
-<td>
-<code><a href="reference/nis_design.html">nis_design()</a></code> prepares a survey design for a declared cohort; <code><a href="reference/nis_reweight.html">nis_reweight()</a></code> multiplies its cohort weights (experimental).</td>
-</tr>
-<tr>
-<td>Cohort reporting and audits</td>
-<td>
-<code><a href="reference/nis_attrition.html">nis_attrition()</a></code> summarizes cohort attrition; <code><a href="reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> audits code-system transitions; <code><a href="reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> reports descriptive point estimates for diagnosis sensitivity analyses.</td>
-</tr>
-<tr>
-<td>Comorbidity and CCSR</td>
-<td>
-<code><a href="reference/nis_comorbidity.html">nis_comorbidity()</a></code> adds AHRQ Elixhauser Refined indicators through <code>medicalcoder</code> (experimental); <code><a href="reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified).</td>
-</tr>
-<tr>
-<td>Labels and costs</td>
-<td>
-<code><a href="reference/nis_label.html">nis_label()</a></code> applies supported HCUP labels; <code><a href="reference/nis_cost.html">nis_cost()</a></code> adjusts charges and cost estimates using the package’s CPI-U series and <code>CCR_NIS</code> (experimental method).</td>
-</tr>
-<tr>
-<td>Suppression and study setup</td>
-<td>
-<code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks small cells and, when supplied with contributing-hospital counts, cells based on fewer than two hospitals; <code><a href="reference/nis_cell_counts.html">nis_cell_counts()</a></code> creates unweighted discharge and year-scoped hospital counts from records or an <code><a href="reference/nis_design.html">nis_design()</a></code> result; <code><a href="reference/nis_new_study.html">nis_new_study()</a></code> creates a Quarto study folder from the package template.</td>
-</tr>
-</tbody>
-</table>
-<p>See the <a href="https://msaadasif.github.io/easyNIS/reference/index.html">function reference</a> for arguments and details.</p>
-</div>
-<div class="section level2">
-<h2 id="supported-years-and-limitations">Supported years and limitations<a class="anchor" aria-label="anchor" href="#supported-years-and-limitations"></a>
-</h2>
-<p>The package accepts NIS data years 2012 onward. This describes the supported input range, not verification of every annual layout or scientific approval of the methods.</p>
 <ul>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/getting-started.html">Get started</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/opening-data.html">Opening NIS data</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/cohorts.html">Defining cohorts</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/survey-design.html">Survey design and weighting</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/descriptives-models.html">Descriptives and regression</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/disclosure.html">Disclosure and suppression</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/costs.html">Costs</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/comorbidity.html">Comorbidity</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/code-transitions.html">Code transitions and sensitivity</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/year-notes.html">Data notes by year</a></li>
+<li><a href="https://msaadasif.github.io/easyNIS/articles/glossary.html">Glossary</a></li>
 <li>
-<strong>ICD-10:</strong> The default diagnosis and procedure flaggers target the <code>I10_DX*</code> and <code>I10_PR*</code> slots.</li>
-<li>
-<strong>ICD-9, 2012–2015:</strong> Experimental. The code treats 2012–2014 and 2015 Q1–Q3 as ICD-9, with Q4 2015 ICD-10. The 2015 coding transition is documented, but some annual slot-layout and version-metadata assumptions are <strong>UNVERIFIED</strong> against primary HCUP layouts. <code>docs/ICD9-SUPPORT.md</code> records the evidence and assumptions. No crosswalk or clinical code list is bundled.</li>
-<li>
-<strong>NIS 2023:</strong> Experimental and <strong>UNVERIFIED</strong> against official 2023 documentation or real 2023 data. Assumptions include the <code>TOTCHG_2023</code> field, removed geography fields, and sequential stratum identifiers. The distinct 2023 charge field is not silently combined with <code>TOTCHG</code>.</li>
-<li>
-<strong>CCSR CSV/Excel layouts:</strong> The reader validates expected fields and code shape, but its assumptions about downloaded HCUP reference-file layouts are <strong>UNVERIFIED</strong>. No CCSR content is bundled.</li>
-<li>
-<strong>Variance and cost methods:</strong> The zero-domain placeholder-row variance method and cost adjustment remain experimental pending scientific approval. CPI-U adjustment uses the included annual series; cost estimates additionally require the appropriate <code>CCR_NIS</code>. Review methods and outputs for your study.</li>
+<a href="https://msaadasif.github.io/easyNIS/articles/porting.html">Porting a study</a> · <a href="https://msaadasif.github.io/easyNIS/articles/why-easynis.html">Background</a>
+</li>
 </ul>
-<p>Read the <a href="https://msaadasif.github.io/easyNIS/articles/getting-started.html">Getting started vignette</a> and the <a href="https://msaadasif.github.io/easyNIS/articles/porting.html">porting guide</a> for worked workflows. The <a href="https://github.com/MSaadAsif/easyNIS/blob/main/docs/ANALYST-WORKFLOW.md" class="external-link">analyst workflow note</a> explains the redesign context.</p>
-</div>
-<div class="section level2">
-<h2 id="data-use-and-privacy">Data use and privacy<a class="anchor" aria-label="anchor" href="#data-use-and-privacy"></a>
-</h2>
-<p>NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; <code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks unweighted cells at or below 10 by default. To apply HCUP’s two-hospital rule to data-frame summaries, join <code><a href="reference/nis_cell_counts.html">nis_cell_counts()</a></code> results and pass <code>hospital_col</code>; <code>gtsummary</code> summary cards do not contain cell-level hospital counts. Suppression does not automatically prevent every form of inference. Follow your institution’s disclosure rules and the applicable HCUP requirements.</p>
+<p>Browse the <a href="https://msaadasif.github.io/easyNIS/reference/index.html">function reference</a> for all exported topics.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<p>If easyNIS supports your work, cite the package and the version used. In R, run:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"easyNIS"</span><span class="op">)</span></span></code></pre></div>
-<p>Please also cite the HCUP NIS and any methods or code-set references used in your analysis.</p>
-</div>
-<div class="section level2">
-<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
-</h2>
-<p>See <a href="CONTRIBUTING.html">CONTRIBUTING.md</a> for setup, checks, style, and privacy requirements. Please use GitHub Issues for bugs, feature requests, and questions; report security or privacy concerns as described in <a href="SECURITY.html">SECURITY.md</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
-</h2>
-<p>easyNIS is available under the MIT License. See the <a href="https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE" class="external-link">LICENSE file</a>.</p>
+<p>Run <code>citation("easyNIS")</code> in R for the package citation. Cite the HCUP NIS documentation and other methods or code-set references used in your analysis.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

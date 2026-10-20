@@ -21,6 +21,15 @@ nis_example(years = 2017:2022)
 
 The temporary directory containing `NIS_<year>.parquet/` entries.
 
+## See also
+
+[Opening NIS
+data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
+
+Other data-access:
+[`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md),
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+
 ## Examples
 
 ``` r

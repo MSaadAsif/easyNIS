@@ -87,24 +87,27 @@ For data frames, the same table with masked columns converted to
 character. For `gtsummary` results, the table with primary and secondary
 masks and a footnote describing them.
 
+## See also
+
+[Disclosure and
+suppression](https://msaadasif.github.io/easyNIS/reference/articles/disclosure.md).
+
+Other disclosure:
+[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
+
 ## Examples
 
 ``` r
-if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
-  nis <- nis_open(nis_example(years = 2019:2020)) |>
-    nis_flag_dx(heart_failure = "I50")
-  design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
-  table <- gtsummary::tbl_svysummary(
-    design,
-    by = RACE,
-    include = c(AGE, FEMALE)
-  )
-  nis_suppress(table, threshold = 10)
-
-# For data-frame summaries, join per-cell counts from record-level data and
-# pass the resulting hospital column as `hospital_col`.
-}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 #> Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.
+table <- gtsummary::tbl_svysummary(
+  design,
+  by = RACE,
+  include = c(AGE, FEMALE)
+)
+nis_suppress(table, threshold = 10)
 #> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does
 #> not apply the two-hospital rule.
 

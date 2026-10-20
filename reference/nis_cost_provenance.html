@@ -21,16 +21,30 @@ by nis_design()."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
+    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
+    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
+    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
+    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
+    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
+    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
 
@@ -72,7 +86,54 @@ by <code><a href="nis_design.html">nis_design()</a></code>.</p></dd>
 year, annual multipliers, invalid CCR and missing charge counts, and output
 meanings. Returns <code>NULL</code> when no cost adjustment provenance is present.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><a href="articles/costs.html">Charges, costs, and provenance</a>.</p>
+<p>Other costs:
+<code><a href="nis_cost.html">nis_cost()</a></code></p></div>
+    </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">charges</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">TOTCHG</span>, <span class="va">CCR_NIS</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="nis_cost.html">nis_cost</a></span><span class="op">(</span>dollars <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">nis_cost_provenance</span><span class="op">(</span><span class="va">charges</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $charge_field</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "TOTCHG"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ccr_field</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "CCR_NIS"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $inflation_index</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "CPI-U All items, U.S. city average (annual average)"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $inflation_index_source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "U.S. Bureau of Labor Statistics, CPI-U All items, U.S. city average, not seasonally adjusted, series CUUR0000SA0; annual averages"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $base_year</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2024</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $multipliers</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   year multiplier</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 2019   1.226992</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $rows_missing_or_invalid_ccr</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $rows_missing_charges</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $ccr_treatment</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained."</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $output_types</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  charges_adj                     cost_adj </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> "Inflation-adjusted charges" "Estimated cost via CCR_NIS" </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

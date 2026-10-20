@@ -102,6 +102,14 @@ When annualizing and `DQTR` is present, quarter coverage requires an
 additional summary scan. The cohort expression is evaluated once over
 the full data.
 
+## See also
+
+[Survey design and
+weighting](https://msaadasif.github.io/easyNIS/reference/articles/survey-design.md).
+
+Other survey-design:
+[`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
+
 ## Examples
 
 ``` r

@@ -66,6 +66,21 @@ in two calls and combined, for example
 easyNIS ships no code lists and no ICD-9 to ICD-10 crosswalk, and even
 with both code sets, counts of a condition can break at the transition.
 
+## See also
+
+[Defining
+cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+
+Other cohort-definition:
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
+[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
+[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+
 ## Examples
 
 ``` r

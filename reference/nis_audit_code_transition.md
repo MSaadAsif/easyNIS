@@ -69,6 +69,21 @@ and `yoy_pct_change`. The change is the relative percent change in
 It is `NA` for the first period, a missing period, or when the previous
 period's percentage is zero.
 
+## See also
+
+[Code transitions and
+sensitivity](https://msaadasif.github.io/easyNIS/reference/articles/code-transitions.md).
+
+Other cohort-definition:
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
+[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
+[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+
 ## Examples
 
 ``` r

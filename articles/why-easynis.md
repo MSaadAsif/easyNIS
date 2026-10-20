@@ -1,6 +1,6 @@
-# Why easyNIS: a guide for NIS analysts
+# Background: Why easyNIS
 
-## Why it matters
+## Background
 
 NIS estimates depend on getting the survey design, cohort, and reporting
 rules right. HCUP publishes a methods checklist because these choices
@@ -73,13 +73,12 @@ creates the survey design before applying the cohort domain, scopes
 hospital and stratum IDs by year, and annualizes the weights while
 retaining the design-based variance calculation.
 
-On this invented data the difference is not cosmetic. The hand-rolled
-total (124.8) is the two-year sum reported as if it were one year: twice
-the annual estimate of 62.4. Its standard error is also proportionally
-much smaller, about 4% of the estimate against about 14% from
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-Publishing the hand-rolled figure would double the annual count and,
-compared with the domain design, overstate its precision.
+The hand-rolled and easyNIS outputs use different design and pooling
+conventions. Read the printed estimates and standard errors as a
+demonstration of why those choices matter in this invented fixture; they
+are not NIS population results. For the full reasoning and workflow, see
+[Survey design and
+weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md).
 
 | Common hand-rolled problem | easyNIS | Function |
 |----|----|----|
@@ -94,7 +93,7 @@ compared with the domain design, overstate its precision.
 | Treat charges as costs or apply an undocumented conversion | Convert charges using CCR and CPI-U and retain provenance | [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md) |
 | Recreate comorbidity indicators from diagnosis slots | Compute the supported ICD-10 Elixhauser indicators | [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md) |
 | Publish small cells or cells from too few hospitals | Count supporting hospitals and suppress small or single-hospital cells | [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md); [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md) |
-| Rebuild the same project scaffolding for each study | Create a one-file Quarto study skeleton | [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) |
+| Rebuild the same project scaffolding for each study | [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) can copy a Quarto skeleton; its template tutorial is deferred | [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) |
 
 ## Built-in safety checks
 
@@ -198,10 +197,21 @@ nis_flag_pr_timing(procedures, "02UG0", "0JH60", relation = "after")
 #> 3 02UG0JZ 0JH604Z      0      0 FALSE
 ```
 
-**What easyNIS does not do / what is still experimental.** It does not
-replace HCUP documentation, clinical code-set decisions, or
-study-specific design review. The placeholder-row variance strategy,
-cost method, ICD-9 support, and AHRQ Elixhauser comorbidity computation
-are experimental. Suppression reduces disclosure risk but does not rule
-out every deduction; review derived totals and follow your institution’s
-DUA process.
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - A workflow helper does not replace the official HCUP documentation,
+>   clinical code-set decisions, or study-specific design review.
+> - The placeholder-row variance strategy, cost method, ICD-9 support,
+>   and AHRQ Elixhauser computation are experimental.
+> - Suppression reduces disclosure risk but does not rule out every
+>   deduction; review derived totals and follow the applicable DUA
+>   process.
+
+See [Get
+started](https://msaadasif.github.io/easyNIS/getting-started.md),
+[Survey design and
+weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md),
+and [Disclosure and
+suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
