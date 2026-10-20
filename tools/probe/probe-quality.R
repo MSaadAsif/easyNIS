@@ -183,7 +183,7 @@ lint_detail <- function(value) {
 quality_step_detail <- function(x, counts) {
   value <- x$value
   if (inherits(value, "error")) return(x$error)
-  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(value))
+  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(x$name, value))
   if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
   if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(lint_detail(value))
   ""
