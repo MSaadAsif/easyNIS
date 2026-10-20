@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+if [ -n "${EASYNIS_RSCRIPT:-}" ]; then
+  "$EASYNIS_RSCRIPT" tools/check-no-private-data.R
+else
+  Rscript tools/check-no-private-data.R
+fi
