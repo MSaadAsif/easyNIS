@@ -15,10 +15,11 @@
 ^LICENSE\.md$
 ^docs$
 ^local-data($|[/\\])
-^local-validation($|[/\\])
+^local$
 ^private($|[/\\])
 ^worktrees($|[/\\])
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
 ^_pkgdown\.yml$
 ^_site($|[/\\])
+^\.githooks($|[/\\])
