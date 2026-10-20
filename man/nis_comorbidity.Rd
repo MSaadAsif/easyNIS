@@ -44,10 +44,12 @@ remain pending scientific approval.
 \section{Assumptions}{
 
 \itemize{
-\item \strong{Present on admission is not used.} The public NIS has no POA flags, so
-every code is passed as present on admission (\code{poa = 1L}). Conditions that
-AHRQ restricts to POA codes are therefore flagged whenever coded, which can
-include complications that arose during the stay.
+\item \strong{Present on admission is approximated.} NIS includes diagnosis POA fields
+(\code{DXPOA1}, \code{DXPOA2}, and so on), but this helper does not use them. It passes
+every diagnosis as present on admission (\code{poa = 1L}). AHRQ's refined
+Elixhauser method requires POA for 18 of its 38 measures, so this
+approximation can count a complication that arose during the stay as
+pre-existing for a POA-sensitive measure.
 \item \strong{Principal diagnosis} is \code{I10_DX1}. It is passed as the primary
 diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
@@ -91,13 +93,15 @@ design (clusters, strata, weights) untouched.
 }
 
 \examples{
-\donttest{
-if (rlang::is_installed("medicalcoder", version = "0.10.0")) {
-  discharges <- nis_open(nis_example(years = 2019)) |>
-    dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
-    dplyr::collect()
-  comorbid <- nis_comorbidity(discharges)
-  comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+\dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
+discharges <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::collect()
+comorbid <- nis_comorbidity(discharges)
+comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+\dontshow{\}) # examplesIf}
 }
+\seealso{
+\href{articles/comorbidity.html}{Comorbidity indicators}.
 }
-}
+\concept{comorbidity}

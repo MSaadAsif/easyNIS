@@ -230,6 +230,8 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
 #'
 #' @param path A new local directory path for the study.
 #' @return The normalized path to the created study directory.
+#' @family study-setup
+#' @seealso [Get started with easyNIS](articles/getting-started.html).
 #' @export
 #' @examples
 #' study_path <- tempfile("nis-study-example-")

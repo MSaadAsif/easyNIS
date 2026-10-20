@@ -1,0 +1,104 @@
+---
+title: "Descriptives and regression"
+description: "Summarize and model a cohort with srvyr, survey, and gtsummary."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Descriptives and regression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Prepare one survey design
+
+Declare the cohort in `nis_design()` and keep the columns needed by the
+summary and model.
+
+```{r design}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50") |>
+  dplyr::mutate(death = as.integer(DIED))
+design <- nis_design(
+  nis,
+  cohort = AGE >= 18,
+  keep = c(AGE, FEMALE, LOS, DIED, death, heart_failure),
+  annualize = TRUE
+)
+```
+
+The design contains adult cohort rows. For hospital-years with no cohort rows,
+`nis_design()` adds placeholder rows so those hospital-years remain represented
+in the design's variance structure. This placeholder method is experimental;
+review the design construction and its suitability for your analysis.
+
+## Estimate weighted summaries
+
+`srvyr` adds tidy verbs to survey designs. The total below is an annualized
+weighted discharge estimate; the mean and its standard error use the survey
+design.
+
+```{r srvyr}
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE),
+  death_rate = srvyr::survey_mean(death)
+)
+```
+
+All values come from invented rows and illustrate output shape only.
+
+## Build a Table 1
+
+`gtsummary::tbl_svysummary()` formats weighted descriptive statistics. These
+optional packages are needed for this section.
+
+```{r table, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
+table_one <- gtsummary::tbl_svysummary(
+  design,
+  by = heart_failure,
+  include = c(AGE, FEMALE, LOS, DIED)
+) |>
+  gtsummary::add_overall()
+table_one
+```
+
+The columns compare the flag groups with an overall column. Inspect the
+unweighted cell counts before sharing; the table is not automatically
+disclosure-cleared.
+
+## Fit a survey-weighted model
+
+`survey::svyglm()` fits generalized linear models using the design.
+
+```{r model, eval=rlang::is_installed("survey")}
+fit <- survey::svyglm(
+  death ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  design = design,
+  family = quasibinomial()
+)
+summary(fit)
+```
+
+Coefficients describe model associations under the survey design; they do not
+establish causality. The synthetic data are too small and artificial for
+substantive conclusions.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Use `survey`/`srvyr` methods on the survey design, not ordinary row-level
+>   summaries when reporting design-based uncertainty.
+> - A weighted estimate does not validate the cohort definition, model, or
+>   causal interpretation.
+> - Apply disclosure review separately; weighted summaries alone do not show
+>   whether counts are safe to report.
+
+See [Survey design and weighting](survey-design.html),
+[`nis_design()`](../reference/nis_design.html), and
+[Disclosure and suppression](disclosure.html).

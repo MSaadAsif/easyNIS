@@ -5,53 +5,75 @@ template:
 
 navbar:
   structure:
-    left: [intro, reference, articles]
+    left: [get_started, reference, articles, news]
     right: [github]
   components:
+    get_started:
+      text: Get started
+      href: articles/getting-started.html
     github:
       icon: fa-github
       href: https://github.com/MSaadAsif/easyNIS
       aria-label: GitHub
 
 articles:
-  - title: Guides
-    navbar: Guides
+  - title: Learn the workflow
+    navbar: Articles
     contents:
-      - '"articles/why-easynis"'
-      - getting-started
-      - porting
-      - articles/design-validation
+      - '"getting-started"'
+      - '"articles/opening-data"'
+      - '"articles/cohorts"'
+      - '"articles/survey-design"'
+      - '"articles/descriptives-models"'
+      - '"articles/disclosure"'
+      - '"articles/costs"'
+      - '"articles/comorbidity"'
+      - '"articles/code-transitions"'
+      - '"articles/year-notes"'
+      - '"articles/glossary"'
+  - title: More about easyNIS
+    navbar: Articles
+    contents:
+      - 'articles/why-easynis'
+      - 'articles/design-validation'
+      - '"porting"'
 
 reference:
-  - title: Open and flag data
+  - title: 1. Open and inspect data
+    desc: Open annual NIS files and inspect data structure and labels.
     contents:
       - nis_example
       - nis_open
+      - nis_label
+  - title: 2. Define cohorts
+    desc: Flag codes, timing, and eligibility; audit cohort definitions.
+    contents:
       - nis_flag_dx
       - nis_flag_dx_position
       - nis_flag_pr
       - nis_flag_pr_timing
       - nis_prday_completeness
-  - title: Survey design and weighting
+      - nis_ccsr_codes
+      - nis_attrition
+      - nis_dx_sensitivity
+      - nis_audit_code_transition
+  - title: 3. Design and estimate
+    desc: Build survey designs and apply optional reweighting.
     contents:
       - nis_design
       - nis_reweight
-  - title: Cohort reporting and audits
-    contents:
-      - nis_attrition
-      - nis_audit_code_transition
-      - nis_dx_sensitivity
-  - title: Comorbidity and code reference files
+  - title: 4. Add analysis variables
+    desc: Compute comorbidity indicators and inflation-adjusted costs.
     contents:
       - nis_comorbidity
-      - nis_ccsr_codes
-  - title: Labels and costs
-    contents:
-      - nis_label
       - nis_cost
       - nis_cost_provenance
-  - title: Suppress and start a study
+  - title: 5. Review outputs
+    desc: Count supporting hospitals and suppress disclosure-prone cells.
     contents:
-      - nis_suppress
       - nis_cell_counts
+      - nis_suppress
+  - title: 6. Create a study skeleton
+    desc: Start a Quarto study folder (template workflow deferred).
+    contents:
       - nis_new_study

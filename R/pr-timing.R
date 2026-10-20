@@ -27,6 +27,8 @@
 #' @param system Code system: icd10 uses I10_PR<n>; icd9 uses PR<n>.
 #'
 #' @return .data with the logical column named by name.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' toy <- data.frame(I10_PR1 = c("02UG0JZ", "0JH604Z"), PRDAY1 = c(0L, 1L))

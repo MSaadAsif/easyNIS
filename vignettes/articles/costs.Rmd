@@ -1,0 +1,63 @@
+---
+title: "Charges, costs, and provenance"
+description: "Convert NIS charges to estimated costs and document inflation."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Charges, costs, and provenance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Convert charges to costs
+
+Charges are not costs. `nis_cost()` estimates hospital costs by multiplying
+charges by `CCR_NIS`, then expresses both cost and charges in a selected
+reference-year dollar using annual CPI-U indices.
+
+```{r cost}
+charges <- nis_open(nis_example(years = 2019:2020)) |>
+  dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+  dplyr::collect()
+adjusted <- nis_cost(charges, dollars = 2024)
+head(adjusted[c("YEAR", "TOTCHG", "cost_adj", "charges_adj")])
+```
+
+`cost_adj` contains the estimated cost in 2024 dollars and `charges_adj`
+contains adjusted charges. These are synthetic amounts intended only to show
+the calculation.
+
+## Check provenance
+
+The direct result records the source fields, price index, base year,
+multipliers, and invalid input counts.
+
+```{r provenance}
+nis_cost_provenance(adjusted)
+```
+
+Missing or non-positive CCR values produce missing costs; the corresponding
+adjusted charge can still be present. Describe the CCR and inflation choices
+when reporting results.
+
+`nis_design(..., dollars = 2024)` can add these adjusted values to the survey
+design when `CCR_NIS` and the selected charge column are kept.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Calling inflation-adjusted charges “costs” without applying a CCR.
+> - Treating missing or invalid CCR values as zero cost.
+> - Combining `TOTCHG_2023` silently with earlier `TOTCHG`; its definition is
+>   different and the package documents the 2023 layout as unverified.
+> - Dropping provenance attributes through later data-frame operations before
+>   recording the adjustment method.
+
+See [`nis_cost()`](../reference/nis_cost.html),
+[`nis_cost_provenance()`](../reference/nis_cost_provenance.html), and
+[`nis_design()`](../reference/nis_design.html).

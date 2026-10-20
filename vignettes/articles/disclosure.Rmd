@@ -1,0 +1,102 @@
+---
+title: "Disclosure and suppression"
+description: "Review small cells and contributing hospitals before reporting."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Disclosure and suppression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+HCUP's reporting rules prohibit reporting cells with 10 or fewer discharges
+and require that reported estimates represent at least two hospitals. Follow
+the terms of the applicable Data Use Agreement and institutional review.
+Suppression is a review aid, not a guarantee against every disclosure path.
+
+## Count data-frame cells
+
+`nis_cell_counts()` counts unweighted discharges and distinct hospitals using
+year-scoped hospital IDs. This invented fixture has one cell with a small count
+and a separate cell with more than 10 discharges but support from only one
+hospital.
+
+```{r counts}
+records <- data.frame(
+  YEAR = rep(2020, 14),
+  HOSP_NIS = c(1, 1, 2, rep(3, 11)),
+  group = c(rep("A", 3), rep("B", 11)),
+  estimate = c(rep(2.1, 3), rep(8.4, 11))
+)
+cell_estimates <- dplyr::summarise(
+  dplyr::group_by(records, group),
+  estimate = mean(estimate),
+  .groups = "drop"
+)
+cells <- nis_cell_counts(records, by = "group") |>
+  dplyr::left_join(cell_estimates, by = "group")
+cells
+```
+
+`A` has three discharges across two hospitals; `B` has 11 discharges at one
+hospital. Counts are unweighted and the displayed `estimate` is only a made-up
+value.
+
+## Suppress data frames
+
+For data frames, provide the count column and any estimate columns to mask.
+The default threshold is inclusive: counts at or below 10 are suppressed.
+Cells with fewer than two hospitals are marked as such.
+
+```{r dataframe}
+nis_suppress(
+  cells,
+  count_col = "n",
+  weighted_cols = "estimate",
+  hospital_col = "hospitals"
+)
+```
+
+The output suppresses `A` under the inclusive ≤10 discharge rule and marks `B`
+under the two-hospital rule, despite its count being above 10. When a table has
+totals or grouped subtotals, inspect them for complementary disclosure.
+
+## Suppress a gtsummary table
+
+For a `gtsummary::tbl_svysummary()` object, `nis_suppress()` reads unweighted
+counts from the table's cards, masks displayed statistics at or below the
+threshold, and marks the overall statistic in the same row. This route checks
+discharge counts only; it cannot check the two-hospital rule.
+
+```{r gtsummary, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
+nis <- nis_open(nis_example(years = 2019)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+table_one <- gtsummary::tbl_svysummary(
+  design,
+  by = RACE,
+  include = c(AGE, FEMALE)
+)
+nis_suppress(table_one, threshold = 10)
+```
+
+The masked table is a starting point for review. Use the data-frame route with
+`nis_cell_counts()` when both the discharge threshold and hospital count must
+be checked.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Suppressing only values below 10 misses the prohibited count of exactly
+>   10; the default masks 10 and below.
+> - A single-hospital cell needs review even when its discharge count is large.
+> - Masking a cell can leave it derivable from totals, subtotals, or another
+>   table. Review the complete set of planned outputs.
+
+See [`nis_cell_counts()`](../reference/nis_cell_counts.html) and
+[`nis_suppress()`](../reference/nis_suppress.html).

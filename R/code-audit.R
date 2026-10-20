@@ -29,6 +29,8 @@
 #'   `pct_within_year` versus the previous observed period in sorted order. It
 #'   is `NA` for the first period, a missing period, or when the previous
 #'   period's percentage is zero.
+#' @family cohort-definition
+#' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
 #' @export
 #' @examples
 #' toy_data <- dplyr::tibble(

@@ -64,18 +64,22 @@ only; it cannot apply the two-hospital rule. Use \code{nis_cell_counts()} with t
 data-frame route to apply both disclosure rules.
 }
 \examples{
-if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
-  nis <- nis_open(nis_example(years = 2019:2020)) |>
-    nis_flag_dx(heart_failure = "I50")
-  design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
-  table <- gtsummary::tbl_svysummary(
-    design,
-    by = RACE,
-    include = c(AGE, FEMALE)
-  )
-  nis_suppress(table, threshold = 10)
+\dontshow{if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) withAutoprint(\{ # examplesIf}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+table <- gtsummary::tbl_svysummary(
+  design,
+  by = RACE,
+  include = c(AGE, FEMALE)
+)
+nis_suppress(table, threshold = 10)
+\dontshow{\}) # examplesIf}
+}
+\seealso{
+\href{articles/disclosure.html}{Disclosure and suppression}.
 
-# For data-frame summaries, join per-cell counts from record-level data and
-# pass the resulting hospital column as `hospital_col`.
+Other disclosure:
+\code{\link[=nis_cell_counts]{nis_cell_counts()}}
 }
-}
+\concept{disclosure}

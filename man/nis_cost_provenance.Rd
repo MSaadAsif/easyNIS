@@ -21,3 +21,17 @@ adjustment was requested. Data frame operations may drop custom attributes;
 call this on the direct \code{nis_cost()} result or on the survey design returned
 by \code{nis_design()}.
 }
+\examples{
+charges <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+  dplyr::collect() |>
+  nis_cost(dollars = 2024)
+nis_cost_provenance(charges)
+}
+\seealso{
+\href{articles/costs.html}{Charges, costs, and provenance}.
+
+Other costs:
+\code{\link[=nis_cost]{nis_cost()}}
+}
+\concept{costs}

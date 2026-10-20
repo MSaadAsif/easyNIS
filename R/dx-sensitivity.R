@@ -12,6 +12,8 @@
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
 #' @return `.data` with three logical diagnosis-position columns.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))
@@ -62,6 +64,8 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
 #'   weighted counts, shares of all prefix-positive presentations, and rates
 #'   for requested outcomes. The principal presentation is a strict subset of
 #'   any-position cases, so Cohen's kappa is not meaningful here.
+#' @family cohort-definition
+#' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))

@@ -1,0 +1,75 @@
+---
+title: "Comorbidity indicators"
+description: "Add experimental AHRQ Elixhauser indicators to ICD-10 data."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comorbidity indicators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+`nis_comorbidity()` uses the optional `medicalcoder` package to apply its
+AHRQ Elixhauser ICD-10-CM mapping. easyNIS does not distribute clinical code
+lists. This computation is experimental and its assumptions need scientific
+review.
+
+## Score a collected cohort
+
+The function accepts a collected data frame with `I10_DX1`, `I10_DX2`, and
+other diagnosis columns.
+
+```{r comorbidity, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
+discharges <- nis_open(nis_example(years = 2019)) |>
+  dplyr::filter(AGE >= 18) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::collect()
+scored <- nis_comorbidity(discharges)
+head(scored[c("AGE", "cmrb_n", "cmrb_any")])
+```
+
+The added columns report the number of flagged conditions and whether any
+were flagged. Values are computed from invented codes. Rows without usable
+ICD-10 codes have missing results rather than “no comorbidity.”
+
+## Add scores after design construction
+
+If an analysis uses `nis_design()`, keep diagnosis columns in the design and
+pass the design to `nis_comorbidity()`. This preserves the design object.
+
+```{r design, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
+nis <- nis_open(nis_example(years = 2019)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(
+  nis,
+  cohort = heart_failure,
+  keep = c(AGE, dplyr::starts_with("I10_DX"))
+)
+scored_design <- nis_comorbidity(design)
+head(scored_design$variables[c("AGE", "cmrb_n", "cmrb_any")])
+```
+
+The survey design fields remain the same while the analysis variables gain
+comorbidity indicators.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - The function uses ICD-10 slots only; pre-October 2015 ICD-9 records cannot
+>   be scored and receive missing values.
+> - NIS includes diagnosis present-on-admission fields (`DXPOA1`, `DXPOA2`,
+>   and so on), but this helper does not use them: it passes every diagnosis
+>   code as present on admission (`poa = 1`). AHRQ's refined Elixhauser method
+>   requires POA for 18 of its 38 measures, so this approximation can count a
+>   complication that arose during the stay as pre-existing for a
+>   POA-sensitive measure.
+> - Do not assume agreement with older Stata-derived `ynel*` and `elixsum`
+>   fields; definitions and versions differ.
+
+See [`nis_comorbidity()`](../reference/nis_comorbidity.html) and
+[Data notes by year](year-notes.html).

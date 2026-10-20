@@ -15,6 +15,8 @@
 #'
 #' @return A tibble with one initial row (`step = 0`) and one row per
 #'   criterion. When `by_year = TRUE`, `YEAR` is the first column.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' toy_nis <- dplyr::tibble(

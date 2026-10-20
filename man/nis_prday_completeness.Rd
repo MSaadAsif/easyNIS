@@ -43,3 +43,17 @@ toy <- data.frame(
 )
 nis_prday_completeness(toy, c("02UG0", "0JH60"))
 }
+\seealso{
+\href{articles/cohorts.html}{Defining cohorts}.
+
+Other cohort-definition:
+\code{\link[=nis_attrition]{nis_attrition()}},
+\code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}},
+\code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
+\code{\link[=nis_dx_sensitivity]{nis_dx_sensitivity()}},
+\code{\link[=nis_flag_dx]{nis_flag_dx()}},
+\code{\link[=nis_flag_dx_position]{nis_flag_dx_position()}},
+\code{\link[=nis_flag_pr]{nis_flag_pr()}},
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+}
+\concept{cohort-definition}

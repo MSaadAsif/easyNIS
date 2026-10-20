@@ -1,0 +1,72 @@
+---
+title: "Opening NIS data"
+description: "Scan annual Parquet data and inspect columns with easyNIS."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Opening NIS data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Use the synthetic fixture
+
+`nis_example()` creates an invented Parquet dataset with familiar NIS fields.
+It is suitable for learning and examples, not for estimating national
+quantities.
+
+```{r fixture}
+path <- nis_example(years = 2019:2020)
+nis <- nis_open(path)
+nis |> dplyr::count(YEAR) |> dplyr::collect()
+```
+
+The result reports the number of synthetic rows in each selected year.
+
+## Select years and columns
+
+`years` limits which annual files are opened. Use `dplyr::select()` to narrow
+what a later collection needs; lazy operations are evaluated when collected.
+
+```{r columns}
+nis_open(path, years = 2020) |>
+  dplyr::select(YEAR, AGE, FEMALE, LOS) |>
+  dplyr::collect() |>
+  head()
+```
+
+The preview contains only the requested variables from the synthetic 2020
+file. Mixed-case column names are normalized to upper case; already lower-case
+names remain unchanged.
+
+## Choose a query engine
+
+Arrow is the default. `engine = "duckdb"` requires the optional `duckdb` and
+`dbplyr` packages and returns a DuckDB-backed table. The current flagging and
+design helpers support Arrow queries or data frames, so collect a bounded
+subset before using a DuckDB result with those helpers.
+
+```{r duckdb, eval=rlang::is_installed(c("duckdb", "dbplyr"))}
+duck <- nis_open(path, years = 2020, engine = "duckdb")
+duck |> dplyr::count(YEAR) |> dplyr::collect()
+```
+
+This count is the same synthetic year summary, evaluated through DuckDB.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Opening all years and collecting all columns can require substantial
+>   memory. Filter and select before collecting.
+> - DuckDB support in `nis_open()` does not mean every downstream helper
+>   accepts DuckDB queries.
+> - `nis_example()` data are invented and should not be reported as NIS
+>   estimates.
+
+See [Cohort definitions](cohorts.html), [`nis_open()`](../reference/nis_open.html),
+and [`nis_example()`](../reference/nis_example.html).

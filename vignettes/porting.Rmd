@@ -159,3 +159,20 @@ study records.
 
 The example directory can be removed after use with
 `unlink(example_path, recursive = TRUE)`.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Regex expressions may encode suffix rules that a prefix flag cannot
+>   reproduce. Review each code-set translation.
+> - A pooled analysis needs year-scoped hospital and stratum identifiers and
+>   a stated weight convention.
+> - Never treat `nis_example()` results as study or national estimates.
+
+Function references: [`nis_open()`](../reference/nis_open.html),
+[`nis_flag_dx()`](../reference/nis_flag_dx.html),
+[`nis_flag_pr()`](../reference/nis_flag_pr.html),
+[`nis_design()`](../reference/nis_design.html),
+[`nis_cost()`](../reference/nis_cost.html), and
+[`nis_suppress()`](../reference/nis_suppress.html).

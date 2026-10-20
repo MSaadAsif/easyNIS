@@ -30,3 +30,11 @@ demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::collect()
 head(nis_label(demographics))
 }
+\seealso{
+\href{articles/opening-data.html}{Opening NIS data}.
+
+Other data-access:
+\code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_open]{nis_open()}}
+}
+\concept{data-access}
