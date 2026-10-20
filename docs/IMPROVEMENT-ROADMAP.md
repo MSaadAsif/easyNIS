@@ -17,7 +17,9 @@ real NIS results.
 5. **Workflow documentation:** pkgdown documents the full analyst workflow.
    See `pkgdown documents the full workflow`.
 6. **Complexity:** cyclomatic complexity is at most 15 for every function.
-   See `Cyclomatic complexity <= 15 per function`.
+   `probe-quality.R` reports violations, and `readiness.R` remains the gate
+   until they are cleared. Add `cyclocomp_linter(15)` to `.lintr` in the PR
+   that clears the final violation. See `Cyclomatic complexity <= 15 per function`.
 7. **Published-study verification:** reproduce headline estimates from three
    published NIS studies within a stated tolerance. Run verification locally
    against licensed data; publicly record only pass/fail and tolerance, never
