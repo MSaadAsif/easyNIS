@@ -24,7 +24,7 @@ The normalized path to the created study directory.
 ``` r
 study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
-#> [1] "/tmp/RtmpQ0hVjW/nis-study-example-1a77659171b3"
+#> [1] "/tmp/RtmpdcrdJu/nis-study-example-1a61523f3952"
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 #> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"
 ```

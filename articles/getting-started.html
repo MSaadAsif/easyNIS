@@ -35,8 +35,10 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
   </ul>
 </li>
       </ul>
@@ -207,7 +209,9 @@ with the overall cell in the same row, and adds a footnote that says so.
 Review tables for other derivable cells, such as column totals, before
 you share them.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">table_one</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">table_one</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="co">#&gt; `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does</span></span>
+<span><span class="co">#&gt; not apply the two-hospital rule.</span></span></code></pre></div>
 <div id="mwlefoodfi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>#mwlefoodfi table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -736,7 +740,7 @@ Its <code>analysis.qmd</code> runs on invented data until you set its
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">study</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"my-nis-study-"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/nis_new_study.html">nis_new_study</a></span><span class="op">(</span><span class="va">study</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/tmp/Rtmp0nQC09/my-nis-study-1cf21c9334aa"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/Rtmp6WMG25/my-nis-study-1e1464cb0f73"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">study</span>, all.files <span class="op">=</span> <span class="cn">TRUE</span>, no.. <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"</span></span></code></pre></div>
 <p>Edit the definitions block in <code>analysis.qmd</code> for your

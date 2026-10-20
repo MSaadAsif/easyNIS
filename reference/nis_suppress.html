@@ -8,7 +8,9 @@ absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (stat_0) in the same row is marked Masked,
 unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing."><meta property="og:description" content="For a gtsummary::tbl_svysummary() result, replaces displayed statistics
+still need analyst review before sharing. This route checks discharge counts
+only; it cannot apply the two-hospital rule. Use nis_cell_counts() with the
+data-frame route to apply both disclosure rules."><meta property="og:description" content="For a gtsummary::tbl_svysummary() result, replaces displayed statistics
 when their corresponding unweighted count is at or below threshold. Counts
 come from the cards computed by
 gtsummary::tbl_svysummary(). Continuous2 statistic rows use the
@@ -17,7 +19,9 @@ absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (stat_0) in the same row is marked Masked,
 unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing."><!-- dependencies from examples --></head><body>
+still need analyst review before sharing. This route checks discharge counts
+only; it cannot apply the two-hospital rule. Use nis_cell_counts() with the
+data-frame route to apply both disclosure rules."><!-- dependencies from examples --></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -38,8 +42,10 @@ still need analyst review before sharing."><!-- dependencies from examples --></
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
@@ -65,7 +71,9 @@ absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (<code>stat_0</code>) in the same row is marked <code>Masked</code>,
 unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing.</p>
+still need analyst review before sharing. This route checks discharge counts
+only; it cannot apply the two-hospital rule. Use <code><a href="nis_cell_counts.html">nis_cell_counts()</a></code> with the
+data-frame route to apply both disclosure rules.</p>
     </div>
 
     <div class="section level2">
@@ -77,7 +85,8 @@ still need analyst review before sharing.</p>
 <span>  <span class="va">count_col</span>,</span>
 <span>  weighted_cols <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  by <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  secondary <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  secondary <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  hospital_col <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -119,6 +128,15 @@ primary-masked. This is single-dimension complementary suppression, not a
 full cell-suppression solver; totals rows must be handled or excluded by
 the user.</p></dd>
 
+
+<dt id="arg-hospital-col">hospital_col<a class="anchor" aria-label="anchor" href="#arg-hospital-col"></a></dt>
+<dd><p>Optional data-frame column containing the number of
+distinct contributing hospitals for each cell. Cells with fewer than two
+hospitals are marked <code>&lt;2 hospitals</code>. Missing
+or invalid hospital counts are errors. Hospital identifiers must be
+counted by year; <code><a href="nis_cell_counts.html">nis_cell_counts()</a></code> computes counts from record-level
+data or an <code><a href="nis_design.html">nis_design()</a></code> result.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -139,8 +157,13 @@ masks and a footnote describing them.</p>
 <span class="r-in"><span>    include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">nis_suppress</span><span class="op">(</span><span class="va">table</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># For data-frame summaries, join per-cell counts from record-level data and</span></span></span>
+<span class="r-in"><span><span class="co"># pass the resulting hospital column as `hospital_col`.</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cohort: 108 discharges; weighted N 124.8; 18 hospitals across 2 years.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> not apply the two-hospital rule.</span>
 <div class="gt-table"><div id="mwlefoodfi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
   <table class="table gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false" style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'; display: table; border-collapse: collapse; line-height: normal; margin-left: auto; margin-right: auto; color: #333333; font-size: 16px; font-weight: normal; font-style: normal; background-color: #FFFFFF; width: auto; border-top-style: solid; border-top-width: 2px; border-top-color: #A8A8A8; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #A8A8A8; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3;" bgcolor="#FFFFFF"><thead style="border-style: none;"><tr class="gt_col_headings" style="border-style: none; border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3;"><th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label" style="border-style: none; color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: normal; text-transform: inherit; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: bottom; padding-top: 5px; padding-bottom: 6px; padding-left: 5px; padding-right: 5px; overflow-x: hidden; text-align: left;" bgcolor="#FFFFFF" valign="bottom" align="left"><span class="gt_from_md"><strong style="margin-top: 0; margin-bottom: 0;">Characteristic</strong></span></th>

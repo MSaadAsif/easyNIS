@@ -12,7 +12,8 @@ nis_cost(data, dollars, charges = "TOTCHG")
 
 - data:
 
-  A data frame with `YEAR`, the `charges` column, and `CCR_NIS`.
+  A collected data frame with `YEAR`, the `charges` column, and
+  `CCR_NIS`. Lazy Arrow and DuckDB queries must be collected first.
 
 - dollars:
 
@@ -27,7 +28,9 @@ nis_cost(data, dollars, charges = "TOTCHG")
 
 ## Value
 
-`data` with `cost_adj` and `charges_adj` in `dollars` USD.
+`data` with `cost_adj` and `charges_adj` in `dollars` USD. The in-memory
+data frame has `nis_cost_provenance` metadata; retrieve it with
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md).
 
 ## Examples
 
@@ -39,10 +42,10 @@ head(nis_cost(charges, dollars = 2024))
 #> # A tibble: 6 × 5
 #>    YEAR TOTCHG CCR_NIS cost_adj charges_adj
 #>   <int>  <dbl>   <dbl>    <dbl>       <dbl>
-#> 1  2020  14155    0.29    4975.      17156.
-#> 2  2020  14190    0.29    4988.      17199.
-#> 3  2020  14225    0.29    5000.      17241.
-#> 4  2020  14260    0.29    5012.      17284.
-#> 5  2020  14295    0.29    5025.      17326.
-#> 6  2020  14330    0.29    5037.      17369.
+#> 1  2019  14154    0.29    5036.      17367.
+#> 2  2019  14189    0.29    5049.      17410.
+#> 3  2019  14224    0.29    5061.      17453.
+#> 4  2019  14259    0.29    5074.      17496.
+#> 5  2019  14294    0.29    5086.      17539.
+#> 6  2019  14329    0.29    5099.      17582.
 ```

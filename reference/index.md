@@ -14,6 +14,8 @@
   : Add procedure prefix flags
 - [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
   : Flag procedure timing relative to an index procedure
+- [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+  : Summarize procedure-day completeness by year and procedure slot
 
 ## Survey design and weighting
 
@@ -44,10 +46,14 @@
   : Apply HCUP labels
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   : Adjust NIS charges and costs to a reference dollar year
+- [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
+  : Read cost adjustment provenance
 
 ## Suppress and start a study
 
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   : Suppress small unweighted cells in a survey summary
+- [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
+  : Count discharges and contributing hospitals by cell
 - [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
   : Create a new NIS study folder

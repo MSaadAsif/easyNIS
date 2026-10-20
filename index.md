@@ -76,7 +76,7 @@ Agreement.
 | Cohort reporting and audits | [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md) summarizes cohort attrition; [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md) audits code-system transitions; [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md) reports descriptive point estimates for diagnosis sensitivity analyses. |
 | Comorbidity and CCSR | [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md) adds AHRQ Elixhauser Refined indicators through `medicalcoder` (experimental); [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md) reads code mappings from an HCUP CCSR reference file you supply (file layouts unverified). |
 | Labels and costs | [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md) applies supported HCUP labels; [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md) adjusts charges and cost estimates using the package’s CPI-U series and `CCR_NIS` (experimental method). |
-| Suppression and study setup | [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md) masks small cells in a `gtsummary` result or data frame; [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) creates a Quarto study folder from the package template. |
+| Suppression and study setup | [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md) masks small cells and, when supplied with contributing-hospital counts, cells based on fewer than two hospitals; [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md) creates unweighted discharge and year-scoped hospital counts from records or an [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md) result; [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md) creates a Quarto study folder from the package template. |
 
 See the [function
 reference](https://msaadasif.github.io/easyNIS/reference/index.html) for
@@ -121,11 +121,15 @@ explains the redesign context.
 
 NIS data are licensed by HCUP and subject to its Data Use Agreement.
 Never share or commit record-level data, including accidentally copied
-or derived record-level files. Review all output before sharing; easyNIS
-suppresses unweighted cells at or below 10 by default in its suppression
-helper, but suppression does not automatically prevent every form of
-inference. Follow your institution’s disclosure rules and the applicable
-HCUP requirements.
+or derived record-level files. Review all output before sharing;
+[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+masks unweighted cells at or below 10 by default. To apply HCUP’s
+two-hospital rule to data-frame summaries, join
+[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
+results and pass `hospital_col`; `gtsummary` summary cards do not
+contain cell-level hospital counts. Suppression does not automatically
+prevent every form of inference. Follow your institution’s disclosure
+rules and the applicable HCUP requirements.
 
 ## Citation
 

@@ -51,7 +51,11 @@ nis_design(
   valid-design discharges. A year counts as one whole year however much
   of it is present, so a partial-year era such as the ICD-10 fourth
   quarter of 2015 counts the same as a full year, and a year with no
-  cohort discharges still counts. Divide by your own factor with
+  cohort discharges still counts. When `DQTR` is present, a warning
+  identifies years where the valid-design data has fewer than four
+  quarters. A separate warning identifies a cohort limited to the ICD-9
+  (Q1-Q3) or ICD-10 (Q4) part of 2015. Exclude partial years or use
+  `annualize = FALSE` and apply a suitable fractional-year factor with
   [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   if you need a different convention.
 
@@ -93,9 +97,10 @@ returned design has a `nis_excluded` attribute containing aggregate
 exclusions when the year is itself valid. A discharge can fail more than
 one field.
 
-The query is scanned twice: once over the four design columns, and once
-to collect the cohort rows, so the cohort expression is evaluated one
-time over the full data.
+The query is scanned twice for design validation and cohort collection.
+When annualizing and `DQTR` is present, quarter coverage requires an
+additional summary scan. The cohort expression is evaluated once over
+the full data.
 
 ## Examples
 

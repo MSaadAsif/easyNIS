@@ -169,6 +169,8 @@ column totals, before you share them.
 ``` r
 
 nis_suppress(table_one, threshold = 10)
+#> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does
+#> not apply the two-hospital rule.
 ```
 
 [TABLE]
@@ -185,7 +187,7 @@ until you set its `data_path` parameter.
 
 study <- tempfile("my-nis-study-")
 nis_new_study(study)
-#> [1] "/tmp/Rtmp0nQC09/my-nis-study-1cf21c9334aa"
+#> [1] "/tmp/Rtmp6WMG25/my-nis-study-1e1464cb0f73"
 list.files(study, all.files = TRUE, no.. = TRUE)
 #> [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"
 ```

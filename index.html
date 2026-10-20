@@ -37,8 +37,10 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
     <li><a class="dropdown-item" href="articles/getting-started.html">Getting started with easyNIS</a></li>
     <li><a class="dropdown-item" href="articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="articles/design-validation.html">Survey design validation protocol</a></li>
   </ul>
 </li>
       </ul>
@@ -135,7 +137,7 @@
 <tr>
 <td>Suppression and study setup</td>
 <td>
-<code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks small cells in a <code>gtsummary</code> result or data frame; <code><a href="reference/nis_new_study.html">nis_new_study()</a></code> creates a Quarto study folder from the package template.</td>
+<code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks small cells and, when supplied with contributing-hospital counts, cells based on fewer than two hospitals; <code><a href="reference/nis_cell_counts.html">nis_cell_counts()</a></code> creates unweighted discharge and year-scoped hospital counts from records or an <code><a href="reference/nis_design.html">nis_design()</a></code> result; <code><a href="reference/nis_new_study.html">nis_new_study()</a></code> creates a Quarto study folder from the package template.</td>
 </tr>
 </tbody>
 </table>
@@ -162,7 +164,7 @@
 <div class="section level2">
 <h2 id="data-use-and-privacy">Data use and privacy<a class="anchor" aria-label="anchor" href="#data-use-and-privacy"></a>
 </h2>
-<p>NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; easyNIS suppresses unweighted cells at or below 10 by default in its suppression helper, but suppression does not automatically prevent every form of inference. Follow your institution’s disclosure rules and the applicable HCUP requirements.</p>
+<p>NIS data are licensed by HCUP and subject to its Data Use Agreement. Never share or commit record-level data, including accidentally copied or derived record-level files. Review all output before sharing; <code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks unweighted cells at or below 10 by default. To apply HCUP’s two-hospital rule to data-frame summaries, join <code><a href="reference/nis_cell_counts.html">nis_cell_counts()</a></code> results and pass <code>hospital_col</code>; <code>gtsummary</code> summary cards do not contain cell-level hospital counts. Suppression does not automatically prevent every form of inference. Follow your institution’s disclosure rules and the applicable HCUP requirements.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>

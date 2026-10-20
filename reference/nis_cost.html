@@ -20,8 +20,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
@@ -51,7 +53,8 @@
 
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>A data frame with <code>YEAR</code>, the <code>charges</code> column, and <code>CCR_NIS</code>.</p></dd>
+<dd><p>A collected data frame with <code>YEAR</code>, the <code>charges</code> column, and
+<code>CCR_NIS</code>. Lazy Arrow and DuckDB queries must be collected first.</p></dd>
 
 
 <dt id="arg-dollars">dollars<a class="anchor" aria-label="anchor" href="#arg-dollars"></a></dt>
@@ -67,7 +70,9 @@ is missing for earlier years.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p><code>data</code> with <code>cost_adj</code> and <code>charges_adj</code> in <code>dollars</code> USD.</p>
+    <p><code>data</code> with <code>cost_adj</code> and <code>charges_adj</code> in <code>dollars</code> USD. The
+in-memory data frame has <code>nis_cost_provenance</code> metadata; retrieve it with
+<code><a href="nis_cost_provenance.html">nis_cost_provenance()</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -79,12 +84,12 @@ is missing for earlier years.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    YEAR TOTCHG CCR_NIS cost_adj charges_adj</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>155    0.29    <span style="text-decoration: underline;">4</span>975.      <span style="text-decoration: underline;">17</span>156.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>190    0.29    <span style="text-decoration: underline;">4</span>988.      <span style="text-decoration: underline;">17</span>199.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>225    0.29    <span style="text-decoration: underline;">5</span>000.      <span style="text-decoration: underline;">17</span>241.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>260    0.29    <span style="text-decoration: underline;">5</span>012.      <span style="text-decoration: underline;">17</span>284.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>295    0.29    <span style="text-decoration: underline;">5</span>025.      <span style="text-decoration: underline;">17</span>326.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020  <span style="text-decoration: underline;">14</span>330    0.29    <span style="text-decoration: underline;">5</span>037.      <span style="text-decoration: underline;">17</span>369.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>154    0.29    <span style="text-decoration: underline;">5</span>036.      <span style="text-decoration: underline;">17</span>367.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>189    0.29    <span style="text-decoration: underline;">5</span>049.      <span style="text-decoration: underline;">17</span>410.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>224    0.29    <span style="text-decoration: underline;">5</span>061.      <span style="text-decoration: underline;">17</span>453.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>259    0.29    <span style="text-decoration: underline;">5</span>074.      <span style="text-decoration: underline;">17</span>496.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>294    0.29    <span style="text-decoration: underline;">5</span>086.      <span style="text-decoration: underline;">17</span>539.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>329    0.29    <span style="text-decoration: underline;">5</span>099.      <span style="text-decoration: underline;">17</span>582.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

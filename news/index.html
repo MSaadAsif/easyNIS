@@ -20,8 +20,10 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Guides</h6></li>
+    <li><a class="dropdown-item" href="../articles/why-easynis.html">Why easyNIS: a guide for NIS analysts</a></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
@@ -40,7 +42,12 @@
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
 <div class="section level3">
 <h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
-<ul><li>Added <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> for procedure timing flags.</li>
+<ul><li>
+<code><a href="../reference/nis_design.html">nis_design()</a></code> warns when annualized valid-design data represented in <code>DQTR</code> have fewer than four quarters, and explains how to exclude or separately reweight those years. It also warns when a 2015 cohort contains only ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4), and informs when <code>DQTR</code> is missing so the 2015 split cannot be checked.</li>
+<li>
+<code><a href="../reference/nis_cost.html">nis_cost()</a></code> records charge/CCR fields, CPI-U source and multipliers, base year, invalid CCR and missing charge counts, and adjusted-output meanings. Zero or negative CCR values now produce <code>NA</code> in <code>cost_adj</code> (previously zero CCR produced zero cost and negative CCR produced a negative cost); one informational message reports how many rows have missing or invalid CCR (<code><a href="../reference/nis_design.html">nis_design()</a></code> reports cohort rows only). Use <code><a href="../reference/nis_cost_provenance.html">nis_cost_provenance()</a></code> on its result or the <code><a href="../reference/nis_design.html">nis_design()</a></code> survey design.</li>
+<li>Added <code><a href="../reference/nis_prday_completeness.html">nis_prday_completeness()</a></code> for unweighted PRDAY completeness summaries by year and matched procedure slot.</li>
+<li>Added <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> for procedure timing flags.</li>
 <li>Added <code><a href="../reference/nis_attrition.html">nis_attrition()</a></code> for cohort attrition summaries.</li>
 <li>
 <code>nis_open(engine = "duckdb")</code> provides an Arrow-backed DuckDB/dbplyr query path; <code>duckdb</code> and <code>dbplyr</code> are suggested dependencies. Flag and design helpers remain Arrow-only.</li>
@@ -48,6 +55,10 @@
 <li>Added <code><a href="../reference/nis_flag_dx_position.html">nis_flag_dx_position()</a></code> and <code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> for descriptive point estimates; these are not design-based estimates.</li>
 <li>
 <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now accepts data frames with <code>count_col</code>, <code>weighted_cols</code>, and <code>by</code>, and supports single-dimension complementary suppression.</li>
+<li>
+<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> accepts <code>hospital_col</code> to mask cells based on fewer than two contributing hospitals; <code><a href="../reference/nis_cell_counts.html">nis_cell_counts()</a></code> computes unweighted discharge and year-scoped hospital counts from record-level data or an <code><a href="../reference/nis_design.html">nis_design()</a></code>.</li>
+<li>
+<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now suppresses zero discharge counts at or below the threshold and rejects missing, non-finite, negative, or fractional data-frame count values.</li>
 </ul></div>
 </div>
     <div class="section level2">

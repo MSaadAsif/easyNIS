@@ -2,9 +2,11 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  articles/design-validation: design-validation.html
   getting-started: getting-started.html
   porting: porting.html
-last_built: 2026-10-20T16:15Z
+  articles/why-easynis: why-easynis.html
+last_built: 2026-10-20T16:23Z
 urls:
   reference: https://msaadasif.github.io/easyNIS/reference
   article: https://msaadasif.github.io/easyNIS/articles
