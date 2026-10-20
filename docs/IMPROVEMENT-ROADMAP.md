@@ -55,11 +55,13 @@ exercise that protocol without becoming new clinical research.
 
 #### Report corrections
 
-- The report says no design validation artifact exists. That is incorrect:
+- The repository has comparison tests for `nis_design()` against a full-data
+  survey design with a domain subset:
   `tests/testthat/test-design.R:28-117`, using
-  `tests/testthat/helper-design.R:1-41`, compares `nis_design()` against a
-  full-data survey design with a domain subset. It covers 2017–2019, core
-  estimators and models, and two lonely-PSU settings at tolerance `1e-8`.
+  `tests/testthat/helper-design.R:1-41`. They cover 2017–2019, core estimators
+  and models, and two lonely-PSU settings at tolerance `1e-8`. These are
+  existing repository tests, not independent external validation. The archived
+  report found no independent validation artifact in the public documentation.
 - `nis_comorbidity()` passes `poa = 1L` for every code because public NIS has
   no POA flags (`R/comorbidity.R:15-19,123-126`). Its stated difference is that
   it does not reproduce Stata-derived `ynel*` and `elixsum`
