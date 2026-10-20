@@ -185,7 +185,7 @@ until you set its `data_path` parameter.
 
 study <- tempfile("my-nis-study-")
 nis_new_study(study)
-#> [1] "/tmp/RtmpV7qRpp/my-nis-study-1cf7782e0a5e"
+#> [1] "/tmp/Rtmp0GUW0t/my-nis-study-1cd331998564"
 list.files(study, all.files = TRUE, no.. = TRUE)
 #> [1] "_quarto.yml"  ".gitignore"   "analysis.qmd"
 ```
