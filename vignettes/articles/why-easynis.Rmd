@@ -1,8 +1,8 @@
 ---
-title: "Why easyNIS: a guide for NIS analysts"
+title: "Background: Why easyNIS"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Why easyNIS: a guide for NIS analysts}
+  %\VignetteIndexEntry{Background: Why easyNIS}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, comment = "#>", collapse = TRUE,
 library(easyNIS)
 ```
 
-## Why it matters
+## Background
 
 NIS estimates depend on getting the survey design, cohort, and reporting rules right. HCUP publishes a methods checklist because these choices are easy to miss in hand-built analyses. easyNIS puts common design and disclosure steps on the normal path, while leaving the clinical question and code sets with the analyst.
 
@@ -58,7 +58,11 @@ survey::svymean(~LOS, design)
 
 `nis_design()` creates the survey design before applying the cohort domain, scopes hospital and stratum IDs by year, and annualizes the weights while retaining the design-based variance calculation.
 
-On this invented data the difference is not cosmetic. The hand-rolled total (124.8) is the two-year sum reported as if it were one year: twice the annual estimate of 62.4. Its standard error is also proportionally much smaller, about 4% of the estimate against about 14% from `nis_design()`. Publishing the hand-rolled figure would double the annual count and, compared with the domain design, overstate its precision.
+The hand-rolled and easyNIS outputs use different design and pooling
+conventions. Read the printed estimates and standard errors as a demonstration
+of why those choices matter in this invented fixture; they are not NIS
+population results. For the full reasoning and workflow, see [Survey design
+and weighting](survey-design.html).
 
 | Common hand-rolled problem | easyNIS | Function |
 |---|---|---|
@@ -73,7 +77,7 @@ On this invented data the difference is not cosmetic. The hand-rolled total (124
 | Treat charges as costs or apply an undocumented conversion | Convert charges using CCR and CPI-U and retain provenance | `nis_cost()` |
 | Recreate comorbidity indicators from diagnosis slots | Compute the supported ICD-10 Elixhauser indicators | `nis_comorbidity()` |
 | Publish small cells or cells from too few hospitals | Count supporting hospitals and suppress small or single-hospital cells | `nis_cell_counts()`; `nis_suppress()` |
-| Rebuild the same project scaffolding for each study | Create a one-file Quarto study skeleton | `nis_new_study()` |
+| Rebuild the same project scaffolding for each study | `nis_new_study()` can copy a Quarto skeleton; its template tutorial is deferred | `nis_new_study()` |
 
 ## Built-in safety checks
 
@@ -130,4 +134,16 @@ procedures <- tibble::tibble(I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ"),
 nis_flag_pr_timing(procedures, "02UG0", "0JH60", relation = "after")
 ```
 
-**What easyNIS does not do / what is still experimental.** It does not replace HCUP documentation, clinical code-set decisions, or study-specific design review. The placeholder-row variance strategy, cost method, ICD-9 support, and AHRQ Elixhauser comorbidity computation are experimental. Suppression reduces disclosure risk but does not rule out every deduction; review derived totals and follow your institution’s DUA process.
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - A workflow helper does not replace the official HCUP documentation,
+>   clinical code-set decisions, or study-specific design review.
+> - The placeholder-row variance strategy, cost method, ICD-9 support, and
+>   AHRQ Elixhauser computation are experimental.
+> - Suppression reduces disclosure risk but does not rule out every deduction;
+>   review derived totals and follow the applicable DUA process.
+
+See [Get started](../getting-started.html), [Survey design and
+weighting](survey-design.html), and [Disclosure and suppression](disclosure.html).

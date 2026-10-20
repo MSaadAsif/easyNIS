@@ -51,6 +51,8 @@
 #'   nis_flag_dx(heart_failure = codes) |>
 #'   dplyr::count(heart_failure) |>
 #'   dplyr::collect()
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
   if (!is.character(categories) || length(categories) == 0L ||

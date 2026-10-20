@@ -91,13 +91,15 @@ design (clusters, strata, weights) untouched.
 }
 
 \examples{
-\donttest{
-if (rlang::is_installed("medicalcoder", version = "0.10.0")) {
-  discharges <- nis_open(nis_example(years = 2019)) |>
-    dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
-    dplyr::collect()
-  comorbid <- nis_comorbidity(discharges)
-  comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+\dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
+discharges <- nis_open(nis_example(years = 2019)) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::collect()
+comorbid <- nis_comorbidity(discharges)
+comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+\dontshow{\}) # examplesIf}
 }
+\seealso{
+\href{articles/comorbidity.html}{Comorbidity indicators}.
 }
-}
+\concept{comorbidity}

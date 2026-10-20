@@ -46,6 +46,8 @@ attr(.cpi_u, "source") <- paste(
 #' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD. The
 #'   in-memory data frame has `nis_cost_provenance` metadata; retrieve it with
 #'   [nis_cost_provenance()].
+#' @family costs
+#' @seealso [Charges, costs, and provenance](articles/costs.html).
 #' @export
 #' @examples
 #' charges <- nis_open(nis_example(years = 2019:2020)) |>
@@ -132,6 +134,14 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
 #' @return A list describing the charge and CCR fields, CPI-U source and base
 #'   year, annual multipliers, invalid CCR and missing charge counts, and output
 #'   meanings. Returns `NULL` when no cost adjustment provenance is present.
+#' @family costs
+#' @seealso [Charges, costs, and provenance](articles/costs.html).
+#' @examples
+#' charges <- nis_open(nis_example(years = 2019)) |>
+#'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
+#'   dplyr::collect() |>
+#'   nis_cost(dollars = 2024)
+#' nis_cost_provenance(charges)
 #' @export
 nis_cost_provenance <- function(x) {
   if (!is.data.frame(x) && !inherits(x, "tbl_svy")) {
@@ -147,6 +157,8 @@ nis_cost_provenance <- function(x) {
 #'   with invented codes and version indicators; it is not a clinical crosswalk.
 #'
 #' @return The temporary directory containing `NIS_<year>.parquet/` entries.
+#' @family data-access
+#' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)

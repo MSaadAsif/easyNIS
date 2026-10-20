@@ -21,3 +21,11 @@ Write an invented NIS-shaped Parquet dataset
 path <- nis_example(years = 2019:2020)
 list.files(path)
 }
+\seealso{
+\href{articles/opening-data.html}{Opening NIS data}.
+
+Other data-access:
+\code{\link[=nis_label]{nis_label()}},
+\code{\link[=nis_open]{nis_open()}}
+}
+\concept{data-access}

@@ -61,6 +61,8 @@
 #'   calling; either choice mixes charge definitions across years.
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
+#' @family survey-design
+#' @seealso [Survey design and weighting](articles/survey-design.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>
@@ -376,6 +378,8 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
 #' weights.
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
+#' @family survey-design
+#' @seealso [Survey design and weighting](articles/survey-design.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>

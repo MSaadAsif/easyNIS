@@ -11,6 +11,8 @@
 #'
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).
+#' @family disclosure
+#' @seealso [Disclosure and suppression](articles/disclosure.html).
 #' @export
 #' @examples
 #' records <- data.frame(

@@ -21,3 +21,7 @@ study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 }
+\seealso{
+\href{articles/getting-started.html}{Get started with easyNIS}.
+}
+\concept{study-setup}

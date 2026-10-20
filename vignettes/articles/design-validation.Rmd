@@ -8,9 +8,39 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
 This protocol compares the placeholder-row design returned by `nis_design()`
 with a survey design built from the full invented data, before domain
 subsetting. Fixtures come from `nis_example()` and contain no licensed records.
+
+## Run a synthetic design summary
+
+The example below builds a domain design from invented discharges and reports
+a weighted mean. Its values demonstrate the output structure; they are not
+NIS estimates.
+
+```{r synthetic-summary}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(
+  nis,
+  cohort = heart_failure & AGE >= 18,
+  keep = c(AGE, LOS)
+)
+srvyr::summarise(
+  design,
+  discharges = srvyr::survey_total(),
+  mean_age = srvyr::survey_mean(AGE)
+)
+```
+
+The total and mean are design-based summaries of the synthetic cohort. The
+standard errors use the NIS-style strata and hospital structure supplied in
+the fixture.
 
 ## Cases
 
@@ -53,3 +83,16 @@ Apply `dplyr::filter(.in_cohort)` only after constructing that full-data design.
 For invalid-row cases, filter out exactly the rows that `nis_design()` excludes
 before building the reference. This preserves non-cohort observations in each
 hospital-year so domain estimates have the same sampling structure.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - Comparing a design created after filtering to the full-design domain
+>   reference does not test the same variance calculation.
+> - Use invented fixture outputs only to check mechanics, not inference.
+> - Agreement in the listed cases does not validate assumptions beyond those
+>   cases.
+
+See [`nis_design()`](../reference/nis_design.html) and
+[Survey design and weighting](survey-design.html).

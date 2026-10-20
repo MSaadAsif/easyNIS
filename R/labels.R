@@ -149,6 +149,8 @@ attr(.hcup_labels, "source") <- paste(
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
+#' @family data-access
+#' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
 #' @examples
 #' demographics <- nis_open(nis_example(years = 2019)) |>

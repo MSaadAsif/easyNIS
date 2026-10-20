@@ -22,6 +22,8 @@
 #'   does not retain source-file field presence by year. When present, `NA`
 #'   days count as missing and all negative days (including HCUP sentinels)
 #'   count as sentinel/invalid, matching `nis_flag_pr_timing()`.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' toy <- data.frame(

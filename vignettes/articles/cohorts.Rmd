@@ -1,0 +1,105 @@
+---
+title: "Defining cohorts"
+description: "Build and audit diagnosis, procedure, and timing definitions."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Defining cohorts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Flag diagnoses and procedures
+
+The analyst supplies literal code prefixes. Each slot is tested separately;
+punctuation, spaces, and case in the supplied prefixes are normalized.
+
+```{r flags}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50", principal_hf = "I50",
+              position = "any") |>
+  nis_flag_pr(ablation = "02L")
+nis |> dplyr::count(heart_failure, ablation) |> dplyr::collect()
+```
+
+The table shows synthetic discharge counts for each flag combination. To make
+a principal-only diagnosis flag, call `nis_flag_dx()` with
+`position = "principal"`; use `"secondary"` for slots after the principal one.
+`nis_flag_pr()` supports `"any"` and `"principal"`.
+
+## Use a CCSR reference file
+
+easyNIS does not ship clinical code lists. `nis_ccsr_codes()` reads an
+analyst-supplied HCUP reference file; the example below writes a tiny invented
+CSV file and removes it after use.
+
+```{r ccsr}
+reference <- tempfile(fileext = ".csv")
+writeLines(c(
+  "'ICD-10-CM CODE','CCSR CATEGORY 1','DEFAULT CCSR CATEGORY IP'",
+  "'I5022','CIR019','CIR019'",
+  "'I509','CIR019','CIR019'"
+), reference)
+codes <- nis_ccsr_codes(reference, "CIR019", default_only = TRUE)
+unlink(reference)
+codes
+```
+
+The returned values are codes from the invented mapping. Check supported
+layouts and version assumptions in [`nis_ccsr_codes()`](../reference/nis_ccsr_codes.html).
+
+## Add procedure timing
+
+Procedure timing compares matching procedure slots with the corresponding
+`PRDAY` fields. This small invented data frame makes the slot relationship
+visible.
+
+```{r timing}
+toy <- data.frame(
+  I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ"),
+  I10_PR2 = c("0JH604Z", "0JH604Z", "0JH604Z"),
+  PRDAY1 = c(0L, 2L, 0L), PRDAY2 = c(1L, 1L, NA_integer_)
+)
+nis_flag_pr_timing(toy, "02UG0", "0JH60", relation = "after")
+```
+
+The flag is true when an outcome procedure is documented after the earliest
+index procedure. Missing or sentinel days need an explicit `missing_day`
+policy. `nis_prday_completeness()` summarizes how often matching slots have a
+known day.
+
+## Count cohort steps
+
+`nis_attrition()` reports sequential unweighted and weighted counts for
+conditions supplied in order.
+
+```{r attrition}
+nis <- nis_open(nis_example(years = 2019)) |>
+  nis_flag_dx(heart_failure = "I50")
+nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure)
+```
+
+Each row shows the remaining fixture discharges after applying that step.
+For alternate diagnosis positions and changes over time, see [Code transitions
+and sensitivity](code-transitions.html).
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - A prefix is not a validated clinical code set. Define, document, and
+>   review it for the study question.
+> - A cross-year definition may span different code systems. Do not assume
+>   code counts are comparable across the 2015 transition.
+> - Unknown procedure days are not equivalent to day zero; choose and report a
+>   missing-day policy.
+
+Reference pages: [`nis_flag_dx()`](../reference/nis_flag_dx.html),
+[`nis_flag_pr()`](../reference/nis_flag_pr.html),
+[`nis_flag_pr_timing()`](../reference/nis_flag_pr_timing.html),
+[`nis_attrition()`](../reference/nis_attrition.html),
+[`nis_prday_completeness()`](../reference/nis_prday_completeness.html).

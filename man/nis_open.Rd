@@ -58,3 +58,11 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 }
+\seealso{
+\href{articles/opening-data.html}{Opening NIS data}.
+
+Other data-access:
+\code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_label]{nis_label()}}
+}
+\concept{data-access}

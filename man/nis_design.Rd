@@ -100,3 +100,10 @@ srvyr::summarise(
   mean_age = srvyr::survey_mean(AGE)
 )
 }
+\seealso{
+\href{articles/survey-design.html}{Survey design and weighting}.
+
+Other survey-design:
+\code{\link[=nis_reweight]{nis_reweight()}}
+}
+\concept{survey-design}

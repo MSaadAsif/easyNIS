@@ -1,0 +1,76 @@
+---
+title: "Code transitions and sensitivity"
+description: "Audit code frequency changes and compare diagnosis positions."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Code transitions and sensitivity}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Audit code frequencies
+
+`nis_audit_code_transition()` summarizes named code groups by period. The
+example is a small invented data frame; use separate calls for ICD-9 and
+ICD-10 because the function matches only one code system at a time.
+
+```{r audit}
+toy <- data.frame(
+  YEAR = rep(2018:2020, each = 2),
+  I10_DX1 = c("I5022", "E119", "I509", "E119", "I5022", "E119"),
+  DISCWT = rep(1, 6)
+)
+nis_audit_code_transition(
+  toy,
+  codes = c(heart_failure = "I50", diabetes = "E11"),
+  type = "dx"
+)
+```
+
+The output gives unweighted and weighted group counts and each group's share
+of all discharges within the period. A year-over-year percentage change is
+relative to the prior observed period; it is descriptive and does not explain
+why coding prevalence changed.
+
+## Compare diagnosis positions
+
+Principal and secondary diagnoses can capture different presentations.
+`nis_dx_sensitivity()` compares counts and selected outcome rates across
+principal, secondary-only, and any-position definitions.
+
+```{r sensitivity}
+nis <- nis_open(nis_example(years = 2019))
+nis_dx_sensitivity(nis, "I50")
+```
+
+The rows show how the synthetic definition changes with diagnosis position.
+These are descriptive weighted summaries, not survey estimates with standard
+errors. Use a survey design for inferential comparisons.
+
+## Handle the ICD transition
+
+NIS changed from ICD-9-CM to ICD-10-CM/PCS in October 2015. 2015 combines
+ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4. Flag the systems
+separately using the appropriate slot names and version information; easyNIS
+does not supply a crosswalk or clinical equivalence decisions. ICD-9 helpers
+and code-system boundary checks are experimental.
+
+## Common pitfalls
+
+> **Common pitfalls**
+>
+> - A trend break can reflect code-set changes, case mix, or practice as well
+>   as a true change in prevalence.
+> - A zero in an audit means no match in the selected system, not absence in a
+>   different code system.
+> - Principal and any-position summaries are nested definitions, not
+>   independent groups.
+
+See [`nis_audit_code_transition()`](../reference/nis_audit_code_transition.html),
+[`nis_dx_sensitivity()`](../reference/nis_dx_sensitivity.html), and
+[`nis_flag_dx_position()`](../reference/nis_flag_dx_position.html).

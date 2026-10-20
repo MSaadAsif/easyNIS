@@ -70,17 +70,15 @@
 #'   `<prefix>mortality_index` and `<prefix>readmission_index` scores, using the
 #'   names and weights from `medicalcoder`. Rows with no usable `I10_DX*` code
 #'   are `NA` in all of them; see the Assumptions section.
+#' @family comorbidity
+#' @seealso [Comorbidity indicators](articles/comorbidity.html).
 #' @export
-#' @examples
-#' \donttest{
-#' if (rlang::is_installed("medicalcoder", version = "0.10.0")) {
-#'   discharges <- nis_open(nis_example(years = 2019)) |>
-#'     dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
-#'     dplyr::collect()
-#'   comorbid <- nis_comorbidity(discharges)
-#'   comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
-#' }
-#' }
+#' @examplesIf rlang::is_installed("medicalcoder", version = "0.10.0")
+#' discharges <- nis_open(nis_example(years = 2019)) |>
+#'   dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+#'   dplyr::collect()
+#' comorbid <- nis_comorbidity(discharges)
+#' comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
 nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
                             prefix = "cmrb_") {
   rlang::check_installed("medicalcoder", version = "0.10.0",

@@ -32,6 +32,8 @@
 #'   The 2023 layout facts used here (`TOTCHG_2023`, removed `HOSP_REGION` and
 #'   `HOSP_DIVISION`, sequential `NIS_STRATUM`) are UNVERIFIED against official
 #'   HCUP 2023 documentation and real 2023 data; none were available for testing.
+#' @family data-access
+#' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)
@@ -176,6 +178,8 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
 #' @return `.data` with one logical column per named definition.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))
@@ -210,6 +214,8 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
 #' @return `.data` with one logical column per named definition.
+#' @family cohort-definition
+#' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))

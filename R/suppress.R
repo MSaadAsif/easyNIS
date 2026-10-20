@@ -37,22 +37,19 @@
 #' @return For data frames, the same table with masked columns converted to
 #'   character. For `gtsummary` results, the table with primary and secondary
 #'   masks and a footnote describing them.
+#' @family disclosure
+#' @seealso [Disclosure and suppression](articles/disclosure.html).
 #' @export
-#' @examples
-#' if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
-#'   nis <- nis_open(nis_example(years = 2019:2020)) |>
-#'     nis_flag_dx(heart_failure = "I50")
-#'   design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
-#'   table <- gtsummary::tbl_svysummary(
-#'     design,
-#'     by = RACE,
-#'     include = c(AGE, FEMALE)
-#'   )
-#'   nis_suppress(table, threshold = 10)
-#'
-#' # For data-frame summaries, join per-cell counts from record-level data and
-#' # pass the resulting hospital column as `hospital_col`.
-#' }
+#' @examplesIf rlang::is_installed(c("gtsummary", "cardx", "survey"))
+#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#'   nis_flag_dx(heart_failure = "I50")
+#' design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+#' table <- gtsummary::tbl_svysummary(
+#'   design,
+#'   by = RACE,
+#'   include = c(AGE, FEMALE)
+#' )
+#' nis_suppress(table, threshold = 10)
 nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL,
                          by = NULL, secondary = TRUE, hospital_col = NULL) {
   dots <- rlang::dots_list(...)

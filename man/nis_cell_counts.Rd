@@ -28,3 +28,10 @@ records <- data.frame(
 )
 nis_cell_counts(records, by = "group")
 }
+\seealso{
+\href{articles/disclosure.html}{Disclosure and suppression}.
+
+Other disclosure:
+\code{\link[=nis_suppress]{nis_suppress()}}
+}
+\concept{disclosure}
