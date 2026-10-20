@@ -11,17 +11,20 @@
 
 ## Cycle
 
-1. Run `Rscript tools/probe/probe-real-data.R` and
-   `Rscript tools/probe/probe-quality.R`. Keep all outputs under the ignored
-   `local/loop/` directory. Source `.easynis-local.ps1` in PowerShell first;
-   it sets the R executable and user library. `EASYNIS_LOOP_DIR` may override
-   the output directory.
-2. Run `Rscript tools/probe/test-probe-helpers.R`, then
-   `Rscript tools/check-public-text.R --self-test`. Run
-   `Rscript tools/probe/readiness.R` and inspect the cyclocomp report.
+1. In PowerShell, source the main checkout's setup file with
+   `. "$env:USERPROFILE\Documents\easyNIS\.easynis-local.ps1"`, then run
+   `& $env:EASYNIS_RSCRIPT tools/probe/probe-real-data.R` and
+   `& $env:EASYNIS_RSCRIPT tools/probe/probe-quality.R`. Keep outputs under the
+   ignored `local/loop/` directory. A shell-provided `EASYNIS_LOOP_DIR` takes
+   precedence over the value in `.Renviron`.
+2. Run `& $env:EASYNIS_RSCRIPT tools/probe/test-probe-helpers.R`, then
+   `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --self-test`. Run
+   `& $env:EASYNIS_RSCRIPT tools/probe/readiness.R` and inspect the cyclocomp report.
 3. Turn actionable findings into GitHub issues using
-   `.github/ISSUE_TEMPLATE/loop-finding.yml`. Run
-   `Rscript tools/check-public-text.R --stdin` on every issue or PR body before
+   `.github/ISSUE_TEMPLATE/loop-finding.yml`. For CLI issues use
+   `gh issue create --label loop-found --label P1 --body-file issue.md` and
+   replace `P1` with the assigned priority so the readiness query sees it. Run
+   `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --stdin` on every issue or PR body before
    submitting it. Do not file issues for this tooling change; start with the
    next loop cycle.
 4. Pick P0 issues first, then P1, P2, and P3. Assign at most four workers, with
@@ -45,9 +48,10 @@ Licensed NIS data may be read locally for diagnosis only. Never publish or
 commit real records, counts, estimates, distributions, data inventories,
 private paths, or local validation receipts. Public probe findings contain
 only step/function/year, redacted diagnostics, timing, an approximate R heap
-estimate, and pass/fail. Arrow and other native allocations can exceed that
-estimate;
-estimates used for sanity checks remain in `local/loop/<run>/private/`.
+estimate, and pass/fail. Numeric diagnostics are replaced as a whole to avoid
+leaking small-cell counts through singular/plural wording. Arrow and other
+native allocations can exceed the heap estimate. Private output contains
+estimates only, never a survey design or record-level copy.
 Use invented public fixtures. Run the public-text guard before filing issues
 or PRs.
 

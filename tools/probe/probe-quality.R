@@ -10,6 +10,7 @@ run_dir <- file.path(loop_dir, stamp)
 dir.create(run_dir, recursive = TRUE)
 output <- file.path(run_dir, "quality.jsonl")
 if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite to write probe output.")
+run_evidence <- git_evidence()
 devtools::load_all(root, quiet = TRUE)
 quarto_command <- Sys.which("quarto")
 quarto_pandoc <- if (nzchar(quarto_command)) file.path(dirname(quarto_command), "tools") else ""
@@ -25,12 +26,15 @@ safe <- function(name, fn) {
     error = identity)
   list(name = name, pass = !inherits(value, "error"),
     error_class = if (inherits(value, "error")) class(value)[[1L]] else "",
-    error = if (inherits(value, "error")) redact_paths(conditionMessage(value)) else "",
-    warnings = paste(redact_paths(warnings), collapse = " | "),
+    error = if (inherits(value, "error")) redact_public_diagnostic(conditionMessage(value)) else "",
+    warnings = paste(redact_public_diagnostic(warnings), collapse = " | "),
     elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
 }
 requested_text <- Sys.getenv("EASYNIS_QUALITY_STEPS", unset = "")
 requested_steps <- if (nzchar(requested_text)) strsplit(requested_text, ",", fixed = TRUE)[[1L]] else character()
+step_keys <- c("as_cran", "lintr", "cyclocomp", "coverage", "goodpractice", "pkgcheck", "pkgdown")
+unknown_steps <- setdiff(requested_steps, step_keys)
+if (length(unknown_steps)) stop("Unknown EASYNIS_QUALITY_STEPS: ", paste(unknown_steps, collapse = ", "))
 run_step <- function(key, name, fn) {
   if (length(requested_steps) && !key %in% requested_steps) {
     return(list(name = name, pass = NA, error_class = "", error = "",
@@ -63,7 +67,32 @@ checks[["pkgdown"]] <- run_step("pkgdown", "pkgdown::check_pkgdown", function() 
   pkgdown::check_pkgdown(root)
 })
 
-exports <- readLines(file.path(root, "NAMESPACE"), warn = FALSE)
+goodpractice_pass <- function(value) {
+  if (!inherits(value, "goodPractice")) return(NA)
+  failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
+  if (is.null(failed)) return(NA)
+  !length(failed)
+}
+pkgcheck_pass <- function(value) {
+  if (!inherits(value, "pkgcheck")) return(NA)
+  summary_lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
+    error = function(e) NULL)
+  okay <- attr(summary_lines, "checks_okay", exact = TRUE)
+  if (!is.logical(okay) || length(okay) != 1L || is.na(okay)) return(NA)
+  okay
+}
+tool_failures <- function(name, value) {
+  if (inherits(value, "goodPractice")) {
+    return(paste(goodpractice::failed_checks(value), collapse = ", "))
+  }
+  if (inherits(value, "pkgcheck")) {
+    lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
+      error = function(e) character())
+    return(paste(grep("heavy_multiplication_x", lines, value = TRUE), collapse = " | "))
+  }
+  ""
+}
+
 export_docs <- exported_example_status(root)
 exports <- export_docs$exports
 examples <- export_docs$has_examples
@@ -117,56 +146,79 @@ manual_guide_pass <- all(description_fields) && docs$description_url &&
   docs$codemeta_file && all(examples) && all(tests_per_export) &&
   length(print_cat_hits) == 0L && length(cli_calls) > 0L &&
   all(grepl("^nis_", exports)) && identical(data_first_exceptions, "nis_example")
-records <- lapply(checks, function(x) {
+check_counts_for <- function(value) {
+  has_counts <- is.list(value) && all(c("errors", "warnings", "notes") %in% names(value))
+  if (inherits(value, "rcmdcheck") || has_counts) return(check_result_counts(value))
+  NULL
+}
+quality_step_pass <- function(x, counts) {
   value <- x$value
-  status <- if (identical(value, "skipped_by_selection")) "skipped_by_selection" else if (identical(value, "not installed")) "skipped_not_installed" else if (x$pass) "completed" else "failed"
-  passed <- x$pass
-  if (x$name %in% c("lintr", "cyclocomp_linter(15)")) passed <- x$pass && length(value) == 0L
-  check_counts <- if (inherits(value, "rcmdcheck") ||
-    is.list(value) && all(c("errors", "warnings", "notes") %in% names(value))) {
-      check_result_counts(value)
-    } else NULL
-  if (!is.null(check_counts)) passed <- x$pass && all(check_counts == 0L)
-  if (inherits(value, "coverage")) passed <- x$pass && covr::percent_coverage(value) >= 90
-  if (identical(value, "not installed") || identical(value, "skipped_by_selection")) passed <- NA
-  detail <- if (inherits(value, "error")) x$error else if (!is.null(check_counts))
-    paste(names(check_counts), check_counts, collapse = " | ") else if (x$name %in% c("lintr", "cyclocomp_linter(15)")) {
-      lint_table <- tryCatch(as.data.frame(value), error = function(e) NULL)
-      if (is.data.frame(lint_table) && all(c("filename", "line_number", "column_number", "message") %in% names(lint_table))) {
-        file <- gsub("^.*[/\\\\](R|tests)[/\\\\]", "\\1/", lint_table$filename, perl = TRUE)
-        paste0(file, ":", lint_table$line_number, ":", lint_table$column_number,
-          ": ", lint_table$message, collapse = " | ")
-      } else paste(capture.output(print(value)), collapse = " | ")
-    } else ""
-  commit <- tryCatch(system2("git", c("rev-parse", "HEAD"), stdout = TRUE,
-    stderr = FALSE)[[1L]], error = function(e) NA_character_)
-  list(step = x$name, status = status, pass = passed, error_class = x$error_class,
-    result_class = paste(class(value), collapse = ","), commit = commit,
-    detail = redact_paths(detail),
-    warnings = x$warnings, elapsed_seconds = x$elapsed_seconds)
-})
-commit <- tryCatch(system2("git", c("rev-parse", "HEAD"), stdout = TRUE,
-  stderr = FALSE)[[1L]], error = function(e) NA_character_)
+  if (identical(value, "skipped_by_selection") || identical(value, "not installed")) return(NA)
+  if (inherits(value, "error")) return(FALSE)
+  if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(x$pass && length(value) == 0L)
+  if (!is.null(counts)) return(x$pass && all(counts == 0L))
+  if (inherits(value, "coverage")) return(x$pass && covr::percent_coverage(value) >= 90)
+  if (x$name == "goodpractice") return(goodpractice_pass(value))
+  if (x$name == "pkgcheck") return(pkgcheck_pass(value))
+  isTRUE(x$pass)
+}
+quality_step_status <- function(value, passed) {
+  if (identical(value, "skipped_by_selection")) return("skipped_by_selection")
+  if (identical(value, "not installed")) return("skipped_not_installed")
+  if (inherits(value, "error")) return("failed")
+  if (is.na(passed)) return("not_verified")
+  "completed"
+}
+lint_detail <- function(value) {
+  lint_table <- tryCatch(as.data.frame(value), error = function(e) NULL)
+  columns <- c("filename", "line_number", "column_number", "message")
+  if (!is.data.frame(lint_table) || !all(columns %in% names(lint_table))) {
+    return(paste(capture.output(print(value)), collapse = " | "))
+  }
+  file <- gsub("^.*[/\\\\](R|tests)[/\\\\]", "\\1/", lint_table$filename, perl = TRUE)
+  entries <- paste0(file, ":", lint_table$line_number, ":", lint_table$column_number,
+    ": ", lint_table$message)
+  paste(vapply(entries, redact_paths, character(1)), collapse = " | ")
+}
+quality_step_detail <- function(x, counts) {
+  value <- x$value
+  if (inherits(value, "error")) return(x$error)
+  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(value))
+  if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
+  if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(lint_detail(value))
+  ""
+}
+quality_record <- function(x, evidence) {
+  value <- x$value
+  counts <- check_counts_for(value)
+  passed <- quality_step_pass(x, counts)
+  detail <- quality_step_detail(x, counts)
+  if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
+  list(step = x$name, status = quality_step_status(value, passed), pass = passed,
+    error_class = x$error_class, result_class = paste(class(value), collapse = ","),
+    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
+    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds)
+}
+records <- lapply(checks, quality_record, evidence = run_evidence)
 records[[length(records) + 1L]] <- list(step = "export_documentation", status = "completed",
-  pass = all(examples), commit = commit, evidence = docs)
+  pass = all(examples), commit = run_evidence$commit,
+  working_tree_clean = run_evidence$working_tree_clean, evidence = docs)
 records[[length(records) + 1L]] <- list(step = "ropensci_manual_subset",
   status = if (manual_guide_pass) "completed" else "partial", pass = manual_guide_pass,
-  commit = commit, evidence = checklist)
+  commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean,
+  evidence = checklist)
 coverage_check <- checks$coverage
 coverage <- coverage_check$value
 if (identical(coverage, "skipped_by_selection")) {
   coverage_record <- NULL
 } else if (inherits(coverage, "coverage")) {
   cov <- covr::percent_coverage(coverage)
-  commit <- tryCatch(system2("git", c("rev-parse", "HEAD"), stdout = TRUE,
-    stderr = FALSE)[[1L]], error = function(e) NA_character_)
   coverage_record <- list(step = "coverage_percent", status = "completed", pass = cov >= 90,
-    value = cov, commit = commit)
+    value = cov, commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
 } else {
-  commit <- tryCatch(system2("git", c("rev-parse", "HEAD"), stdout = TRUE,
-    stderr = FALSE)[[1L]], error = function(e) NA_character_)
   coverage_record <- list(step = "coverage_percent", status = "failed", pass = FALSE,
-    error_class = coverage_check$error_class, commit = commit)
+    value = NA_real_, error_class = coverage_check$error_class,
+    commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
 }
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")

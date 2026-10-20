@@ -18,7 +18,7 @@ if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite to wri
 devtools::load_all(".", quiet = TRUE)
 
 findings <- list()
-private_results <- list()
+private_estimates <- list()
 record_step <- function(step, year = NA_integer_, fun) {
   function_name <- switch(step,
     open_year = "nis_open",
@@ -55,9 +55,9 @@ record_step <- function(step, year = NA_integer_, fun) {
   finding <- list(
     step = step, function_name = function_name, year = year,
     pass = !failed, error_class = if (failed) class(result)[[1L]] else "",
-    error = redact_public_text(error_text),
-    warnings = paste(redact_public_text(warnings), collapse = " | "),
-    messages = paste(redact_public_text(messages), collapse = " | "),
+    error = redact_public_diagnostic(error_text),
+    warnings = paste(redact_public_diagnostic(warnings), collapse = " | "),
+    messages = paste(redact_public_diagnostic(messages), collapse = " | "),
     elapsed_seconds = elapsed, peak_r_heap_mb_estimate = as.numeric(memory)
   )
   findings[[length(findings) + 1L]] <<- finding
@@ -65,8 +65,8 @@ record_step <- function(step, year = NA_integer_, fun) {
   writeLines(jsonlite::toJSON(finding, auto_unbox = TRUE, null = "null",
     na = "null", dataframe = "rows", digits = NA), connection, useBytes = TRUE)
   close(connection)
-  if (!failed && step %in% c("weighted_descriptives", "regression", "code_transitions")) {
-    private_results[[step]] <<- result
+  if (!failed && step %in% c("weighted_descriptives", "regression")) {
+    private_estimates[[step]] <<- private_sanity_summary(step, result)
   }
   invisible(result)
 }
@@ -141,15 +141,16 @@ record_step("comorbidity", year, function() {
     dplyr::collect()
   easyNIS::nis_comorbidity(rows)
 })
-record_step("code_transitions", year, function() {
-  transition_query <- easyNIS::nis_open(data_dir,
-    years = intersect(2016:max(years), years))
+transition_years <- intersect(2016:max(years), years)
+record_step("code_transitions", transition_years, function() {
+  transition_query <- easyNIS::nis_open(data_dir, years = transition_years)
   easyNIS::nis_audit_code_transition(transition_query,
     codes = c(ami = "I21", heart_failure = "I50"), type = "dx")
 })
 trend <- NULL
-record_step("trend_2016_to_latest", year, function() {
-  trend <<- easyNIS::nis_open(data_dir, years = intersect(2016:max(years), years))
+trend_years <- intersect(2016:max(years), years)
+record_step("trend_2016_to_latest", trend_years, function() {
+  trend <<- easyNIS::nis_open(data_dir, years = trend_years)
   trend <- trend |> easyNIS::nis_flag_dx(sepsis = c("A40", "A41"))
   trend_design <- easyNIS::nis_design(trend, cohort = sepsis,
     keep = c(YEAR, DIED))
@@ -158,6 +159,6 @@ record_step("trend_2016_to_latest", year, function() {
     dplyr::group_by(YEAR) |>
     srvyr::summarise(mortality = srvyr::survey_mean(.died, na.rm = TRUE))
 })
-saveRDS(private_results, private_file)
+saveRDS(private_estimates, private_file)
 cat(sprintf("Probe findings written to %s\n", findings_file))
 cat(sprintf("Private sanity checks written under %s\n", private_dir))

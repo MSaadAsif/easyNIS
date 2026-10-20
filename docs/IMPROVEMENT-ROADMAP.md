@@ -40,5 +40,20 @@ real NIS results.
 
 The literature challenge set reviewed 12 original NIS studies and established
 the existing survey workflow as the core product direction. The HOCM study is
-complete, and its independent estimator comparison tests use invented data.
+complete. Repository comparison tests for `nis_design()` use invented data;
+they are not independent external validation.
 The archived research report is `docs/research/2026-10-nis-literature-report.md`.
+
+## Report corrections
+
+The archived report's claim that no `nis_design()` validation artifact exists
+is corrected above: repository comparison tests exist, but independent external
+validation remains a Path to 1.0 criterion.
+
+## Out of scope
+
+- Broad pre-2012 support, including `TRENDWT`, before annual layouts are verified.
+- Person-level linkage, longitudinal or readmission helpers, and state estimates.
+- Post-2011 hospital volume inferred from sampled discharge counts.
+- Wrappers for general statistical methods already supported by established R
+  packages, or preflight tools that choose scientific assumptions for analysts.

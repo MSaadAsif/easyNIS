@@ -1,9 +1,11 @@
 # easyNIS development
 
-Work on a branch or isolated worktree. Use invented fixtures for public tests;
-never commit licensed inputs, private paths, local validation receipts, or
-record-derived output. Real NIS results stay local under the ignored
-`local/loop/` directory. Follow `docs/LOOP.md` for the improvement cycle.
+Work on a branch or isolated worktree. Run focused tests and `devtools::check()`
+before requesting independent review. Use invented public fixtures and
+independently authored MIT-compatible code. Never commit licensed inputs,
+private paths, local validation receipts, or record-derived output. Real NIS
+results stay local under the ignored `local/loop/` directory. Follow
+`docs/LOOP.md` for the improvement cycle.
 
 Commits must use author and committer `Muhammad Saad
 <168359874+MSaadAsif@users.noreply.github.com>` and must not include AI
