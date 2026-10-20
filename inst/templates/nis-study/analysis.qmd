@@ -25,7 +25,7 @@ input_path <- if (is_example) {
   params$data_path
 }
 
-nis_records <- nis_open(input_path, years = params$years)
+nis_data <- nis_open(input_path, years = params$years)
 ```
 
 ## Study definitions
@@ -52,7 +52,7 @@ outcomes <- dplyr::tibble(
   exponentiate = c(TRUE, FALSE, FALSE)
 )
 
-nis_records <- nis_records |>
+nis_data <- nis_data |>
   nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
   nis_flag_dx(exposed = codes$exposure, position = "any")
 
@@ -97,7 +97,7 @@ report_key <- easyNIS:::nis_study_report_cache_key(
 #| cache.extra: !expr design_key
 study_design <- rlang::inject(
   nis_design(
-    nis_records,
+    nis_data,
     !!cohort,
     keep = c(
       AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS,
@@ -172,12 +172,12 @@ flow_summary <- function(data, step) {
     dplyr::mutate(step = step)
 }
 
-flow_all <- flow_summary(nis_records, "All discharges")
+flow_all <- flow_summary(nis_data, "All discharges")
 flow_principal_dx <- flow_summary(
-  dplyr::filter(nis_records, principal_dx), "Principal diagnosis prefix"
+  dplyr::filter(nis_data, principal_dx), "Principal diagnosis prefix"
 )
 flow_cohort <- flow_summary(
-  rlang::inject(dplyr::filter(nis_records, !!cohort)), "Cohort definition"
+  rlang::inject(dplyr::filter(nis_data, !!cohort)), "Cohort definition"
 )
 flow_analysis <- dplyr::tibble(
   n = cohort_n,

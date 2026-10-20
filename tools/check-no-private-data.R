@@ -31,7 +31,6 @@ private_strings <- c(
   paste0("C:", separator, "Users", separator),
   paste0("C:", separator, separator, "Users", separator, separator),
   paste0("AHRQ_", "NIS"),
-  paste0("nis_", "data"),
   paste0("RCOP_", "NIS")
 )
 
