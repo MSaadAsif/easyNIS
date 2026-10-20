@@ -46,8 +46,8 @@ for (i in seq_along(paths)) {
   }
 
   size <- file.info(path)$size
-  if (is.finite(size) && size > 1024^2) {
-    findings <- c(findings, sprintf("larger than 1 MiB (%0.2f MiB): %s", size / 1024^2, path))
+  if (is.finite(size) && size > 1e6) {
+    findings <- c(findings, sprintf("larger than 1 MB (%0.2f MB): %s", size / 1e6, path))
     next
   }
 
