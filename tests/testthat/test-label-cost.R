@@ -144,8 +144,81 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
   explicit <- nis_cost(other, dollars = 2023, charges = "TOTCHG_2023")
   expect_equal(as.numeric(explicit$charges_adj), 4000)
   expect_equal(as.numeric(explicit$cost_adj), 2000)
+  expect_identical(nis_cost_provenance(explicit)$charge_field, "TOTCHG_2023")
+  expect_identical(nis_cost_provenance(explicit)$base_year, 2023L)
+  expect_equal(nis_cost_provenance(explicit)$rows_missing_or_invalid_ccr, 0L)
   expect_equal(as.numeric(nis_cost(other, dollars = 2023)$charges_adj), 1)
   expect_error(nis_cost(other, dollars = 2023, charges = "MISSING"), "MISSING")
+})
+
+test_that("nis_cost records provenance and treats unusable CCR values as missing", {
+  data <- dplyr::tibble(
+    YEAR = c(2020, 2022, 2019, 2021, 2018, 2017),
+    TOTCHG = c(1000, 2000, 3000, 4000, 5000, 6000),
+    CCR_NIS = c(0.25, 0.5, NA_real_, 0, Inf, -0.1)
+  )
+  informs <- character()
+  adjusted <- withCallingHandlers(
+    nis_cost(data, dollars = 2022),
+    rlang_message = function(condition) {
+      informs <<- c(informs, conditionMessage(condition))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_identical(informs, paste0(
+    "4 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
+  ))
+
+  expect_equal(as.numeric(adjusted$charges_adj[1:2]), c(
+    1000 * 292.655 / 258.811,
+    2000
+  ))
+  expect_equal(as.numeric(adjusted$cost_adj[1:2]), c(
+    1000 * 0.25 * 292.655 / 258.811,
+    2000 * 0.5
+  ))
+  expect_true(all(is.na(adjusted$cost_adj[3:6])))
+  expect_equal(as.numeric(adjusted$charges_adj[3:6]),
+    c(
+      3000 * 292.655 / 255.657,
+      4000 * 292.655 / 270.970,
+      5000 * 292.655 / 251.107,
+      6000 * 292.655 / 245.120
+    ),
+    tolerance = 1e-10
+  )
+
+  provenance <- nis_cost_provenance(adjusted)
+  expect_identical(provenance$charge_field, "TOTCHG")
+  expect_identical(provenance$ccr_field, "CCR_NIS")
+  expect_match(provenance$inflation_index, "CPI-U")
+  expect_match(provenance$inflation_index_source, "Bureau of Labor Statistics")
+  expect_identical(provenance$base_year, 2022L)
+  expect_equal(provenance$multipliers$multiplier[
+    provenance$multipliers$year == 2020
+  ], 292.655 / 258.811)
+  expect_equal(provenance$rows_missing_or_invalid_ccr, 4L)
+  expect_identical(provenance$multipliers$year, sort(unique(data$YEAR)))
+  expect_match(provenance$ccr_treatment, "produce NA cost_adj")
+  expect_identical(provenance$output_types, c(
+    charges_adj = "Inflation-adjusted charges",
+    cost_adj = "Estimated cost via CCR_NIS"
+  ))
+})
+
+test_that("nis_cost records non-finite charges and makes both outputs missing", {
+  data <- dplyr::tibble(
+    YEAR = c(2020, 2021, 2022),
+    TOTCHG = c(100, NA_real_, Inf),
+    CCR_NIS = c(0.25, 0.5, 0.75)
+  )
+
+  adjusted <- nis_cost(data, dollars = 2022)
+
+  expect_true(all(is.na(adjusted$charges_adj[2:3])))
+  expect_true(all(is.na(adjusted$cost_adj[2:3])))
+  expect_equal(nis_cost_provenance(adjusted)$rows_missing_charges, 2L)
+  expect_equal(nis_cost_provenance(adjusted)$rows_missing_or_invalid_ccr, 0L)
 })
 
 test_that("common labels and cost adjustment work in experimental ICD-9 years", {

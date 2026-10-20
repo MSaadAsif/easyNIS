@@ -7,7 +7,8 @@
 nis_cost(data, dollars, charges = "TOTCHG")
 }
 \arguments{
-\item{data}{A data frame with \code{YEAR}, the \code{charges} column, and \code{CCR_NIS}.}
+\item{data}{A collected data frame with \code{YEAR}, the \code{charges} column, and
+\code{CCR_NIS}. Lazy Arrow and DuckDB queries must be collected first.}
 
 \item{dollars}{Reference dollar year, from 2012 through 2024.}
 
@@ -17,7 +18,9 @@ missing from 2023, so it is not comparable to earlier-year \code{TOTCHG}, and it
 is missing for earlier years.}
 }
 \value{
-\code{data} with \code{cost_adj} and \code{charges_adj} in \code{dollars} USD.
+\code{data} with \code{cost_adj} and \code{charges_adj} in \code{dollars} USD. The
+in-memory data frame has \code{nis_cost_provenance} metadata; retrieve it with
+\code{\link[=nis_cost_provenance]{nis_cost_provenance()}}.
 }
 \description{
 Adjust NIS charges and costs to a reference dollar year

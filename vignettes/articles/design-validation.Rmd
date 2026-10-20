@@ -1,0 +1,55 @@
+---
+title: "Survey design validation protocol"
+description: "Cases and reference calculations used to validate nis_design()."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Survey design validation protocol}
+  %\VignetteEngine{ knitr::rmarkdown }
+  %\VignetteEncoding{UTF-8}
+---
+
+This protocol compares the placeholder-row design returned by `nis_design()`
+with a survey design built from the full invented data, before domain
+subsetting. Fixtures come from `nis_example()` and contain no licensed records.
+
+## Cases
+
+- Complete pooled years (2017–2019), with cohort and non-cohort discharges
+  across hospitals and years.
+- Complete 2015 and 2016 data with a cohort limited to Q4 2015, which tests
+  detection of the ICD-10-coded era.
+- Invalid design rows in the input; the reference removes the same rows failing
+  positive, finite `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` checks.
+- Annualized weights, divided by the count of valid-design years, including
+  the partial year as one year.
+- A rare cohort represented in only one quarter of a full data year is silent;
+  pre-filtering the data to Q1-Q3 warns because valid-design data then has only
+  three quarters.
+- A Q4-only cohort in 2015 warns that it covers the ICD-10-coded part of the
+  year, while a complete cohort year is silent. Without `DQTR`, the 2015 split
+  cannot be checked and an informational message says so.
+
+Quarter coverage is computed by grouping valid-design rows in the lazy query
+by `YEAR` and `DQTR`, then collecting that small summary. Cohort-quarter checks
+use only true cohort discharges, so zero-domain placeholder rows do not affect
+the result.
+
+## Compared statistics
+
+At absolute tolerance `1e-8`, compare survey means and standard errors,
+weighted totals and standard errors, `svyratio()` estimates and variance,
+`confint()` for means, `svyby()` estimates and standard errors, logistic and
+Gaussian `svyglm()` coefficients and covariance matrices, and median
+`svyquantile()` estimates. Compare design degrees of freedom exactly and the
+gtsummary p-values at `1e-8`. Annualized totals are compared with full-data
+reference totals divided by the number of valid-design years.
+
+## Reference construction
+
+Start from collected `nis_example()` data and compute `.in_cohort` for every
+row. Build year-qualified PSU and stratum identifiers and use original or
+annualized `DISCWT` values in `srvyr::as_survey_design(..., nest = TRUE)`.
+Apply `dplyr::filter(.in_cohort)` only after constructing that full-data design.
+For invalid-row cases, filter out exactly the rows that `nis_design()` excludes
+before building the reference. This preserves non-cohort observations in each
+hospital-year so domain estimates have the same sampling structure.

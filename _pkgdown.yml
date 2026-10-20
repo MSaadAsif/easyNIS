@@ -17,8 +17,10 @@ articles:
   - title: Guides
     navbar: Guides
     contents:
+      - '"articles/why-easynis"'
       - getting-started
       - porting
+      - articles/design-validation
 
 reference:
   - title: Open and flag data
@@ -29,6 +31,7 @@ reference:
       - nis_flag_dx_position
       - nis_flag_pr
       - nis_flag_pr_timing
+      - nis_prday_completeness
   - title: Survey design and weighting
     contents:
       - nis_design
@@ -46,7 +49,9 @@ reference:
     contents:
       - nis_label
       - nis_cost
+      - nis_cost_provenance
   - title: Suppress and start a study
     contents:
       - nis_suppress
+      - nis_cell_counts
       - nis_new_study

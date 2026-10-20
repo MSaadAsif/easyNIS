@@ -2,6 +2,20 @@
 
 ## New features
 
+- `nis_design()` warns when annualized valid-design data represented in `DQTR`
+  have fewer than four quarters, and explains how to exclude or separately
+  reweight those years. It also warns when a 2015 cohort contains only
+  ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4), and
+  informs when `DQTR` is missing so the 2015 split cannot be checked.
+- `nis_cost()` records charge/CCR fields, CPI-U source and multipliers, base
+  year, invalid CCR and missing charge counts, and adjusted-output meanings.
+  Zero or negative CCR values now produce `NA` in `cost_adj` (previously zero
+  CCR produced zero cost and negative CCR produced a negative cost); one
+  informational message reports how many rows have missing or invalid CCR
+  (`nis_design()` reports cohort rows only). Use
+  `nis_cost_provenance()` on its result or the `nis_design()` survey design.
+- Added `nis_prday_completeness()` for unweighted PRDAY completeness summaries
+  by year and matched procedure slot.
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
 - `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
@@ -12,6 +26,12 @@
   point estimates; these are not design-based estimates.
 - `nis_suppress()` now accepts data frames with `count_col`, `weighted_cols`,
   and `by`, and supports single-dimension complementary suppression.
+- `nis_suppress()` accepts `hospital_col` to mask cells based on fewer than two
+  contributing hospitals; `nis_cell_counts()` computes unweighted discharge
+  and year-scoped hospital counts from record-level data or an `nis_design()`.
+- `nis_suppress()` now suppresses zero discharge counts at or below the
+  threshold and rejects missing, non-finite, negative, or fractional
+  data-frame count values.
 
 # easyNIS 0.2.0
 

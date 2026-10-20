@@ -11,7 +11,8 @@ nis_suppress(
   count_col,
   weighted_cols = NULL,
   by = NULL,
-  secondary = TRUE
+  secondary = TRUE,
+  hospital_col = NULL
 )
 }
 \arguments{
@@ -35,6 +36,13 @@ the smallest remaining positive count when exactly one row in a stratum is
 primary-masked. This is single-dimension complementary suppression, not a
 full cell-suppression solver; totals rows must be handled or excluded by
 the user.}
+
+\item{hospital_col}{Optional data-frame column containing the number of
+distinct contributing hospitals for each cell. Cells with fewer than two
+hospitals are marked \verb{<2 hospitals}. Missing
+or invalid hospital counts are errors. Hospital identifiers must be
+counted by year; \code{\link[=nis_cell_counts]{nis_cell_counts()}} computes counts from record-level
+data or an \code{nis_design()} result.}
 }
 \value{
 For data frames, the same table with masked columns converted to
@@ -51,7 +59,9 @@ absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (\code{stat_0}) in the same row is marked \code{Masked},
 unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing.
+still need analyst review before sharing. This route checks discharge counts
+only; it cannot apply the two-hospital rule. Use \code{nis_cell_counts()} with the
+data-frame route to apply both disclosure rules.
 }
 \examples{
 if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
@@ -64,5 +74,8 @@ if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) {
     include = c(AGE, FEMALE)
   )
   nis_suppress(table, threshold = 10)
+
+# For data-frame summaries, join per-cell counts from record-level data and
+# pass the resulting hospital column as `hospital_col`.
 }
 }
