@@ -95,7 +95,9 @@ table_one <- gtsummary::tbl_svysummary(
   design, by = heart_failure, include = c(AGE, LOS)
 ) |>
   nis_suppress(threshold = 10)
-shareable_counts <- nis_cell_counts(nis, by = "heart_failure") |>
+shareable_counts <- nis_cell_counts(
+  dplyr::collect(nis), by = "heart_failure"
+) |>
   nis_suppress(count_col = "n", hospital_col = "hospitals")
 fit <- survey::svyglm(LOS ~ heart_failure + AGE, design = design)
 table_one
