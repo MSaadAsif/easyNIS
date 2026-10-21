@@ -16,7 +16,9 @@
    `& $env:EASYNIS_RSCRIPT tools/probe/probe-real-data.R` and
    `& $env:EASYNIS_RSCRIPT tools/probe/probe-quality.R`. Keep outputs under the
    ignored `local/loop/` directory. A shell-provided `EASYNIS_LOOP_DIR` takes
-   precedence over the value in `.Renviron`.
+   precedence only when its normalized path remains inside the main checkout's
+   Git-ignored `local/loop/` directory; the probe verifies this with
+   `git check-ignore` and stops when the path is outside it or is not ignored.
 2. Run `& $env:EASYNIS_RSCRIPT tools/probe/test-probe-helpers.R`, then
    `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --self-test`. Run
    `& $env:EASYNIS_RSCRIPT tools/probe/readiness.R` and inspect its cyclocomp
@@ -47,16 +49,13 @@ complexity.
 
 ## Privacy and attribution
 
-Licensed NIS data may be read locally for diagnosis only. Never publish or
-commit real records, counts, estimates, distributions, data inventories,
-private paths, or local validation receipts. Public probe findings contain
-only step/function/year, redacted diagnostics, timing, an approximate R heap
-estimate, and pass/fail. Numeric diagnostics are replaced as a whole to avoid
-leaking small-cell counts through singular/plural wording. Arrow and other
-native allocations can exceed the heap estimate. Private output contains
-estimates only, never a survey design or record-level copy.
-Use invented public fixtures. Run the public-text guard before filing issues
-or PRs.
+No output from a real-data run may be copied into an issue, PR, commit, or
+document. This includes `findings.jsonl`; keep every real-data output local.
+Full condition text may be stored only under `local/loop/<run>/private/`.
+A public issue contains only a synthetic reproduction using `nis_example()` or
+another fixture, plus a description of the problem in general terms. The
+public-text scanner is a backstop, not publication clearance. Use judgment and
+remove all real-run output before submitting any public text.
 
 Set commit author and committer to `Muhammad Saad
 <168359874+MSaadAsif@users.noreply.github.com>`. Do not add co-authors or AI

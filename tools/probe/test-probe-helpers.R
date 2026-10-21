@@ -19,6 +19,29 @@ stopifnot(all(redacted == "[local path]"),
   is.na(coverage_percent_value(list(value = NA_real_))),
   identical(coverage_percent_value(list(value = 92)), 92))
 
+factor_condition <- simpleWarning("Unknown factor level 'Female' in stratum")
+code_condition <- simpleError("Unexpected code value 'SYNTHETIC_CODE_ABC' in input")
+known_safe_condition <- simpleWarning("The requested operation completed with a warning.")
+factor_public <- safe_condition_record(factor_condition, "weighted_descriptives")
+code_public <- safe_condition_record(code_condition, "comorbidity")
+known_safe_public <- safe_condition_record(known_safe_condition, "survey_design")
+stopifnot(identical(factor_public$message, "<redacted: unrecognized message>"),
+  identical(code_public$message, "<redacted: unrecognized message>"),
+  identical(known_safe_public$message, "The requested operation completed with a warning."),
+  !grepl("Female", paste(factor_public, collapse = " "), fixed = TRUE),
+  !grepl("SYNTHETIC_CODE_ABC", paste(code_public, collapse = " "), fixed = TRUE),
+  identical(factor_public$condition_class, "simpleWarning"),
+  identical(factor_public$calling_function, "weighted_descriptives"))
+
+main_repo <- find_main_repo()
+loop_root <- file.path(main_repo, "local", "loop")
+resolved_loop <- resolve_loop_dir(main_repo, loop_root)
+outside_loop <- tryCatch(resolve_loop_dir(main_repo, tempfile("outside-loop-")), error = identity)
+stopifnot(path_is_within(resolved_loop, loop_root), inherits(outside_loop, "error"),
+  is.list(load_reference_studies(file.path("tools", "probe", "reference-studies.yml"))),
+  length(load_reference_studies(file.path("tools", "probe", "reference-studies.yml"))) == 0L,
+  !valid_reference_studies(list()))
+
 synthetic_fit <- stats::lm(mpg ~ cyl, data = datasets::mtcars)
 private_fit_summary <- private_sanity_summary("regression", synthetic_fit)
 stopifnot(is.matrix(private_fit_summary), !"data" %in% names(private_fit_summary),
@@ -31,31 +54,47 @@ local({
   receipt_path <- tempfile(fileext = ".json")
   on.exit(unlink(receipt_path))
   current_commit <- "synthetic-commit"
-  write_receipt <- function(studies) {
-    jsonlite::write_json(list(commit = current_commit,
-      verified_at = "2026-10-20T12:00:00Z", studies = studies), receipt_path, auto_unbox = TRUE)
-    study_verification_ready(receipt_path, current_commit)
+  reference <- list(
+    id = "synthetic-a", doi = "10.1234/synthetic-a",
+    cohort_definition = "Invented fixture cohort", tolerance = 0.05,
+    headline_estimates = list(list(
+      id = "mortality", label = "Synthetic mortality", estimate_printed = "0.50",
+      estimate = "0.50", ci_printed = "0.40 to 0.60", ci = c("0.40", "0.60")
+    ))
+  )
+  receipt <- list(
+    package_commit_hash = current_commit, study_id = reference$id,
+    verified_at = "2026-10-20T12:00:00Z",
+    results = list(list(
+      estimate_id = "mortality", computed_estimate = 0.52, reference_value = 0.50,
+      reference_ci = c(0.40, 0.60), tolerance = 0.05, comparison_result = "pass"
+    ))
+  )
+  write_receipt <- function(value = receipt) {
+    jsonlite::write_json(value, receipt_path, auto_unbox = TRUE)
+    study_verification_ready(receipt_path, current_commit, reference)
   }
-  passed_studies <- lapply(c("synthetic-a", "synthetic-b", "synthetic-c"), function(id) {
-    list(id = id, pass = TRUE, tolerance = 0.05)
+  stopifnot(valid_reference_study(reference), write_receipt())
+  stopifnot(!study_verification_ready(receipt_path, "different-commit", reference))
+  wrong_reference <- receipt
+  wrong_reference$results[[1L]]$reference_value <- 0.45
+  stopifnot(!write_receipt(wrong_reference))
+  outside_tolerance <- receipt
+  outside_tolerance$results[[1L]]$computed_estimate <- 0.7
+  stopifnot(!write_receipt(outside_tolerance))
+  missing_result <- receipt
+  missing_result$results <- list()
+  stopifnot(!write_receipt(missing_result))
+  reference_studies <- lapply(letters[1:3], function(suffix) {
+    study <- reference
+    study$id <- paste0("synthetic-", suffix)
+    study$doi <- paste0("10.1234/", study$id)
+    study
   })
-  stopifnot(write_receipt(passed_studies))
-  stopifnot(!study_verification_ready(receipt_path, "different-commit"))
-  jsonlite::write_json(list(commit = current_commit, studies = passed_studies), receipt_path,
-    auto_unbox = TRUE)
-  stopifnot(!study_verification_ready(receipt_path, current_commit))
-  stopifnot(!write_receipt(passed_studies[-1L]))
-  failed_studies <- passed_studies
-  failed_studies[[2L]]$pass <- FALSE
-  stopifnot(!write_receipt(failed_studies))
-  duplicate_studies <- passed_studies
-  duplicate_studies[[3L]]$id <- duplicate_studies[[2L]]$id
-  stopifnot(!write_receipt(duplicate_studies))
-  vague_studies <- passed_studies
-  vague_studies[[1L]]$tolerance <- "not specified"
-  stopifnot(!write_receipt(vague_studies))
-  stopifnot(!write_receipt("synthetic"),
-    !write_receipt(list(1, 2, 3)))
+  stopifnot(valid_reference_studies(reference_studies),
+    !valid_reference_studies(reference_studies[-3L]))
+  reference_studies[[3L]]$id <- reference_studies[[2L]]$id
+  stopifnot(!valid_reference_studies(reference_studies))
 
   empty_issues <- parse_open_issue_query("[]")
   one_issue <- parse_open_issue_query('[{"number":42}]')

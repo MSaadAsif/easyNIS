@@ -4,6 +4,7 @@ source(file.path("tools", "probe", "helpers.R"))
 main_repo <- find_main_repo()
 read_main_renviron(main_repo)
 loop_dir <- Sys.getenv("EASYNIS_LOOP_DIR", unset = file.path(main_repo, "local", "loop"))
+loop_dir <- resolve_loop_dir(main_repo, loop_dir)
 data_dir <- Sys.getenv("EASYNIS_DATA", unset = "")
 if (!dir.exists(data_dir)) stop("EASYNIS_DATA must point to the local NIS data directory.")
 stamp <- format(Sys.time(), "%Y%m%dT%H%M%S")
@@ -12,6 +13,7 @@ private_dir <- file.path(run_dir, "private")
 dir.create(private_dir, recursive = TRUE)
 findings_file <- file.path(run_dir, "findings.jsonl")
 private_file <- file.path(private_dir, "sanity-checks.rds")
+private_conditions_file <- file.path(private_dir, "condition-details.rds")
 invisible(file.create(findings_file))
 
 if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite to write probe findings.")
@@ -19,6 +21,7 @@ devtools::load_all(".", quiet = TRUE)
 
 findings <- list()
 private_estimates <- list()
+private_condition_details <- list()
 record_step <- function(step, year = NA_integer_, fun) {
   function_name <- switch(step,
     open_year = "nis_open",
@@ -36,13 +39,23 @@ record_step <- function(step, year = NA_integer_, fun) {
     trend_2016_to_latest = "nis_design + srvyr::survey_mean",
     step
   )
-  warnings <- character()
-  messages <- character()
+  conditions <- list()
+  capture_condition <- function(condition, kind) {
+    private_condition_details[[length(private_condition_details) + 1L]] <<- list(
+      step = step,
+      condition_type = kind,
+      condition_class = class(condition),
+      calling_function = function_name,
+      message = conditionMessage(condition)
+    )
+    conditions[[length(conditions) + 1L]] <<- safe_condition_record(condition, function_name)
+    invisible(NULL)
+  }
   started <- proc.time()[["elapsed"]]
   gc(reset = TRUE)
   result <- tryCatch(withCallingHandlers(fun(),
-    warning = function(w) { warnings <<- c(warnings, conditionMessage(w)); invokeRestart("muffleWarning") },
-    message = function(m) { messages <<- c(messages, conditionMessage(m)); invokeRestart("muffleMessage") }
+    warning = function(w) { capture_condition(w, "warning"); invokeRestart("muffleWarning") },
+    message = function(m) { capture_condition(m, "message"); invokeRestart("muffleMessage") }
   ), error = identity)
   elapsed <- unname(proc.time()[["elapsed"]] - started)
   memory <- tryCatch({
@@ -51,13 +64,10 @@ record_step <- function(step, year = NA_integer_, fun) {
     (peak[["Ncells"]] * cell_bytes + peak[["Vcells"]] * .Machine$sizeof.pointer) / 1024^2
   }, error = function(e) NA_real_)
   failed <- inherits(result, "error")
-  error_text <- if (failed) conditionMessage(result) else ""
+  if (failed) capture_condition(result, "error")
   finding <- list(
     step = step, function_name = function_name, year = year,
-    pass = !failed, error_class = if (failed) class(result)[[1L]] else "",
-    error = redact_public_diagnostic(error_text),
-    warnings = paste(redact_public_diagnostic(warnings), collapse = " | "),
-    messages = paste(redact_public_diagnostic(messages), collapse = " | "),
+    pass = !failed, conditions = conditions,
     elapsed_seconds = elapsed, peak_r_heap_mb_estimate = as.numeric(memory)
   )
   findings[[length(findings) + 1L]] <<- finding
@@ -109,8 +119,10 @@ record_step("hocm_cohort", year, function() {
 design <- NULL
 record_step("survey_design", year, function() {
   flagged <- query |> easyNIS::nis_flag_dx(ami = "I21")
+  diagnosis_fields <- grep("^(?:I10_DX|DXPOA)[0-9]+$", names(query),
+    value = TRUE, perl = TRUE)
   design <<- easyNIS::nis_design(flagged, cohort = ami,
-    keep = c(AGE, FEMALE, DIED, TOTCHG, CCR_NIS, HOSP_NIS, I10_DX1, I10_DX2))
+    keep = c(AGE, FEMALE, DIED, TOTCHG, CCR_NIS, HOSP_NIS, diagnosis_fields))
   design
 })
 record_step("weighted_descriptives", year, function() {
@@ -135,9 +147,11 @@ record_step("cost", year, function() {
   list(data = costs, provenance = easyNIS::nis_cost_provenance(costs))
 })
 record_step("comorbidity", year, function() {
+  comorbidity_fields <- grep("^(?:I10_DX|DXPOA)[0-9]+$", names(design$variables),
+    value = TRUE, perl = TRUE)
   rows <- design$variables |>
     dplyr::filter(.in_cohort) |>
-    dplyr::select(I10_DX1, I10_DX2) |>
+    dplyr::select(dplyr::all_of(comorbidity_fields)) |>
     dplyr::collect()
   easyNIS::nis_comorbidity(rows)
 })
@@ -160,5 +174,10 @@ record_step("trend_2016_to_latest", trend_years, function() {
     srvyr::summarise(mortality = srvyr::survey_mean(.died, na.rm = TRUE))
 })
 saveRDS(private_estimates, private_file)
-cat(sprintf("Probe findings written to %s\n", findings_file))
-cat(sprintf("Private sanity checks written under %s\n", private_dir))
+saveRDS(private_condition_details, private_conditions_file)
+failed_steps <- unique(vapply(Filter(function(finding) !isTRUE(finding$pass), findings),
+  `[[`, character(1), "step"))
+if (length(failed_steps)) {
+  cat(paste(failed_steps, collapse = "\n"), "\n", sep = "")
+  quit(status = 1L)
+}

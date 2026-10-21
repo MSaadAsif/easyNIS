@@ -2,7 +2,7 @@ root <- normalizePath(".", mustWork = TRUE)
 source(file.path("tools", "probe", "helpers.R"))
 main_repo <- find_main_repo(root)
 read_main_renviron(main_repo)
-loop_dir <- Sys.getenv("EASYNIS_LOOP_DIR", unset = file.path(main_repo, "local", "loop"))
+loop_dir <- resolve_loop_dir(main_repo)
 quality_files <- list.files(loop_dir, pattern = "^quality[.]jsonl$", recursive = TRUE, full.names = TRUE)
 quality_files <- quality_files[order(file.info(quality_files)$mtime)]
 quality <- if (!length(quality_files) || !requireNamespace("jsonlite", quietly = TRUE)) list() else
@@ -31,11 +31,12 @@ exports <- export_docs$exports
 man_examples <- export_docs$has_examples
 ci_files <- list.files(".github/workflows", pattern = "[.]ya?ml$", full.names = TRUE)
 ci_text <- paste(unlist(lapply(ci_files, readLines, warn = FALSE)), collapse = "\n")
-study_receipts <- list.files(loop_dir, pattern = "^study-verification[.]json$",
-  recursive = TRUE, full.names = TRUE)
-study_receipts <- study_receipts[grepl("[/\\\\]private[/\\\\]", study_receipts)]
-headline_pass <- current_tree_clean && length(study_receipts) > 0L &&
-  any(vapply(study_receipts, study_verification_ready, logical(1), current_commit = current_commit))
+reference_studies <- load_reference_studies(file.path(root, "tools", "probe", "reference-studies.yml"))
+headline_pass <- current_tree_clean && valid_reference_studies(reference_studies) &&
+  all(vapply(reference_studies, function(study) {
+    receipt <- file.path(loop_dir, "private", "study-verification", paste0(study$id, ".json"))
+    study_verification_ready(receipt, current_commit, study)
+  }, logical(1)))
 query_open_issues <- function(label) {
   result <- tryCatch(system2("gh", c("issue", "list", "--state", "open",
     "--label", label, "--json", "number"), stdout = TRUE, stderr = FALSE),
@@ -104,7 +105,7 @@ criteria <- rbind(
   record("Every export has runnable examples", if (examples_ready) "ready" else "not met", paste(sum(man_examples), "of", length(exports), "exports have examples; a clean current-commit package check is required")),
   record("pkgdown documents the full workflow", if (pkgdown_ready) "ready" else "not met", paste("pkgdown check on current commit:", check_pass("pkgdown::check_pkgdown"), "; full workflow topics documented:", workflow_documented)),
   record("Cyclomatic complexity <= 15 per function", if (check_pass("cyclocomp_linter(15)")) "ready" else "not met", "Requires a passing cyclocomp_linter(15) result for the current commit"),
-  record("Reproduces headline estimates of 3 published NIS studies within stated tolerance", if (headline_pass) "ready" else "not verified", "A local-only receipt tied to the current commit and a verification timestamp is required; never publish estimates"),
+  record("Reproduces headline estimates of 3 published NIS studies within stated tolerance", if (headline_pass) "ready" else "not verified", "Requires three listed studies and passing local receipts matched to HEAD; only pass/fail is printed"),
   record("No open P0/P1 issues", if (issues_clean) "ready" else "not met", "GitHub open issue query using P0 and P1 labels")
 )
 print(criteria, row.names = FALSE)

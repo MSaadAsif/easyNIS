@@ -5,6 +5,7 @@ source(file.path("tools", "probe", "helpers.R"))
 main_repo <- find_main_repo(root)
 read_main_renviron(main_repo)
 loop_dir <- Sys.getenv("EASYNIS_LOOP_DIR", unset = file.path(main_repo, "local", "loop"))
+loop_dir <- resolve_loop_dir(main_repo, loop_dir)
 stamp <- format(Sys.time(), "%Y%m%dT%H%M%S")
 run_dir <- file.path(loop_dir, stamp)
 dir.create(run_dir, recursive = TRUE)
@@ -223,6 +224,9 @@ if (identical(coverage, "skipped_by_selection")) {
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")
 writeLines(lines, output, useBytes = TRUE)
-cat(sprintf("Quality results written to %s\n", output))
-print(docs)
-print(checklist)
+failed <- vapply(records, function(record) identical(record$pass, FALSE), logical(1))
+failed_steps <- unique(vapply(records[failed], `[[`, character(1), "step"))
+if (length(failed_steps)) {
+  cat(paste(failed_steps, collapse = "\n"), "\n", sep = "")
+  quit(status = 1L)
+}

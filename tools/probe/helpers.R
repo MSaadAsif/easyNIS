@@ -27,6 +27,43 @@ read_main_renviron <- function(start = ".") {
   invisible(path)
 }
 
+path_is_within <- function(path, parent) {
+  path <- tolower(sub("/$", "", normalizePath(path, winslash = "/", mustWork = FALSE)))
+  parent <- tolower(sub("/$", "", normalizePath(parent, winslash = "/", mustWork = FALSE)))
+  identical(path, parent) || startsWith(path, paste0(parent, "/"))
+}
+
+resolve_loop_dir <- function(main_repo, requested = Sys.getenv("EASYNIS_LOOP_DIR", unset = "")) {
+  main_repo <- normalizePath(main_repo, winslash = "/", mustWork = TRUE)
+  expected_root <- file.path(main_repo, "local", "loop")
+  if (!dir.exists(expected_root)) dir.create(expected_root, recursive = TRUE)
+  expected_root <- normalizePath(expected_root, winslash = "/", mustWork = TRUE)
+  if (!nzchar(requested)) requested <- expected_root
+  if (!grepl("^(?:[A-Za-z]:[/\\\\]|/|\\\\\\\\)", requested)) {
+    requested <- file.path(main_repo, requested)
+  }
+  candidate <- normalizePath(requested, winslash = "/", mustWork = FALSE)
+  if (!path_is_within(candidate, expected_root)) {
+    stop("EASYNIS_LOOP_DIR must resolve inside the main checkout's ignored local loop directory.",
+      call. = FALSE)
+  }
+  if (!dir.exists(candidate) && !dir.create(candidate, recursive = TRUE, showWarnings = FALSE)) {
+    stop("Could not create the local loop output directory.", call. = FALSE)
+  }
+  candidate <- normalizePath(candidate, winslash = "/", mustWork = TRUE)
+  if (!path_is_within(candidate, expected_root)) {
+    stop("EASYNIS_LOOP_DIR must resolve inside the main checkout's ignored local loop directory.",
+      call. = FALSE)
+  }
+  relative <- substring(candidate, nchar(main_repo) + 2L)
+  ignored <- suppressWarnings(system2("git", c("-C", main_repo, "check-ignore", "--quiet", "--",
+    relative), stdout = FALSE, stderr = FALSE))
+  if (!identical(ignored, 0L)) {
+    stop("The local loop output directory must be ignored by Git.", call. = FALSE)
+  }
+  candidate
+}
+
 redact_paths <- function(text) {
   text <- as.character(text)
   text <- gsub("(?i)\\b[A-Z]:[/\\\\][^\\r\\n]*", "[local path]", text, perl = TRUE)
@@ -48,6 +85,24 @@ redact_public_diagnostic <- function(text) {
   redact_public_text(text)
 }
 
+safe_static_condition_messages <- c(
+  "The requested operation completed with a warning."
+)
+
+safe_condition_record <- function(condition, calling_function) {
+  message <- conditionMessage(condition)
+  public_message <- if (message %in% safe_static_condition_messages) {
+    message
+  } else {
+    "<redacted: unrecognized message>"
+  }
+  list(
+    condition_class = class(condition)[[1L]],
+    calling_function = calling_function,
+    message = public_message
+  )
+}
+
 git_evidence <- function() {
   commit <- tryCatch(system2("git", c("rev-parse", "HEAD"),
     stdout = TRUE, stderr = FALSE), error = function(e) character())
@@ -67,27 +122,93 @@ valid_receipt_time <- function(value) {
   length(parsed) == 1L && !is.na(parsed)
 }
 
-valid_study_record <- function(study) {
-  required <- c("id", "pass", "tolerance")
+numeric_reference_value <- function(value) {
+  parsed <- suppressWarnings(as.numeric(value))
+  if (length(parsed) != 1L || !is.finite(parsed)) return(NA_real_)
+  parsed
+}
+
+valid_reference_estimate <- function(estimate) {
+  required <- c("id", "label", "estimate_printed", "estimate", "ci_printed", "ci")
+  if (!is.list(estimate) || !all(required %in% names(estimate))) return(FALSE)
+  estimate_value <- numeric_reference_value(estimate$estimate)
+  interval <- vapply(estimate$ci, numeric_reference_value, numeric(1))
+  is.character(estimate$id) && length(estimate$id) == 1L && nzchar(estimate$id) &&
+    is.character(estimate$label) && length(estimate$label) == 1L && nzchar(estimate$label) &&
+    is.character(estimate$estimate_printed) && nzchar(estimate$estimate_printed) &&
+    is.character(estimate$ci_printed) && nzchar(estimate$ci_printed) &&
+    is.finite(estimate_value) && is.character(estimate$ci) && length(interval) == 2L &&
+    all(is.finite(interval)) && interval[[1L]] <= interval[[2L]]
+}
+
+valid_reference_study <- function(study) {
+  required <- c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")
   if (!is.list(study) || !all(required %in% names(study))) return(FALSE)
+  estimates <- study$headline_estimates
   is.character(study$id) && length(study$id) == 1L && nzchar(study$id) &&
-    identical(study$pass, TRUE) && is.numeric(study$tolerance) &&
-    length(study$tolerance) == 1L && is.finite(study$tolerance) && study$tolerance >= 0
+    is.character(study$doi) && length(study$doi) == 1L &&
+    grepl("^10[.][0-9]{4,9}/[^[:space:]]+$", study$doi) &&
+    is.character(study$cohort_definition) && length(study$cohort_definition) == 1L &&
+    nzchar(study$cohort_definition) && is.numeric(study$tolerance) &&
+    length(study$tolerance) == 1L && is.finite(study$tolerance) && study$tolerance >= 0 &&
+    is.list(estimates) && length(estimates) > 0L &&
+    all(vapply(estimates, valid_reference_estimate, logical(1))) &&
+    !anyDuplicated(vapply(estimates, `[[`, character(1), "id"))
 }
 
-valid_study_records <- function(studies) {
+valid_reference_studies <- function(studies) {
   if (!is.list(studies) || length(studies) != 3L) return(FALSE)
-  if (!all(vapply(studies, valid_study_record, logical(1)))) return(FALSE)
+  if (!all(vapply(studies, valid_reference_study, logical(1)))) return(FALSE)
   ids <- vapply(studies, `[[`, character(1), "id")
-  all(nzchar(ids)) && !anyDuplicated(ids)
+  !anyDuplicated(ids)
 }
 
-study_verification_ready <- function(path, current_commit) {
-  if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE)) return(FALSE)
+load_reference_studies <- function(path) {
+  if (!requireNamespace("yaml", quietly = TRUE) || !file.exists(path)) return(NULL)
+  reference <- tryCatch(yaml::read_yaml(path), error = function(e) NULL)
+  if (!is.list(reference) || is.null(reference$studies)) return(NULL)
+  reference$studies
+}
+
+study_verification_ready <- function(path, current_commit, reference_study) {
+  if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE) ||
+      !valid_reference_study(reference_study)) return(FALSE)
   receipt <- tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE),
     error = function(e) NULL)
-  is.list(receipt) && identical(receipt$commit, current_commit) &&
-    valid_receipt_time(receipt$verified_at) && valid_study_records(receipt$studies)
+  if (!is.list(receipt) || !identical(receipt$package_commit_hash, current_commit) ||
+      !identical(receipt$study_id, reference_study$id) ||
+      !valid_receipt_time(receipt$verified_at) ||
+      !is.list(receipt$results) || length(receipt$results) != length(reference_study$headline_estimates)) {
+    return(FALSE)
+  }
+  expected <- stats::setNames(reference_study$headline_estimates,
+    vapply(reference_study$headline_estimates, `[[`, character(1), "id"))
+  receipt_ids <- vapply(receipt$results, function(result) {
+    if (is.list(result) && is.character(result$estimate_id) && length(result$estimate_id) == 1L) {
+      result$estimate_id
+    } else {
+      ""
+    }
+  }, character(1))
+  if (any(!nzchar(receipt_ids)) || anyDuplicated(receipt_ids) ||
+      !setequal(receipt_ids, names(expected))) return(FALSE)
+  all(vapply(receipt$results, function(result) {
+    if (!is.list(result) || !all(c("estimate_id", "computed_estimate", "reference_value",
+        "reference_ci", "tolerance", "comparison_result") %in% names(result))) return(FALSE)
+    if (!is.character(result$estimate_id) || length(result$estimate_id) != 1L ||
+        is.na(result$estimate_id) || !nzchar(result$estimate_id)) return(FALSE)
+    reference <- expected[[result$estimate_id]]
+    if (is.null(reference)) return(FALSE)
+    computed <- numeric_reference_value(result$computed_estimate)
+    reference_value <- numeric_reference_value(reference$estimate)
+    tolerance <- numeric_reference_value(reference_study$tolerance)
+    comparison <- if (is.finite(computed) && abs(computed - reference_value) <= tolerance) "pass" else "fail"
+    is.finite(computed) && identical(numeric_reference_value(result$reference_value), reference_value) &&
+      identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
+        numeric_reference_value, numeric(1)))) &&
+      identical(numeric_reference_value(result$tolerance), tolerance) &&
+      identical(result$comparison_result, comparison) && identical(comparison, "pass")
+  }, logical(1)))
 }
 
 parse_open_issue_query <- function(output, status = 0L) {

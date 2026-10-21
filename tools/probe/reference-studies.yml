@@ -1,0 +1,5 @@
+# Study selection is deferred to a future loop cycle.
+# Each selected study must include an id, doi, cohort_definition, tolerance,
+# and headline_estimates with id, label, estimate_printed, estimate, ci_printed,
+# and ci (the numeric lower and upper limits).
+studies: []
