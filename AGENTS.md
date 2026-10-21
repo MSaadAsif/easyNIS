@@ -1,14 +1,19 @@
 # easyNIS development
 
-Work on a branch. Run focused `testthat` tests and `devtools::check()` before
-requesting review. An independent reviewer reviews the diff; merge only after
-review and checks pass.
+Work on a branch or isolated worktree. Run focused tests and `devtools::check()`
+before requesting independent review. Use invented public fixtures and
+independently authored MIT-compatible code. Never commit licensed inputs,
+private paths, local validation receipts, or record-derived output. Real NIS
+results stay local under the ignored `local/loop/` directory. Follow
+`docs/LOOP.md` for the improvement cycle.
 
-Use invented public fixtures and independent MIT code. Never commit licensed
-inputs, private paths, local validation receipts, or record-derived output.
+Commits must use author and committer `Muhammad Saad
+<168359874+MSaadAsif@users.noreply.github.com>` and must not include AI
+attribution or co-authors.
 
-For improvement planning or backlog work, read `docs/IMPROVEMENT-ROADMAP.md`.
-It records the completed HOCM study. In `docs/backlog/hocm-srt-pacing-gaps.md`,
-item 3 (curated cardiac device code sets) and item 8 (AHRQ Elixhauser
-comorbidity computation) are deferred until the user explicitly resumes them.
-These numbers refer to the HOCM backlog, not the improvement roadmap.
+Deferred HOCM backlog items: curated cardiac device code sets (#3) and
+Elixhauser computation (#8). Elixhauser may be resumed only as a thin wrapper
+over an existing package such as `comorbidity` or `medicalcoder`; device code
+sets remain deferred. See `docs/backlog/hocm-srt-pacing-gaps.md`.
+
+For improvement planning, read `docs/IMPROVEMENT-ROADMAP.md`.
