@@ -99,4 +99,18 @@ test_that("nis_attrition validates criteria and weights", {
   data <- dplyr::tibble(DISCWT = 1)
   expect_error(nis_attrition(data), "at least one")
   expect_error(nis_attrition(data, TRUE, weight_var = "MISSING"), "MISSING")
+  expect_error(nis_attrition(data, TRUE, by_year = NA), "`by_year`")
+  expect_error(nis_attrition(data, TRUE, by_year = c(TRUE, FALSE)), "`by_year`")
+  expect_error(nis_attrition(data, TRUE, weight_var = NA_character_), "`weight_var`")
+  expect_error(nis_attrition(data, TRUE, weight_var = c("DISCWT", "other")), "`weight_var`")
+  expect_error(nis_attrition(data, TRUE, by_year = TRUE), "YEAR")
+})
+
+test_that("nis_attrition returns an empty annual summary for empty input", {
+  data <- dplyr::tibble(YEAR = integer(), weight = double(), keep = logical())
+  result <- nis_attrition(data, keep, by_year = TRUE, weight_var = "weight")
+
+  expect_named(result, c("YEAR", "step", "criterion", "n_unweighted",
+    "n_dropped_unweighted", "n_weighted", "n_dropped_weighted", "pct_retained"))
+  expect_equal(nrow(result), 0L)
 })

@@ -198,6 +198,22 @@ test_that("nis_cell_counts excludes zero-domain placeholder rows", {
   expect_false(attr(design, "nis_placeholder_rows")$.in_cohort[[1L]])
 })
 
+test_that("nis_cell_counts handles an unstratified cell and validates its inputs", {
+  records <- data.frame(YEAR = c(2020, 2020, 2021), HOSP_NIS = c(1, 2, 1))
+
+  overall <- nis_cell_counts(records, by = character())
+  expect_equal(overall$n, 3L)
+  expect_equal(overall$hospitals, 3L)
+  expect_error(nis_cell_counts(records, by = NA_character_), "cell-defining columns")
+  expect_error(nis_cell_counts(records, by = "missing"), "missing")
+  expect_error(nis_cell_counts(records["YEAR"], by = character()), "HOSP_NIS")
+  expect_error(nis_cell_counts(list(records), by = character()), "record-level data frame")
+  expect_error(nis_cell_counts(transform(records, YEAR = NA_real_), by = character()),
+    "finite positive")
+  expect_error(nis_cell_counts(transform(records, HOSP_NIS = 0), by = character()),
+    "finite positive")
+})
+
 test_that("nis_suppress groups interleaved data-frame strata without reordering", {
   data <- data.frame(
     group = c("A", "B", "A", "B"),
