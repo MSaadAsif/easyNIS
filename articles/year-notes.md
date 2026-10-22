@@ -58,9 +58,9 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 3 × 2
 #>    YEAR     n
 #>   <int> <int>
-#> 1  2019    96
-#> 2  2020    96
-#> 3  2015    96
+#> 1  2020    96
+#> 2  2015    96
+#> 3  2019    96
 ```
 
 The summary confirms only that the synthetic fixture contains the
