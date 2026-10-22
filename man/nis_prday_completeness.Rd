@@ -7,7 +7,7 @@
 nis_prday_completeness(.data, pr, system = c("icd10", "icd9"))
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow or DuckDB query with \code{YEAR}.}
+\item{.data}{A data frame or lazy DuckDB query with \code{YEAR}.}
 
 \item{pr}{Character vector of procedure code prefixes, normalized and
 matched under the same rules as \code{\link[=nis_flag_pr]{nis_flag_pr()}}.}

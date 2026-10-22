@@ -13,7 +13,7 @@ The public [easyNIS repository](https://github.com/MSaadAsif/easyNIS) was inspec
 
 The requested `docs/IMPROVEMENT-ROADMAP.md` could not be retrieved at that public path on `main`; both the ordinary GitHub and raw-content attempts returned 404. That establishes only that the requested path was inaccessible during this review, **not** that no roadmap exists elsewhere in the repository or its history. Consequently, the two deferred backlog proposals in the prompt are treated as user-supplied historical/backlog information rather than as repository-verified current roadmap entries.
 
-The current baseline is more capable than a simple NIS loader. The repository describes lazy Arrow/DuckDB-backed opening of annual data, diagnosis and procedure flags, survey-design construction, labeling, charge/cost handling, suppression, study scaffolding, comorbidity support, and several audit/sensitivity helpers. The package explicitly says that accepted years are 2012 onward and that acceptance of a year does not mean every annual layout has independently been verified.
+The current baseline is more capable than a simple NIS loader. The repository describes lazy DuckDB-backed opening of annual data, diagnosis and procedure flags, survey-design construction, labeling, charge/cost handling, suppression, study scaffolding, comorbidity support, and several audit/sensitivity helpers. The package explicitly says that accepted years are 2012 onward and that acceptance of a year does not mean every annual layout has independently been verified.
 
 The distinction between released and development functionality matters for interpreting “supported” below:
 
@@ -101,7 +101,7 @@ The classification below uses the requested scheme: **A** = directly supported b
 
 | Cross-study requirement | Class | Evidence and boundary | Gap type |
 |---|---:|---|---|
-| Lazy opening and filtering of 2012+ annual NIS data | **A** | `nis_open()` provides Arrow-backed loading and current development documentation also describes a DuckDB path.  | Supported software |
+| Lazy opening and filtering of 2012+ annual NIS data | **A** | `nis_open()` provides native DuckDB Parquet loading.  | Supported software |
 | Diagnosis-prefix cohort flags | **A** | `nis_flag_dx()` is directly documented.  | Supported software |
 | Procedure-prefix cohort/exposure flags | **A** | `nis_flag_pr()` is directly documented.  | Supported software |
 | Principal versus secondary diagnosis definitions | **A** | Development `nis_flag_dx_position()` directly addresses position-sensitive definitions such as Rubin principal malignancy or reviewer-request alternatives.  | Supported, development |

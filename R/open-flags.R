@@ -1,3 +1,23 @@
+nis_validate_layout_years <- function(entries, found, years) {
+  annual <- !dir.exists(entries)
+  annual_years <- found[annual]
+  hive_years <- found[!annual]
+  conflicting_years <- intersect(years, intersect(annual_years, hive_years))
+  if (length(conflicting_years) == 0L) return(invisible(NULL))
+
+  details <- vapply(conflicting_years, function(year) {
+    annual_path <- entries[annual & found == year]
+    hive_path <- entries[!annual & found == year]
+    paste0("Year ", year, ": annual ", paste(annual_path, collapse = ", "),
+      " and Hive ", paste(hive_path, collapse = ", "))
+  }, character(1))
+  cli::cli_abort(paste0(
+    "A year is present in both annual and Hive layouts.\n",
+    paste0("x Year is duplicated: ", details, collapse = "\n"),
+    "\ni Keep one layout per year."
+  ))
+}
+
 #' Open annual NIS Parquet files lazily
 #'
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
@@ -6,22 +26,25 @@
 #'   codes in `DX*`/`PR*` slots, and 2015 holds both systems (see
 #'   [nis_flag_dx()]).
 #'
-#' @param engine Query engine: `"arrow"` (default) or `"duckdb"`. DuckDB
-#'   queries are backed by Arrow's Parquet scanner and do not use DuckDB's
-#'   native Parquet reader.
+#' @details `nis_open()` reads Parquet directly with DuckDB and returns a
+#'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
+#'   and Hive directories named `YEAR=YYYY` containing Parquet parts. If a part file
+#'   has a physical `YEAR` column, its non-missing values must agree with the
+#'   directory year; missing or absent physical values use the partition year.
+#'   Schemas are combined by column name, including when annual files and Hive
+#'   partitions are mixed. When annual types differ, DuckDB may promote them;
+#'   for example, an integer field combined with a character field is returned
+#'   as character. When present, `YEAR` is validated and returned as integer;
+#'   invalid values identify the offending file in an error. The connection
+#'   remains open while the lazy table is in use and closes after it is released.
+#'   Use `dplyr::collect()` to return
+#'   data to R. The `engine` argument was removed entirely; omit it regardless
+#'   of the value used in older code.
+#'   String columns with malformed UTF-8 may fail during a native Parquet scan;
+#'   validate or repair those values before writing Parquet files.
 #'
-#' @details `engine = "duckdb"` requires the optional `duckdb` and `dbplyr`
-#'   packages. It returns a DuckDB-backed dbplyr table. The connection is
-#'   closed when the returned table is no longer referenced. The Arrow-specific
-#'   helpers `nis_flag_dx()`, `nis_flag_pr()`, and `nis_design()` currently
-#'   require the default Arrow engine (or a data frame where supported).
-#'   Arrow can scan a Parquet string containing invalid UTF-8 bytes, but this
-#'   engine does not promise to repair them; a collected test value retained
-#'   its invalid byte.
-#'
-#' @return With `engine = "arrow"`, a lazy Arrow query; with
-#'   `engine = "duckdb"`, a DuckDB-backed dbplyr table. Both have
-#'   case-normalized columns. Experimental 2023
+#' @return A lazy DuckDB-backed dbplyr table with case-normalized columns.
+#'   Experimental 2023
 #'   layouts keep `TOTCHG_2023` as its own column and leave `TOTCHG` untouched,
 #'   because the 2023 field is HCUP-adjusted for national estimates and is not
 #'   comparable to earlier-year charges. Opening a query that contains
@@ -46,20 +69,23 @@
 #' nis_open(path, years = 2020) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
-nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
-  engine <- match.arg(engine)
+nis_open <- function(path, years = NULL) {
   if (!dir.exists(path)) {
     cli::cli_abort("`path` must name an existing directory.")
   }
 
   entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
     full.names = TRUE, recursive = FALSE)
-  found <- as.integer(sub("^NIS_([0-9]{4})[.]parquet$", "\\1",
+  hive_entries <- list.dirs(path, recursive = TRUE, full.names = TRUE)
+  hive_entries <- hive_entries[grepl("^YEAR=[0-9]{4}$", basename(hive_entries))]
+  entries <- unique(c(entries, hive_entries))
+  found <- as.integer(sub("^(NIS_|YEAR=)([0-9]{4})([.]parquet)?$", "\\2",
     basename(entries)))
+  entries <- entries[!is.na(found)]
+  found <- found[!is.na(found)]
   if (length(found) == 0L) {
     cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.")
   }
-
   if (is.null(years)) {
     years <- sort(found)
   }
@@ -75,6 +101,7 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
   if (length(missing) > 0L) {
     cli::cli_abort("No NIS Parquet entry was found for year{?s} {.val {missing}}.")
   }
+  nis_validate_layout_years(entries, found, years)
   if (any(years < 2016L)) {
     cli::cli_inform(c(
       "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
@@ -82,7 +109,7 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
     ))
   }
 
-  year_entries <- entries[match(years, found)]
+  year_entries <- entries[found %in% years]
   sources <- unlist(lapply(year_entries, function(entry) {
     if (dir.exists(entry)) {
       list.files(entry, pattern = "[.]parquet$", recursive = TRUE,
@@ -94,8 +121,14 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
   if (length(sources) == 0L) {
     cli::cli_abort("The selected NIS entries contain no Parquet part files.")
   }
-  query <- arrow::open_dataset(sources, format = "parquet", unify_schemas = TRUE)
-  old_names <- names(query)
+  sources <- unique(sources)
+  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
+    add = TRUE)
+  nis_validate_hive_years(con, sources) # nolint: object_usage_linter
+  nis_validate_year_values(con, sources) # nolint: object_usage_linter
+  query <- nis_duckdb_query_from_parquet(con, sources) # nolint: object_usage_linter
+  old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
   name_groups <- split(old_names, new_names)
 
@@ -110,43 +143,46 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
     merged <- Reduce(function(left, right) {
       rlang::expr(dplyr::coalesce(!!left, !!right))
     }, fields)
-    query <- dplyr::mutate(query, !!canonical := !!merged) # nolint: object_usage_linter. dplyr name injection.
+    query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
   }
   output_names <- names(name_groups)
   if ("TOTCHG_2023" %in% output_names) {
+    warning_messages <- c(
+      paste(
+        "This query contains {.field TOTCHG_2023}, which is not comparable",
+        "to {.field TOTCHG}."
+      ),
+      paste(
+        "HCUP adjusts it for states missing from 2023, so charges and costs",
+        "built from it differ in definition from earlier years."
+      ),
+      paste(
+        "{.fn nis_open} leaves {.field TOTCHG} unchanged; opt in with",
+        "{.code charges = \"TOTCHG_2023\"}."
+      ),
+      paste(
+        "The 2023 layout support is experimental and unverified against",
+        "real 2023 data."
+      )
+    )
+    names(warning_messages) <- c("", rep("i", length(warning_messages) - 1L))
     cli::cli_warn(
-      c("This query contains {.field TOTCHG_2023}, which is not comparable to {.field TOTCHG}.",
-        "i" = paste(
-          "HCUP adjusts it for states missing from 2023, so charges and costs",
-          "built from it differ in definition from earlier years."
-        ),
-        "i" = "{.fn nis_open} leaves {.field TOTCHG} unchanged; opt in with {.code charges = \"TOTCHG_2023\"}.",
-        "i" = "The 2023 layout support is experimental and unverified against real 2023 data."),
+      warning_messages,
       .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
     )
   }
   query <- dplyr::select(query, dplyr::all_of(output_names))
-  if (engine == "arrow") return(query)
-
-  rlang::check_installed(c("duckdb", "dbplyr"), reason =
-    "`engine = \"duckdb\"` requires the optional packages")
-  con <- duckdb::dbConnect(duckdb::duckdb())
-  tbl <- arrow::to_duckdb(query, con = con)
-  finalizer <- new.env(parent = emptyenv())
-  reg.finalizer(finalizer, function(e) {
-    if (duckdb::dbIsValid(con)) duckdb::dbDisconnect(con, shutdown = TRUE)
-  }, onexit = TRUE)
-  tbl$src$.easyNIS_connection_finalizer <- finalizer
-  tbl
+  on.exit(NULL, add = FALSE)
+  nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
 }
 
 #' Add diagnosis prefix flags
 #'
 #' Each diagnosis slot is checked separately. Supplied prefixes are
 #' case-insensitive, and periods and spaces in them are ignored. Slot values are
-#' compared as stored, byte for byte, because NIS stores upper-case codes
-#' without periods; malformed UTF-8 therefore cannot raise an error. Matching
-#' stays lazy on Arrow queries and avoids per-row text normalization.
+#' compared as stored, case sensitively, because NIS stores upper-case codes
+#' without periods. Matching stays lazy in DuckDB and avoids per-row text
+#' normalization.
 #'
 #' `system` picks which slots are tested. `"icd10"` reads `I10_DX1`, `I10_DX2`,
 #' ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as stored in NIS 2012
@@ -170,7 +206,7 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
 #' ICD-10 crosswalk, and even with both code sets, counts of a condition can
 #' break at the transition.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
@@ -207,7 +243,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' match slots of the chosen system, so a flag over a mixed 2015 query is
 #' `FALSE` on discharges coded in the other system.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
 #' @param position Slots to check: all slots or the principal slot only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
@@ -237,7 +273,8 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   if (anyDuplicated(names(definitions))) {
     cli::cli_abort("Flag names must be unique.")
   }
-  if (any(names(definitions) %in% names(.data))) {
+  data_names <- nis_names(.data) # nolint: object_usage_linter
+  if (any(names(definitions) %in% data_names)) {
     cli::cli_abort("Flag names must not replace existing columns.")
   }
 
@@ -246,7 +283,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   })
 
   stem <- paste0(if (system == "icd10") "I10_", slots)
-  slot_names <- grep(paste0("^", stem, "[0-9]+$"), names(.data), value = TRUE)
+  slot_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
   slot_number <- as.integer(sub(paste0("^", stem), "", slot_names))
   if (position == "principal") {
     slot_names <- slot_names[slot_number == 1L]
@@ -263,14 +300,17 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   flags <- if (is.data.frame(.data)) {
     lapply(prefixes, frame_match, slot_names = slot_names)
   } else {
-    projection <- dplyr::select(.data, dplyr::everything())$selected_columns
-    lapply(prefixes, arrow_match, slots = projection[slot_names])
+    lapply(prefixes, function(prefix) {
+      reduce_or(lapply(slot_names, function(column) {
+        nis_sql_match(prefix, column) # nolint: object_usage_linter
+      }))
+    })
   }
 
-  eligibility <- code_system_filter(names(.data), slots, system)
+  eligibility <- code_system_filter(.data, data_names, slots, system)
   if (!is.null(eligibility)) {
     flags <- lapply(flags, function(flag) {
-      rlang::expr((!!eligibility) & (!!flag))
+      nis_and_expr(eligibility, flag) # nolint: object_usage_linter
     })
   }
   dplyr::mutate(.data, !!!flags)
@@ -290,33 +330,38 @@ normalize_prefixes <- function(value, arg = NULL) {
   unique(value)
 }
 
-code_system_filter <- function(columns, slots, system) {
+code_system_filter <- function(data, columns, slots, system) {
   conditions <- list()
   version_name <- paste0(slots, "VER")
   version <- if (system == "icd9") 9L else 10L
   if (version_name %in% columns) {
     field <- rlang::sym(version_name)
-    conditions <- c(conditions, list(rlang::expr(is.na(!!field) | !!field == !!version)))
+    missing_version <- nis_is_missing_expr(data, version_name) # nolint: object_usage_linter
+    conditions <- c(conditions, list(rlang::expr(
+      !!missing_version | !!field == !!version
+    )))
   }
   if ("YEAR" %in% columns) {
-    # nolint start: object_usage_linter. rlang expressions use data-masked names.
+    missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
+    # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
       rlang::expr(YEAR >= 2015L)
     }
-    conditions <- c(conditions, list(rlang::expr(is.na(YEAR) | !!year_range)))
+    conditions <- c(conditions, list(rlang::expr(!!missing_year | !!year_range)))
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
+      missing_quarter <- nis_is_missing_expr(data, "DQTR") # nolint: object_usage_linter
       conditions <- c(conditions, list(rlang::expr(
-        is.na(YEAR) | YEAR != 2015L | is.na(!!quarter) | !!quarter %in% !!quarters
+        !!missing_year | YEAR != 2015L | !!missing_quarter |
+          !!quarter %in% !!quarters
       )))
     }
-    # nolint end
   }
   if (length(conditions) == 0L) return(NULL)
-  Reduce(function(left, right) rlang::expr((!!left) & (!!right)), conditions)
+  Reduce(nis_and_expr, conditions) # nolint: object_usage_linter
 }
 
 # Data frames use `startsWith()`, which compares bytes and never errors on
@@ -329,37 +374,6 @@ frame_match <- function(prefix, slot_names) {
     reduce_or(per_prefix)
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
-}
-
-# Arrow queries get native compute expressions built on the query's current
-# projection, so columns created or changed by an earlier `mutate()` are
-# respected. One prefix is a plain `starts_with` per slot. Several prefixes cut
-# each slot to the prefix length as bytes and test set membership, so cost
-# grows with the number of distinct prefix lengths instead of the number of
-# prefixes. Neither validates UTF-8.
-arrow_match <- function(prefix, slots) {
-  kernel <- arrow::Expression$create
-  or_all <- function(terms) {
-    Reduce(function(left, right) kernel("or_kleene", left, right), terms)
-  }
-  by_length <- split(prefix, nchar(prefix))
-  value_sets <- lapply(by_length, function(codes) {
-    arrow::Array$create(lapply(codes, charToRaw), type = arrow::binary())
-  })
-
-  per_slot <- lapply(slots, function(slot) {
-    if (length(prefix) == 1L) {
-      return(kernel("starts_with", slot, options = list(pattern = prefix)))
-    }
-    as_bytes <- kernel("cast", slot, options = list(to_type = arrow::binary()))
-    or_all(lapply(seq_along(by_length), function(i) {
-      kernel("is_in",
-        kernel("binary_slice", as_bytes,
-          options = list(start = 0L, stop = nchar(by_length[[i]][[1L]]))),
-        options = list(value_set = value_sets[[i]], skip_nulls = FALSE))
-    }))
-  })
-  kernel("coalesce", or_all(per_slot), arrow::Expression$scalar(FALSE))
 }
 
 reduce_or <- function(terms) {

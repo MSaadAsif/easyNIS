@@ -5,37 +5,41 @@ Authors@R: c(
     person("Muhammad", "Saad", role = c("aut", "cre"),
            email = "msaadasif.md@gmail.com",
            comment = c(ORCID = "0000-0002-1792-2357")),
-    person("Ali", role = "aut"))
+    person("Ali", "Salman", role = "aut",
+           comment = c(ORCID = "0009-0001-1102-226X",
+                       project_role = "co-maintainer")))
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
     diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
-    experimental Elixhauser indicators, preparing survey designs and weights,
+    experimental Elixhauser indicators, preparing designs and weights with the
+    'survey' package,
     applying supported HCUP labels, adjusting charges and costs, and reviewing
     disclosure risks. Experimental methods and annual-layout assumptions are
     not independently verified or scientifically approved.
-License: MIT + file LICENSE
+License: AGPL-3 + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS,
     https://msaadasif.github.io/easyNIS/
 BugReports: https://github.com/MSaadAsif/easyNIS/issues
 Depends: R (>= 4.1.0)
 Imports:
-    arrow (>= 14.0.0),
+    DBI,
     cli,
+    dbplyr,
     dplyr,
+    duckdb,
     rlang,
     srvyr,
     tidyselect
 Suggests:
     broom.helpers,
     cardx,
-    dbplyr,
-    duckdb,
     flextable,
     forcats,
     ggplot2,
     gt,
     gtsummary,
     knitr,
+    jsonlite,
     medicalcoder (>= 0.10.0),
     purrr,
     quarto,

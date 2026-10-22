@@ -14,7 +14,7 @@ nis_design(
 )
 }
 \arguments{
-\item{.data}{Lazy Arrow query or data frame.}
+\item{.data}{Lazy DuckDB query or data frame.}
 
 \item{cohort}{Logical data-masked cohort expression. Missing values are
 counted and treated as outside the cohort. Only valid-design discharges

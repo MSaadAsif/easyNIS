@@ -24,6 +24,11 @@ srvyr::summarise(design, discharges = srvyr::survey_total(),
 
 These results demonstrate the workflow and are not NIS population estimates.
 
+`nis_open()` reads Parquet with DuckDB and returns a lazy dbplyr table. The
+`engine` argument has been removed entirely; omit it whatever value you
+previously passed. Use `dplyr::filter()` and `dplyr::select()` before
+`dplyr::collect()` to limit the data transferred into R.
+
 ## Articles
 
 - [Get started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
@@ -45,3 +50,10 @@ Browse the [function reference](https://msaadasif.github.io/easyNIS/reference/in
 
 Run `citation("easyNIS")` in R for the package citation. Cite the HCUP NIS
 documentation and other methods or code-set references used in your analysis.
+
+## Authors and license
+
+Muhammad Saad ([ORCID](https://orcid.org/0000-0002-1792-2357)) and Ali Salman
+([ORCID](https://orcid.org/0009-0001-1102-226X)) are the package authors and
+co-maintainers.
+easyNIS is licensed under the [GNU Affero General Public License v3.0 only](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).

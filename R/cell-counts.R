@@ -1,7 +1,7 @@
 .nis_cell_count_records <- function(.data) {
   if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
     .data <- .data$variables
-    if (".in_cohort" %in% names(.data)) {
+    if (".in_cohort" %in% nis_names(.data)) { # nolint: object_usage_linter
       .data <- dplyr::filter(.data, .in_cohort)
     }
   }
@@ -19,7 +19,7 @@
 
 .nis_cell_count_validate_cols <- function(.data, by) {
   required <- c("YEAR", "HOSP_NIS", by)
-  absent <- setdiff(required, names(.data))
+  absent <- setdiff(required, nis_names(.data)) # nolint: object_usage_linter
   if (length(absent)) {
     cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
   }

@@ -334,16 +334,16 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   invalid_path <- tempfile("nis-invalid-")
   dir.create(invalid_path)
   on.exit(unlink(invalid_path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(invalid, file.path(invalid_path, "part-0.parquet"))
+  write_duckdb_parquet(invalid, file.path(invalid_path, "part-0.parquet"))
   expect_warning(
-    from_arrow <- nis_design(
-      arrow::open_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
+    from_duckdb <- nis_design(
+      open_duckdb_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
     ),
     "Excluded 17 discharges"
   )
-  expect_equal(attr(from_arrow, "nis_excluded"), attr(from_frame, "nis_excluded"))
+  expect_equal(attr(from_duckdb, "nis_excluded"), attr(from_frame, "nis_excluded"))
 
-  for (design in list(from_frame, from_arrow)) {
+  for (design in list(from_frame, from_duckdb)) {
     expect_equal(nrow(design$variables), nrow(expected$variables))
     expect_equal(sort(as.numeric(stats::weights(design))),
       sort(as.numeric(stats::weights(expected))))
@@ -365,7 +365,7 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   )
 })
 
-test_that("multi-prefix any-position cohorts give identical designs on Arrow and data frames", {
+test_that("multi-prefix any-position cohorts give identical designs on DuckDB and data frames", {
   path <- nis_example(2017:2018)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   query <- nis_open(path)
@@ -374,13 +374,27 @@ test_that("multi-prefix any-position cohorts give identical designs on Arrow and
     nis_flag_dx(.data, exposed = c("Z515", "E11", "J18"), position = "any")
   }
 
-  from_arrow <- nis_design(add_flags(query), exposed & AGE >= 30, keep = c(AGE, DIED))
+  from_duckdb <- nis_design(add_flags(query), exposed & AGE >= 30, keep = c(AGE, DIED))
   from_frame <- nis_design(add_flags(frame), exposed & AGE >= 30, keep = c(AGE, DIED))
 
-  expect_equal(nrow(from_arrow$variables), nrow(from_frame$variables))
-  expect_gt(nrow(from_arrow$variables), 0L)
-  expect_equal(sort(as.numeric(stats::weights(from_arrow))),
+  expect_equal(nrow(from_duckdb$variables), nrow(from_frame$variables))
+  expect_gt(nrow(from_duckdb$variables), 0L)
+  expect_equal(sort(as.numeric(stats::weights(from_duckdb))),
     sort(as.numeric(stats::weights(from_frame))))
+})
+
+test_that("nis_design keeps computed cohort flags out of collected variables", {
+  path <- nis_example(2017L)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  query <- nis_open(path) |>
+    dplyr::mutate(
+      computed_cohort = AGE >= 50 & !is.na(AGE),
+      unrelated_payload = paste0("extra-", YEAR, "-", HOSP_NIS)
+    )
+  design <- nis_design(query, computed_cohort, keep = AGE)
+  expect_true("AGE" %in% names(design$variables))
+  expect_false("computed_cohort" %in% names(design$variables))
+  expect_false("unrelated_payload" %in% names(design$variables))
 })
 
 test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {

@@ -1,7 +1,15 @@
 # easyNIS (development version)
 
+## Project metadata
+
+- Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs
+  across package metadata.
+
 ## New features
 
+- `nis_open()` combines annual Parquet files with Hive year partitions and
+  returns `YEAR` as integer, rejecting invalid year values with a
+  file-specific error.
 - `nis_design()` warns when annualized valid-design data represented in `DQTR`
   have fewer than four quarters, and explains how to exclude or separately
   reweight those years. It also warns when a 2015 cohort contains only
@@ -18,9 +26,10 @@
   by year and matched procedure slot.
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
-- `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr query
-  path; `duckdb` and `dbplyr` are suggested dependencies. Flag and design
-  helpers remain Arrow-only.
+- `nis_open()` now reads Parquet natively with DuckDB; DuckDB-backed lazy
+  transformations are used throughout. The `engine` argument was removed
+  entirely; callers should omit it regardless of the value they previously
+  passed.
 - Added `nis_audit_code_transition()` to summarize code-system transitions.
 - Added `nis_flag_dx_position()` and `nis_dx_sensitivity()` for descriptive
   point estimates; these are not design-based estimates.
@@ -46,6 +55,11 @@
   an analyst workflow note.
 
 ## New features
+
+- Added `codemeta.json`; regenerate it from `DESCRIPTION` with
+  `Rscript tools/probe/update-codemeta.R` after changing package metadata.
+- Quoted the `survey` package name in `DESCRIPTION` and avoided duplicate
+  arguments when constructing the 2023 charge warning.
 
 - `nis_open()` supports 2012 onward. `nis_flag_dx()` and `nis_flag_pr()` match
   literal prefixes separately in each code slot; supplied prefixes ignore

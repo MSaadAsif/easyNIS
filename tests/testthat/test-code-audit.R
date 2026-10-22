@@ -40,7 +40,7 @@ test_that("code transition audit filters the cohort before counting", {
   expect_equal(result$n_weighted, c(2, 0))
 })
 
-test_that("code transition audit agrees between data frames and lazy Arrow", {
+test_that("code transition audit agrees between data frames and lazy DuckDB", {
   data <- dplyr::tibble(
     YEAR = c(2019L, 2019L, 2020L, 2020L),
     I10_PR1 = c("02UG0JZ", "02803ZZ", "02803ZZ", NA_character_),
@@ -52,25 +52,27 @@ test_that("code transition audit agrees between data frames and lazy Arrow", {
   path <- tempfile("nis-audit-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
   codes <- list(myectomy = "02UG0JZ", ablation = "02803ZZ")
 
   from_frame <- nis_audit_code_transition(data, codes, cohort = AGE >= 18)
-  from_arrow <- nis_audit_code_transition(query, codes, cohort = AGE >= 18)
+  from_duckdb <- nis_audit_code_transition(query, codes, cohort = AGE >= 18)
   from_frame_dx <- nis_audit_code_transition(data, list(hf = "I50"),
     cohort = AGE >= 18, type = "dx")
-  from_arrow_dx <- nis_audit_code_transition(query, list(hf = "I50"),
+  from_duckdb_dx <- nis_audit_code_transition(query, list(hf = "I50"),
     cohort = AGE >= 18, type = "dx")
 
-  expect_identical(from_arrow, from_frame)
-  expect_identical(from_arrow_dx, from_frame_dx)
+  expect_identical(from_duckdb, from_frame)
+  expect_identical(from_duckdb_dx, from_frame_dx)
 })
 
 test_that("code transition audit validates named groups and columns", {
   data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "02UG0JZ", DISCWT = 1)
   expect_error(nis_audit_code_transition(data, c("02UG0JZ")), "named")
-  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ", a = "02UG0JZ")), "unique")
+  duplicate_codes <- c("02UG0JZ", "02UG0JZ")
+  names(duplicate_codes) <- c("a", "a")
+  expect_error(nis_audit_code_transition(data, duplicate_codes), "unique")
   expect_error(nis_audit_code_transition(data, list(a = NA_character_)), "non-missing")
   data$n_unweighted <- 1L
   expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"),
@@ -120,10 +122,10 @@ test_that("code transition audit returns the empty grid for an empty cohort", {
   path <- tempfile("nis-audit-empty-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  from_arrow <- nis_audit_code_transition(arrow::open_dataset(path),
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  from_duckdb <- nis_audit_code_transition(open_duckdb_dataset(path),
     c(myectomy = "02UG0JZ"), cohort = FALSE)
-  expect_identical(from_arrow, result)
+  expect_identical(from_duckdb, result)
 })
 
 test_that("missing periods have no year-over-year percentage change", {
