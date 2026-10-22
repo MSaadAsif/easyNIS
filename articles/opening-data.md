@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkCpqux/duckdb
+#> ℹ /tmp/Rtmp4Zwlis/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +19,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkCpqux/duckdb
+#> ℹ /tmp/Rtmp4Zwlis/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -28,7 +28,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkCpqux/duckdb
+#> ℹ /tmp/Rtmp4Zwlis/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -39,8 +39,8 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 2 × 2
 #>    YEAR     n
 #>   <int> <dbl>
-#> 1  2019    96
-#> 2  2020    96
+#> 1  2020    96
+#> 2  2019    96
 ```
 
 The result reports the number of synthetic rows in each selected year.
@@ -59,7 +59,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkCpqux/duckdb
+#> ℹ /tmp/Rtmp4Zwlis/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -93,7 +93,7 @@ frame.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkCpqux/duckdb
+#> ℹ /tmp/Rtmp4Zwlis/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

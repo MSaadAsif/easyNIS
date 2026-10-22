@@ -78,6 +78,12 @@
   summaries into internal helpers without changing their results or
   validation behavior.
 
+### Maintenance
+
+- Refactored
+  [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+  into internal helpers; behavior is unchanged.
+
 ## easyNIS 0.2.0
 
 ### Highlights
