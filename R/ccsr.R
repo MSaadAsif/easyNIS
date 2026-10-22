@@ -55,46 +55,81 @@
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
+  categories <- validate_ccsr_categories(categories)
+  validate_ccsr_default_only(default_only)
+
+  map <- read_ccsr_map(file)
+  validate_ccsr_category_names(categories, map$category)
+  map <- filter_ccsr_defaults(map, default_only)
+
+  sort(unique(map$code[map$category %in% categories]))
+}
+
+validate_ccsr_categories <- function(categories) {
   if (!is.character(categories) || length(categories) == 0L ||
       anyNA(categories) || any(!nzchar(trimws(categories)))) {
     cli::cli_abort("`categories` must be a non-empty character vector.")
   }
+  unique(toupper(trimws(categories)))
+}
+
+validate_ccsr_default_only <- function(default_only) {
   if (!is.logical(default_only) || length(default_only) != 1L ||
       is.na(default_only)) {
     cli::cli_abort("`default_only` must be `TRUE` or `FALSE`.")
   }
+}
 
-  map <- read_ccsr_map(file)
-  categories <- unique(toupper(trimws(categories)))
-  unknown <- setdiff(categories, map$category)
+validate_ccsr_category_names <- function(categories, available) {
+  unknown <- setdiff(categories, available)
   if (length(unknown) > 0L) {
     cli::cli_abort("Categor{?y/ies} {.val {unknown}} not found in {.arg file}.")
   }
+}
+
+filter_ccsr_defaults <- function(map, default_only) {
   if (default_only) {
     if (all(is.na(map$default))) {
       cli::cli_abort(
         "`file` has no default inpatient category; use `default_only = FALSE`."
       )
     }
-    map <- map[map$default %in% TRUE, , drop = FALSE]
+    map[map$default %in% TRUE, , drop = FALSE]
+  } else {
+    map
   }
-  sort(unique(map$code[map$category %in% categories]))
 }
 
 # Returns one row per code-category pair: code, category, and `default`
 # (TRUE for the default inpatient category, NA when the file has none).
 read_ccsr_map <- function(file) {
+  validate_ccsr_file(file)
+  raw <- read_ccsr_source(file)
+  columns <- find_ccsr_columns(names(raw))
+  code <- clean_ccsr_codes(raw[[columns$code]])
+  map <- do.call(rbind, lapply(columns$category, function(col) {
+    read_ccsr_category_pairs(raw, code, col, columns)
+  }))
+  map[!is.na(map$code) & !is.na(map$category), , drop = FALSE]
+}
+
+validate_ccsr_file <- function(file) {
   if (!is.character(file) || length(file) != 1L || is.na(file) ||
       !file.exists(file)) {
     cli::cli_abort("`file` must name an existing CCSR reference file.")
   }
-  raw <- if (grepl("[.]xlsx?$", file, ignore.case = TRUE)) {
+}
+
+read_ccsr_source <- function(file) {
+  if (grepl("[.]xlsx?$", file, ignore.case = TRUE)) {
     read_ccsr_sheet(file)
   } else {
     read_ccsr_csv(file)
   }
+}
 
-  key <- gsub("[^a-z0-9]", "", tolower(names(raw)))
+find_ccsr_columns <- function(column_names) {
+  key <- gsub("[^a-z0-9]", "", tolower(column_names))
   code_col <- grep("^icd10(cm|pcs)(code)?$", key)
   category_cols <- grep("^(ccsrcategory|prccsr)[0-9]*$", key)
   if (length(code_col) == 0L || length(category_cols) == 0L) {
@@ -102,13 +137,22 @@ read_ccsr_map <- function(file) {
       "`file` does not look like an HCUP DXCCSR or PRCCSR reference file."
     )
   }
+  list(
+    code = code_col[1L],
+    category = category_cols,
+    long_default = grep("^inpatientdefaultccsr", key),
+    wide_default = grep("^defaultccsrcategoryip$", key)
+  )
+}
 
-  clean <- function(x) {
-    x <- gsub("^[[:space:]']+|[[:space:]']+$", "", x)
-    x[!nzchar(x)] <- NA_character_
-    toupper(x)
-  }
-  code <- gsub("[.[:space:]]", "", clean(raw[[code_col[1L]]]))
+clean_ccsr_value <- function(x) {
+  x <- gsub("^[[:space:]']+|[[:space:]']+$", "", x)
+  x[!nzchar(x)] <- NA_character_
+  toupper(x)
+}
+
+clean_ccsr_codes <- function(x) {
+  code <- gsub("[.[:space:]]", "", clean_ccsr_value(x))
   bad <- unique(code[!is.na(code) & !grepl("^[A-Z0-9]{3,7}$", code)])
   if (length(bad) > 0L) {
     cli::cli_abort(c(
@@ -117,23 +161,24 @@ read_ccsr_map <- function(file) {
       "i" = "The file may be malformed or in an unsupported layout."
     ))
   }
-  long_default <- grep("^inpatientdefaultccsr", key)
-  wide_default <- grep("^defaultccsrcategoryip$", key)
+  code
+}
 
-  pairs <- lapply(category_cols, function(col) {
-    category <- clean(raw[[col]])
-    default <- if (length(long_default) > 0L) {
-      clean(raw[[long_default[1L]]]) %in% "Y"
-    } else if (length(wide_default) > 0L) {
-      default_category <- clean(raw[[wide_default[1L]]])
-      !is.na(category) & !is.na(default_category) & category == default_category
-    } else {
-      NA
-    }
-    data.frame(code = code, category = category, default = default)
-  })
-  map <- do.call(rbind, pairs)
-  map[!is.na(map$code) & !is.na(map$category), , drop = FALSE]
+read_ccsr_category_pairs <- function(raw, code, column, columns) {
+  category <- clean_ccsr_value(raw[[column]])
+  default <- ccsr_default_flag(raw, category, columns)
+  data.frame(code = code, category = category, default = default)
+}
+
+ccsr_default_flag <- function(raw, category, columns) {
+  if (length(columns$long_default) > 0L) {
+    clean_ccsr_value(raw[[columns$long_default[1L]]]) %in% "Y"
+  } else if (length(columns$wide_default) > 0L) {
+    default_category <- clean_ccsr_value(raw[[columns$wide_default[1L]]])
+    !is.na(category) & !is.na(default_category) & category == default_category
+  } else {
+    NA
+  }
 }
 
 # HCUP comma-separated files wrap every field in single quotes, and

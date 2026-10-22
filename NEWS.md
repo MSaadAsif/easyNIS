@@ -2,6 +2,8 @@
 
 ## New features
 
+- Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
+  the repository limit without changing `nis_ccsr_codes()` behavior.
 - `nis_design()` warns when annualized valid-design data represented in `DQTR`
   have fewer than four quarters, and explains how to exclude or separately
   reweight those years. It also warns when a 2015 cohort contains only
