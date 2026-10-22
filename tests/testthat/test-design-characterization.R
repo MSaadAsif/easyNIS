@@ -57,10 +57,15 @@ test_that("nis_design validation conditions retain their classes and text", {
 
   expect_s3_class(invalid_charges, "rlang_error")
   expect_identical(conditionMessage(invalid_charges), "`charges` must be a single column name.")
+  expect_identical(as.character(conditionCall(invalid_charges)[[1]]), "nis_design")
   expect_s3_class(invalid_annualize, "rlang_error")
   expect_identical(conditionMessage(invalid_annualize), "`annualize` must be `TRUE` or `FALSE`.")
+  expect_identical(as.character(conditionCall(invalid_annualize)[[1]]), "nis_design")
   expect_s3_class(missing_design, "rlang_error")
   expect_match(conditionMessage(missing_design), "`.data` is missing design columns")
+
+  invalid_design <- rlang::catch_cnd(nis_reweight(NULL, 1))
+  expect_identical(as.character(conditionCall(invalid_design)[[1]]), "nis_reweight")
 })
 
 test_that("nis_design reports invalid design years and defaults cost dollars", {
