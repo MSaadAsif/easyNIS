@@ -77,6 +77,19 @@ test_that("code transition audit validates named groups and columns", {
     by = "n_unweighted"), "summary column")
 })
 
+test_that("code transition audit validates periods, weights, and every code group", {
+  data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "02UG0JZ", DISCWT = 1)
+
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = NA_character_), "`by`")
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = "MISSING"), "`by`")
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), weight_var = "MISSING"),
+    "`weight_var`")
+  expect_error(nis_audit_code_transition(data, list(a = character())), "non-missing character")
+  expect_error(nis_audit_code_transition(data, list(a = 1)), "non-missing character")
+  expect_error(nis_audit_code_transition(data, list(a = c("02UG", NA_character_))),
+    "non-missing character")
+})
+
 test_that("code transition audit avoids temporary names in user data", {
   data <- dplyr::tibble(
     .nis_audit_cohort = c(2020L, 2020L),
