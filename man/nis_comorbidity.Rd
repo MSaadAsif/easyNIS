@@ -44,12 +44,14 @@ remain pending scientific approval.
 \section{Assumptions}{
 
 \itemize{
-\item \strong{Present on admission is approximated.} NIS includes diagnosis POA fields
-(\code{DXPOA1}, \code{DXPOA2}, and so on), but this helper does not use them. It passes
-every diagnosis as present on admission (\code{poa = 1L}). AHRQ's refined
-Elixhauser method requires POA for 18 of its 38 measures, so this
-approximation can count a complication that arose during the stay as
-pre-existing for a POA-sensitive measure.
+\item \strong{Present on admission uses available diagnosis indicators.} Matching
+\code{DXPOAn} columns are aligned with \code{I10_DXn}; \code{Y} and \code{W} map to present,
+while \code{N} and \code{U} map to not present. Other values, including \code{1}, are
+treated as unknown. \code{medicalcoder} applies its POA-exempt code table. If a
+matching POA column is absent, that diagnosis is assumed present to retain
+compatibility with older years and inputs that did not keep POA fields.
+Thus, results can change for inputs that include POA fields: AHRQ's refined
+Elixhauser method requires POA for 18 of its 38 measures.
 \item \strong{Principal diagnosis} is \code{I10_DX1}. It is passed as the primary
 diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ

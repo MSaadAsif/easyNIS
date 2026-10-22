@@ -32,6 +32,9 @@
 - `nis_suppress()` now suppresses zero discharge counts at or below the
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.
+- `nis_comorbidity()` now uses aligned `DXPOAn` fields when available. `Y` and
+  `W` count as present on admission, `N` and `U` do not, and other values are
+  unknown. Missing POA columns retain the prior assumed-present behavior.
 
 # easyNIS 0.2.0
 

@@ -13,12 +13,14 @@
 #' remain pending scientific approval.
 #'
 #' @section Assumptions:
-#' * **Present on admission is approximated.** NIS includes diagnosis POA fields
-#'   (`DXPOA1`, `DXPOA2`, and so on), but this helper does not use them. It passes
-#'   every diagnosis as present on admission (`poa = 1L`). AHRQ's refined
-#'   Elixhauser method requires POA for 18 of its 38 measures, so this
-#'   approximation can count a complication that arose during the stay as
-#'   pre-existing for a POA-sensitive measure.
+#' * **Present on admission uses available diagnosis indicators.** Matching
+#'   `DXPOAn` columns are aligned with `I10_DXn`; `Y` and `W` map to present,
+#'   while `N` and `U` map to not present. Other values, including `1`, are
+#'   treated as unknown. `medicalcoder` applies its POA-exempt code table. If a
+#'   matching POA column is absent, that diagnosis is assumed present to retain
+#'   compatibility with older years and inputs that did not keep POA fields.
+#'   Thus, results can change for inputs that include POA fields: AHRQ's refined
+#'   Elixhauser method requires POA for 18 of its 38 measures.
 #' * **Principal diagnosis** is `I10_DX1`. It is passed as the primary
 #'   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for example, a
 #'   condition is not flagged from the principal diagnosis alone where AHRQ
@@ -85,6 +87,17 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
                             prefix = "cmrb_") {
   rlang::check_installed("medicalcoder", version = "0.10.0",
     reason = "to compute AHRQ Elixhauser comorbidities.")
+  nis_comorbidity_options(method, prefix)
+  if (inherits(.data, "tbl_svy")) {
+    .data$variables <- nis_comorbidity(.data$variables, method, prefix)
+    return(.data)
+  }
+  columns <- nis_comorbidity_validate_data(.data)
+  nis_comorbidity_score(.data, method, prefix, columns$slots,
+    columns$slot_number)
+}
+
+nis_comorbidity_options <- function(method, prefix) {
   if (!is.character(method) || length(method) != 1L || is.na(method) ||
       !startsWith(method, "elixhauser_")) {
     cli::cli_abort("`method` must be one Elixhauser method name, such as {.val elixhauser_ahrq_icd10}.")
@@ -92,10 +105,9 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
   if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
     cli::cli_abort("`prefix` must be a single string.")
   }
-  if (inherits(.data, "tbl_svy")) {
-    .data$variables <- nis_comorbidity(.data$variables, method, prefix)
-    return(.data)
-  }
+}
+
+nis_comorbidity_validate_data <- function(.data) {
   if (!is.data.frame(.data)) {
     cli::cli_abort("`.data` must be a collected data frame or a {.cls tbl_svy}; call {.fn dplyr::collect} first.")
   }
@@ -108,26 +120,55 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
   if (!1L %in% slot_number) {
     cli::cli_abort("`I10_DX1` is required because it identifies the principal diagnosis.")
   }
+  list(slots = slots, slot_number = slot_number)
+}
 
+nis_comorbidity_score <- function(.data, method, prefix, slots, slot_number) {
   n <- nrow(.data)
-  codes <- unlist(lapply(.data[slots], as.character), use.names = FALSE)
-  codes[!validUTF8(codes)] <- NA_character_
-  long <- data.frame(
-    .row = rep(seq_len(n), times = length(slots)),
-    code = toupper(gsub("[.[:space:]]", "", codes)),
-    primary = as.integer(rep(slot_number == 1L, each = n)),
-    stringsAsFactors = FALSE
-  )
+  long <- nis_comorbidity_long(.data, slots, slot_number, n)
   long <- long[!is.na(long$code) & nzchar(long$code), , drop = FALSE]
 
   result <- medicalcoder::comorbidities(
     long, icd.codes = "code", id.vars = ".row", method = method,
-    icdv = 10L, dx = 1L, poa = 1L, primarydx.var = "primary"
+    icdv = 10L, dx = 1L, poa.var = "poa", primarydx.var = "primary"
   )
+  added <- nis_comorbidity_columns(result, n, long$.row, prefix)
+  clash <- intersect(names(added), names(.data))
+  if (length(clash) > 0L) {
+    cli::cli_abort(c(
+      "Comorbidity columns would replace existing column{?s} {.val {clash}}.",
+      i = "Choose a different `prefix`."
+    ))
+  }
+  .data[names(added)] <- added
+  .data
+}
+
+nis_comorbidity_long <- function(.data, slots, slot_number, n) {
+  codes <- unlist(lapply(.data[slots], as.character), use.names = FALSE)
+  codes[!validUTF8(codes)] <- NA_character_
+  poa <- unlist(lapply(seq_along(slot_number), function(i) {
+    field <- paste0("DXPOA", slot_number[[i]])
+    if (!field %in% names(.data)) {
+      return(rep(1L, n))
+    }
+    value <- toupper(as.character(.data[[field]]))
+    unname(c(N = 0L, U = 0L, W = 1L, Y = 1L)[value])
+  }), use.names = FALSE)
+  data.frame(
+    .row = rep(seq_len(n), times = length(slots)),
+    code = toupper(gsub("[.[:space:]]", "", codes)),
+    primary = as.integer(rep(slot_number == 1L, each = n)),
+    poa = poa,
+    stringsAsFactors = FALSE
+  )
+}
+
+nis_comorbidity_columns <- function(result, n, usable_rows, prefix) {
   result <- as.data.frame(result)
   counts <- c("num_cmrb", "mortality_index", "readmission_index")
   columns <- setdiff(names(result), ".row")
-  usable <- seq_len(n) %in% long$.row
+  usable <- seq_len(n) %in% usable_rows
   unusable_count <- sum(!usable)
   if (unusable_count > 0L) {
     cli::cli_warn(c(
@@ -143,14 +184,5 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
   })
   names(added) <- paste0(prefix, ifelse(columns == "num_cmrb", "n",
     ifelse(columns == "cmrb_flag", "any", tolower(columns))))
-
-  clash <- intersect(names(added), names(.data))
-  if (length(clash) > 0L) {
-    cli::cli_abort(c(
-      "Comorbidity columns would replace existing column{?s} {.val {clash}}.",
-      i = "Choose a different `prefix`."
-    ))
-  }
-  .data[names(added)] <- added
-  .data
+  added
 }

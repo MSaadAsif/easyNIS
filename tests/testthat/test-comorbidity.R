@@ -93,6 +93,31 @@ test_that("I10_DX1 is passed as the principal diagnosis", {
   expect_true(out$cmrb_hf[[2L]])
 })
 
+test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
+  skip_if_not_installed("medicalcoder")
+  hf <- single_codes("HF")
+  data <- dplyr::tibble(
+    I10_DX1 = "ZZZ99",
+    I10_DX2 = hf,
+    DXPOA1 = "Y",
+    DXPOA2 = "N"
+  )
+
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "Y"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "U"
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "W"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+
+  data <- dplyr::select(data, -dplyr::starts_with("DXPOA"))
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+})
+
 test_that("a discharge with no usable code gets NA and a warning, not zeros", {
   skip_if_not_installed("medicalcoder")
   malformed <- rawToChar(as.raw(c(0x49, 0x35, 0x30, 0xff, 0xfe)))
