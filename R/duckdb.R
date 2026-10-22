@@ -100,25 +100,41 @@ nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
 nis_duckdb_query_from_parquet <- function(con, sources) {
   normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
   is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
-  scans <- vapply(c(FALSE, TRUE), function(hive) {
-    selected <- sources[is_hive == hive]
-    if (length(selected) == 0L) return(NA_character_)
-    paste0("SELECT * FROM ", nis_duckdb_parquet_sql(con, selected,
-      hive_partitioning = hive))
-  }, character(1))
-  scans <- scans[!is.na(scans)]
-  parquet <- paste0("(", paste(scans, collapse = " UNION ALL BY NAME "), ")")
-  raw_query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
-  year_name <- colnames(raw_query)[toupper(colnames(raw_query)) == "YEAR"]
-  if (length(year_name) == 0L) return(raw_query)
+  scans <- vapply(seq_along(sources), function(index) {
+    source <- sources[[index]]
+    scan <- nis_duckdb_parquet_sql(con, source,
+      hive_partitioning = FALSE)
+    schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
+    year_rows <- which(toupper(schema$column_name) == "YEAR")
+    if (!is_hive[[index]] && length(year_rows) == 0L) {
+      return(paste0("SELECT * FROM ", scan))
+    }
 
-  year_column <- as.character(DBI::dbQuoteIdentifier(con, year_name[[1L]]))
-  year_double <- paste0("TRY_CAST(", year_column, " AS DOUBLE)")
-  normalized_year <- paste0("CASE WHEN isnan(", year_double,
-    ") THEN NULL ELSE TRY_CAST(", year_column, " AS INTEGER) END")
-  sql <- paste0("SELECT ", normalized_year, " AS YEAR, ",
-    "* EXCLUDE (", year_column, ") FROM ", parquet)
-  dplyr::tbl(con, dbplyr::sql(sql))
+    if (is_hive[[index]]) {
+      components <- strsplit(normalized[[index]], "/", fixed = TRUE)[[1L]]
+      partition <- grep("^YEAR=[0-9]{4}$", components, value = TRUE)
+      partition_year <- as.integer(sub("^YEAR=", "", partition[[length(partition)]]))
+    }
+    if (length(year_rows) == 0L) {
+      return(paste0("SELECT ", partition_year, "::INTEGER AS YEAR, * FROM ", scan))
+    }
+
+    year_name <- schema$column_name[[year_rows[[1L]]]]
+    year_column <- as.character(DBI::dbQuoteIdentifier(con, year_name))
+    year_double <- paste0("TRY_CAST(", year_column, " AS DOUBLE)")
+    year_value <- if (is_hive[[index]]) {
+      paste0("CASE WHEN ", year_column, " IS NULL OR isnan(",
+        year_double, ") THEN ", partition_year, " ELSE TRY_CAST(",
+        year_column, " AS INTEGER) END")
+    } else {
+      paste0("CASE WHEN isnan(", year_double,
+        ") THEN NULL ELSE TRY_CAST(", year_column, " AS INTEGER) END")
+    }
+    paste0("SELECT ", year_value, " AS YEAR, * EXCLUDE (", year_column,
+      ") FROM ", scan)
+  }, character(1))
+  parquet <- paste0("(", paste(scans, collapse = " UNION ALL BY NAME "), ")")
+  dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
 }
 
 nis_validate_year_values <- function(con, sources) {

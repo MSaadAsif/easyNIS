@@ -24,7 +24,7 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
     dplyr::summarise(n = dplyr::n(), hospitals = dplyr::n_distinct(HOSP_NIS)) |>
     dplyr::collect()
   expect_equal(duckdb_result$n, 1)
-  expect_error(nis_open(path, years = 2020L, engine = "arrow"), "unused argument")
+  expect_error(nis_open(path, years = 2020L, engine = "duckdb"), "unused argument")
 })
 
 test_that("nis_open safely quotes paths containing spaces and apostrophes", {
@@ -58,11 +58,17 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
   expect_match(sql, "read_parquet")
   expect_match(sql, "union_by_name = true")
-  expect_match(sql, "hive_partitioning = true")
+  expect_match(sql, "hive_partitioning = false")
   plan <- DBI::dbGetQuery(query$src$con, paste("EXPLAIN", as.character(sql)))
-  plan_text <- gsub("[^[:alnum:]]", "", plan[[2L]])
-  expect_match(plan_text, "ProjectionsYEARB")
-  expect_false(grepl("Projections:.*A", plan_text))
+  plan_lines <- strsplit(plan[[2L]], "\\n", fixed = FALSE)[[1L]]
+  projection_lines <- grep("│\\s+[A-Za-z][A-Za-z0-9_]*\\s+│",
+    plan_lines, value = TRUE)
+  projection_tokens <- sub(
+    "^.*│\\s*([A-Za-z][A-Za-z0-9_]*)\\s*│.*$", "\\1",
+    projection_lines, perl = TRUE
+  )
+  expect_true(all(c("YEAR", "B") %in% projection_tokens))
+  expect_false("A" %in% projection_tokens)
   all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
   expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
   expect_equal(all_years$A, c(1L, 2L, NA_integer_))
@@ -93,6 +99,33 @@ test_that("nis_open combines annual files with Hive partitions", {
     dplyr::select(YEAR, id))
   expect_identical(selected$YEAR, 2020L)
   expect_identical(selected$id, 2L)
+})
+
+test_that("nis_open rejects a year represented in both layouts", {
+  path <- tempfile("nis-duplicate-layouts-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  annual <- file.path(path, "NIS_2020.parquet")
+  hive <- file.path(path, "YEAR=2020")
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2020L, id = 1L), annual)
+  write_duckdb_parquet(dplyr::tibble(id = 2L), file.path(hive, "part.parquet"))
+
+  expect_error(nis_open(path), "2020.*NIS_2020[.]parquet.*YEAR=2020.*Keep one layout")
+})
+
+test_that("nis_open casts physical Hive years before combining annual files", {
+  path <- tempfile("nis-mixed-year-types-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2019L, id = 1L),
+    file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(dplyr::tibble(YEAR = "2020", id = 2L),
+    file.path(path, "YEAR=2020", "part.parquet"))
+
+  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id))
+  expect_type(result$YEAR, "integer")
+  expect_identical(result$YEAR, c(2019L, 2020L))
+  expect_identical(result$id, c(1L, 2L))
 })
 
 test_that("nis_open casts YEAR to integer and rejects non-numeric years", {

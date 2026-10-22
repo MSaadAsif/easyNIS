@@ -27,8 +27,9 @@
 - Added `nis_flag_pr_timing()` for procedure timing flags.
 - Added `nis_attrition()` for cohort attrition summaries.
 - `nis_open()` now reads Parquet natively with DuckDB; DuckDB-backed lazy
-  transformations are used throughout. Remove the former `engine = "duckdb"`
-  argument when migrating.
+  transformations are used throughout. The `engine` argument was removed
+  entirely; callers should omit it regardless of the value they previously
+  passed.
 - Added `nis_audit_code_transition()` to summarize code-system transitions.
 - Added `nis_flag_dx_position()` and `nis_dx_sensitivity()` for descriptive
   point estimates; these are not design-based estimates.

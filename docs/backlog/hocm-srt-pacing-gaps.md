@@ -347,6 +347,9 @@ toy_data |>
 ---
 ## 4. Robust Parquet Scanning Across DuckDB and Arrow
 
+> Historical proposal, superseded by the DuckDB-only backend; retained for
+> context and not an implementation plan.
+
 ### Proposed Function & Signature
 ```r
 nis_open(

@@ -44,8 +44,8 @@ as character. When present, \code{YEAR} is validated and returned as integer;
 invalid values identify the offending file in an error. The connection
 remains open while the lazy table is in use and closes after it is released.
 Use \code{dplyr::collect()} to return
-data to R. Earlier versions accepted \code{engine = "duckdb"}; remove
-that argument when migrating because DuckDB is now the only engine.
+data to R. The \code{engine} argument was removed entirely; omit it regardless
+of the value used in older code.
 String columns with malformed UTF-8 may fail during a native Parquet scan;
 validate or repair those values before writing Parquet files.
 }

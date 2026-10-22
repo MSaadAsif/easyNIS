@@ -1,3 +1,19 @@
+nis_validate_layout_years <- function(entries, found) {
+  duplicated_years <- unique(found[duplicated(found) | duplicated(found,
+    fromLast = TRUE)])
+  if (length(duplicated_years) == 0L) return(invisible(NULL))
+
+  details <- vapply(duplicated_years, function(year) {
+    paths <- entries[found == year]
+    paste0("Year ", year, ": ", paste(paths, collapse = " and "))
+  }, character(1))
+  cli::cli_abort(paste0(
+    "A year is present in both annual and Hive layouts.\n",
+    paste0("x Year is duplicated: ", details, collapse = "\n"),
+    "\ni Keep one layout per year."
+  ))
+}
+
 #' Open annual NIS Parquet files lazily
 #'
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
@@ -18,8 +34,8 @@
 #'   invalid values identify the offending file in an error. The connection
 #'   remains open while the lazy table is in use and closes after it is released.
 #'   Use `dplyr::collect()` to return
-#'   data to R. Earlier versions accepted `engine = "duckdb"`; remove
-#'   that argument when migrating because DuckDB is now the only engine.
+#'   data to R. The `engine` argument was removed entirely; omit it regardless
+#'   of the value used in older code.
 #'   String columns with malformed UTF-8 may fail during a native Parquet scan;
 #'   validate or repair those values before writing Parquet files.
 #'
@@ -66,6 +82,7 @@ nis_open <- function(path, years = NULL) {
   if (length(found) == 0L) {
     cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.")
   }
+  nis_validate_layout_years(entries, found)
 
   if (is.null(years)) {
     years <- sort(found)
