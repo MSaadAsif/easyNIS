@@ -135,3 +135,26 @@ test_that("a byte-order mark before the header is tolerated", {
     "'ICD-10-CM CODE','CCSR CATEGORY 1'\n'X100','ZZZ001'\n"))), path)
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })
+
+test_that("single-quoted CSV headers without rows return an empty mapping", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  writeLines("'ICD-10-CM CODE','CCSR CATEGORY 1'", path)
+
+  mapping <- read_ccsr_csv(path)
+  expect_equal(dim(mapping), c(0L, 2L))
+  expect_equal(names(mapping), c("ICD-10-CM CODE", "CCSR CATEGORY 1"))
+})
+
+test_that("CCSR workbooks require one mapping sheet and an ICD-10 header", {
+  skip_if_not_installed("readxl")
+  path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path), add = TRUE)
+
+  write_ccsr_xlsx(path, sheet = "Invented sheet")
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "needs one")
+
+  write_ccsr_xlsx(path, header = c("Invented header", "Description",
+    "Category", "Category description", "Default"))
+  expect_error(nis_ccsr_codes(path, "ZZZ001"), "No header row")
+})
