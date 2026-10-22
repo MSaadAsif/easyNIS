@@ -1,3 +1,37 @@
+test_that("suppression thresholds preserve scalar validation", {
+  inputs <- list(
+    null = NULL, logical_na = NA, integer_na = NA_integer_, real_na = NA_real_,
+    nan = NaN, positive_infinity = Inf, negative_infinity = -Inf,
+    negative_integer = -1L, negative_fraction = -0.5, zero_double = 0,
+    zero_integer = 0L, positive_fraction = 0.5, one_double = 1,
+    one_integer = 1L, integer = 2L, integer_max = .Machine$integer.max,
+    over_integer_max = as.double(.Machine$integer.max) + 1,
+    empty_double = numeric(), empty_integer = integer(),
+    two_values = c(1, 2), character = "10", empty_character = "",
+    logical_true = TRUE, logical_false = FALSE, factor = factor("1"),
+    list = list(1), complex = 1 + 0i, date = as.Date("1970-01-01"),
+    one_by_one_matrix = matrix(1), matrix_length_two = matrix(c(1, 2)),
+    raw = as.raw(1), max_fraction = .Machine$integer.max - 0.5
+  )
+  expected <- c(
+    null = FALSE, logical_na = FALSE, integer_na = FALSE, real_na = FALSE,
+    nan = FALSE, positive_infinity = FALSE, negative_infinity = FALSE,
+    negative_integer = FALSE, negative_fraction = FALSE, zero_double = TRUE,
+    zero_integer = TRUE, positive_fraction = FALSE, one_double = TRUE,
+    one_integer = TRUE, integer = TRUE, integer_max = TRUE,
+    over_integer_max = FALSE, empty_double = FALSE, empty_integer = FALSE,
+    two_values = FALSE, character = FALSE, empty_character = FALSE,
+    logical_true = FALSE, logical_false = FALSE, factor = FALSE, list = FALSE,
+    complex = FALSE, date = FALSE, one_by_one_matrix = TRUE,
+    matrix_length_two = FALSE, raw = FALSE, max_fraction = FALSE
+  )
+
+  expect_identical(
+    vapply(inputs, easyNIS:::is_valid_suppress_threshold, logical(1)),
+    expected
+  )
+})
+
 test_that("nis_suppress validates inputs without survey summary cards", {
   expect_error(nis_suppress(data.frame()), "count_col")
   expect_error(

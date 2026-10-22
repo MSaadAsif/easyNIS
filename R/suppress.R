@@ -5,13 +5,9 @@ validate_suppress_threshold <- function(threshold, error_call) {
 }
 
 is_valid_suppress_threshold <- function(threshold) {
-  is_scalar <- length(threshold) == 1L
-  is_numeric <- is.numeric(threshold)
-  is_finite_nonnegative <- is_scalar && is_numeric && !is.na(threshold) &&
-    is.finite(threshold) && threshold >= 0 &&
-    threshold <= .Machine$integer.max
-  is_whole <- is_finite_nonnegative && threshold == as.integer(threshold)
-  is_whole
+  if (!identical(length(threshold), 1L) || !is.numeric(threshold)) return(FALSE)
+  !is.na(threshold) && is.finite(threshold) && threshold >= 0 &&
+    threshold <= .Machine$integer.max && threshold == as.integer(threshold)
 }
 
 validate_suppress_dots <- function(dots, error_call) {
