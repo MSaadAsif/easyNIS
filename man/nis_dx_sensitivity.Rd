@@ -13,7 +13,7 @@ nis_dx_sensitivity(
 )
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{code}{Non-missing character vector of diagnosis prefixes.}
 

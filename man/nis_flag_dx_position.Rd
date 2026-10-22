@@ -7,7 +7,7 @@
 nis_flag_dx_position(.data, code, name = "dx", system = c("icd10", "icd9"))
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{code}{Non-missing character vector of diagnosis prefixes.}
 

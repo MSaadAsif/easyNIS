@@ -20,7 +20,7 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 
 ## Privacy and licensing
 
-Use invented fixtures and independently authored MIT-compatible code. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.
+Use invented fixtures and independently authored code compatible with the project's AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.
 
 ## Pull requests
 

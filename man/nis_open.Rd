@@ -4,7 +4,7 @@
 \alias{nis_open}
 \title{Open annual NIS Parquet files lazily}
 \usage{
-nis_open(path, years = NULL, engine = c("arrow", "duckdb"))
+nis_open(path, years = NULL)
 }
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
@@ -13,15 +13,10 @@ nis_open(path, years = NULL, engine = c("arrow", "duckdb"))
 matching year. Years before 2016 are experimental: they hold ICD-9-CM
 codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
-
-\item{engine}{Query engine: \code{"arrow"} (default) or \code{"duckdb"}. DuckDB
-queries are backed by Arrow's Parquet scanner and do not use DuckDB's
-native Parquet reader.}
 }
 \value{
-With \code{engine = "arrow"}, a lazy Arrow query; with
-\code{engine = "duckdb"}, a DuckDB-backed dbplyr table. Both have
-case-normalized columns. Experimental 2023
+A lazy DuckDB-backed dbplyr table with case-normalized columns.
+Experimental 2023
 layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
 because the 2023 field is HCUP-adjusted for national estimates and is not
 comparable to earlier-year charges. Opening a query that contains
@@ -37,14 +32,22 @@ HCUP 2023 documentation and real 2023 data; none were available for testing.
 Open annual NIS Parquet files lazily
 }
 \details{
-\code{engine = "duckdb"} requires the optional \code{duckdb} and \code{dbplyr}
-packages. It returns a DuckDB-backed dbplyr table. The connection is
-closed when the returned table is no longer referenced. The Arrow-specific
-helpers \code{nis_flag_dx()}, \code{nis_flag_pr()}, and \code{nis_design()} currently
-require the default Arrow engine (or a data frame where supported).
-Arrow can scan a Parquet string containing invalid UTF-8 bytes, but this
-engine does not promise to repair them; a collected test value retained
-its invalid byte.
+\code{nis_open()} reads Parquet directly with DuckDB and returns a
+DuckDB-backed dbplyr table. It accepts annual \verb{NIS_<year>.parquet} files
+and Hive directories named \code{YEAR=YYYY} containing Parquet parts. If a part file
+has a physical \code{YEAR} column, its non-missing values must agree with the
+directory year; missing or absent physical values use the partition year.
+Schemas are combined by column name, including when annual files and Hive
+partitions are mixed. When annual types differ, DuckDB may promote them;
+for example, an integer field combined with a character field is returned
+as character. When present, \code{YEAR} is validated and returned as integer;
+invalid values identify the offending file in an error. The connection
+remains open while the lazy table is in use and closes after it is released.
+Use \code{dplyr::collect()} to return
+data to R. The \code{engine} argument was removed entirely; omit it regardless
+of the value used in older code.
+String columns with malformed UTF-8 may fail during a native Parquet scan;
+validate or repair those values before writing Parquet files.
 }
 \examples{
 path <- nis_example(years = 2019:2020)

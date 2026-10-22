@@ -4,7 +4,7 @@
 #' positions only, and any position. Prefix matching and code-system eligibility
 #' follow [nis_flag_dx()].
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param code Non-missing character vector of diagnosis prefixes.
 #' @param name Base name for the added columns. The function adds
 #'   `<name>_principal`, `<name>_secondary_only`, and `<name>_any`.
@@ -26,7 +26,7 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
     cli::cli_abort("`name` must be one syntactic column-name prefix.")
   }
   output_names <- paste0(name, c("_principal", "_secondary_only", "_any"))
-  if (any(output_names %in% names(.data))) {
+  if (any(output_names %in% nis_names(.data))) { # nolint: object_usage_linter
     cli::cli_abort("The diagnosis-position output columns must not replace existing columns.")
   }
 
@@ -52,7 +52,7 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
 #' [nis_suppress()] before reporting under the HCUP Data Use Agreement, which
 #' prohibits reporting cells of 1–10.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param code Non-missing character vector of diagnosis prefixes.
 #' @param system Code system of the diagnosis slots: `"icd10"` (default) or
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
@@ -83,12 +83,12 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
       anyDuplicated(outcomes)) {
     cli::cli_abort("`outcomes` must be a character vector of unique column names.")
   }
-  absent_outcomes <- setdiff(outcomes, names(.data))
+  absent_outcomes <- setdiff(outcomes, nis_names(.data)) # nolint: object_usage_linter
   if (outcomes_were_supplied && length(absent_outcomes) > 0L) {
     cli::cli_abort("Missing requested outcome column{?s}: {.val {absent_outcomes}}.")
   }
-  outcomes <- intersect(outcomes, names(.data))
-  if (!weight_var %in% names(.data)) {
+  outcomes <- intersect(outcomes, nis_names(.data)) # nolint: object_usage_linter
+  if (!weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
     cli::cli_abort("Weight column {.val {weight_var}} is missing from `.data`.")
   }
 
