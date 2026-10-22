@@ -274,20 +274,6 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
   list(model = model, status = NULL, warnings = warnings)
 }
 
-#' Create a new NIS study folder
-#'
-#' Copy the packaged Quarto study template to a new directory. The destination
-#' must not already exist.
-#'
-#' @param path A new local directory path for the study.
-#' @return The normalized path to the created study directory.
-#' @family study-setup
-#' @seealso [Get started with easyNIS](articles/getting-started.html).
-#' @export
-#' @examples
-#' study_path <- tempfile("nis-study-example-")
-#' nis_new_study(study_path)
-#' list.files(study_path, all.files = TRUE, no.. = TRUE)
 # Raise scaffold errors with the original exported call.
 nis_study_abort <- function(message, call) {
   cli::cli_abort(message, call = call)
@@ -351,6 +337,20 @@ nis_study_copy_template <- function(path, call) {
   }
 }
 
+#' Create a new NIS study folder
+#'
+#' Copy the packaged Quarto study template to a new directory. The destination
+#' must not already exist.
+#'
+#' @param path A new local directory path for the study.
+#' @return The normalized path to the created study directory.
+#' @family study-setup
+#' @seealso [Get started with easyNIS](articles/getting-started.html).
+#' @export
+#' @examples
+#' study_path <- tempfile("nis-study-example-")
+#' nis_new_study(study_path)
+#' list.files(study_path, all.files = TRUE, no.. = TRUE)
 nis_new_study <- function(path) {
   call <- sys.call()
   path <- nis_study_check_path(path, call)
