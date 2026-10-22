@@ -19,8 +19,8 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 2 × 2
 #>    YEAR     n
 #>   <int> <int>
-#> 1  2020    96
-#> 2  2019    96
+#> 1  2019    96
+#> 2  2020    96
 ```
 
 The counts here describe the synthetic fixture by year. See [Opening NIS

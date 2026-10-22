@@ -82,6 +82,13 @@
 
 ### New features
 
+- Added `codemeta.json`; regenerate it from `DESCRIPTION` with
+  `Rscript tools/probe/update-codemeta.R` after changing package
+  metadata.
+
+- Quoted the `survey` package name in `DESCRIPTION` and avoided
+  duplicate arguments when constructing the 2023 charge warning.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   supports 2012 onward.
   [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
@@ -91,15 +98,18 @@
   ignore case, periods, and spaces, while stored codes are compared byte
   for byte without text normalization, so malformed UTF-8 cannot raise a
   matching error.
+
 - Added experimental ICD-9 prefix flags with an explicit
   `system = "icd9"` option, metadata guards, and invented historical and
   split-2015 fixtures. ICD-10 remains the default.
+
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   adds AHRQ Elixhauser Refined condition flags and mortality/readmission
   index scores through the suggested `medicalcoder` package. It accepts
   a collected data frame or an
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   result.
+
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   reads a user-supplied HCUP DXCCSR or PRCCSR reference file (Excel via
   `readxl` or comma-separated) and returns ICD-10 codes in selected CCSR

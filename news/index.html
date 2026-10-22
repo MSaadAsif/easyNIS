@@ -89,13 +89,12 @@
 </ul></div>
 <div class="section level3">
 <h3 id="new-features-0-2-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-2-0"></a></h3>
-<ul><li>
-<code><a href="../reference/nis_open.html">nis_open()</a></code> supports 2012 onward. <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> match literal prefixes separately in each code slot; supplied prefixes ignore case, periods, and spaces, while stored codes are compared byte for byte without text normalization, so malformed UTF-8 cannot raise a matching error.</li>
-<li>Added experimental ICD-9 prefix flags with an explicit <code>system = "icd9"</code> option, metadata guards, and invented historical and split-2015 fixtures. ICD-10 remains the default.</li>
-<li>
-<code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> adds AHRQ Elixhauser Refined condition flags and mortality/readmission index scores through the suggested <code>medicalcoder</code> package. It accepts a collected data frame or an <code><a href="../reference/nis_design.html">nis_design()</a></code> result.</li>
-<li>
-<code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> reads a user-supplied HCUP DXCCSR or PRCCSR reference file (Excel via <code>readxl</code> or comma-separated) and returns ICD-10 codes in selected CCSR categories, optionally restricted to the default inpatient assignment. The codes can be passed to <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> or <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code>.</li>
+<ul><li><p>Added <code>codemeta.json</code>; regenerate it from <code>DESCRIPTION</code> with <code>Rscript tools/probe/update-codemeta.R</code> after changing package metadata.</p></li>
+<li><p>Quoted the <code>survey</code> package name in <code>DESCRIPTION</code> and avoided duplicate arguments when constructing the 2023 charge warning.</p></li>
+<li><p><code><a href="../reference/nis_open.html">nis_open()</a></code> supports 2012 onward. <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> match literal prefixes separately in each code slot; supplied prefixes ignore case, periods, and spaces, while stored codes are compared byte for byte without text normalization, so malformed UTF-8 cannot raise a matching error.</p></li>
+<li><p>Added experimental ICD-9 prefix flags with an explicit <code>system = "icd9"</code> option, metadata guards, and invented historical and split-2015 fixtures. ICD-10 remains the default.</p></li>
+<li><p><code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> adds AHRQ Elixhauser Refined condition flags and mortality/readmission index scores through the suggested <code>medicalcoder</code> package. It accepts a collected data frame or an <code><a href="../reference/nis_design.html">nis_design()</a></code> result.</p></li>
+<li><p><code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> reads a user-supplied HCUP DXCCSR or PRCCSR reference file (Excel via <code>readxl</code> or comma-separated) and returns ICD-10 codes in selected CCSR categories, optionally restricted to the default inpatient assignment. The codes can be passed to <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> or <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code>.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="survey-design-and-weighting-0-2-0">Survey design and weighting<a class="anchor" aria-label="anchor" href="#survey-design-and-weighting-0-2-0"></a></h3>
