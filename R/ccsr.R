@@ -68,7 +68,8 @@ nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
 validate_ccsr_categories <- function(categories) {
   if (!is.character(categories) || length(categories) == 0L ||
       anyNA(categories) || any(!nzchar(trimws(categories)))) {
-    cli::cli_abort("`categories` must be a non-empty character vector.")
+    cli::cli_abort("`categories` must be a non-empty character vector.",
+      call = sys.call(-1L))
   }
   unique(toupper(trimws(categories)))
 }
@@ -76,14 +77,16 @@ validate_ccsr_categories <- function(categories) {
 validate_ccsr_default_only <- function(default_only) {
   if (!is.logical(default_only) || length(default_only) != 1L ||
       is.na(default_only)) {
-    cli::cli_abort("`default_only` must be `TRUE` or `FALSE`.")
+    cli::cli_abort("`default_only` must be `TRUE` or `FALSE`.",
+      call = sys.call(-1L))
   }
 }
 
 validate_ccsr_category_names <- function(categories, available) {
   unknown <- setdiff(categories, available)
   if (length(unknown) > 0L) {
-    cli::cli_abort("Categor{?y/ies} {.val {unknown}} not found in {.arg file}.")
+    cli::cli_abort("Categor{?y/ies} {.val {unknown}} not found in {.arg file}.",
+      call = sys.call(-1L))
   }
 }
 
@@ -91,7 +94,8 @@ filter_ccsr_defaults <- function(map, default_only) {
   if (default_only) {
     if (all(is.na(map$default))) {
       cli::cli_abort(
-        "`file` has no default inpatient category; use `default_only = FALSE`."
+        "`file` has no default inpatient category; use `default_only = FALSE`.",
+        call = sys.call(-1L)
       )
     }
     map[map$default %in% TRUE, , drop = FALSE]
@@ -116,7 +120,8 @@ read_ccsr_map <- function(file) {
 validate_ccsr_file <- function(file) {
   if (!is.character(file) || length(file) != 1L || is.na(file) ||
       !file.exists(file)) {
-    cli::cli_abort("`file` must name an existing CCSR reference file.")
+    cli::cli_abort("`file` must name an existing CCSR reference file.",
+      call = sys.call(-1L))
   }
 }
 
@@ -134,7 +139,8 @@ find_ccsr_columns <- function(column_names) {
   category_cols <- grep("^(ccsrcategory|prccsr)[0-9]*$", key)
   if (length(code_col) == 0L || length(category_cols) == 0L) {
     cli::cli_abort(
-      "`file` does not look like an HCUP DXCCSR or PRCCSR reference file."
+      "`file` does not look like an HCUP DXCCSR or PRCCSR reference file.",
+      call = sys.call(-1L)
     )
   }
   list(
@@ -159,7 +165,7 @@ clean_ccsr_codes <- function(x) {
       "`file` has values in its code column that are not ICD-10 codes.",
       "x" = "First offending value{?s}: {.val {utils::head(bad, 3L)}}",
       "i" = "The file may be malformed or in an unsupported layout."
-    ))
+    ), call = sys.call(-1L))
   }
   code
 }
@@ -190,7 +196,7 @@ read_ccsr_csv <- function(file) {
   lines <- sub("^\ufeff", "", lines)
   lines <- lines[nzchar(trimws(lines))]
   if (length(lines) == 0L) {
-    cli::cli_abort("`file` is empty.")
+    cli::cli_abort("`file` is empty.", call = sys.call(-1L))
   }
   if (!grepl("^'.*'$", lines[1L])) {
     return(utils::read.csv(text = lines, colClasses = "character",
@@ -213,7 +219,7 @@ read_ccsr_csv <- function(file) {
     cli::cli_abort(c(
       "`file` is not a well-formed single-quoted CSV.",
       "x" = "Line {shown} should have {expected} quoted fields like the header."
-    ))
+    ), call = sys.call(-1L))
   }
   body <- as.data.frame(do.call(rbind, fields[-1L]), stringsAsFactors = FALSE)
   if (nrow(body) == 0L) {
@@ -231,14 +237,16 @@ read_ccsr_sheet <- function(file) {
     ignore.case = TRUE)
   if (length(sheet) != 1L) {
     cli::cli_abort(
-      "`file` needs one `DX_to_CCSR_Mapping` or `PR_to_CCSR_Mapping` sheet."
+      "`file` needs one `DX_to_CCSR_Mapping` or `PR_to_CCSR_Mapping` sheet.",
+      call = sys.call(-1L)
     )
   }
   cells <- suppressMessages(readxl::read_excel(file, sheet = sheet,
     col_names = FALSE, col_types = "text"))
   header <- which(grepl("^ICD-?10", cells[[1L]], ignore.case = TRUE))[1L]
   if (is.na(header)) {
-    cli::cli_abort("No header row starting with `ICD-10` was found in `file`.")
+    cli::cli_abort("No header row starting with `ICD-10` was found in `file`.",
+      call = sys.call(-1L))
   }
   body <- as.data.frame(cells[-seq_len(header), , drop = FALSE],
     stringsAsFactors = FALSE)

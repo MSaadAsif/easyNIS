@@ -1,3 +1,11 @@
+expect_ccsr_call <- function(expr, name) {
+  condition <- tryCatch(eval(substitute(expr), envir = parent.frame()),
+    error = identity)
+  expect_s3_class(condition, "error")
+  expect_identical(rlang::call_name(conditionCall(condition)), name)
+  invisible(condition)
+}
+
 test_that("nis_ccsr_codes reads the Excel mapping sheet and honours defaults", {
   skip_if_not_installed("readxl")
   path <- tempfile(fileext = ".xlsx")
@@ -44,6 +52,56 @@ test_that("nis_ccsr_codes rejects bad input clearly", {
   on.exit(unlink(other), add = TRUE)
   writeLines(c("a,b", "1,2"), other)
   expect_error(nis_ccsr_codes(other, "ZZZ001"), "reference file")
+})
+
+test_that("CCSR errors retain their public or reader call", {
+  skip_if_not_installed("readxl")
+  path <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(path), add = TRUE)
+  write_ccsr_xlsx(path)
+
+  expect_ccsr_call(nis_ccsr_codes(path, character()), "nis_ccsr_codes")
+  expect_ccsr_call(nis_ccsr_codes(path, "ZZZ001", default_only = NA),
+    "nis_ccsr_codes")
+  expect_ccsr_call(nis_ccsr_codes(path, "NOPE01"), "nis_ccsr_codes")
+  procedure <- tempfile(fileext = ".csv")
+  on.exit(unlink(procedure), add = TRUE)
+  writeLines(c("'ICD-10-PCS','PRCCSR'", "'0AB0001','ZZP001'"), procedure)
+  expect_ccsr_call(nis_ccsr_codes(procedure, "ZZP001", default_only = TRUE),
+    "nis_ccsr_codes")
+  expect_ccsr_call(nis_ccsr_codes(tempfile(fileext = ".xlsx"), "ZZZ001"),
+    "read_ccsr_map")
+
+  malformed <- tempfile(fileext = ".csv")
+  on.exit(unlink(malformed), add = TRUE)
+  writeLines(c("a,b", "1,2"), malformed)
+  expect_ccsr_call(nis_ccsr_codes(malformed, "ZZZ001"), "read_ccsr_map")
+
+  bad_codes <- tempfile(fileext = ".csv")
+  on.exit(unlink(bad_codes), add = TRUE)
+  writeLines(c("'ICD-10-CM CODE','CCSR CATEGORY 1'", "'TOOLONG88','ZZZ001'"),
+    bad_codes)
+  expect_ccsr_call(nis_ccsr_codes(bad_codes, "ZZZ001"), "read_ccsr_map")
+
+  empty <- tempfile(fileext = ".csv")
+  on.exit(unlink(empty), add = TRUE)
+  writeLines(character(), empty)
+  expect_ccsr_call(nis_ccsr_codes(empty, "ZZZ001"), "read_ccsr_source")
+
+  malformed_csv <- tempfile(fileext = ".csv")
+  on.exit(unlink(malformed_csv), add = TRUE)
+  writeLines(c("'ICD-10-CM CODE','CCSR CATEGORY 1'", "'X100'"),
+    malformed_csv)
+  expect_ccsr_call(nis_ccsr_codes(malformed_csv, "ZZZ001"), "read_ccsr_source")
+
+  workbook <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(workbook), add = TRUE)
+  write_ccsr_xlsx(workbook, sheet = "Invented sheet")
+  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_source")
+  write_ccsr_xlsx(workbook, header = c("Invented header", "Description",
+    "CCSR Category", "CCSR Category Description",
+    "Inpatient Default CCSR (Y/N/X)"))
+  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_source")
 })
 
 test_that("procedure files have no default category", {
