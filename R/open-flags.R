@@ -110,18 +110,31 @@ nis_open <- function(path, years = NULL, engine = c("arrow", "duckdb")) {
     merged <- Reduce(function(left, right) {
       rlang::expr(dplyr::coalesce(!!left, !!right))
     }, fields)
-    query <- dplyr::mutate(query, !!canonical := !!merged) # nolint: object_usage_linter. dplyr name injection.
+    query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
   }
   output_names <- names(name_groups)
   if ("TOTCHG_2023" %in% output_names) {
+    warning_messages <- c(
+      paste(
+        "This query contains {.field TOTCHG_2023}, which is not comparable",
+        "to {.field TOTCHG}."
+      ),
+      paste(
+        "HCUP adjusts it for states missing from 2023, so charges and costs",
+        "built from it differ in definition from earlier years."
+      ),
+      paste(
+        "{.fn nis_open} leaves {.field TOTCHG} unchanged; opt in with",
+        "{.code charges = \"TOTCHG_2023\"}."
+      ),
+      paste(
+        "The 2023 layout support is experimental and unverified against",
+        "real 2023 data."
+      )
+    )
+    names(warning_messages) <- c("", rep("i", length(warning_messages) - 1L))
     cli::cli_warn(
-      c("This query contains {.field TOTCHG_2023}, which is not comparable to {.field TOTCHG}.",
-        "i" = paste(
-          "HCUP adjusts it for states missing from 2023, so charges and costs",
-          "built from it differ in definition from earlier years."
-        ),
-        "i" = "{.fn nis_open} leaves {.field TOTCHG} unchanged; opt in with {.code charges = \"TOTCHG_2023\"}.",
-        "i" = "The 2023 layout support is experimental and unverified against real 2023 data."),
+      warning_messages,
       .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
     )
   }
@@ -299,7 +312,7 @@ code_system_filter <- function(columns, slots, system) {
     conditions <- c(conditions, list(rlang::expr(is.na(!!field) | !!field == !!version)))
   }
   if ("YEAR" %in% columns) {
-    # nolint start: object_usage_linter. rlang expressions use data-masked names.
+    # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
@@ -313,7 +326,6 @@ code_system_filter <- function(columns, slots, system) {
         is.na(YEAR) | YEAR != 2015L | is.na(!!quarter) | !!quarter %in% !!quarters
       )))
     }
-    # nolint end
   }
   if (length(conditions) == 0L) return(NULL)
   Reduce(function(left, right) rlang::expr((!!left) & (!!right)), conditions)
