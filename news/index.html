@@ -60,7 +60,8 @@
 </ul></div>
 <div class="section level3">
 <h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
-<ul><li>
+<ul><li>Refactored internal CCSR mapping helpers to keep cyclomatic complexity within the repository limit without changing <code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> behavior.</li>
+<li>
 <code><a href="../reference/nis_open.html">nis_open()</a></code> combines annual Parquet files with Hive year partitions and returns <code>YEAR</code> as integer, rejecting invalid year values with a file-specific error.</li>
 <li>
 <code><a href="../reference/nis_design.html">nis_design()</a></code> warns when annualized valid-design data represented in <code>DQTR</code> have fewer than four quarters, and explains how to exclude or separately reweight those years. It also warns when a 2015 cohort contains only ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4), and informs when <code>DQTR</code> is missing so the 2015 split cannot be checked.</li>
