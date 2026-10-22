@@ -50,6 +50,10 @@
 - Refactored code-transition auditing, cell counts, and attrition summaries
   into internal helpers without changing their results or validation behavior.
 
+## Maintenance
+
+- Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
+
 # easyNIS 0.2.0
 
 ## Highlights
