@@ -109,7 +109,7 @@ dx_validate_outcomes <- function(outcomes, data, supplied) {
     cli::cli_abort("`outcomes` must be a character vector of unique column names.",
       call = rlang::caller_call())
   }
-  absent <- setdiff(outcomes, names(data))
+  absent <- setdiff(outcomes, nis_names(data)) # nolint: object_usage_linter
   if (supplied && length(absent) > 0L) {
     cli::cli_abort("Missing requested outcome column{?s}: {.val {absent}}.",
       call = rlang::caller_call())

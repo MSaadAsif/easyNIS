@@ -76,8 +76,15 @@ test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
   expect_s3_class(lazy_flags, "tbl_sql")
   expect_identical(dplyr::collect(lazy_flags),
     nis_flag_dx_position(data, "I42", name = "hocm"))
-  expect_equal(nis_dx_sensitivity(query, "I42"),
-    nis_dx_sensitivity(data, "I42"))
+  expect_no_warning(lazy_default <- nis_dx_sensitivity(query, "I42"))
+  expect_equal(lazy_default, nis_dx_sensitivity(data, "I42"))
+
+  expect_no_warning(lazy_explicit <- nis_dx_sensitivity(
+    query, "I42", outcomes = c("DIED", "ELECTIVE")
+  ))
+  expect_equal(lazy_explicit, nis_dx_sensitivity(
+    data, "I42", outcomes = c("DIED", "ELECTIVE")
+  ))
 })
 
 test_that("sensitivity summary skips absent defaults and excludes missing outcomes", {
