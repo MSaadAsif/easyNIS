@@ -23,8 +23,7 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
   system <- match.arg(system)
   if (!is.character(name) || length(name) != 1L || is.na(name) ||
       !grepl("^\\.?[A-Za-z][A-Za-z0-9._]*$", name)) {
-    cli::cli_abort("
-ame` must be one syntactic column-name prefix.")
+    cli::cli_abort("`name` must be one syntactic column-name prefix.")
   }
   output_names <- paste0(name, c("_principal", "_secondary_only", "_any"))
   if (any(output_names %in% nis_names(.data))) { # nolint: object_usage_linter
@@ -196,7 +195,9 @@ dx_rate_vector <- function(summary, flags, outcome, weighted) {
   events <- if (weighted) "_weighted_events" else "_events"
   unname(vapply(flags, function(flag) {
     denominator <- summary[[paste0(flag, "_", outcome, suffix, "_n")]][[1L]]
-    if (denominator == 0) NA_real_ else {
+    if (denominator == 0) {
+      NA_real_
+    } else {
       summary[[paste0(flag, "_", outcome, events)]][[1L]] / denominator
     }
   }, numeric(1)))
