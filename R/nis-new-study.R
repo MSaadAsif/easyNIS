@@ -103,8 +103,8 @@ nis_study_report_cache_key <- function(
   )
 }
 
-# Check whether the observed cohort can support a model contrast.
-nis_study_model_data_status <- function(data, outcome, exposure, formula = NULL) {
+# Check whether the basic model inputs are available.
+nis_study_model_input_status <- function(data, outcome, exposure) {
   if (!is.data.frame(data)) {
     return("The model data are unavailable.")
   }
@@ -116,45 +116,52 @@ nis_study_model_data_status <- function(data, outcome, exposure, formula = NULL)
   if (length(missing) > 0L) {
     return(paste("The model data are missing", paste(missing, collapse = ", "), "."))
   }
-  suffix <- if (is.null(formula)) "." else " in the complete-case rows."
-  model_frame <- data
-  outcome_values <- data[[outcome]]
-  if (!is.null(formula)) {
-    model_frame <- tryCatch(
-      stats::model.frame(formula, data = data, na.action = stats::na.omit),
-      error = function(error) error
-    )
-    if (inherits(model_frame, "error")) {
-      return(paste("The declared model specification fails on complete-case rows:",
-                   conditionMessage(model_frame),
-                   "Review covariate levels and missingness; no terms were removed."))
-    }
-    if (nrow(model_frame) == 0L) {
-      return("The declared model has no complete-case rows after applying its covariates.")
-    }
-    outcome_values <- stats::model.response(model_frame)
-    model_matrix <- tryCatch(stats::model.matrix(formula, data = model_frame),
-                             error = function(error) error)
-    if (inherits(model_matrix, "error")) {
-      return(paste("The declared model specification fails on complete-case rows:",
-                   conditionMessage(model_matrix),
-                   "Review covariate levels and missingness; no terms were removed."))
-    }
-    if (any(!is.finite(model_matrix))) {
-      return(paste("The declared model matrix contains non-finite values on complete-case rows.",
-                   "Review numeric covariates for Inf or NaN; no terms were removed."))
-    }
-    matrix_rank <- tryCatch(qr(model_matrix)$rank, error = function(error) error)
-    if (inherits(matrix_rank, "error")) {
-      return(paste("The declared model matrix rank could not be evaluated on complete-case rows:",
-                   conditionMessage(matrix_rank),
-                   "Review covariate values and collinearity; no terms were removed."))
-    }
-    if (matrix_rank < ncol(model_matrix)) {
-      return(paste("The declared model matrix is rank-deficient on complete-case rows.",
-                   "Review covariate variation, missingness, and collinearity; no terms were removed."))
-    }
+  NULL
+}
+
+# Check whether a declared model matrix is estimable on complete-case rows.
+nis_study_formula_status <- function(data, formula) {
+  model_frame <- tryCatch(
+    stats::model.frame(formula, data = data, na.action = stats::na.omit),
+    error = function(error) error
+  )
+  if (inherits(model_frame, "error")) {
+    return(list(status = paste("The declared model specification fails on complete-case rows:",
+                 conditionMessage(model_frame),
+                 "Review covariate levels and missingness; no terms were removed.")))
   }
+  if (nrow(model_frame) == 0L) {
+    return(list(status = "The declared model has no complete-case rows after applying its covariates."))
+  }
+  outcome_values <- stats::model.response(model_frame)
+  model_matrix <- tryCatch(stats::model.matrix(formula, data = model_frame),
+                           error = function(error) error)
+  if (inherits(model_matrix, "error")) {
+    return(list(status = paste("The declared model specification fails on complete-case rows:",
+                 conditionMessage(model_matrix),
+                 "Review covariate levels and missingness; no terms were removed.")))
+  }
+  if (any(!is.finite(model_matrix))) {
+    return(list(status = paste("The declared model matrix contains non-finite values on complete-case rows.",
+                 "Review numeric covariates for Inf or NaN; no terms were removed.")))
+  }
+  matrix_rank <- tryCatch(qr(model_matrix)$rank, error = function(error) error)
+  if (inherits(matrix_rank, "error")) {
+    return(list(status = paste("The declared model matrix rank could not be evaluated on complete-case rows:",
+                 conditionMessage(matrix_rank),
+                 "Review covariate values and collinearity; no terms were removed.")))
+  }
+  if (matrix_rank < ncol(model_matrix)) {
+    return(list(status = paste("The declared model matrix is rank-deficient on complete-case rows.",
+                 "Review covariate variation, missingness, and collinearity; no terms were removed.")))
+  }
+  list(status = NULL, model_frame = model_frame,
+       outcome_values = outcome_values)
+}
+
+# Check for unsupported values in the model contrast variables.
+nis_study_variable_status <- function(model_frame, outcome_values, outcome,
+                                      exposure, suffix) {
   exposure_values <- model_frame[[exposure]]
   exposure_values <- exposure_values[!is.na(exposure_values)]
   if (is.numeric(exposure_values) && any(!is.finite(exposure_values))) {
@@ -173,15 +180,29 @@ nis_study_model_data_status <- function(data, outcome, exposure, formula = NULL)
   NULL
 }
 
-nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
-                                outcome = NULL, exposure = NULL) {
-  warnings <- character()
-  if (!is.null(outcome) || !is.null(exposure)) {
-    status <- nis_study_model_data_status(design$variables, outcome, exposure, formula)
-    if (!is.null(status)) {
-      return(list(model = NULL, status = status, warnings = warnings))
-    }
+# Check whether the observed cohort can support a model contrast.
+nis_study_model_data_status <- function(data, outcome, exposure, formula = NULL) {
+  status <- nis_study_model_input_status(data, outcome, exposure)
+  if (!is.null(status)) {
+    return(status)
   }
+  suffix <- if (is.null(formula)) "." else " in the complete-case rows."
+  model_frame <- data
+  outcome_values <- data[[outcome]]
+  if (!is.null(formula)) {
+    result <- nis_study_formula_status(data, formula)
+    if (!is.null(result$status)) {
+      return(result$status)
+    }
+    model_frame <- result$model_frame
+    outcome_values <- result$outcome_values
+  }
+  nis_study_variable_status(model_frame, outcome_values, outcome, exposure, suffix)
+}
+
+# Fit a model while collecting and muffling its warnings.
+nis_study_run_model <- function(formula, design, family, fit) {
+  warnings <- character()
   model <- tryCatch(
     withCallingHandlers(
       fit(formula, design = design, family = family),
@@ -192,13 +213,11 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
     ),
     error = function(error) error
   )
-  if (inherits(model, "error")) {
-    return(list(model = NULL, status = paste("Model fit failed:", conditionMessage(model)),
-                warnings = warnings))
-  }
-  if (identical(model$converged, FALSE)) {
-    return(list(model = NULL, status = "The model did not converge.", warnings = warnings))
-  }
+  list(model = model, warnings = warnings)
+}
+
+# Describe warnings that make a fitted model unstable.
+nis_study_warning_status <- function(warnings) {
   material_warning <- grepl(
     paste0(
       "did not converge|failed to converge|not converged|iteration limit|",
@@ -208,18 +227,49 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
     warnings, ignore.case = TRUE
   )
   if (any(material_warning)) {
-    return(list(model = NULL, status = paste("The model fit is unstable:",
-                 paste(unique(warnings[material_warning]), collapse = "; ")), warnings = warnings))
+    return(paste("The model fit is unstable:",
+                 paste(unique(warnings[material_warning]), collapse = "; ")))
   }
+  NULL
+}
+
+# Check model coefficients and covariance estimates.
+nis_study_estimate_status <- function(model) {
   coefficients <- tryCatch(stats::coef(model), error = function(error) NULL)
   if (is.null(coefficients) || length(coefficients) == 0L || any(!is.finite(coefficients))) {
-    return(list(model = NULL, status = "The model returned missing or non-finite coefficients.",
-                warnings = warnings))
+    return("The model returned missing or non-finite coefficients.")
   }
   covariance <- tryCatch(stats::vcov(model), error = function(error) NULL)
   if (is.null(covariance) || length(covariance) == 0L || any(!is.finite(covariance))) {
-    return(list(model = NULL, status = "The model returned missing or non-finite covariance estimates.",
+    return("The model returned missing or non-finite covariance estimates.")
+  }
+  NULL
+}
+
+nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
+                                outcome = NULL, exposure = NULL) {
+  if (!is.null(outcome) || !is.null(exposure)) {
+    status <- nis_study_model_data_status(design$variables, outcome, exposure, formula)
+    if (!is.null(status)) {
+      return(list(model = NULL, status = status, warnings = character()))
+    }
+  }
+  result <- nis_study_run_model(formula, design, family, fit)
+  model <- result$model
+  warnings <- result$warnings
+  if (inherits(model, "error")) {
+    return(list(model = NULL, status = paste("Model fit failed:", conditionMessage(model)),
                 warnings = warnings))
+  }
+  if (identical(model$converged, FALSE)) {
+    return(list(model = NULL, status = "The model did not converge.", warnings = warnings))
+  }
+  status <- nis_study_warning_status(warnings)
+  if (is.null(status)) {
+    status <- nis_study_estimate_status(model)
+  }
+  if (!is.null(status)) {
+    return(list(model = NULL, status = status, warnings = warnings))
   }
   list(model = model, status = NULL, warnings = warnings)
 }
@@ -238,45 +288,73 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
 #' study_path <- tempfile("nis-study-example-")
 #' nis_new_study(study_path)
 #' list.files(study_path, all.files = TRUE, no.. = TRUE)
-nis_new_study <- function(path) {
-  if (!is.character(path) || length(path) != 1L || is.na(path) ||
-      !nzchar(trimws(path))) {
-    cli::cli_abort("`path` must be one non-empty directory path.")
+# Raise scaffold errors with the original exported call.
+nis_study_abort <- function(message, call) {
+  cli::cli_abort(message, call = call)
+}
+
+# Check whether an input is one non-empty path.
+nis_study_valid_path <- function(path) {
+  is.character(path) && length(path) == 1L && !is.na(path) && nzchar(trimws(path))
+}
+
+# Check whether a destination already exists, including dangling links.
+nis_study_path_exists <- function(path) {
+  link <- Sys.readlink(path)
+  file.exists(path) || dir.exists(path) ||
+    (length(link) == 1L && !is.na(link) && nzchar(link))
+}
+
+# Validate and normalize a new study path.
+nis_study_check_path <- function(path, call) {
+  if (!nis_study_valid_path(path)) {
+    nis_study_abort("`path` must be one non-empty directory path.", call)
   }
 
   path <- normalizePath(path.expand(path), winslash = "/", mustWork = FALSE)
-  link <- Sys.readlink(path)
-  if (file.exists(path) || dir.exists(path) ||
-      (length(link) == 1L && !is.na(link) && nzchar(link))) {
-    cli::cli_abort("The study path already exists.")
+  if (nis_study_path_exists(path)) {
+    nis_study_abort("The study path already exists.", call)
   }
+  path
+}
 
+# Create the empty destination directory.
+nis_study_create_path <- function(path, call) {
   parent <- dirname(path)
   if (!dir.exists(parent) &&
       !dir.create(parent, recursive = TRUE, showWarnings = FALSE)) {
-    cli::cli_abort("Could not create the parent directory for the study.")
+    nis_study_abort("Could not create the parent directory for the study.", call)
   }
   if (file.exists(path) || dir.exists(path) || !dir.create(path, showWarnings = FALSE)) {
-    cli::cli_abort("Could not create the study directory because the path is unavailable.")
+    nis_study_abort("Could not create the study directory because the path is unavailable.", call)
   }
+}
 
+# Copy the packaged template into a newly created destination.
+nis_study_copy_template <- function(path, call) {
   template <- system.file("templates", "nis-study", package = "easyNIS")
   if (!nzchar(template) || !dir.exists(template)) {
     unlink(path, recursive = TRUE)
-    cli::cli_abort("The packaged NIS study template is unavailable.")
+    nis_study_abort("The packaged NIS study template is unavailable.", call)
   }
 
   files <- list.files(template, full.names = TRUE, no.. = TRUE)
   if (!length(files) || any(dir.exists(files)) ||
       !all(file.copy(files, path, overwrite = FALSE))) {
     unlink(path, recursive = TRUE)
-    cli::cli_abort("Could not copy the packaged NIS study template.")
+    nis_study_abort("Could not copy the packaged NIS study template.", call)
   }
 
   if (!file.rename(file.path(path, "gitignore"), file.path(path, ".gitignore"))) {
     unlink(path, recursive = TRUE)
-    cli::cli_abort("Could not create the study output `.gitignore`.")
+    nis_study_abort("Could not create the study output `.gitignore`.", call)
   }
+}
 
+nis_new_study <- function(path) {
+  call <- sys.call()
+  path <- nis_study_check_path(path, call)
+  nis_study_create_path(path, call)
+  nis_study_copy_template(path, call)
   path
 }
