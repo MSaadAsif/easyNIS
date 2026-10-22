@@ -36,7 +36,7 @@ attr(.cpi_u, "source") <- paste(
 #' Adjust NIS charges and costs to a reference dollar year
 #'
 #' @param data A collected data frame with `YEAR`, the `charges` column, and
-#'   `CCR_NIS`. Lazy Arrow and DuckDB queries must be collected first.
+#'   `CCR_NIS`. Lazy DuckDB queries must be collected first.
 #' @param dollars Reference dollar year, from 2012 through 2024.
 #' @param charges Name of the total-charge column. Defaults to `"TOTCHG"`.
 #'   Use `"TOTCHG_2023"` only knowingly: HCUP adjusts that field for states
@@ -271,7 +271,8 @@ nis_example <- function(years = 2017:2022) {
 
     year_path <- file.path(path, paste0("NIS_", year, ".parquet"))
     dir.create(year_path)
-    arrow::write_parquet(records, file.path(year_path, "part-0.parquet"))
+    nis_duckdb_write_parquet( # nolint: object_usage_linter
+      records, file.path(year_path, "part-0.parquet"))
   }
   path
 }

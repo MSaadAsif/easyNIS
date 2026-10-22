@@ -168,7 +168,7 @@ test_that("procedure timing uses ICD-9 slots and validates its output", {
     "single")
 })
 
-test_that("procedure timing stays lazy and agrees with data frames on Arrow", {
+test_that("procedure timing stays lazy and agrees with data frames on DuckDB", {
   data <- dplyr::tibble(
     I10_PR1 = c("IX", "IX", "IX", "OTHER"),
     I10_PR2 = c("OUT", "OUT", "OUT", "OUT"),
@@ -177,15 +177,15 @@ test_that("procedure timing stays lazy and agrees with data frames on Arrow", {
   path <- tempfile("nis-pr-timing-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
   expected <- nis_flag_pr_timing(data, "IX", "OUT")
   lazy <- nis_flag_pr_timing(query, "IX", "OUT")
-  expect_s3_class(lazy, "arrow_dplyr_query")
+  expect_s3_class(lazy, "tbl_sql")
   expect_identical(dplyr::collect(lazy), expected)
 })
 
-test_that("procedure timing agrees across Arrow policies and many slots", {
+test_that("procedure timing agrees across DuckDB policies and many slots", {
   procedure_slots <- stats::setNames(rep(list(rep("OTHER", 5L)), 25L),
     paste0("I10_PR", seq_len(25L)))
   procedure_slots[[1L]] <- c("IX", "IX", "IX", "IX", "IX")
@@ -205,11 +205,11 @@ test_that("procedure timing agrees across Arrow policies and many slots", {
   path <- tempfile("nis-pr-timing-many-slots-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
 
   small_data <- dplyr::select(data, I10_PR1:I10_PR4, PRDAY1:PRDAY4, YEAR, PRVER)
-  small_query <- arrow::arrow_table(small_data)
+  small_query <- duckdb_query_fixture(small_data)
   query_data <- list(list(data, query), list(small_data, small_query))
   for (i in seq_along(query_data)) {
     cases <- if (i == 1L) {
@@ -262,9 +262,9 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
   expect_identical(absent_slot2$absent_prday_column, c(2L, 2L))
   expect_identical(absent_slot2$matched_slots, c(2L, 2L))
 
-  arrow_result <- nis_prday_completeness(arrow::arrow_table(data),
+  DuckDB_result <- nis_prday_completeness(duckdb_query_fixture(data),
     c("ix", "out"))
-  expect_equal(arrow_result, actual)
+  expect_equal(DuckDB_result, actual)
 })
 
 test_that("PRDAY completeness aggregates on DuckDB queries", {
@@ -274,7 +274,8 @@ test_that("PRDAY completeness aggregates on DuckDB queries", {
     PRDAY1 = c(0L, -99L))
   con <- duckdb::dbConnect(duckdb::duckdb())
   on.exit(duckdb::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  query <- arrow::to_duckdb(arrow::arrow_table(data), con = con)
+  DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
+  query <- dplyr::tbl(con, "fixture")
   result <- nis_prday_completeness(query, "IX")
   expect_equal(result$matched_slots, 2L)
   expect_equal(result$known_day, 1L)
@@ -339,4 +340,34 @@ test_that("PRDAY completeness classifies days like procedure timing", {
   expect_identical(summary$missing_day[summary$slot == 2L],
     as.integer(sum(is.na(data$PRDAY2))))
   expect_identical(summary$sentinel_invalid_day[summary$slot == 2L], 1L)
+})
+
+test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
+  data <- dplyr::tibble(
+    YEAR = rep(2020L, 5L),
+    I10_PR1 = rep("IX", 5L), I10_PR2 = rep("OUT", 5L),
+    PRDAY1 = rep(0, 5L), PRDAY2 = c(0, -99, NA_real_, NaN, Inf)
+  )
+  query <- duckdb_query_fixture(data)
+  on.exit({
+    con <- query$src$con
+    query <- NULL
+    invisible(gc())
+    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+  }, add = TRUE)
+
+  for (policy in c("exclude", "assume_same_day", "indeterminate")) {
+    for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
+      expected <- nis_flag_pr_timing(data, "IX", "OUT", relation = relation,
+        window = if (relation == "within_days") 2L else NULL,
+        missing_day = policy)
+      actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = relation,
+        window = if (relation == "within_days") 2L else NULL,
+        missing_day = policy) |>
+        dplyr::collect()
+      expect_identical(actual, expected, info = paste(policy, relation))
+    }
+  }
+  expect_identical(nis_prday_completeness(query, "OUT"),
+    nis_prday_completeness(data, "OUT"))
 })

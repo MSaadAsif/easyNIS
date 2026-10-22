@@ -49,7 +49,7 @@ In interventional and surgical comparative studies, establishing the temporal re
 
 ### Behaviour & Specification
 - **Inputs:**
-  - `.data`: Lazy Arrow dataset, DuckDB table, or in-memory data frame.
+  - `.data`: Lazy DuckDB dataset, DuckDB table, or in-memory data frame.
   - `index_pr`: Character vector of procedure code prefixes identifying the index procedure.
   - `outcome_pr`: Character vector of procedure code prefixes identifying the outcome procedure.
   - `name`: String name for the generated logical flag (default `"outcome_post_index"`).
@@ -134,7 +134,7 @@ toy_data |>
 - `test_that("nis_flag_pr_timing detects on_or_after and same_day relationships")`: verify correct boolean flags for outcome day > index day, outcome day == index day, and outcome day < index day.
 - `test_that("nis_flag_pr_timing resolves multiple index procedures to earliest day")`: verify that when index codes appear at day 3 and day 1, outcome at day 2 is flagged as post-index (`2 >= 1`).
 - `test_that("nis_flag_pr_timing handles negative sentinel values and NAs")`: confirm that `-99` and `NA` are treated as missing and do not trigger false positives.
-- `test_that("nis_flag_pr_timing evaluates lazily on Arrow queries")`: ensure translation works without forcing full in-memory collection.
+- `test_that("nis_flag_pr_timing evaluates lazily on DuckDB queries")`: ensure translation works without forcing full in-memory collection.
 
 ---
 ## 2. CONSORT / Attrition Table Generator
@@ -151,14 +151,14 @@ nis_attrition(
 ```
 
 ### Purpose
-Every observational study reporting NIS cohorts requires an attrition flowchart/table conforming to STROBE/CONSORT guidelines. Stepwise reporting of unweighted discharges, weighted national estimates, exclusion counts at each step, and percentage retained is required. Performing this lazily on Arrow datasets or DuckDB connections avoids reading millions of national records into local memory.
+Every observational study reporting NIS cohorts requires an attrition flowchart/table conforming to STROBE/CONSORT guidelines. Stepwise reporting of unweighted discharges, weighted national estimates, exclusion counts at each step, and percentage retained is required. Performing this lazily on DuckDB datasets or DuckDB connections avoids reading millions of national records into local memory.
 
 ### Existing easyNIS Coverage
 `nis_design()` tracks valid survey design exclusions internally (`DISCWT > 0`, non-missing hospital and stratum identifiers) and attaches a summary to `attr(design, "nis_excluded")`. However, it does not support user-defined multi-step inclusion/exclusion pipelines or structured CONSORT table generation.
 
 ### Behaviour & Specification
 - **Inputs:**
-  - `.data`: Lazy Arrow query, DuckDB table, or data frame.
+  - `.data`: Lazy DuckDB query, DuckDB table, or data frame.
   - `...`: Named logical expressions representing sequential exclusion criteria in execution order (e.g., `adult = AGE >= 18`, `elective = ELECTIVE == 1`, `no_prior_ppm = !prior_ppm`).
   - `by_year`: Logical; if `TRUE`, calculates step counts stratified by `YEAR`.
   - `weight_var`: String naming the survey weight column (default `"DISCWT"`).
@@ -174,7 +174,7 @@ Every observational study reporting NIS cohorts requires an attrition flowchart/
     - `pct_retained`: Cumulative percent of unweighted discharges retained relative to Step 0.
     - If `by_year = TRUE`, includes `YEAR` column.
 - **Edge Cases & Performance:**
-  - **Lazy Aggregation:** Evaluates cumulative criteria using DuckDB/Arrow compute aggregations (`SUM(CASE WHEN ... THEN 1 ELSE 0 END)` and `SUM(CASE WHEN ... THEN DISCWT ELSE 0 END)`) in a single or sequential aggregation pass rather than materializing subsets.
+  - **Lazy Aggregation:** Evaluates cumulative criteria using DuckDB/DuckDB compute aggregations (`SUM(CASE WHEN ... THEN 1 ELSE 0 END)` and `SUM(CASE WHEN ... THEN DISCWT ELSE 0 END)`) in a single or sequential aggregation pass rather than materializing subsets.
   - **Missing Values:** Criteria resulting in `NA` are treated as excluded, matching standard `dplyr::filter()` behavior.
   - **Zero Counts:** Safely handles empty cohorts at later steps without division-by-zero errors in `pct_retained`.
 
@@ -235,7 +235,7 @@ toy_nis |>
 
 ### Suggested Tests
 - `test_that("nis_attrition preserves step ordering and calculates drop counts")`: verify arithmetic consistency between cumulative remaining and dropped rows.
-- `test_that("nis_attrition computes weighted and unweighted counts identically on lazy Arrow and data.frame")`: verify equivalence between lazy and in-memory execution.
+- `test_that("nis_attrition computes weighted and unweighted counts identically on lazy DuckDB and data.frame")`: verify equivalence between lazy and in-memory execution.
 - `test_that("nis_attrition handles by_year grouping correctly")`: test that stratified output maintains year-level totals.
 
 ---
@@ -345,76 +345,20 @@ toy_data |>
 - `test_that("code vectors conform to alphanumeric without punctuation")`: ensure no dots or spaces exist in code strings.
 
 ---
-## 4. Robust Parquet Scanning Across DuckDB and Arrow
+## 4. DuckDB-native Parquet scanning (implemented)
 
-### Proposed Function & Signature
-```r
-nis_open(
-  path,
-  years = NULL,
-  engine = c("arrow", "duckdb"),
-  repair_utf8 = TRUE
-)
-```
+`nis_open(path, years = NULL)` now reads Parquet through DuckDB's native
+`read_parquet()` table function. It unions annual schemas by column name,
+supports `YEAR=YYYY` Hive-partitioned directories, normalizes field names, and
+returns a lazy dbplyr query. DuckDB connections are released with the lazy
+query lifecycle. `nis_example()` writes its invented fixtures with DuckDB's
+Parquet `COPY` writer. `duckdb`, `dbplyr`, and `DBI` are required dependencies.
 
-### Purpose
-DuckDB's native Parquet reader (`read_parquet`) enforces strict UTF-8 validation and aborts immediately when encountering invalid byte sequences in character columns (which occasionally occur in raw HCUP Parquet conversions). In contrast, Apache Arrow scans datasets with flexible byte-handling and allows lossy conversion. Providing an integrated bridge from Arrow dataset scanning into DuckDB enables analysts to query NIS data with SQL without incurring fatal UTF-8 scanner crashes.
-
-### Existing easyNIS Coverage
-`nis_open()` opens files lazily via `arrow::open_dataset()` and normalizes column headers. In `open-flags.R`, it uses Arrow native binary slice kernels to bypass string decoding. However, easyNIS provides no documented or automated pathway to hand off the opened Arrow dataset to DuckDB (`arrow::to_duckdb()`), leaving DuckDB SQL workflows unsupported out of the box.
-
-### Behaviour & Specification
-- **Inputs:**
-  - `path`: Directory path containing annual Parquet files.
-  - `years`: Optional numeric vector of years.
-  - `engine`: `"arrow"` (returns lazy Arrow Dataset, default) or `"duckdb"` (registers Arrow Dataset as a virtual DuckDB view and returns a `tbl_duckdb_connection`).
-  - `repair_utf8`: Logical; when `engine = "duckdb"`, ensures character fields are read via Arrow's binary-to-string lossy converter or registered through `arrow::to_duckdb()` rather than DuckDB's native `read_parquet()`.
-- **Outputs:**
-  - When `engine = "arrow"`: Lazy Arrow dataset query.
-  - When `engine = "duckdb"`: A DuckDB `tbl` connection pointing to a registered in-memory virtual view of the Arrow dataset.
-- **Edge Cases:**
-  - Non-UTF-8 bytes in hospital notes or string identifiers are safely converted to replacement characters (`\uFFFD`) rather than terminating the session.
-  - Temporary DuckDB connections are automatically cleaned up when garbage collected.
-
-### Workaround Used by Study
-The study bypassed DuckDB's native file reader by opening through Arrow and registering the dataset into a DuckDB connection:
-```r
-# Plain R / DuckDB workaround
-library(duckdb)
-library(arrow)
-
-# 1. Open lazily through Arrow (survives non-UTF8 strings)
-arrow_ds <- open_dataset("path/to/parquet", format = "parquet")
-
-# 2. Connect to DuckDB and register Arrow dataset as a view
-con <- dbConnect(duckdb::duckdb())
-arrow::to_duckdb(arrow_ds, table_name = "nis_raw", con = con)
-
-# 3. Query safely with SQL without DuckDB parquet reader crashing
-cohort <- dbGetQuery(con, "SELECT COUNT(*) FROM nis_raw WHERE YEAR = 2020")
-```
-
-### Minimal Invented Example
-```r
-library(easyNIS)
-
-# Path to invented test dataset
-path <- nis_example(years = 2020)
-
-# Open directly into a DuckDB SQL-ready table
-nis_db <- nis_open(path, engine = "duckdb")
-
-# Query with standard dplyr / dbplyr
-nis_db |>
-  dplyr::filter(AGE >= 65) |>
-  dplyr::summarise(n = dplyr::n()) |>
-  dplyr::collect()
-```
-
-### Suggested Tests
-- `test_that("nis_open with engine='duckdb' returns a valid dbplyr tbl")`: check that standard dplyr verbs work against the connection.
-- `test_that("nis_open handles parquet data containing invalid UTF-8 bytes")`: create an Arrow fixture with raw non-UTF-8 bytes and verify that querying through `to_duckdb` succeeds without errors.
-- `test_that("nis_open preserves case normalization in DuckDB tables")`: verify that uppercase column normalization is maintained in DuckDB views.
+The former `engine` argument and Arrow bridge were removed. The reader relies on
+DuckDB's UTF-8 string handling; source Parquet containing malformed UTF-8 may
+need correction before it can be scanned. SQL inputs are quoted through DBI,
+and tests cover lazy results, schema union, Hive years, path quoting, and
+Parquet round trips.
 
 ---
 ## 5. Code-Transition and Coding-Shift Audit Helper
@@ -438,7 +382,7 @@ In longitudinal NIS analyses spanning multiple years (e.g., 2017–2022), change
 
 ### Behaviour & Specification
 - **Inputs:**
-  - `.data`: Lazy Arrow query, DuckDB connection, or collected data frame.
+  - `.data`: Lazy DuckDB query, DuckDB connection, or collected data frame.
   - `codes`: Named character vector or list of candidate ICD-10-PCS or CM codes (e.g., `c(surgical = "02UG0JZ", transcatheter = "02803ZZ")`).
   - `cohort`: Optional unquoted logical expression filtering to the target cohort before auditing.
   - `by`: Grouping column for the timeline (default `"YEAR"`).
@@ -522,7 +466,7 @@ In administrative database research, defining a cohort by principal diagnosis (`
 
 ### Behaviour & Specification
 - **Inputs:**
-  - `.data`: Lazy Arrow query, DuckDB table, or data frame.
+  - `.data`: Lazy DuckDB query, DuckDB table, or data frame.
   - `code`: Diagnosis code prefix (e.g., `"I421"` for HOCM).
   - `name`: Base name for generated flags.
   - `system`: `"icd10"` or `"icd9"`.
@@ -661,7 +605,7 @@ comorbidity extension below, not existing `nis_comorbidity()` functionality.
 nis_comorbidity_ahrq(
   .data,
   version = "v2023",
-  engine = c("duckdb", "arrow", "r"),
+  engine = c("duckdb", "r"),
   prefix = "cmrb_"
 )
 ```
@@ -674,7 +618,7 @@ Risk adjustment using the Healthcare Cost and Utilization Project (HCUP) AHRQ El
 - **Current behaviour:** It reshapes wide `I10_DX1`–`I10_DXk` columns of a collected data frame to long format and calls `medicalcoder::comorbidities()`.
 - **Gaps:**
   1. **Licensing Friction:** `medicalcoder` is licensed under GPL-3, creating license tension with easyNIS's permissive MIT license and the AGENTS.md mandate ("Use invented public fixtures and independent MIT code").
-  2. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB or Arrow.
+  2. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB or DuckDB.
   3. **Heavy Dependency:** If `medicalcoder` is not installed or CRAN binary compilation fails in locked down research environments, comorbidity scoring is completely unavailable.
 
 ### Behaviour & Specification
@@ -682,9 +626,9 @@ Risk adjustment using the Healthcare Cost and Utilization Project (HCUP) AHRQ El
   - Derive comorbidity category mapping directly from the public-domain AHRQ Elixhauser Comorbidity Software Refined v2022–v2025 crosswalk tables published by AHRQ.
   - Implement scoring as an in-package join table or compiled SQL expression table.
 - **Inputs:**
-  - `.data`: Lazy Arrow query, DuckDB connection, or data frame.
+  - `.data`: Lazy DuckDB query, DuckDB connection, or data frame.
   - `version`: AHRQ software release version (`"v2022"`, `"v2023"`, `"v2024"`, `"v2025"`).
-  - `engine`: Compute backend (`"duckdb"`, `"arrow"`, or `"r"`).
+  - `engine`: Compute backend (`"duckdb"`, `"DuckDB"`, or `"r"`).
   - `prefix`: Column prefix (default `"cmrb_"`).
 - **Outputs:**
   - Augmented `.data` with 38 logical comorbidity indicators (e.g., `<prefix>hf`, `<prefix>dm_cx`), summary condition count `<prefix>n`, `<prefix>any`, and numeric risk index weights `<prefix>mortality_index` and `<prefix>readmission_index`.
@@ -756,7 +700,7 @@ toy_cohort |>
 | 1 | Procedure Timing | `nis_flag_pr_timing()` | Cohort Definition & Outcome Flagging | Validates post-procedure complications using `PRDAY*` arrays |
 | 2 | Attrition Flowchart | `nis_attrition()` | Study Reporting & Setup | Generates STROBE/CONSORT tables lazily without memory blowup |
 | 3 | Cardiac Devices (**DEFERRED**) | `nis_codes_cardiac_device()` | Code Selection & Phenotyping | Disambiguates permanent pacemakers from temporary pacing wires |
-| 4 | Parquet Scanning | `nis_open(engine="duckdb")` | File Ingestion & Querying | Prevents crashes on invalid UTF-8 bytes via Arrow -> DuckDB bridge |
+| 4 | Parquet Scanning (**IMPLEMENTED**) | `nis_open()` | File Ingestion & Querying | Native DuckDB Parquet scans with lazy dplyr queries |
 | 5 | Code Transitions | `nis_audit_code_transition()` | Longitudinal Validation | Detects multi-year coding shifts and guideline artifacts |
 | 6 | Position Sensitivity | `nis_dx_sensitivity()` | Sensitivity Analysis | Standardizes Principal vs Any diagnosis concordance reporting |
 | 7 | Small-Cell Masking | `nis_suppress()` (extended) | Disclosure & DUA Compliance | Supports plain data frames, weighted totals, and complementary masking |

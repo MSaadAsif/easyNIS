@@ -12,7 +12,8 @@
 }
 
 .nis_attrition_validate_cols <- function(.data, by_year, weight_var) {
-  absent <- setdiff(c(weight_var, if (by_year) "YEAR"), names(.data))
+  absent <- setdiff(c(weight_var, if (by_year) "YEAR"),
+    nis_names(.data)) # nolint: object_usage_linter
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing required column{?s} {.val {absent}}.")
   }
@@ -26,7 +27,7 @@
 
 .nis_attrition_keep_names <- function(.data, criteria_count) {
   keep_names <- paste0(".nis_attrition_keep_", seq_len(criteria_count))
-  while (any(keep_names %in% names(.data))) {
+  while (any(keep_names %in% nis_names(.data))) { # nolint: object_usage_linter
     keep_names <- paste0(".", keep_names)
   }
   keep_names
@@ -124,10 +125,10 @@
 #' Applies logical criteria cumulatively and reports remaining and dropped
 #' discharge counts at each step. Criteria are evaluated in order; `NA` values
 #' are treated as excluded, matching [dplyr::filter()]. The summary is
-#' aggregated lazily for Arrow queries and returned as a collected tibble.
+#' aggregated lazily for DuckDB queries and returned as a collected tibble.
 #' Missing weights contribute zero to weighted totals.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named logical expressions applied cumulatively. Unnamed
 #'   expressions use their deparsed text as the criterion label.
 #' @param by_year If `TRUE`, calculate each step within `YEAR`.

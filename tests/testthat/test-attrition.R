@@ -69,7 +69,7 @@ test_that("nis_attrition stratifies by year and preserves overall totals", {
     by_year = TRUE), "YEAR")
 })
 
-test_that("nis_attrition lazily aggregates Arrow datasets without collecting rows", {
+test_that("nis_attrition lazily aggregates DuckDB datasets without collecting rows", {
   data <- dplyr::tibble(
     AGE = c(16, 45, 60, 72, 55),
     ELECTIVE = c(1, 1, 0, 1, 1),
@@ -80,8 +80,8 @@ test_that("nis_attrition lazily aggregates Arrow datasets without collecting row
   path <- tempfile("nis-attrition-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
   criteria <- function(.data) nis_attrition(.data,
     adult = AGE >= 18,
     elective = ELECTIVE == 1

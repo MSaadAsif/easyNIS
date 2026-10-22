@@ -151,8 +151,8 @@ test_that("method and prefix options and input errors are explicit", {
   path <- tempfile("nis-comorbidity-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  expect_error(nis_comorbidity(arrow::open_dataset(path)), "collect")
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  expect_error(nis_comorbidity(open_duckdb_dataset(path)), "collect")
 })
 
 test_that("a nis_design keeps its design and gains comorbidity columns", {

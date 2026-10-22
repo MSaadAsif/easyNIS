@@ -3,13 +3,15 @@
 }
 
 .nis_audit_validate_by <- function(.data, by) {
-  if (!.nis_audit_is_column_name(by) || !by %in% names(.data)) {
+  if (!.nis_audit_is_column_name(by) ||
+      !by %in% nis_names(.data)) { # nolint: object_usage_linter
     cli::cli_abort("`by` must be the name of one existing column.")
   }
 }
 
 .nis_audit_validate_weight <- function(.data, weight_var) {
-  if (!.nis_audit_is_column_name(weight_var) || !weight_var %in% names(.data)) {
+  if (!.nis_audit_is_column_name(weight_var) ||
+      !weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
     cli::cli_abort("`weight_var` must be the name of one existing column.")
   }
 }
@@ -43,7 +45,7 @@
     (is.na(cohort_expression) || identical(cohort_expression, FALSE))
   if (literal_empty) {
     period <- rlang::sym(by)
-    # Arrow requires a column expression; it rejects literal FALSE/NA filters.
+    # DuckDB requires a column expression; it rejects literal FALSE/NA filters.
     return(dplyr::filter(data, !is.na(!!period) & !!period != !!period))
   }
   dplyr::filter(data, !!cohort_quo)
@@ -95,8 +97,8 @@
   change[is.na(summary[[by]])] <- NA_real_
   dplyr::tibble(
     code_group = code_groups[[i]],
-    n_cohort_unweighted = n_cohort,
-    n_unweighted = n,
+    n_cohort_unweighted = as.integer(n_cohort),
+    n_unweighted = as.integer(n),
     n_weighted = as.numeric(weighted),
     pct_within_year = as.numeric(pct),
     yoy_pct_change = as.numeric(change)
@@ -115,7 +117,7 @@
 #' separate calls for each system. The change compares with the previous
 #' observed period in sorted order.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param codes A named character vector or named list of character vectors.
 #'   Each name is a `code_group`; each value contains prefixes. Names must be
 #'   non-empty and unique.
@@ -166,7 +168,8 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo, by)
 
-  temp_names <- .nis_audit_temporary_names(names(.data), length(codes))
+  data_names <- nis_names(.data) # nolint: object_usage_linter
+  temp_names <- .nis_audit_temporary_names(data_names, length(codes))
   flag_names <- temp_names[seq_along(codes)]
   names(codes) <- flag_names
   flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
