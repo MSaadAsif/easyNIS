@@ -48,6 +48,12 @@
   data-frame count values.
 - Refactored code-transition auditing, cell counts, and attrition summaries
   into internal helpers without changing their results or validation behavior.
+- Refactored `nis_design()` and `nis_reweight()` into private validation and
+  preparation helpers without changing survey design behavior.
+
+## Maintenance
+
+- Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
 
 # easyNIS 0.2.0
 
