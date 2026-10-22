@@ -62,7 +62,7 @@ attr(.cpi_u, "source") <- paste(
   }
 }
 
-.nis_cost_validate_numeric_columns <- function(data, charges) {
+.nis_cost_validate_numeric <- function(data, charges) {
   if (!is.numeric(data$YEAR) || !is.numeric(data[[charges]]) ||
       !is.numeric(data$CCR_NIS)) {
     cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.")
@@ -125,7 +125,7 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   .nis_cost_validate_charge_name(charges)
   .nis_cost_validate_columns(data, charges)
   .nis_cost_validate_dollars(dollars)
-  .nis_cost_validate_numeric_columns(data, charges)
+  .nis_cost_validate_numeric(data, charges)
   index <- .nis_cost_year_index(data$YEAR)
 
   reference_index <- .cpi_u$index[match(as.integer(dollars), .cpi_u$year)]
@@ -184,19 +184,6 @@ nis_cost_provenance <- function(x) {
   attr(x, "nis_cost_provenance", exact = TRUE)
 }
 
-#' Write an invented NIS-shaped Parquet dataset
-#'
-#' @param years Years to create, from 2012 through 2024. Years before 2016
-#'   are experimental. The 2015 fixture has separate ICD-9 and ICD-10 slots,
-#'   with invented codes and version indicators; it is not a clinical crosswalk.
-#'
-#' @return The temporary directory containing `NIS_<year>.parquet/` entries.
-#' @family data-access
-#' @seealso [Opening NIS data](articles/opening-data.html).
-#' @export
-#' @examples
-#' path <- nis_example(years = 2019:2020)
-#' list.files(path)
 .nis_example_validate_years <- function(years) {
   if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
     cli::cli_abort("`years` must contain whole years from 2012 through 2024.")
@@ -274,7 +261,7 @@ nis_cost_provenance <- function(x) {
   records
 }
 
-.nis_example_apply_pre2016_layout <- function(records, year, has_cohort) {
+.nis_example_pre2016_layout <- function(records, year, has_cohort) {
   if (year < 2016L) {
     is_icd9 <- year < 2015L | records$DQTR <= 3L
     records$DXVER <- ifelse(is_icd9, 9L, 10L)
@@ -325,7 +312,7 @@ nis_cost_provenance <- function(x) {
     fixture$records, fixture$hospital, fixture$within_hospital,
     fixture$has_cohort
   )
-  records <- .nis_example_apply_pre2016_layout(
+  records <- .nis_example_pre2016_layout(
     records, year, fixture$has_cohort
   )
   .nis_example_add_annual_fields(
@@ -342,6 +329,19 @@ nis_cost_provenance <- function(x) {
   )
 }
 
+#' Write an invented NIS-shaped Parquet dataset
+#'
+#' @param years Years to create, from 2012 through 2024. Years before 2016
+#'   are experimental. The 2015 fixture has separate ICD-9 and ICD-10 slots,
+#'   with invented codes and version indicators; it is not a clinical crosswalk.
+#'
+#' @return The temporary directory containing `NIS_<year>.parquet/` entries.
+#' @family data-access
+#' @seealso [Opening NIS data](articles/opening-data.html).
+#' @export
+#' @examples
+#' path <- nis_example(years = 2019:2020)
+#' list.files(path)
 nis_example <- function(years = 2017:2022) {
   .nis_example_validate_years(years)
   years <- unique(as.integer(years))
