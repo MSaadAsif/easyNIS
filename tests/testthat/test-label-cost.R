@@ -1,5 +1,9 @@
 test_that("labels require collected data", {
-  expect_error(nis_label(list(AGE = 40)), "collected data frame")
+  error <- tryCatch(nis_label(list(AGE = 40)), error = identity)
+  expect_identical(conditionMessage(error),
+    "`data` must be a collected data frame.")
+  expect_true(inherits(error, "rlang_error"))
+  expect_identical(conditionCall(error)[[1L]], quote(nis_label))
 })
 
 test_that("cost adjustment validates inputs and preserves missing amounts", {

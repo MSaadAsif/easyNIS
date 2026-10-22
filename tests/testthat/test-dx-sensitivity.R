@@ -42,6 +42,27 @@ test_that("diagnosis sensitivity summary matches manual counts and rates", {
     "Missing requested outcome")
 })
 
+test_that("diagnosis sensitivity validation conditions keep public calls", {
+  data <- dx_sensitivity_fixture()
+  capture_error <- function(expr) tryCatch(force(expr), error = identity)
+  errors <- list(
+    capture_error(nis_dx_sensitivity(data, "I42", weight_var = NA_character_)),
+    capture_error(nis_dx_sensitivity(data, "I42", outcomes = c("DIED", "DIED"))),
+    capture_error(nis_dx_sensitivity(data, "I42", outcomes = "MISSING")),
+    capture_error(nis_dx_sensitivity(dplyr::select(data, -DISCWT), "I42"))
+  )
+  expect_identical(vapply(errors, conditionMessage, character(1)), c(
+    "`weight_var` must be one column name.",
+    "`outcomes` must be a character vector of unique column names.",
+    "Missing requested outcome column: \"MISSING\".",
+    "Weight column \"DISCWT\" is missing from `.data`."
+  ))
+  expect_true(all(vapply(errors, inherits, logical(1), "rlang_error")))
+  expect_true(all(vapply(errors, function(error) {
+    identical(conditionCall(error)[[1L]], quote(nis_dx_sensitivity))
+  }, logical(1))))
+})
+
 test_that("diagnosis sensitivity summary matches for a lazy Arrow query", {
   skip_if_not_installed("arrow")
   data <- dx_sensitivity_fixture()
