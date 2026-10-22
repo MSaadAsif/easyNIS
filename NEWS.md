@@ -2,6 +2,9 @@
 
 ## New features
 
+- Internal helpers now split validation, cost adjustment, and synthetic fixture
+  construction in `nis_cost()` and `nis_example()` while preserving their
+  existing behavior.
 - `nis_design()` warns when annualized valid-design data represented in `DQTR`
   have fewer than four quarters, and explains how to exclude or separately
   reweight those years. It also warns when a 2015 cohort contains only
