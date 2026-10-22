@@ -26,8 +26,8 @@ test_that("nis_example keeps annual layouts and invented values stable", {
   on.exit(unlink(unlist(paths), recursive = TRUE), add = TRUE)
 
   records <- Map(function(path, year) {
-    file <- file.path(path, paste0("NIS_", year, ".parquet"), "part-0.parquet")
-    arrow::read_parquet(file)
+    open_duckdb_dataset(file.path(path, paste0("NIS_", year, ".parquet"))) |>
+      dplyr::collect()
   }, paths, expected_years)
 
   expect_identical(vapply(records, nrow, integer(1)), rep(96L, 5L))
@@ -48,8 +48,8 @@ test_that("nis_example keeps annual layouts and invented values stable", {
   duplicate_path <- nis_example(c(2023, 2012, 2023))
   on.exit(unlink(duplicate_path, recursive = TRUE), add = TRUE)
   expect_setequal(list.files(duplicate_path), c("NIS_2023.parquet", "NIS_2012.parquet"))
-  duplicate_records <- arrow::read_parquet(file.path(
-    duplicate_path, "NIS_2023.parquet", "part-0.parquet"
-  ))
+  duplicate_records <- open_duckdb_dataset(file.path(
+    duplicate_path, "NIS_2023.parquet"
+  )) |> dplyr::collect()
   expect_identical(duplicate_records, records[[5L]])
 })

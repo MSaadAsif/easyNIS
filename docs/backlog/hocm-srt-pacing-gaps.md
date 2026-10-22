@@ -22,7 +22,7 @@ or item 8 (complete teaching studies).
 
 During a comparative clinical study evaluating alcohol septal ablation (ASA) versus surgical septal myectomy (SM) for hypertrophic obstructive cardiomyopathy (HOCM) and subsequent permanent pacemaker (PPM) implantation across the 2017-2022 National Inpatient Sample (NIS), several analytical gaps were identified.
 
-This document details each gap, reviews existing easyNIS coverage, and specifies proposed functions conforming to the easyNIS architecture, naming conventions, and MIT-compatible development principles. In adherence to package development guidelines, all examples and numbers herein are purely invented and illustrative, and no licensed or record-derived data are included.
+This document details each gap, reviews existing easyNIS coverage, and specifies proposed functions conforming to the easyNIS architecture and naming conventions. In adherence to package development guidelines, all examples and numbers herein are purely invented and illustrative, and no licensed or record-derived data are included.
 
 ---
 ## 1. Procedure Timing Across Paired Arrays (`I10_PR*` and `PRDAY*`)
@@ -346,6 +346,9 @@ toy_data |>
 
 ---
 ## 4. Robust Parquet Scanning Across DuckDB and Arrow
+
+> Historical proposal, superseded by the DuckDB-only backend; retained for
+> context and not an implementation plan.
 
 ### Proposed Function & Signature
 ```r
@@ -673,18 +676,17 @@ Risk adjustment using the Healthcare Cost and Utilization Project (HCUP) AHRQ El
 `nis_comorbidity()` exists in `R/comorbidity.R`.
 - **Current behaviour:** It reshapes wide `I10_DX1`–`I10_DXk` columns of a collected data frame to long format and calls `medicalcoder::comorbidities()`.
 - **Gaps:**
-  1. **Licensing Friction:** `medicalcoder` is licensed under GPL-3, creating license tension with easyNIS's permissive MIT license and the AGENTS.md mandate ("Use invented public fixtures and independent MIT code").
-  2. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB or Arrow.
-  3. **Heavy Dependency:** If `medicalcoder` is not installed or CRAN binary compilation fails in locked down research environments, comorbidity scoring is completely unavailable.
+  1. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB.
+  2. **Heavy Dependency:** If `medicalcoder` is not installed or CRAN binary compilation fails in locked down research environments, comorbidity scoring is completely unavailable.
 
 ### Behaviour & Specification
-- **Independent MIT Implementation:**
+- **Implementation:**
   - Derive comorbidity category mapping directly from the public-domain AHRQ Elixhauser Comorbidity Software Refined v2022–v2025 crosswalk tables published by AHRQ.
   - Implement scoring as an in-package join table or compiled SQL expression table.
 - **Inputs:**
-  - `.data`: Lazy Arrow query, DuckDB connection, or data frame.
+  - `.data`: Lazy DuckDB query, DuckDB connection, or data frame.
   - `version`: AHRQ software release version (`"v2022"`, `"v2023"`, `"v2024"`, `"v2025"`).
-  - `engine`: Compute backend (`"duckdb"`, `"arrow"`, or `"r"`).
+  - `engine`: Compute backend (`"duckdb"` or `"r"`).
   - `prefix`: Column prefix (default `"cmrb_"`).
 - **Outputs:**
   - Augmented `.data` with 38 logical comorbidity indicators (e.g., `<prefix>hf`, `<prefix>dm_cx`), summary condition count `<prefix>n`, `<prefix>any`, and numeric risk index weights `<prefix>mortality_index` and `<prefix>readmission_index`.
@@ -760,4 +762,4 @@ toy_cohort |>
 | 5 | Code Transitions | `nis_audit_code_transition()` | Longitudinal Validation | Detects multi-year coding shifts and guideline artifacts |
 | 6 | Position Sensitivity | `nis_dx_sensitivity()` | Sensitivity Analysis | Standardizes Principal vs Any diagnosis concordance reporting |
 | 7 | Small-Cell Masking | `nis_suppress()` (extended) | Disclosure & DUA Compliance | Supports plain data frames, weighted totals, and complementary masking |
-| 8 | Comorbidity Scoring (**DEFERRED**) | `nis_comorbidity_ahrq()` | Risk Adjustment | Independent MIT implementation supporting lazy in-database execution |
+| 8 | Comorbidity Scoring (**DEFERRED**) | `nis_comorbidity_ahrq()` | Risk Adjustment | Lazy in-database implementation |

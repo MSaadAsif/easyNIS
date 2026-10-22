@@ -12,7 +12,7 @@ nis_flag_pr(
 )
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{...}{Named flag definitions, such as \code{ablation = "02L"}.}
 

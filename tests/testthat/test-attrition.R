@@ -69,7 +69,7 @@ test_that("nis_attrition stratifies by year and preserves overall totals", {
     by_year = TRUE), "YEAR")
 })
 
-test_that("nis_attrition lazily aggregates Arrow datasets without collecting rows", {
+test_that("nis_attrition lazily aggregates DuckDB datasets without collecting rows", {
   data <- dplyr::tibble(
     AGE = c(16, 45, 60, 72, 55),
     ELECTIVE = c(1, 1, 0, 1, 1),
@@ -80,12 +80,15 @@ test_that("nis_attrition lazily aggregates Arrow datasets without collecting row
   path <- tempfile("nis-attrition-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
-  criteria <- function(.data) nis_attrition(.data,
-    adult = AGE >= 18,
-    elective = ELECTIVE == 1
-  )
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+  criteria <- function(.data) {
+    nis_attrition(
+      .data,
+      adult = AGE >= 18,
+      elective = ELECTIVE == 1
+    )
+  }
 
   actual <- criteria(query)
   expect_s3_class(actual, "tbl_df")
@@ -99,4 +102,22 @@ test_that("nis_attrition validates criteria and weights", {
   data <- dplyr::tibble(DISCWT = 1)
   expect_error(nis_attrition(data), "at least one")
   expect_error(nis_attrition(data, TRUE, weight_var = "MISSING"), "MISSING")
+  expect_error(nis_attrition(data, TRUE, by_year = NA), "`by_year`")
+  expect_error(nis_attrition(data, TRUE, by_year = c(TRUE, FALSE)), "`by_year`")
+  expect_error(nis_attrition(data, TRUE, weight_var = NA_character_), "`weight_var`")
+  expect_error(nis_attrition(data, TRUE, weight_var = c("DISCWT", "other")), "`weight_var`")
+  expect_error(nis_attrition(data, TRUE, by_year = TRUE), "YEAR")
+})
+
+test_that("nis_attrition returns an empty annual summary for empty input", {
+  data <- dplyr::tibble(YEAR = integer(), weight = double(), keep = logical())
+  result <- nis_attrition(data, keep, by_year = TRUE, weight_var = "weight")
+
+  expect_named(result, c("YEAR", "step", "criterion", "n_unweighted",
+    "n_dropped_unweighted", "n_weighted", "n_dropped_weighted", "pct_retained"))
+  expect_equal(nrow(result), 0L)
+  expect_type(result$YEAR, "integer")
+  expect_type(result$n_unweighted, "integer")
+  expect_type(result$n_weighted, "double")
+  expect_type(result$pct_retained, "double")
 })

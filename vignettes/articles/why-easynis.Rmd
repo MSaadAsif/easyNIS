@@ -27,7 +27,12 @@ The hand-rolled approach reads every annual file fully into memory, pools the re
 path <- nis_example(years = 2019:2020)
 files <- list.files(path, pattern = "part-0[.]parquet$", recursive = TRUE,
                     full.names = TRUE)
-all_years <- purrr::map_dfr(files, arrow::read_parquet)  # full annual reads
+con <- DBI::dbConnect(duckdb::duckdb())
+all_years <- purrr::map_dfr(files, function(file) {
+  DBI::dbGetQuery(con, paste("SELECT * FROM read_parquet(",
+    as.character(DBI::dbQuoteString(con, file)), ")"))
+}) # full annual reads
+DBI::dbDisconnect(con, shutdown = TRUE)
 all_years <- all_years |> dplyr::mutate(heart_failure =
   dplyr::if_any(dplyr::starts_with("I10_DX"), ~ startsWith(.x, "I50")),
   one = 1L)
@@ -66,7 +71,7 @@ and weighting](survey-design.html).
 
 | Common hand-rolled problem | easyNIS | Function |
 |---|---|---|
-| Read and hold every annual file to work across years | Open annual Parquet data lazily; use Arrow by default or DuckDB with `engine = "duckdb"` | `nis_open()` |
+| Read and hold every annual file to work across years | Open annual Parquet data lazily with DuckDB | `nis_open()` |
 | Hand-code repeated diagnosis/procedure slot matching or position rules | Flag across slots, with principal/secondary position options for diagnoses and principal/any for procedures | `nis_flag_dx(position =)`; `nis_flag_pr(position =)` |
 | Pool hospital IDs or leave pooled weights on a single-year scale | Build a domain design with year-scoped IDs and optional annualization | `nis_design()` |
 | Mix the ICD-9 and ICD-10 slot namespaces around the 2015 transition | Select the code system explicitly; 2015 checks use year and quarter/version fields when available | `system =` on `nis_flag_dx()` / `nis_flag_pr()` |

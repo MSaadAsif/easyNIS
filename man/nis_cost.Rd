@@ -8,7 +8,7 @@ nis_cost(data, dollars, charges = "TOTCHG")
 }
 \arguments{
 \item{data}{A collected data frame with \code{YEAR}, the \code{charges} column, and
-\code{CCR_NIS}. Lazy Arrow and DuckDB queries must be collected first.}
+\code{CCR_NIS}. Lazy DuckDB queries must be collected first.}
 
 \item{dollars}{Reference dollar year, from 2012 through 2024.}
 
