@@ -35,13 +35,17 @@ attr(.cpi_u, "source") <- paste(
 
 .nis_cost_validate_data <- function(data) {
   if (!is.data.frame(data)) {
-    cli::cli_abort("`data` must be a collected data frame.")
+    cli::cli_abort("`data` must be a collected data frame.",
+      call = rlang::caller_call()
+    )
   }
 }
 
 .nis_cost_validate_charge <- function(charges) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
-    cli::cli_abort("`charges` must be a single column name.")
+    cli::cli_abort("`charges` must be a single column name.",
+      call = rlang::caller_call()
+    )
   }
 }
 
@@ -49,30 +53,40 @@ attr(.cpi_u, "source") <- paste(
   required <- c("YEAR", charges, "CCR_NIS")
   missing <- setdiff(required, names(data))
   if (length(missing) > 0L) {
-    cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.")
+    cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.",
+      call = rlang::caller_call()
+    )
   }
 }
 
 .nis_cost_validate_dollars <- function(dollars) {
   if (length(dollars) != 1L || !is.numeric(dollars) || is.na(dollars)) {
-    cli::cli_abort("`dollars` must be one year from 2012 through 2024.")
+    cli::cli_abort("`dollars` must be one year from 2012 through 2024.",
+      call = rlang::caller_call()
+    )
   }
   if (dollars != as.integer(dollars) || !dollars %in% .cpi_u$year) {
-    cli::cli_abort("`dollars` must be one year from 2012 through 2024.")
+    cli::cli_abort("`dollars` must be one year from 2012 through 2024.",
+      call = rlang::caller_call()
+    )
   }
 }
 
 .nis_cost_validate_numeric <- function(data, charges) {
   if (!is.numeric(data$YEAR) || !is.numeric(data[[charges]]) ||
       !is.numeric(data$CCR_NIS)) {
-    cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.")
+    cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.",
+      call = rlang::caller_call()
+    )
   }
 }
 
 .nis_cost_year_index <- function(year) {
   index <- match(year, .cpi_u$year)
   if (anyNA(index)) {
-    cli::cli_abort("`YEAR` contains values without a CPI-U index (2012-2024).")
+    cli::cli_abort("`YEAR` contains values without a CPI-U index (2012-2024).",
+      call = rlang::caller_call()
+    )
   }
   index
 }
