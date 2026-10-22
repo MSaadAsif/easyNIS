@@ -73,7 +73,7 @@ follow <code><a href="nis_flag_dx.html">nis_flag_dx()</a></code>.</p>
 
 
 <dl><dt id="arg--data">.data<a class="anchor" aria-label="anchor" href="#arg--data"></a></dt>
-<dd><p>A data frame or lazy Arrow query.</p></dd>
+<dd><p>A data frame or lazy DuckDB query.</p></dd>
 
 
 <dt id="arg-code">code<a class="anchor" aria-label="anchor" href="#arg-code"></a></dt>
@@ -111,129 +111,44 @@ follow <code><a href="nis_flag_dx.html">nis_flag_dx()</a></code>.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpuoupOF/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpuoupOF/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-in"><span><span class="fu">nis_flag_dx_position</span><span class="op">(</span><span class="va">nis</span>, <span class="st">"I50"</span>, name <span class="op">=</span> <span class="st">"heart_failure"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> FileSystemDataset (query)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> AGE: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> AGE_NEONATE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> AMONTH: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> APRDRG_RISK_MORTALITY: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> APRDRG_SEVERITY: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> AWEEKEND: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> CCR_NIS: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> DIED: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> DISCWT: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> DISPUNIFORM: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> DQTR: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> DRG_NOPOA: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ELECTIVE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> FEMALE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HCUP_ED: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HOSP_BEDSIZE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HOSP_DIVISION: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HOSP_LOCTEACH: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HOSP_NIS: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> HOSP_REGION: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> H_CONTRL: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_BIRTH: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DELIVERY: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX1: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX10: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX11: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX12: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX13: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX14: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX15: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX16: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX17: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX18: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX19: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX2: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX20: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX21: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX22: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX23: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX24: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX25: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX26: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX27: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX28: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX29: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX3: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX30: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX31: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX32: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX33: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX34: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX35: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX36: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX37: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX38: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX39: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX4: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX40: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX5: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX6: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX7: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX8: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_DX9: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_INJURY: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_MULTINJURY: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_NDX: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_NPR: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR1: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR10: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR11: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR12: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR13: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR14: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR15: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR16: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR17: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR18: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR19: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR2: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR20: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR21: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR22: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR23: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR24: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR25: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR3: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR4: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR5: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR6: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR7: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR8: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_PR9: string</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> I10_SERVICELINE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> LOS: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> MDC_NOPOA: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NIS_STRATUM: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> PAY1: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> PCLASS_ORPROC: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> PL_NCHS: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> RACE: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> TOTCHG: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> TRAN_IN: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> TRAN_OUT: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> YEAR: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ZIPINC_QRTL: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> elixsum: double</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ynel1: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ynel2: int32</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> heart_failure_principal: bool ((((is_null(YEAR, {nan_is_null=true}) or (YEAR &gt;= 2015)) and (((is_null(YEAR, {nan_is_null=true}) or (YEAR != 2015)) or is_null(DQTR, {nan_is_null=true})) or is_in(DQTR, {value_set=int32:[</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ], null_matching_behavior=SKIP}))) and coalesce(starts_with(I10_DX1, {pattern="I50", ignore_case=false}), false)))</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> heart_failure_any: bool ((((is_null(YEAR, {nan_is_null=true}) or (YEAR &gt;= 2015)) and (((is_null(YEAR, {nan_is_null=true}) or (YEAR != 2015)) or is_null(DQTR, {nan_is_null=true})) or is_in(DQTR, {value_set=int32:[</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ], null_matching_behavior=SKIP}))) and coalesce((((((((((((((((((((((((((((((((((((((((starts_with(I10_DX1, {pattern="I50", ignore_case=false}) or starts_with(I10_DX10, {pattern="I50", ignore_case=false})) or starts_with(I10_DX11, {pattern="I50", ignore_case=false})) or starts_with(I10_DX12, {pattern="I50", ignore_case=false})) or starts_with(I10_DX13, {pattern="I50", ignore_case=false})) or starts_with(I10_DX14, {pattern="I50", ignore_case=false})) or starts_with(I10_DX15, {pattern="I50", ignore_case=false})) or starts_with(I10_DX16, {pattern="I50", ignore_case=false})) or starts_with(I10_DX17, {pattern="I50", ignore_case=false})) or starts_with(I10_DX18, {pattern="I50", ignore_case=false})) or starts_with(I10_DX19, {pattern="I50", ignore_case=false})) or starts_with(I10_DX2, {pattern="I50", ignore_case=false})) or starts_with(I10_DX20, {pattern="I50", ignore_case=false})) or starts_with(I10_DX21, {pattern="I50", ignore_case=false})) or starts_with(I10_DX22, {pattern="I50", ignore_case=false})) or starts_with(I10_DX23, {pattern="I50", ignore_case=false})) or starts_with(I10_DX24, {pattern="I50", ignore_case=false})) or starts_with(I10_DX25, {pattern="I50", ignore_case=false})) or starts_with(I10_DX26, {pattern="I50", ignore_case=false})) or starts_with(I10_DX27, {pattern="I50", ignore_case=false})) or starts_with(I10_DX28, {pattern="I50", ignore_case=false})) or starts_with(I10_DX29, {pattern="I50", ignore_case=false})) or starts_with(I10_DX3, {pattern="I50", ignore_case=false})) or starts_with(I10_DX30, {pattern="I50", ignore_case=false})) or starts_with(I10_DX31, {pattern="I50", ignore_case=false})) or starts_with(I10_DX32, {pattern="I50", ignore_case=false})) or starts_with(I10_DX33, {pattern="I50", ignore_case=false})) or starts_with(I10_DX34, {pattern="I50", ignore_case=false})) or starts_with(I10_DX35, {pattern="I50", ignore_case=false})) or starts_with(I10_DX36, {pattern="I50", ignore_case=false})) or starts_with(I10_DX37, {pattern="I50", ignore_case=false})) or starts_with(I10_DX38, {pattern="I50", ignore_case=false})) or starts_with(I10_DX39, {pattern="I50", ignore_case=false})) or starts_with(I10_DX4, {pattern="I50", ignore_case=false})) or starts_with(I10_DX40, {pattern="I50", ignore_case=false})) or starts_with(I10_DX5, {pattern="I50", ignore_case=false})) or starts_with(I10_DX6, {pattern="I50", ignore_case=false})) or starts_with(I10_DX7, {pattern="I50", ignore_case=false})) or starts_with(I10_DX8, {pattern="I50", ignore_case=false})) or starts_with(I10_DX9, {pattern="I50", ignore_case=false})), false)))</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> heart_failure_secondary_only: bool (((((is_null(YEAR, {nan_is_null=true}) or (YEAR &gt;= 2015)) and (((is_null(YEAR, {nan_is_null=true}) or (YEAR != 2015)) or is_null(DQTR, {nan_is_null=true})) or is_in(DQTR, {value_set=int32:[</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ], null_matching_behavior=SKIP}))) and coalesce((((((((((((((((((((((((((((((((((((((((starts_with(I10_DX1, {pattern="I50", ignore_case=false}) or starts_with(I10_DX10, {pattern="I50", ignore_case=false})) or starts_with(I10_DX11, {pattern="I50", ignore_case=false})) or starts_with(I10_DX12, {pattern="I50", ignore_case=false})) or starts_with(I10_DX13, {pattern="I50", ignore_case=false})) or starts_with(I10_DX14, {pattern="I50", ignore_case=false})) or starts_with(I10_DX15, {pattern="I50", ignore_case=false})) or starts_with(I10_DX16, {pattern="I50", ignore_case=false})) or starts_with(I10_DX17, {pattern="I50", ignore_case=false})) or starts_with(I10_DX18, {pattern="I50", ignore_case=false})) or starts_with(I10_DX19, {pattern="I50", ignore_case=false})) or starts_with(I10_DX2, {pattern="I50", ignore_case=false})) or starts_with(I10_DX20, {pattern="I50", ignore_case=false})) or starts_with(I10_DX21, {pattern="I50", ignore_case=false})) or starts_with(I10_DX22, {pattern="I50", ignore_case=false})) or starts_with(I10_DX23, {pattern="I50", ignore_case=false})) or starts_with(I10_DX24, {pattern="I50", ignore_case=false})) or starts_with(I10_DX25, {pattern="I50", ignore_case=false})) or starts_with(I10_DX26, {pattern="I50", ignore_case=false})) or starts_with(I10_DX27, {pattern="I50", ignore_case=false})) or starts_with(I10_DX28, {pattern="I50", ignore_case=false})) or starts_with(I10_DX29, {pattern="I50", ignore_case=false})) or starts_with(I10_DX3, {pattern="I50", ignore_case=false})) or starts_with(I10_DX30, {pattern="I50", ignore_case=false})) or starts_with(I10_DX31, {pattern="I50", ignore_case=false})) or starts_with(I10_DX32, {pattern="I50", ignore_case=false})) or starts_with(I10_DX33, {pattern="I50", ignore_case=false})) or starts_with(I10_DX34, {pattern="I50", ignore_case=false})) or starts_with(I10_DX35, {pattern="I50", ignore_case=false})) or starts_with(I10_DX36, {pattern="I50", ignore_case=false})) or starts_with(I10_DX37, {pattern="I50", ignore_case=false})) or starts_with(I10_DX38, {pattern="I50", ignore_case=false})) or starts_with(I10_DX39, {pattern="I50", ignore_case=false})) or starts_with(I10_DX4, {pattern="I50", ignore_case=false})) or starts_with(I10_DX40, {pattern="I50", ignore_case=false})) or starts_with(I10_DX5, {pattern="I50", ignore_case=false})) or starts_with(I10_DX6, {pattern="I50", ignore_case=false})) or starts_with(I10_DX7, {pattern="I50", ignore_case=false})) or starts_with(I10_DX8, {pattern="I50", ignore_case=false})) or starts_with(I10_DX9, {pattern="I50", ignore_case=false})), false)) and invert((((is_null(YEAR, {nan_is_null=true}) or (YEAR &gt;= 2015)) and (((is_null(YEAR, {nan_is_null=true}) or (YEAR != 2015)) or is_null(DQTR, {nan_is_null=true})) or is_in(DQTR, {value_set=int32:[</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ], null_matching_behavior=SKIP}))) and coalesce(starts_with(I10_DX1, {pattern="I50", ignore_case=false}), false)))))</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> See $.data for the source Arrow object</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A query:  ?? x 111</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Database: DuckDB 1.5.6 [unknown@Linux 6.17.0-1022-azure:R 4.6.1/:memory:]</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      AGE AGE_NEONATE AMONTH APRDRG_RISK_MORTALITY APRDRG_SEVERITY AWEEKEND</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span>    28           0      3                     2               3        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span>    35           0      4                     3               4        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span>    42           0      5                     4               0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span>    49           0      6                     0               1        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span>    56           0      7                     1               2        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span>    63           0      8                     2               3        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span>    70           0      9                     3               4        1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span>    77           0     10                     4               0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span>    31           0      4                     3               4        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span>    38           0      5                     4               0        0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ more rows</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 105 more variables: CCR_NIS &lt;dbl&gt;, DIED &lt;int&gt;, DISCWT &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   DISPUNIFORM &lt;dbl&gt;, DQTR &lt;int&gt;, DRG_NOPOA &lt;int&gt;, ELECTIVE &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   FEMALE &lt;int&gt;, HCUP_ED &lt;int&gt;, HOSP_BEDSIZE &lt;int&gt;, HOSP_DIVISION &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   HOSP_LOCTEACH &lt;int&gt;, HOSP_NIS &lt;int&gt;, HOSP_REGION &lt;int&gt;, H_CONTRL &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   I10_BIRTH &lt;int&gt;, I10_DELIVERY &lt;int&gt;, I10_DX1 &lt;chr&gt;, I10_DX10 &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   I10_DX11 &lt;chr&gt;, I10_DX12 &lt;chr&gt;, I10_DX13 &lt;chr&gt;, I10_DX14 &lt;chr&gt;, …</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

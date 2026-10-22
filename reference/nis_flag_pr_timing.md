@@ -31,7 +31,7 @@ nis_flag_pr_timing(
 
 - .data:
 
-  A data frame or lazy Arrow query.
+  A data frame or lazy DuckDB query.
 
 - index_pr:
 

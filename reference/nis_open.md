@@ -5,7 +5,7 @@ Open annual NIS Parquet files lazily
 ## Usage
 
 ``` r
-nis_open(path, years = NULL, engine = c("arrow", "duckdb"))
+nis_open(path, years = NULL)
 ```
 
 ## Arguments
@@ -21,16 +21,9 @@ nis_open(path, years = NULL, engine = c("arrow", "duckdb"))
   `DX*`/`PR*` slots, and 2015 holds both systems (see
   [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)).
 
-- engine:
-
-  Query engine: `"arrow"` (default) or `"duckdb"`. DuckDB queries are
-  backed by Arrow's Parquet scanner and do not use DuckDB's native
-  Parquet reader.
-
 ## Value
 
-With `engine = "arrow"`, a lazy Arrow query; with `engine = "duckdb"`, a
-DuckDB-backed dbplyr table. Both have case-normalized columns.
+A lazy DuckDB-backed dbplyr table with case-normalized columns.
 Experimental 2023 layouts keep `TOTCHG_2023` as its own column and leave
 `TOTCHG` untouched, because the 2023 field is HCUP-adjusted for national
 estimates and is not comparable to earlier-year charges. Opening a query
@@ -49,18 +42,23 @@ for testing.
 
 ## Details
 
-`engine = "duckdb"` requires the optional `duckdb` and `dbplyr`
-packages. It returns a DuckDB-backed dbplyr table. The connection is
-closed when the returned table is no longer referenced. The
-Arrow-specific helpers
-[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
-[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-and
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-currently require the default Arrow engine (or a data frame where
-supported). Arrow can scan a Parquet string containing invalid UTF-8
-bytes, but this engine does not promise to repair them; a collected test
-value retained its invalid byte.
+`nis_open()` reads Parquet directly with DuckDB and returns a
+DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
+and Hive directories named `YEAR=YYYY` containing Parquet parts. If a
+part file has a physical `YEAR` column, its non-missing values must
+agree with the directory year; missing or absent physical values use the
+partition year. Schemas are combined by column name, including when
+annual files and Hive partitions are mixed. When annual types differ,
+DuckDB may promote them; for example, an integer field combined with a
+character field is returned as character. When present, `YEAR` is
+validated and returned as integer; invalid values identify the offending
+file in an error. The connection remains open while the lazy table is in
+use and closes after it is released. Use
+[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
+to return data to R. The `engine` argument was removed entirely; omit it
+regardless of the value used in older code. String columns with
+malformed UTF-8 may fail during a native Parquet scan; validate or
+repair those values before writing Parquet files.
 
 ## See also
 
@@ -75,22 +73,54 @@ Other data-access:
 
 ``` r
 path <- nis_example(years = 2019:2020)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> # A tibble: 2 × 2
 #>    YEAR     n
-#>   <int> <int>
-#> 1  2019    96
-#> 2  2020    96
+#>   <int> <dbl>
+#> 1  2020    96
+#> 2  2019    96
 
 # Open one year only
 nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 1 × 2
 #>    YEAR     n
-#>   <int> <int>
+#>   <int> <dbl>
 #> 1  2020    96
 ```

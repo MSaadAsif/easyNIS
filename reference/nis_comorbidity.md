@@ -23,7 +23,7 @@ nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
   A collected data frame with `I10_DX1`, `I10_DX2`, ... columns, or a
   `tbl_svy` from
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-  that kept them. Lazy Arrow queries are not accepted; call
+  that kept them. Lazy DuckDB queries are not accepted; call
   [`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
   first.
 
@@ -115,6 +115,22 @@ indicators](https://msaadasif.github.io/easyNIS/reference/articles/comorbidity.m
 discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
   dplyr::collect()
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 comorbid <- nis_comorbidity(discharges)
 comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
 #> # A tibble: 6 × 3

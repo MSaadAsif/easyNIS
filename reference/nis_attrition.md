@@ -4,7 +4,7 @@ Applies logical criteria cumulatively and reports remaining and dropped
 discharge counts at each step. Criteria are evaluated in order; `NA`
 values are treated as excluded, matching
 [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html).
-The summary is aggregated lazily for Arrow queries and returned as a
+The summary is aggregated lazily for DuckDB queries and returned as a
 collected tibble. Missing weights contribute zero to weighted totals.
 
 ## Usage
@@ -17,7 +17,7 @@ nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
 
 - .data:
 
-  A data frame or lazy Arrow query.
+  A data frame or lazy DuckDB query.
 
 - ...:
 

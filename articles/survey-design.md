@@ -10,12 +10,39 @@ constructs a survey design before applying the declared domain.
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmp1f9GZW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmp1f9GZW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmp1f9GZW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(
   nis,
   cohort = heart_failure & AGE >= 18,
   keep = c(AGE, LOS),
   annualize = TRUE
 )
+#> Warning: Missing values are always removed in SQL aggregation functions.
+#> Use `na.rm = TRUE` to silence this warning
+#> This warning is displayed once every 8 hours.
 #> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
 srvyr::summarise(design, total = srvyr::survey_total(),
                  mean_los = srvyr::survey_mean(LOS))
@@ -86,7 +113,7 @@ attr(design, "nis_excluded")
 #> 
 #> $by_year
 #> # A tibble: 0 × 2
-#> # ℹ 2 variables: YEAR <int>, n <int>
+#> # ℹ 2 variables: YEAR <int>, n <dbl>
 ```
 
 This list gives counts by field and year, not record-level information.

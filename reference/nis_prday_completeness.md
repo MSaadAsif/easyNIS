@@ -20,7 +20,7 @@ nis_prday_completeness(.data, pr, system = c("icd10", "icd9"))
 
 - .data:
 
-  A data frame or lazy Arrow or DuckDB query with `YEAR`.
+  A data frame or lazy DuckDB query with `YEAR`.
 
 - pr:
 

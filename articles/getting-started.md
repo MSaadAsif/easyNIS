@@ -15,12 +15,36 @@ to inspect records.
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpZkDHlf/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpZkDHlf/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpZkDHlf/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 2 × 2
 #>    YEAR     n
-#>   <int> <int>
-#> 1  2019    96
-#> 2  2020    96
+#>   <int> <dbl>
+#> 1  2020    96
+#> 2  2019    96
 ```
 
 The counts here describe the synthetic fixture by year. See [Opening NIS
@@ -38,9 +62,9 @@ nis <- nis |> nis_flag_dx(heart_failure = "I50")
 nis |> dplyr::count(heart_failure) |> dplyr::collect()
 #> # A tibble: 2 × 2
 #>   heart_failure     n
-#>   <lgl>         <int>
-#> 1 TRUE            108
-#> 2 FALSE            84
+#>   <lgl>         <dbl>
+#> 1 FALSE            84
+#> 2 TRUE            108
 ```
 
 The two rows show fixture records with and without a matching code.
@@ -63,6 +87,9 @@ design <- nis_design(
   keep = c(AGE, FEMALE, LOS),
   annualize = TRUE
 )
+#> Warning: Missing values are always removed in SQL aggregation functions.
+#> Use `na.rm = TRUE` to silence this warning
+#> This warning is displayed once every 8 hours.
 #> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
 ```
 

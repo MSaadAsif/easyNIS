@@ -9,6 +9,10 @@
 
 ### New features
 
+- [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  combines annual Parquet files with Hive year partitions and returns
+  `YEAR` as integer, rejecting invalid year values with a file-specific
+  error.
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   warns when annualized valid-design data represented in `DQTR` have
   fewer than four quarters, and explains how to exclude or separately
@@ -39,9 +43,11 @@
 - Added
   [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
   for cohort attrition summaries.
-- `nis_open(engine = "duckdb")` provides an Arrow-backed DuckDB/dbplyr
-  query path; `duckdb` and `dbplyr` are suggested dependencies. Flag and
-  design helpers remain Arrow-only.
+- [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  now reads Parquet natively with DuckDB; DuckDB-backed lazy
+  transformations are used throughout. The `engine` argument was removed
+  entirely; callers should omit it regardless of the value they
+  previously passed.
 - Added
   [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
   to summarize code-system transitions.

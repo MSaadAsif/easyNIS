@@ -2,10 +2,9 @@
 
 Each diagnosis slot is checked separately. Supplied prefixes are
 case-insensitive, and periods and spaces in them are ignored. Slot
-values are compared as stored, byte for byte, because NIS stores
-upper-case codes without periods; malformed UTF-8 therefore cannot raise
-an error. Matching stays lazy on Arrow queries and avoids per-row text
-normalization.
+values are compared as stored, case sensitively, because NIS stores
+upper-case codes without periods. Matching stays lazy in DuckDB and
+avoids per-row text normalization.
 
 ## Usage
 
@@ -22,7 +21,7 @@ nis_flag_dx(
 
 - .data:
 
-  A data frame or lazy Arrow query.
+  A data frame or lazy DuckDB query.
 
 - ...:
 
@@ -85,15 +84,39 @@ Other cohort-definition:
 
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpuoupOF/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::count(heart_failure) |>
   dplyr::collect()
 #> # A tibble: 2 × 2
 #>   heart_failure     n
-#>   <lgl>         <int>
-#> 1 TRUE            108
-#> 2 FALSE            84
+#>   <lgl>         <dbl>
+#> 1 FALSE            84
+#> 2 TRUE            108
 
 # Several prefixes, restricted to the principal diagnosis
 nis |>
@@ -102,7 +125,7 @@ nis |>
   dplyr::collect()
 #> # A tibble: 2 × 2
 #>   hf_or_diabetes     n
-#>   <lgl>          <int>
+#>   <lgl>          <dbl>
 #> 1 TRUE             108
 #> 2 FALSE             84
 ```

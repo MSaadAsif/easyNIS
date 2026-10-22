@@ -23,9 +23,38 @@ errors enter.
 ``` r
 
 path <- nis_example(years = 2019:2020)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 files <- list.files(path, pattern = "part-0[.]parquet$", recursive = TRUE,
                     full.names = TRUE)
-all_years <- purrr::map_dfr(files, arrow::read_parquet)  # full annual reads
+con <- DBI::dbConnect(duckdb::duckdb())
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+all_years <- purrr::map_dfr(files, function(file) {
+  DBI::dbGetQuery(con, paste("SELECT * FROM read_parquet(",
+    as.character(DBI::dbQuoteString(con, file)), ")"))
+}) # full annual reads
+DBI::dbDisconnect(con, shutdown = TRUE)
 all_years <- all_years |> dplyr::mutate(heart_failure =
   dplyr::if_any(dplyr::starts_with("I10_DX"), ~ startsWith(.x, "I50")),
   one = 1L)
@@ -54,11 +83,38 @@ no cohort cases from the design.
 ``` r
 
 path <- nis_example(years = 2019:2020)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(one = 1L)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, cohort = AGE >= 18 & heart_failure,
                      keep = c(LOS, one), annualize = TRUE)
+#> Warning: Missing values are always removed in SQL aggregation functions.
+#> Use `na.rm = TRUE` to silence this warning
+#> This warning is displayed once every 8 hours.
 #> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
 survey::svytotal(~one, design)
 #>     total     SE
@@ -82,7 +138,7 @@ weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md).
 
 | Common hand-rolled problem | easyNIS | Function |
 |----|----|----|
-| Read and hold every annual file to work across years | Open annual Parquet data lazily; use Arrow by default or DuckDB with `engine = "duckdb"` | [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md) |
+| Read and hold every annual file to work across years | Open annual Parquet data lazily with DuckDB | [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md) |
 | Hand-code repeated diagnosis/procedure slot matching or position rules | Flag across slots, with principal/secondary position options for diagnoses and principal/any for procedures | `nis_flag_dx(position =)`; `nis_flag_pr(position =)` |
 | Pool hospital IDs or leave pooled weights on a single-year scale | Build a domain design with year-scoped IDs and optional annualization | [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md) |
 | Mix the ICD-9 and ICD-10 slot namespaces around the 2015 transition | Select the code system explicitly; 2015 checks use year and quarter/version fields when available | `system =` on [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md) / [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md) |
@@ -122,7 +178,31 @@ with data-frame suppression.
 ``` r
 
 path <- nis_example(years = 2019:2020)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, cohort = AGE >= 18,
   keep = c(AGE, LOS, heart_failure), annualize = TRUE)
 #> Cohort: 192 discharges; weighted N 114.4; 24 hospitals across 2 years.
@@ -149,6 +229,30 @@ See how a cohort definition changes the discharge count at each step:
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis |> nis_flag_dx(heart_failure = "I50")
 nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure, by_year = TRUE)
 #> # A tibble: 6 × 8
@@ -169,6 +273,22 @@ principal diagnosis:
 ``` r
 
 nis <- nis_open(nis_example(years = 2019))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpl0dwQl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 nis_dx_sensitivity(nis, "I50")
 #> # A tibble: 3 × 9
 #>   presentation n_unweighted n_weighted pct_of_any_unweighted pct_of_any_weighted

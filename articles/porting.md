@@ -29,6 +29,30 @@ codes, then creates diagnosis and procedure flags:
 ``` r
 
 example_path <- nis_example(years = 2018:2020)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpvWSjvC/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpvWSjvC/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpvWSjvC/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 
 nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   dplyr::mutate(
@@ -39,6 +63,14 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   nis_flag_dx(cohort_dx = c("A12", "B34"), position = "principal") |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpvWSjvC/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
 ```
 
 For a regex that needs a suffix test, keep the expression explicit. For
@@ -52,7 +84,7 @@ nis_flagged <- nis_flagged |>
     exact_code = dplyr::coalesce(
       dplyr::if_any(
         dplyr::starts_with("I10_DX"),
-        ~ stringr::str_detect(as.character(.x), "^A12[0-9]{2}$")
+        ~ grepl("^A12[0-9]{2}$", as.character(.x))
       ),
       FALSE
     )
@@ -108,6 +140,9 @@ study_design <- nis_flagged |>
       "Under 65"
     )
   )
+#> Warning: Missing values are always removed in SQL aggregation functions.
+#> Use `na.rm = TRUE` to silence this warning
+#> This warning is displayed once every 8 hours.
 #> Cohort: 201 discharges; weighted N 239.7; 36 hospitals across 3 years.
 ```
 

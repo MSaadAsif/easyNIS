@@ -31,7 +31,7 @@ nis_audit_code_transition(
 
 - .data:
 
-  A data frame or lazy Arrow query.
+  A data frame or lazy DuckDB query.
 
 - codes:
 

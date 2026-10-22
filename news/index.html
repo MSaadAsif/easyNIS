@@ -61,6 +61,8 @@
 <div class="section level3">
 <h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
 <ul><li>
+<code><a href="../reference/nis_open.html">nis_open()</a></code> combines annual Parquet files with Hive year partitions and returns <code>YEAR</code> as integer, rejecting invalid year values with a file-specific error.</li>
+<li>
 <code><a href="../reference/nis_design.html">nis_design()</a></code> warns when annualized valid-design data represented in <code>DQTR</code> have fewer than four quarters, and explains how to exclude or separately reweight those years. It also warns when a 2015 cohort contains only ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4), and informs when <code>DQTR</code> is missing so the 2015 split cannot be checked.</li>
 <li>
 <code><a href="../reference/nis_cost.html">nis_cost()</a></code> records charge/CCR fields, CPI-U source and multipliers, base year, invalid CCR and missing charge counts, and adjusted-output meanings. Zero or negative CCR values now produce <code>NA</code> in <code>cost_adj</code> (previously zero CCR produced zero cost and negative CCR produced a negative cost); one informational message reports how many rows have missing or invalid CCR (<code><a href="../reference/nis_design.html">nis_design()</a></code> reports cohort rows only). Use <code><a href="../reference/nis_cost_provenance.html">nis_cost_provenance()</a></code> on its result or the <code><a href="../reference/nis_design.html">nis_design()</a></code> survey design.</li>
@@ -68,7 +70,7 @@
 <li>Added <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code> for procedure timing flags.</li>
 <li>Added <code><a href="../reference/nis_attrition.html">nis_attrition()</a></code> for cohort attrition summaries.</li>
 <li>
-<code>nis_open(engine = "duckdb")</code> provides an Arrow-backed DuckDB/dbplyr query path; <code>duckdb</code> and <code>dbplyr</code> are suggested dependencies. Flag and design helpers remain Arrow-only.</li>
+<code><a href="../reference/nis_open.html">nis_open()</a></code> now reads Parquet natively with DuckDB; DuckDB-backed lazy transformations are used throughout. The <code>engine</code> argument was removed entirely; callers should omit it regardless of the value they previously passed.</li>
 <li>Added <code><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> to summarize code-system transitions.</li>
 <li>Added <code><a href="../reference/nis_flag_dx_position.html">nis_flag_dx_position()</a></code> and <code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> for descriptive point estimates; these are not design-based estimates.</li>
 <li>
