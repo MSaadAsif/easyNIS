@@ -10,7 +10,8 @@ Authors@R: c(
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
     diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
-    experimental Elixhauser indicators, preparing survey designs and weights,
+    experimental Elixhauser indicators, preparing designs and weights with the
+    'survey' package,
     applying supported HCUP labels, adjusting charges and costs, and reviewing
     disclosure risks. Experimental methods and annual-layout assumptions are
     not independently verified or scientifically approved.

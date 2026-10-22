@@ -53,6 +53,11 @@
 
 ## New features
 
+- Added `codemeta.json`; regenerate it from `DESCRIPTION` with
+  `Rscript tools/probe/update-codemeta.R` after changing package metadata.
+- Quoted the `survey` package name in `DESCRIPTION` and avoided duplicate
+  arguments when constructing the 2023 charge warning.
+
 - `nis_open()` supports 2012 onward. `nis_flag_dx()` and `nis_flag_pr()` match
   literal prefixes separately in each code slot; supplied prefixes ignore
   case, periods, and spaces, while stored codes are compared byte for byte

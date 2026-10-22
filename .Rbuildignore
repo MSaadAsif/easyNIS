@@ -2,6 +2,7 @@
 ^\.audit($|[/\\])
 ^\.claude($|[/\\])
 ^\.git$
+^codemeta[.]json$
 ^\.easynis-local\.ps1$
 ^\.github$
 ^\.lintr$

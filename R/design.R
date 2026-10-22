@@ -109,7 +109,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   collected_fields <- unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
 
   cohort_quo <- rlang::enquo(cohort)
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
+  # Data-masked dplyr expressions.
   prepared <- dplyr::mutate(
     .data,
     .nis_cohort = !!cohort_quo,
@@ -135,7 +135,6 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       .groups = "drop"
     ) |>
     nis_collect()
-  # nolint end
   excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
   excluded_by_field <- stats::setNames(
     vapply(c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"), function(field) {
@@ -171,7 +170,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   if (nrow(hospital_rows) == 0L) {
     cli::cli_abort("No discharges have valid design fields.")
   }
-  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS) # nolint: object_usage_linter. dplyr data mask.
+  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS) # dplyr data mask.
   if (any(stratum_counts$n != 1L)) {
     cli::cli_abort("Each hospital must map to one stratum within a year.")
   }
@@ -179,12 +178,11 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
   # the cohort expression runs once per discharge. Missing values are counted
   # here and dropped.
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
+  # Data-masked dplyr expressions.
   collected <- prepared |>
     dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
     dplyr::select(dplyr::all_of(collected_fields), .nis_cohort) |>
     nis_collect()
-  # nolint end
   if (!is.logical(collected$.nis_cohort)) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.")
   }
@@ -292,7 +290,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
-  # nolint next: object_usage_linter. Function is defined in this package.
+  # Function is defined in this package.
   combined <- nis_label(combined)
   if (has_cost_inputs) {
     charge_years <- unique(cohort_rows$YEAR)
@@ -310,7 +308,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       ))
     }
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
-    # nolint next: object_usage_linter. Function is defined in this package.
+    # Function is defined in this package.
     combined <- withCallingHandlers(
       nis_cost(combined, dollars = dollars, charges = charges),
       message = function(condition) invokeRestart("muffleMessage")
@@ -329,7 +327,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     )
     # Emit one message for cohort rows; placeholder rows are synthetic and
     # have no discharge CCR by construction.
-    .nis_cost_inform_invalid_ccr( # nolint: object_usage_linter. Package helper.
+    .nis_cost_inform_invalid_ccr( # Package helper.
       cost_provenance$rows_missing_or_invalid_ccr,
       cohort = TRUE
     )
@@ -337,10 +335,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     cost_provenance <- NULL
   }
 
-  # nolint next: object_usage_linter. Used by cli interpolation below.
-  hospitals <- length(unique(paste(cohort_rows$YEAR, cohort_rows$HOSP_NIS)))
-  # nolint next: object_usage_linter. Used by cli interpolation below.
-  weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
+  # Used by cli interpolation below.
+  hospitals <- length(unique(paste(cohort_rows$YEAR, cohort_rows$HOSP_NIS))) # nolint
+  # Used by cli interpolation below.
+  weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1 # nolint
   cli::cli_inform(paste0(
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
@@ -438,7 +436,7 @@ nis_reweight <- function(design, weights) {
 # design, filtered to the cohort. The placeholders and the cohort row count
 # stay on the result so `nis_reweight()` can rebuild the design.
 nis_cohort_design <- function(combined) {
-  # nolint start: object_usage_linter. srvyr/dplyr data-masked fields.
+  # srvyr/dplyr data-masked fields.
   design <- srvyr::as_survey_design(
     combined,
     ids = .nis_psu,
@@ -447,7 +445,6 @@ nis_cohort_design <- function(combined) {
     nest = TRUE
   ) |>
     dplyr::filter(.in_cohort)
-  # nolint end
   attr(design, "nis_placeholder_rows") <- combined[!combined$.in_cohort, , drop = FALSE]
   attr(design, "nis_cohort_rows") <- sum(combined$.in_cohort)
   design
