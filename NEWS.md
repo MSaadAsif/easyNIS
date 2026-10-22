@@ -10,6 +10,8 @@
 
 ## New features
 
+- Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
+  the repository limit without changing `nis_ccsr_codes()` behavior.
 - `nis_open()` combines annual Parquet files with Hive year partitions and
   returns `YEAR` as integer, rejecting invalid year values with a
   file-specific error.
