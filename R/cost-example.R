@@ -39,7 +39,7 @@ attr(.cpi_u, "source") <- paste(
   }
 }
 
-.nis_cost_validate_charge_name <- function(charges) {
+.nis_cost_validate_charge <- function(charges) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.")
   }
@@ -122,7 +122,7 @@ attr(.cpi_u, "source") <- paste(
 #' head(nis_cost(charges, dollars = 2024))
 nis_cost <- function(data, dollars, charges = "TOTCHG") {
   .nis_cost_validate_data(data)
-  .nis_cost_validate_charge_name(charges)
+  .nis_cost_validate_charge(charges)
   .nis_cost_validate_columns(data, charges)
   .nis_cost_validate_dollars(dollars)
   .nis_cost_validate_numeric(data, charges)
@@ -287,8 +287,8 @@ nis_cost_provenance <- function(x) {
   records
 }
 
-.nis_example_add_annual_fields <- function(records, year, hospital,
-                                           hospital_stratum, within_hospital) {
+.nis_example_annual_fields <- function(records, year, hospital,
+                                       hospital_stratum, within_hospital) {
   mortality_name <- if (year == 2022L) {
     "APRDRG_RISK_MORTALITY"
   } else {
@@ -315,7 +315,7 @@ nis_cost_provenance <- function(x) {
   records <- .nis_example_pre2016_layout(
     records, year, fixture$has_cohort
   )
-  .nis_example_add_annual_fields(
+  .nis_example_annual_fields(
     records, year, fixture$hospital, fixture$hospital_stratum,
     fixture$within_hospital
   )
