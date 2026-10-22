@@ -8,7 +8,8 @@ is_valid_suppress_threshold <- function(threshold) {
   is_scalar <- length(threshold) == 1L
   is_numeric <- is.numeric(threshold)
   is_finite_nonnegative <- is_scalar && is_numeric && !is.na(threshold) &&
-    is.finite(threshold) && threshold >= 0
+    is.finite(threshold) && threshold >= 0 &&
+    threshold <= .Machine$integer.max
   is_whole <- is_finite_nonnegative && threshold == as.integer(threshold)
   is_whole
 }
@@ -19,14 +20,19 @@ validate_suppress_dots <- function(dots, error_call) {
   }
 }
 
-check_suppress_columns <- function(columns, arg, x) {
+check_suppress_columns <- function(columns, arg, x, error_call) {
   if (is.null(columns)) return(character())
   if (!is.character(columns) || anyNA(columns)) {
-    cli::cli_abort("`{arg}` must be a character vector of column names.")
+    cli::cli_abort(
+      "`{arg}` must be a character vector of column names.", call = error_call
+    )
   }
   absent <- setdiff(columns, names(x))
   if (length(absent)) {
-    cli::cli_abort("Column {.val {absent}} specified in `{arg}` not found in `x`.")
+    cli::cli_abort(
+      "Column {.val {absent}} specified in `{arg}` not found in `x`.",
+      call = error_call
+    )
   }
   columns
 }
@@ -83,10 +89,14 @@ validate_secondary_option <- function(secondary, error_call) {
 validate_dataframe_columns <- function(
     x, count_col, weighted_cols, by, hospital_col, error_call) {
   columns <- list(
-    count_col = check_suppress_columns(count_col, "count_col", x),
-    weighted_cols = check_suppress_columns(weighted_cols, "weighted_cols", x),
-    by = check_suppress_columns(by, "by", x),
-    hospital_col = check_suppress_columns(hospital_col, "hospital_col", x)
+    count_col = check_suppress_columns(count_col, "count_col", x, error_call),
+    weighted_cols = check_suppress_columns(
+      weighted_cols, "weighted_cols", x, error_call
+    ),
+    by = check_suppress_columns(by, "by", x, error_call),
+    hospital_col = check_suppress_columns(
+      hospital_col, "hospital_col", x, error_call
+    )
   )
   if (length(columns$hospital_col) > 1L) {
     cli::cli_abort("`hospital_col` must name one column.", call = error_call)

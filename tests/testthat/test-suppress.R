@@ -615,16 +615,43 @@ test_that("survey suppression masks an overall cell when its own count is small"
 })
 
 test_that("nis_suppress validation errors retain the public call", {
-  data <- data.frame(n = -1)
+  data <- data.frame(n = 1, estimate = 1, group = "A", hospitals = 2)
   threshold_error <- tryCatch(
     nis_suppress(data, count_col = "n", threshold = -1),
     error = identity
   )
-  count_error <- tryCatch(
-    nis_suppress(data, count_col = "n"),
+  oversized_threshold_error <- tryCatch(
+    nis_suppress(data, count_col = "n", threshold = 2147483648),
     error = identity
+  )
+  missing_count_col_error <- tryCatch(nis_suppress(data), error = identity)
+  invalid_count_error <- tryCatch(
+    nis_suppress(transform(data, n = -1), count_col = "n"),
+    error = identity
+  )
+  column_errors <- list(
+    tryCatch(nis_suppress(data, count_col = "missing"), error = identity),
+    tryCatch(nis_suppress(data, count_col = "n", weighted_cols = "missing"),
+      error = identity),
+    tryCatch(nis_suppress(data, count_col = "n", by = "missing"),
+      error = identity),
+    tryCatch(nis_suppress(data, count_col = "n", hospital_col = "missing"),
+      error = identity)
   )
 
   expect_identical(rlang::call_name(conditionCall(threshold_error)), "nis_suppress")
-  expect_identical(rlang::call_name(conditionCall(count_error)), "nis_suppress")
+  expect_identical(
+    rlang::call_name(conditionCall(missing_count_col_error)), "nis_suppress"
+  )
+  expect_identical(
+    rlang::call_name(conditionCall(invalid_count_error)), "nis_suppress"
+  )
+  expect_match(conditionMessage(oversized_threshold_error), "non-negative whole number")
+  expect_identical(
+    rlang::call_name(conditionCall(oversized_threshold_error)), "nis_suppress"
+  )
+  expect_length(column_errors, 4L)
+  expect_true(all(vapply(column_errors, function(error) {
+    identical(rlang::call_name(conditionCall(error)), "nis_suppress")
+  }, logical(1))))
 })
