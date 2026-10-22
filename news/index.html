@@ -73,6 +73,7 @@
 <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> accepts <code>hospital_col</code> to mask cells based on fewer than two contributing hospitals; <code><a href="../reference/nis_cell_counts.html">nis_cell_counts()</a></code> computes unweighted discharge and year-scoped hospital counts from record-level data or an <code><a href="../reference/nis_design.html">nis_design()</a></code>.</li>
 <li>
 <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now suppresses zero discharge counts at or below the threshold and rejects missing, non-finite, negative, or fractional data-frame count values.</li>
+<li>Refactored code-transition auditing, cell counts, and attrition summaries into internal helpers without changing their results or validation behavior.</li>
 </ul></div>
 </div>
     <div class="section level2">

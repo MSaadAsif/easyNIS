@@ -61,7 +61,7 @@ helpers.
 
 duck <- nis_open(path, years = 2020, engine = "duckdb")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCe5RBG/duckdb
+#> ℹ /tmp/RtmpBhkCkr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

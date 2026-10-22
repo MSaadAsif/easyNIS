@@ -154,12 +154,12 @@ nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure, by_year = 
 #> # A tibble: 6 × 8
 #>    YEAR  step criterion      n_unweighted n_dropped_unweighted n_weighted
 #>   <int> <int> <chr>                 <int>                <int>      <dbl>
-#> 1  2020     0 All discharges           96                    0      114. 
-#> 2  2020     1 adults                   96                    0      114. 
-#> 3  2020     2 heart_failure            54                   42       62.4
-#> 4  2019     0 All discharges           96                    0      114. 
-#> 5  2019     1 adults                   96                    0      114. 
-#> 6  2019     2 heart_failure            54                   42       62.4
+#> 1  2019     0 All discharges           96                    0      114. 
+#> 2  2019     1 adults                   96                    0      114. 
+#> 3  2019     2 heart_failure            54                   42       62.4
+#> 4  2020     0 All discharges           96                    0      114. 
+#> 5  2020     1 adults                   96                    0      114. 
+#> 6  2020     2 heart_failure            54                   42       62.4
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
 ```
 
