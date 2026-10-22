@@ -14,7 +14,7 @@
   }
 }
 
-.nis_audit_has_valid_group_names <- function(codes) {
+.nis_audit_valid_group_names <- function(codes) {
   code_names <- names(codes)
   !is.null(code_names) && !anyNA(code_names) && all(nzchar(code_names)) &&
     !anyDuplicated(code_names)
@@ -26,7 +26,7 @@
 
 .nis_audit_validate_codes <- function(codes) {
   valid_type <- is.character(codes) || is.list(codes)
-  if (!valid_type || length(codes) == 0L || !.nis_audit_has_valid_group_names(codes)) {
+  if (!valid_type || length(codes) == 0L || !.nis_audit_valid_group_names(codes)) {
     cli::cli_abort("`codes` must be a non-empty named vector or list with unique, non-empty names.")
   }
   valid_prefixes <- vapply(codes, .nis_audit_has_valid_prefixes, logical(1))

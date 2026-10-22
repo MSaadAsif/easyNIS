@@ -17,7 +17,7 @@
   }
 }
 
-.nis_cell_count_validate_columns <- function(.data, by) {
+.nis_cell_count_validate_cols <- function(.data, by) {
   required <- c("YEAR", "HOSP_NIS", by)
   absent <- setdiff(required, names(.data))
   if (length(absent)) {
@@ -25,19 +25,14 @@
   }
 }
 
-.nis_cell_count_validate_hospitals <- function(.data) {
+.nis_cell_count_valid_id <- function(value) {
+  is.numeric(value) && !anyNA(value) && all(is.finite(value)) && all(value > 0)
+}
+
+.nis_cell_count_validate_ids <- function(.data) {
   year <- .data[["YEAR"]]
   hospital <- .data[["HOSP_NIS"]]
-  if (!is.numeric(year) || !is.numeric(hospital)) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
-  }
-  if (anyNA(year) || anyNA(hospital)) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
-  }
-  if (any(!is.finite(year)) || any(!is.finite(hospital))) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
-  }
-  if (any(year <= 0) || any(hospital <= 0)) {
+  if (!.nis_cell_count_valid_id(year) || !.nis_cell_count_valid_id(hospital)) {
     cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
   }
 }
@@ -74,8 +69,8 @@
 nis_cell_counts <- function(.data, by) {
   .data <- .nis_cell_count_records(.data)
   .nis_cell_count_validate_by(by)
-  .nis_cell_count_validate_columns(.data, by)
-  .nis_cell_count_validate_hospitals(.data)
+  .nis_cell_count_validate_cols(.data, by)
+  .nis_cell_count_validate_ids(.data)
   grouped <- .nis_cell_count_group(.data, by)
   dplyr::summarise(
     grouped,

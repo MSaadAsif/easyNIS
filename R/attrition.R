@@ -1,4 +1,4 @@
-.nis_attrition_validate_by_year <- function(by_year) {
+.nis_attrition_validate_year <- function(by_year) {
   if (length(by_year) != 1L || !is.logical(by_year) || is.na(by_year)) {
     cli::cli_abort("`by_year` must be `TRUE` or `FALSE`.")
   }
@@ -11,7 +11,7 @@
   }
 }
 
-.nis_attrition_validate_columns <- function(.data, by_year, weight_var) {
+.nis_attrition_validate_cols <- function(.data, by_year, weight_var) {
   absent <- setdiff(c(weight_var, if (by_year) "YEAR"), names(.data))
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing required column{?s} {.val {absent}}.")
@@ -19,9 +19,9 @@
 }
 
 .nis_attrition_validate <- function(.data, by_year, weight_var) {
-  .nis_attrition_validate_by_year(by_year)
+  .nis_attrition_validate_year(by_year)
   .nis_attrition_validate_weight(weight_var)
-  .nis_attrition_validate_columns(.data, by_year, weight_var)
+  .nis_attrition_validate_cols(.data, by_year, weight_var)
 }
 
 .nis_attrition_keep_names <- function(.data, criteria_count) {
@@ -32,7 +32,7 @@
   keep_names
 }
 
-.nis_attrition_keep_expressions <- function(criteria, keep_names) {
+.nis_attrition_keep_exprs <- function(criteria, keep_names) {
   keep_exprs <- lapply(seq_along(criteria), function(i) {
     keep <- if (i == 1L) {
       rlang::expr(dplyr::coalesce(!!criteria[[i]], FALSE))
@@ -45,7 +45,7 @@
   unlist(keep_exprs, recursive = FALSE)
 }
 
-.nis_attrition_summary_expressions <- function(criteria_count, keep_names, weight_var) {
+.nis_attrition_summary_exprs <- function(criteria_count, keep_names, weight_var) {
   summary_exprs <- list()
   summary_exprs[[".nis_attrition_n_0"]] <- rlang::expr(dplyr::n())
   summary_exprs[[".nis_attrition_w_0"]] <- rlang::expr(sum(
@@ -155,9 +155,9 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   .nis_attrition_validate(.data, by_year, weight_var)
   labels <- names(criteria)
   keep_names <- .nis_attrition_keep_names(.data, length(criteria))
-  keep_exprs <- .nis_attrition_keep_expressions(criteria, keep_names)
+  keep_exprs <- .nis_attrition_keep_exprs(criteria, keep_names)
   prepared <- dplyr::mutate(.data, !!!keep_exprs)
-  summary_exprs <- .nis_attrition_summary_expressions(
+  summary_exprs <- .nis_attrition_summary_exprs(
     length(criteria), keep_names, weight_var)
   counts <- .nis_attrition_summarise(prepared, summary_exprs, by_year)
   if (by_year && anyNA(counts$YEAR)) {
