@@ -86,22 +86,22 @@ test_that("CCSR errors retain their public or reader call", {
   empty <- tempfile(fileext = ".csv")
   on.exit(unlink(empty), add = TRUE)
   writeLines(character(), empty)
-  expect_ccsr_call(nis_ccsr_codes(empty, "ZZZ001"), "read_ccsr_source")
+  expect_ccsr_call(nis_ccsr_codes(empty, "ZZZ001"), "read_ccsr_csv")
 
   malformed_csv <- tempfile(fileext = ".csv")
   on.exit(unlink(malformed_csv), add = TRUE)
   writeLines(c("'ICD-10-CM CODE','CCSR CATEGORY 1'", "'X100'"),
     malformed_csv)
-  expect_ccsr_call(nis_ccsr_codes(malformed_csv, "ZZZ001"), "read_ccsr_source")
+  expect_ccsr_call(nis_ccsr_codes(malformed_csv, "ZZZ001"), "read_ccsr_csv")
 
   workbook <- tempfile(fileext = ".xlsx")
   on.exit(unlink(workbook), add = TRUE)
   write_ccsr_xlsx(workbook, sheet = "Invented sheet")
-  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_source")
+  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_sheet")
   write_ccsr_xlsx(workbook, header = c("Invented header", "Description",
     "CCSR Category", "CCSR Category Description",
     "Inpatient Default CCSR (Y/N/X)"))
-  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_source")
+  expect_ccsr_call(nis_ccsr_codes(workbook, "ZZZ001"), "read_ccsr_sheet")
 })
 
 test_that("procedure files have no default category", {

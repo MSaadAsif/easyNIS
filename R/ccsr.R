@@ -196,7 +196,7 @@ read_ccsr_csv <- function(file) {
   lines <- sub("^\ufeff", "", lines)
   lines <- lines[nzchar(trimws(lines))]
   if (length(lines) == 0L) {
-    cli::cli_abort("`file` is empty.", call = sys.call(-1L))
+    cli::cli_abort("`file` is empty.", call = sys.call())
   }
   if (!grepl("^'.*'$", lines[1L])) {
     return(utils::read.csv(text = lines, colClasses = "character",
@@ -219,7 +219,7 @@ read_ccsr_csv <- function(file) {
     cli::cli_abort(c(
       "`file` is not a well-formed single-quoted CSV.",
       "x" = "Line {shown} should have {expected} quoted fields like the header."
-    ), call = sys.call(-1L))
+    ), call = sys.call())
   }
   body <- as.data.frame(do.call(rbind, fields[-1L]), stringsAsFactors = FALSE)
   if (nrow(body) == 0L) {
@@ -238,7 +238,7 @@ read_ccsr_sheet <- function(file) {
   if (length(sheet) != 1L) {
     cli::cli_abort(
       "`file` needs one `DX_to_CCSR_Mapping` or `PR_to_CCSR_Mapping` sheet.",
-      call = sys.call(-1L)
+      call = sys.call()
     )
   }
   cells <- suppressMessages(readxl::read_excel(file, sheet = sheet,
@@ -246,7 +246,7 @@ read_ccsr_sheet <- function(file) {
   header <- which(grepl("^ICD-?10", cells[[1L]], ignore.case = TRUE))[1L]
   if (is.na(header)) {
     cli::cli_abort("No header row starting with `ICD-10` was found in `file`.",
-      call = sys.call(-1L))
+      call = sys.call())
   }
   body <- as.data.frame(cells[-seq_len(header), , drop = FALSE],
     stringsAsFactors = FALSE)
