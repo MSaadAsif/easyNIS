@@ -47,9 +47,16 @@ remain pending scientific approval.
 \item \strong{Present on admission uses available diagnosis indicators.} Matching
 \code{DXPOAn} columns are aligned with \code{I10_DXn}; \code{Y} and \code{W} map to present,
 while \code{N} and \code{U} map to not present. Other values, including \code{1}, are
-treated as unknown. \code{medicalcoder} applies its POA-exempt code table. If a
-matching POA column is absent, that diagnosis is assumed present to retain
-compatibility with older years and inputs that did not keep POA fields.
+treated as unknown. \code{medicalcoder} applies its POA-exempt code table, based
+on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
+adjusted for discharge date, so exempt-code results can differ slightly
+from AHRQ software across fiscal years. If a matching POA column is absent,
+that diagnosis is assumed present to retain compatibility with older years
+and inputs that did not keep POA fields. A warning names the affected slots;
+their POA-dependent comorbidities may include conditions acquired in
+hospital. AHRQ's refined software requires POA to assign 18 of 38 measures
+and returns missing results when required POA data are unavailable
+(\href{https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf}{AHRQ User Guide}).
 Thus, results can change for inputs that include POA fields: AHRQ's refined
 Elixhauser method requires POA for 18 of its 38 measures.
 \item \strong{Principal diagnosis} is \code{I10_DX1}. It is passed as the primary

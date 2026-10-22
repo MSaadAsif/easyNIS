@@ -67,9 +67,17 @@ comorbidity indicators.
 >   `Y` and `W` count as present on admission; `N` and `U` do not. Other values
 >   are unknown, and POA-exempt codes are handled by `medicalcoder`. If a
 >   matching POA field is absent, the corresponding diagnosis is assumed
->   present to preserve behavior for years and inputs without POA fields. As
->   POA availability varies, results can differ between inputs with and without
->   those fields.
+>   present to preserve behavior for years and inputs without POA fields. A
+>   warning names the affected diagnosis slots; their POA-dependent
+>   comorbidities may include conditions acquired in hospital. AHRQ's refined
+>   software requires POA to assign 18 of 38 measures and returns missing
+>   results when required POA information is unavailable ([AHRQ User Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
+>   `medicalcoder` uses an exemption mapping covering AHRQ fiscal years
+>   2022–2026, with POA-exemption status consistent across those releases. It
+>   does not adjust exemptions for discharge date, so exempt-code results can
+>   differ slightly from AHRQ software across fiscal years.
+>   As POA availability varies, results can differ between inputs with and
+>   without those fields.
 > - Do not assume agreement with older Stata-derived `ynel*` and `elixsum`
 >   fields; definitions and versions differ.
 
