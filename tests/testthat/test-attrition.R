@@ -82,10 +82,13 @@ test_that("nis_attrition lazily aggregates DuckDB datasets without collecting ro
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
   query <- open_duckdb_dataset(path)
-  criteria <- function(.data) nis_attrition(.data,
-    adult = AGE >= 18,
-    elective = ELECTIVE == 1
-  )
+  criteria <- function(.data) {
+    nis_attrition(
+      .data,
+      adult = AGE >= 18,
+      elective = ELECTIVE == 1
+    )
+  }
 
   actual <- criteria(query)
   expect_s3_class(actual, "tbl_df")

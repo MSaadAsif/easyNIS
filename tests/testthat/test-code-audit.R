@@ -70,7 +70,9 @@ test_that("code transition audit agrees between data frames and lazy DuckDB", {
 test_that("code transition audit validates named groups and columns", {
   data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "02UG0JZ", DISCWT = 1)
   expect_error(nis_audit_code_transition(data, c("02UG0JZ")), "named")
-  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ", a = "02UG0JZ")), "unique")
+  duplicate_codes <- c("02UG0JZ", "02UG0JZ")
+  names(duplicate_codes) <- c("a", "a")
+  expect_error(nis_audit_code_transition(data, duplicate_codes), "unique")
   expect_error(nis_audit_code_transition(data, list(a = NA_character_)), "non-missing")
   data$n_unweighted <- 1L
   expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"),

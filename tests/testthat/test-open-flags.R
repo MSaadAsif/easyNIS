@@ -132,7 +132,9 @@ test_that("ICD flags match prefixes by slot and behave the same on DuckDB", {
   expect_identical(actual$any_proc, c(TRUE, TRUE, FALSE, FALSE, TRUE))
   expect_identical(actual$principal_proc, c(TRUE, FALSE, FALSE, FALSE, TRUE))
   expect_error(nis_flag_dx(data, invalid = "I50-"), "letters and numbers")
-  expect_error(nis_flag_dx(data, invalid = "I50", invalid = "I51"), "unique")
+  duplicate_args <- as.list(c("I50", "I51"))
+  names(duplicate_args) <- c("invalid", "invalid")
+  expect_error(do.call(nis_flag_dx, c(list(data), duplicate_args)), "unique")
 })
 
 test_that("ICD flags match prefixes against stored code strings", {

@@ -109,17 +109,18 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   collected_fields <- unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
 
   cohort_quo <- rlang::enquo(cohort)
-  bad_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
-  bad_expressions <- stats::setNames(lapply(bad_fields, function(field) {
-    finite <- nis_is_finite_expr(.data, field) # nolint: object_usage_linter
-    value <- rlang::sym(field)
-    rlang::expr(!dplyr::coalesce((!!finite) & (!!value > 0), FALSE))
-  }), paste0(".nis_bad_", bad_fields))
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
+  # Data-masked dplyr expressions.
   prepared <- dplyr::mutate(
     .data,
     .nis_cohort = !!cohort_quo,
-    !!!bad_expressions,
+    .nis_bad_YEAR = !dplyr::coalesce(
+      !!nis_is_finite_expr(.data, "YEAR") & YEAR > 0, FALSE),
+    .nis_bad_HOSP_NIS = !dplyr::coalesce(
+      !!nis_is_finite_expr(.data, "HOSP_NIS") & HOSP_NIS > 0, FALSE),
+    .nis_bad_NIS_STRATUM = !dplyr::coalesce(
+      !!nis_is_finite_expr(.data, "NIS_STRATUM") & NIS_STRATUM > 0, FALSE),
+    .nis_bad_DISCWT = !dplyr::coalesce(
+      !!nis_is_finite_expr(.data, "DISCWT") & DISCWT > 0, FALSE),
     .nis_valid = !(.data[[".nis_bad_YEAR"]] | .data[[".nis_bad_HOSP_NIS"]] |
       .data[[".nis_bad_NIS_STRATUM"]] | .data[[".nis_bad_DISCWT"]])
   )
@@ -138,7 +139,6 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       .groups = "drop"
     ) |>
     nis_collect()
-  # nolint end
   excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
   excluded_by_field <- stats::setNames(
     vapply(c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"), function(field) {
