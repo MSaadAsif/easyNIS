@@ -1,11 +1,15 @@
-nis_validate_layout_years <- function(entries, found) {
-  duplicated_years <- unique(found[duplicated(found) | duplicated(found,
-    fromLast = TRUE)])
-  if (length(duplicated_years) == 0L) return(invisible(NULL))
+nis_validate_layout_years <- function(entries, found, years) {
+  annual <- !dir.exists(entries)
+  annual_years <- found[annual]
+  hive_years <- found[!annual]
+  conflicting_years <- intersect(years, intersect(annual_years, hive_years))
+  if (length(conflicting_years) == 0L) return(invisible(NULL))
 
-  details <- vapply(duplicated_years, function(year) {
-    paths <- entries[found == year]
-    paste0("Year ", year, ": ", paste(paths, collapse = " and "))
+  details <- vapply(conflicting_years, function(year) {
+    annual_path <- entries[annual & found == year]
+    hive_path <- entries[!annual & found == year]
+    paste0("Year ", year, ": annual ", paste(annual_path, collapse = ", "),
+      " and Hive ", paste(hive_path, collapse = ", "))
   }, character(1))
   cli::cli_abort(paste0(
     "A year is present in both annual and Hive layouts.\n",
@@ -82,8 +86,6 @@ nis_open <- function(path, years = NULL) {
   if (length(found) == 0L) {
     cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.")
   }
-  nis_validate_layout_years(entries, found)
-
   if (is.null(years)) {
     years <- sort(found)
   }
@@ -99,6 +101,7 @@ nis_open <- function(path, years = NULL) {
   if (length(missing) > 0L) {
     cli::cli_abort("No NIS Parquet entry was found for year{?s} {.val {missing}}.")
   }
+  nis_validate_layout_years(entries, found, years)
   if (any(years < 2016L)) {
     cli::cli_inform(c(
       "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",

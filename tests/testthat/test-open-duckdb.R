@@ -113,6 +113,39 @@ test_that("nis_open rejects a year represented in both layouts", {
   expect_error(nis_open(path), "2020.*NIS_2020[.]parquet.*YEAR=2020.*Keep one layout")
 })
 
+test_that("nis_open checks mixed layouts only for selected years", {
+  path <- tempfile("nis-selected-layout-conflict-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2019L, id = 1L),
+    file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2020L, id = 2L),
+    file.path(path, "NIS_2020.parquet"))
+  write_duckdb_parquet(dplyr::tibble(id = 3L),
+    file.path(path, "YEAR=2020", "part.parquet"))
+
+  result <- dplyr::collect(nis_open(path, years = 2019L) |>
+    dplyr::select(YEAR, id))
+  expect_identical(result$YEAR, 2019L)
+  expect_identical(result$id, 1L)
+  expect_error(nis_open(path, years = 2020L),
+    "Year 2020: annual .*NIS_2020[.]parquet.*Hive .*YEAR=2020")
+})
+
+test_that("nis_open accepts multiple Hive parts for one year", {
+  path <- tempfile("nis-hive-multiple-parts-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(id = 1:2),
+    file.path(path, "YEAR=2020", "part-1.parquet"))
+  write_duckdb_parquet(dplyr::tibble(id = 3L),
+    file.path(path, "YEAR=2020", "part-2.parquet"))
+
+  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id))
+  expect_identical(result$YEAR, rep(2020L, 3L))
+  expect_identical(result$id, 1:3)
+})
+
 test_that("nis_open casts physical Hive years before combining annual files", {
   path <- tempfile("nis-mixed-year-types-")
   dir.create(path)
