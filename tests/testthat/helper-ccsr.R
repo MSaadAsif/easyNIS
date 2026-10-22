@@ -12,7 +12,7 @@ ccsr_fixture_rows <- function() {
 # Minimal workbook with a title row above the header, like HCUP workbooks.
 write_ccsr_xlsx <- function(path, rows = ccsr_fixture_rows(),
                             sheet = "DX_to_CCSR_Mapping") {
-  skip_if_not_installed("zip")
+  skip_if_not_installed("zip") # nolint
   cell <- function(ref, text) {
     sprintf('<c r="%s" t="inlineStr"><is><t>%s</t></is></c>', ref, text)
   }

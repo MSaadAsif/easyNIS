@@ -36,7 +36,7 @@ real NIS results.
 - HOCM backlog item #3 (curated cardiac device code sets) remains deferred.
 - Keep easyNIS focused on a simple NIS analyst workflow built on established
   packages including `survey`, `srvyr`, `gtsummary`, `comorbidity` or
-  `medicalcoder`, `arrow`, and `duckdb`.
+  `medicalcoder` and `duckdb`.
 
 ## Completed history
 

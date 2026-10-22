@@ -41,7 +41,8 @@ nis_study_cache_key <- function(
     paste(deparse(get(name, envir = namespace, inherits = FALSE)), collapse = "\n")
   })
   names(package_code) <- function_names
-  dependency_names <- c("arrow", "dplyr", "rlang", "srvyr", "survey", "tidyselect")
+  dependency_names <- c("DBI", "dbplyr", "dplyr", "duckdb", "rlang",
+    "srvyr", "survey", "tidyselect")
   dependency_versions <- vapply(
     dependency_names,
     function(name) as.character(utils::packageVersion(name)),

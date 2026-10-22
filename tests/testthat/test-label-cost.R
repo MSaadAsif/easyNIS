@@ -58,6 +58,17 @@ test_that("nis_label maps common codes and preserves existing labels", {
   expect_identical(nis_label(labelled), labelled)
 })
 
+test_that("nis_label maps logical fields and skips internal columns", {
+  data <- dplyr::tibble(
+    ready = c(TRUE, FALSE, NA),
+    `.internal` = c("leave", "as", "is")
+  )
+  labelled <- nis_label(data)
+  expect_identical(as.character(labelled$ready), c("Yes", "No", NA))
+  expect_identical(levels(labelled$ready), c("No", "Yes"))
+  expect_identical(labelled$.internal, data$.internal)
+})
+
 test_that("nis_label retains unknown codes and warns once per variable", {
   data <- dplyr::tibble(
     PAY1 = c(1, 7, 8),
