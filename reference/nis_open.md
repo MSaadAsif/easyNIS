@@ -82,8 +82,8 @@ nis |>
 #> # A tibble: 2 × 2
 #>    YEAR     n
 #>   <int> <int>
-#> 1  2020    96
-#> 2  2019    96
+#> 1  2019    96
+#> 2  2020    96
 
 # Open one year only
 nis_open(path, years = 2020) |>
