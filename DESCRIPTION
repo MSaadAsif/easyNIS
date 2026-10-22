@@ -6,7 +6,8 @@ Authors@R: c(
            email = "msaadasif.md@gmail.com",
            comment = c(ORCID = "0000-0002-1792-2357")),
     person("Ali", "Salman", role = "aut",
-           comment = c(ORCID = "0009-0001-1102-226X")))
+           comment = c(ORCID = "0009-0001-1102-226X",
+                       project_role = "co-maintainer")))
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
     diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
@@ -38,6 +39,7 @@ Suggests:
     gt,
     gtsummary,
     knitr,
+    jsonlite,
     medicalcoder (>= 0.10.0),
     purrr,
     quarto,
