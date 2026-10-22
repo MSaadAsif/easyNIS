@@ -7,7 +7,7 @@
 nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{...}{Named logical expressions applied cumulatively. Unnamed
 expressions use their deparsed text as the criterion label.}
@@ -25,7 +25,7 @@ criterion. When \code{by_year = TRUE}, \code{YEAR} is the first column.
 Applies logical criteria cumulatively and reports remaining and dropped
 discharge counts at each step. Criteria are evaluated in order; \code{NA} values
 are treated as excluded, matching \code{\link[dplyr:filter]{dplyr::filter()}}. The summary is
-aggregated lazily for Arrow queries and returned as a collected tibble.
+aggregated lazily for DuckDB queries and returned as a collected tibble.
 Missing weights contribute zero to weighted totals.
 }
 \examples{

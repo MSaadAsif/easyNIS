@@ -8,7 +8,7 @@ nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
 }
 \arguments{
 \item{.data}{A collected data frame with \code{I10_DX1}, \code{I10_DX2}, ... columns,
-or a \code{tbl_svy} from \code{\link[=nis_design]{nis_design()}} that kept them. Lazy Arrow queries are
+or a \code{tbl_svy} from \code{\link[=nis_design]{nis_design()}} that kept them. Lazy DuckDB queries are
 not accepted; call \code{dplyr::collect()} first.}
 
 \item{method}{A \code{medicalcoder} Elixhauser method name. The default,

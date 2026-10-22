@@ -24,6 +24,11 @@ srvyr::summarise(design, discharges = srvyr::survey_total(),
 
 These results demonstrate the workflow and are not NIS population estimates.
 
+`nis_open()` reads Parquet with DuckDB and returns a lazy dbplyr table. The
+`engine` argument has been removed entirely; omit it whatever value you
+previously passed. Use `dplyr::filter()` and `dplyr::select()` before
+`dplyr::collect()` to limit the data transferred into R.
+
 ## Articles
 
 - [Get started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)

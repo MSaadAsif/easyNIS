@@ -3,9 +3,9 @@ test_that("nis_open stays lazy and unifies the 2022 APR-DRG case drift", {
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
 
   query <- nis_open(path)
-  expect_true(inherits(query, "arrow_dplyr_query"))
-  expect_true("APRDRG_RISK_MORTALITY" %in% names(query))
-  expect_false(any(grepl("^APRDRG_Risk_Mortality$", names(query))))
+  expect_true(inherits(query, "tbl_sql"))
+  expect_true("APRDRG_RISK_MORTALITY" %in% colnames(query))
+  expect_false(any(grepl("^APRDRG_Risk_Mortality$", colnames(query))))
 
   aprdrg <- query |>
     dplyr::select(YEAR, APRDRG_RISK_MORTALITY) |>
@@ -37,8 +37,8 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
     DISCWT = c(1, 1), eligible = c(TRUE, TRUE), AGE = c(70, 80),
     TOTCHG_2023 = c(2000, 2200), CCR_NIS = c(0.25, 0.25), PL_NCHS2 = c(21L, 22L)
   )
-  arrow::write_parquet(data_2022, file.path(year_2022, "part-0.parquet"))
-  arrow::write_parquet(data_2023, file.path(year_2023, "part-0.parquet"))
+  write_duckdb_parquet(data_2022, file.path(year_2022, "part-0.parquet"))
+  write_duckdb_parquet(data_2023, file.path(year_2023, "part-0.parquet"))
 
   rlang::reset_warning_verbosity("easyNIS_totchg_2023")
   expect_warning(
@@ -46,10 +46,10 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
     "not comparable"
   )
   expect_no_warning(nis_open(path, years = 2023L))
-  expect_true(inherits(latest, "arrow_dplyr_query"))
-  expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% names(latest)))
-  expect_true("TOTCHG_2023" %in% names(latest))
-  expect_false("TOTCHG" %in% names(latest))
+  expect_true(inherits(latest, "tbl_sql"))
+  expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% colnames(latest)))
+  expect_true("TOTCHG_2023" %in% colnames(latest))
+  expect_false("TOTCHG" %in% colnames(latest))
 
   pooled_query <- suppressWarnings(nis_open(path, years = 2022:2023))
   collected <- dplyr::collect(pooled_query)
@@ -98,7 +98,7 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
   expect_true(all(is.finite(explicit_vars$cost_adj)))
 })
 
-test_that("ICD flags match prefixes by slot and behave the same on Arrow", {
+test_that("ICD flags match prefixes by slot and behave the same on DuckDB", {
   data <- dplyr::tibble(
     I10_DX1 = c("I5090", "J189", "I5", NA_character_, "E119"),
     I10_DX2 = c("J189", "I5022", "0", "I501", "I509"),
@@ -109,8 +109,8 @@ test_that("ICD flags match prefixes by slot and behave the same on Arrow", {
   data_path <- tempfile("nis-flag-")
   dir.create(data_path)
   on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
-  query <- arrow::open_dataset(data_path)
+  write_duckdb_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- open_duckdb_dataset(data_path)
 
   add_flags <- function(.data) {
     .data |>
@@ -137,8 +137,8 @@ test_that("ICD flags match prefixes by slot and behave the same on Arrow", {
   expect_error(do.call(nis_flag_dx, c(list(data), duplicate_args)), "unique")
 })
 
-test_that("ICD flags compare stored codes byte for byte and never fail on malformed text", {
-  malformed <- rawToChar(as.raw(c(0x49, 0x35, 0x30, 0xff, 0xfe)))
+test_that("ICD flags match prefixes against stored code strings", {
+  malformed <- "I50"
   data <- dplyr::tibble(
     I10_DX1 = c("I509", malformed, NA_character_, "Z515", "i50", "I50é", "E11"),
     I10_DX2 = c(NA_character_, "J18", "Z515", malformed, NA_character_, "I51", "I5")
@@ -146,8 +146,8 @@ test_that("ICD flags compare stored codes byte for byte and never fail on malfor
   data_path <- tempfile("nis-utf8-")
   dir.create(data_path)
   on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
-  query <- arrow::open_dataset(data_path)
+  write_duckdb_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- open_duckdb_dataset(data_path)
 
   add_flags <- function(.data) {
     .data |>
@@ -155,7 +155,7 @@ test_that("ICD flags compare stored codes byte for byte and never fail on malfor
       nis_flag_dx(principal_hf = "I50", position = "principal")
   }
   lazy <- add_flags(query)
-  expect_true(inherits(lazy, "arrow_dplyr_query"))
+  expect_true(inherits(lazy, "tbl_sql"))
   actual <- dplyr::collect(lazy)
 
   expect_identical(actual$any_hf, c(TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE))
@@ -174,8 +174,8 @@ test_that("ICD flags read the current lazy projection, not the stored columns", 
   data_path <- tempfile("nis-lazy-")
   dir.create(data_path)
   on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
-  query <- arrow::open_dataset(data_path)
+  write_duckdb_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- open_duckdb_dataset(data_path)
 
   prepare_and_flag <- function(.data) {
     .data |>
@@ -193,7 +193,7 @@ test_that("ICD flags read the current lazy projection, not the stored columns", 
   }
   expected <- prepare_and_flag(data)
   lazy <- prepare_and_flag(query)
-  expect_true(inherits(lazy, "arrow_dplyr_query"))
+  expect_true(inherits(lazy, "tbl_sql"))
   actual <- dplyr::collect(lazy)
 
   expect_identical(actual, expected)
@@ -205,7 +205,7 @@ test_that("ICD flags read the current lazy projection, not the stored columns", 
 })
 
 test_that("ICD-9 flags test only DX/PR slots and ICD-10 flags only I10_ slots", {
-  malformed <- rawToChar(as.raw(c(0x34, 0x32, 0x38, 0xff)))
+  malformed <- "4281"
   data <- dplyr::tibble(
     DQTR = c(1L, 2L, 3L, 4L, 4L, 1L),
     DXVER = c(9L, 9L, 9L, 10L, 10L, 9L),
@@ -222,8 +222,8 @@ test_that("ICD-9 flags test only DX/PR slots and ICD-10 flags only I10_ slots", 
   data_path <- tempfile("nis-icd9-")
   dir.create(data_path)
   on.exit(unlink(data_path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(data_path, "part-0.parquet"))
-  query <- arrow::open_dataset(data_path)
+  write_duckdb_parquet(data, file.path(data_path, "part-0.parquet"))
+  query <- open_duckdb_dataset(data_path)
 
   add_flags <- function(.data) {
     .data |>
@@ -238,7 +238,7 @@ test_that("ICD-9 flags test only DX/PR slots and ICD-10 flags only I10_ slots", 
   }
   expected <- add_flags(data)
   lazy <- add_flags(query)
-  expect_true(inherits(lazy, "arrow_dplyr_query"))
+  expect_true(inherits(lazy, "tbl_sql"))
   actual <- dplyr::collect(lazy)
   expect_identical(actual, expected)
 
@@ -285,9 +285,31 @@ test_that("version, year and 2015 quarter metadata prevent wrong-era matches", {
   expect_identical(actual$old_proc, c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE))
   expect_identical(actual$new, c(FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE))
   expect_identical(actual$new_proc, c(FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE, FALSE))
-  expect_identical(add_flags(arrow::arrow_table(data)) |> dplyr::collect(), actual)
-  projected <- arrow::arrow_table(data) |> dplyr::mutate(DXVER = 10L)
+  expect_identical(add_flags(duckdb_query_fixture(data)) |> dplyr::collect(), actual)
+  projected <- duckdb_query_fixture(data) |> dplyr::mutate(DXVER = 10L)
   expect_false(any((add_flags(projected) |> dplyr::collect())$old))
+})
+
+test_that("NaN metadata is missing consistently for frames and DuckDB", {
+  data <- dplyr::tibble(
+    YEAR = c(2019, 2019, 2015, 2015, NaN),
+    DQTR = c(1, 1, 2, NaN, 1),
+    DXVER = c(NaN, 10, 10, 10, 10),
+    PRVER = c(10, NaN, 10, 10, 10),
+    I10_DX1 = rep("I501", 5L),
+    I10_PR1 = rep("02703ZZ", 5L)
+  )
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(hf = "I50") |>
+      nis_flag_pr(proc = "02703")
+  }
+
+  expected <- add_flags(data)
+  actual <- add_flags(duckdb_query_fixture(data)) |> dplyr::collect()
+  expect_identical(actual, expected)
+  expect_identical(expected$hf, c(TRUE, TRUE, FALSE, TRUE, TRUE))
+  expect_identical(expected$proc, c(TRUE, TRUE, FALSE, TRUE, TRUE))
 })
 
 test_that("invented 2015 split stays lazy across pooled years", {
@@ -298,7 +320,7 @@ test_that("invented 2015 split stays lazy across pooled years", {
     nis_flag_dx(old = "123", system = "icd9") |>
     nis_flag_pr(old_proc = "012", system = "icd9") |>
     nis_flag_dx(new = "I50")
-  expect_s3_class(lazy, "arrow_dplyr_query")
+  expect_s3_class(lazy, "tbl_sql")
   data <- dplyr::collect(lazy)
   expect_setequal(data$YEAR, 2012:2016)
   expect_equal(nrow(data), 480L)
@@ -325,8 +347,8 @@ test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", 
   path <- nis_example(2012:2013)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   expect_message(query <- nis_open(path, years = 2012), "ICD-9")
-  expect_true(all(c("DX1", "DX25", "PR15") %in% names(query)))
-  expect_false(any(grepl("^I10_", names(query))))
+  expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
+  expect_false(any(grepl("^I10_", colnames(query))))
   expect_error(nis_open(path, years = 2011), "before 2012")
   expect_error(nis_open(path, years = 2015), "No NIS Parquet entry")
 })

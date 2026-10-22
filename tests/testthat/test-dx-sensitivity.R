@@ -42,17 +42,17 @@ test_that("diagnosis sensitivity summary matches manual counts and rates", {
     "Missing requested outcome")
 })
 
-test_that("diagnosis sensitivity summary matches for a lazy Arrow query", {
-  skip_if_not_installed("arrow")
+test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
+
   data <- dx_sensitivity_fixture()
   path <- tempfile("nis-dx-sensitivity-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  arrow::write_parquet(data, file.path(path, "part-0.parquet"))
-  query <- arrow::open_dataset(path)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
 
   lazy_flags <- nis_flag_dx_position(query, "I42", name = "hocm")
-  expect_s3_class(lazy_flags, "arrow_dplyr_query")
+  expect_s3_class(lazy_flags, "tbl_sql")
   expect_identical(dplyr::collect(lazy_flags),
     nis_flag_dx_position(data, "I42", name = "hocm"))
   expect_equal(nis_dx_sensitivity(query, "I42"),

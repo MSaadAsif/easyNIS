@@ -57,7 +57,7 @@
 #' design (clusters, strata, weights) untouched.
 #'
 #' @param .data A collected data frame with `I10_DX1`, `I10_DX2`, ... columns,
-#'   or a `tbl_svy` from [nis_design()] that kept them. Lazy Arrow queries are
+#'   or a `tbl_svy` from [nis_design()] that kept them. Lazy DuckDB queries are
 #'   not accepted; call `dplyr::collect()` first.
 #' @param method A `medicalcoder` Elixhauser method name. The default,
 #'   `"elixhauser_ahrq_icd10"`, is the union of every ICD-10 code AHRQ has
@@ -100,7 +100,7 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
     cli::cli_abort("`.data` must be a collected data frame or a {.cls tbl_svy}; call {.fn dplyr::collect} first.")
   }
 
-  slots <- grep("^I10_DX[0-9]+$", names(.data), value = TRUE)
+  slots <- grep("^I10_DX[0-9]+$", nis_names(.data), value = TRUE) # nolint: object_usage_linter
   if (length(slots) == 0L) {
     cli::cli_abort("`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).")
   }
@@ -144,7 +144,7 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
   names(added) <- paste0(prefix, ifelse(columns == "num_cmrb", "n",
     ifelse(columns == "cmrb_flag", "any", tolower(columns))))
 
-  clash <- intersect(names(added), names(.data))
+  clash <- intersect(names(added), nis_names(.data)) # nolint: object_usage_linter
   if (length(clash) > 0L) {
     cli::cli_abort(c(
       "Comorbidity columns would replace existing column{?s} {.val {clash}}.",
