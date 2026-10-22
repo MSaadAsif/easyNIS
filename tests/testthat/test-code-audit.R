@@ -57,14 +57,14 @@ test_that("code transition audit agrees between data frames and lazy DuckDB", {
   codes <- list(myectomy = "02UG0JZ", ablation = "02803ZZ")
 
   from_frame <- nis_audit_code_transition(data, codes, cohort = AGE >= 18)
-  from_DuckDB <- nis_audit_code_transition(query, codes, cohort = AGE >= 18)
+  from_duckdb <- nis_audit_code_transition(query, codes, cohort = AGE >= 18)
   from_frame_dx <- nis_audit_code_transition(data, list(hf = "I50"),
     cohort = AGE >= 18, type = "dx")
-  from_DuckDB_dx <- nis_audit_code_transition(query, list(hf = "I50"),
+  from_duckdb_dx <- nis_audit_code_transition(query, list(hf = "I50"),
     cohort = AGE >= 18, type = "dx")
 
-  expect_identical(from_DuckDB, from_frame)
-  expect_identical(from_DuckDB_dx, from_frame_dx)
+  expect_identical(from_duckdb, from_frame)
+  expect_identical(from_duckdb_dx, from_frame_dx)
 })
 
 test_that("code transition audit validates named groups and columns", {
@@ -123,9 +123,9 @@ test_that("code transition audit returns the empty grid for an empty cohort", {
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
-  from_DuckDB <- nis_audit_code_transition(open_duckdb_dataset(path),
+  from_duckdb <- nis_audit_code_transition(open_duckdb_dataset(path),
     c(myectomy = "02UG0JZ"), cohort = FALSE)
-  expect_identical(from_DuckDB, result)
+  expect_identical(from_duckdb, result)
 })
 
 test_that("missing periods have no year-over-year percentage change", {

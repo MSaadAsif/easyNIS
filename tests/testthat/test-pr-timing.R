@@ -262,9 +262,9 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
   expect_identical(absent_slot2$absent_prday_column, c(2L, 2L))
   expect_identical(absent_slot2$matched_slots, c(2L, 2L))
 
-  DuckDB_result <- nis_prday_completeness(duckdb_query_fixture(data),
+  duckdb_result <- nis_prday_completeness(duckdb_query_fixture(data),
     c("ix", "out"))
-  expect_equal(DuckDB_result, actual)
+  expect_equal(duckdb_result, actual)
 })
 
 test_that("PRDAY completeness aggregates on DuckDB queries", {

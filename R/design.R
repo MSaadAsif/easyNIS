@@ -114,13 +114,13 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     .data,
     .nis_cohort = !!cohort_quo,
     .nis_bad_YEAR = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "YEAR") & YEAR > 0, FALSE),
+      !!nis_is_finite_expr(.data, "YEAR") & YEAR > 0, FALSE), # nolint: object_usage_linter
     .nis_bad_HOSP_NIS = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "HOSP_NIS") & HOSP_NIS > 0, FALSE),
+      !!nis_is_finite_expr(.data, "HOSP_NIS") & HOSP_NIS > 0, FALSE), # nolint: object_usage_linter
     .nis_bad_NIS_STRATUM = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "NIS_STRATUM") & NIS_STRATUM > 0, FALSE),
+      !!nis_is_finite_expr(.data, "NIS_STRATUM") & NIS_STRATUM > 0, FALSE), # nolint: object_usage_linter
     .nis_bad_DISCWT = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "DISCWT") & DISCWT > 0, FALSE),
+      !!nis_is_finite_expr(.data, "DISCWT") & DISCWT > 0, FALSE), # nolint: object_usage_linter
     .nis_valid = !(.data[[".nis_bad_YEAR"]] | .data[[".nis_bad_HOSP_NIS"]] |
       .data[[".nis_bad_NIS_STRATUM"]] | .data[[".nis_bad_DISCWT"]])
   )

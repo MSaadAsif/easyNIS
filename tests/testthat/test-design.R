@@ -336,14 +336,14 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
   on.exit(unlink(invalid_path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(invalid, file.path(invalid_path, "part-0.parquet"))
   expect_warning(
-    from_DuckDB <- nis_design(
+    from_duckdb <- nis_design(
       open_duckdb_dataset(invalid_path), heart_failure, keep = c(AGE, LOS)
     ),
     "Excluded 17 discharges"
   )
-  expect_equal(attr(from_DuckDB, "nis_excluded"), attr(from_frame, "nis_excluded"))
+  expect_equal(attr(from_duckdb, "nis_excluded"), attr(from_frame, "nis_excluded"))
 
-  for (design in list(from_frame, from_DuckDB)) {
+  for (design in list(from_frame, from_duckdb)) {
     expect_equal(nrow(design$variables), nrow(expected$variables))
     expect_equal(sort(as.numeric(stats::weights(design))),
       sort(as.numeric(stats::weights(expected))))
@@ -374,12 +374,12 @@ test_that("multi-prefix any-position cohorts give identical designs on DuckDB an
     nis_flag_dx(.data, exposed = c("Z515", "E11", "J18"), position = "any")
   }
 
-  from_DuckDB <- nis_design(add_flags(query), exposed & AGE >= 30, keep = c(AGE, DIED))
+  from_duckdb <- nis_design(add_flags(query), exposed & AGE >= 30, keep = c(AGE, DIED))
   from_frame <- nis_design(add_flags(frame), exposed & AGE >= 30, keep = c(AGE, DIED))
 
-  expect_equal(nrow(from_DuckDB$variables), nrow(from_frame$variables))
-  expect_gt(nrow(from_DuckDB$variables), 0L)
-  expect_equal(sort(as.numeric(stats::weights(from_DuckDB))),
+  expect_equal(nrow(from_duckdb$variables), nrow(from_frame$variables))
+  expect_gt(nrow(from_duckdb$variables), 0L)
+  expect_equal(sort(as.numeric(stats::weights(from_duckdb))),
     sort(as.numeric(stats::weights(from_frame))))
 })
 

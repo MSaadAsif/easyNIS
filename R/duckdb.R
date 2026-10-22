@@ -41,7 +41,7 @@ nis_validate_hive_years <- function(con, sources) {
     components <- strsplit(normalized, "/", fixed = TRUE)[[1L]]
     partitions <- grep("^YEAR=[0-9]{4}$", components, value = TRUE)
     if (length(partitions) == 0L) next
-    partition <- tail(partitions, 1L)
+    partition <- partitions[[length(partitions)]]
     partition_year <- as.integer(sub("^YEAR=", "", partition))
     quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
     physical_scan <- paste0("read_parquet(", quoted_path,
