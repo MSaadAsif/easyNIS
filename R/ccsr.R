@@ -212,10 +212,9 @@ read_ccsr_csv <- function(file) {
   width <- lengths(fields)
   wrong <- which(width != width[1L] | !grepl("^'.*'$", lines))
   if (length(wrong) > 0L) {
-    # nolint start: object_usage_linter. Used by cli interpolation below.
-    shown <- utils::head(wrong, 3L)
-    expected <- width[1L]
-    # nolint end
+    # Used by cli interpolation below.
+    shown <- utils::head(wrong, 3L) # nolint
+    expected <- width[1L] # nolint
     cli::cli_abort(c(
       "`file` is not a well-formed single-quoted CSV.",
       "x" = "Line {shown} should have {expected} quoted fields like the header."

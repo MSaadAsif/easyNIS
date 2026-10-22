@@ -16,7 +16,7 @@ nis_flag_pr_timing(
 )
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{index_pr}{Character vector of index procedure code prefixes.}
 

@@ -1,8 +1,8 @@
 expect_ccsr_call <- function(expr, name) {
   condition <- tryCatch(eval(substitute(expr), envir = parent.frame()),
     error = identity)
-  expect_s3_class(condition, "error")
-  expect_identical(rlang::call_name(conditionCall(condition)), name)
+  testthat::expect_s3_class(condition, "error")
+  testthat::expect_identical(rlang::call_name(conditionCall(condition)), name)
   invisible(condition)
 }
 
@@ -141,7 +141,11 @@ test_that("quoted descriptions with commas and apostrophes do not shift fields",
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
   writeLines(c(
-    "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','Default CCSR CATEGORY IP','Default CCSR CATEGORY DESCRIPTION IP','CCSR CATEGORY 1','CCSR CATEGORY 1 DESCRIPTION'",
+    paste0(
+      "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','",
+      "Default CCSR CATEGORY IP','Default CCSR CATEGORY DESCRIPTION IP',",
+      "'CCSR CATEGORY 1','CCSR CATEGORY 1 DESCRIPTION'"
+    ),
     "'X100','Invented disease, type one','ZZZ001','Invented, category','ZZZ001','Invented, category'",
     "'X101','Invented's disease','ZZZ002','Owner's category','ZZZ002','Owner's category'",
     "'X102','Both, and Invented's, here','ZZZ002','c','ZZZ002',''",
@@ -179,9 +183,9 @@ test_that("plain double-quoted CSV files still parse", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
   writeLines(c(
-    'ICD-10-CM CODE,ICD-10-CM CODE DESCRIPTION,CCSR CATEGORY 1',
-    'X100,"Invented, disease",ZZZ001',
-    'X101,d,ZZZ002'
+    "ICD-10-CM CODE,ICD-10-CM CODE DESCRIPTION,CCSR CATEGORY 1",
+    "X100,\"Invented, disease\",ZZZ001",
+    "X101,d,ZZZ002"
   ), path)
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })

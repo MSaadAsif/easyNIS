@@ -15,7 +15,7 @@ write_ccsr_xlsx <- function(path, rows = ccsr_fixture_rows(),
                             header = c("ICD-10-CM Code", "ICD-10-CM Code Description",
                               "CCSR Category", "CCSR Category Description",
                               "Inpatient Default CCSR (Y/N/X)")) {
-  skip_if_not_installed("zip")
+  skip_if_not_installed("zip") # nolint
   cell <- function(ref, text) {
     sprintf('<c r="%s" t="inlineStr"><is><t>%s</t></is></c>', ref, text)
   }

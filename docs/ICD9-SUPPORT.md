@@ -36,7 +36,7 @@ of the other system missing. This input contract has been tested only with
 invented public fixtures, not with licensed NIS records.
 
 The existing flag API gains `system = c("icd10", "icd9")`. This reuses the
-same prefix, position, malformed-UTF-8-safe matching, and lazy Arrow kernels
+same prefix, position, prefix matching, and lazy DuckDB SQL
 without additional exports or a second implementation. It never searches
 the other namespace. Available non-missing `DXVER`/`PRVER`, `YEAR`, and
 2015 `DQTR` must agree with the requested system. Contradictory/invalid

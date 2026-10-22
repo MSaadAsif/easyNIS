@@ -166,7 +166,7 @@ flow_summary <- function(data, step) {
   data |>
     dplyr::summarise(
       n = dplyr::n(),
-      weighted_discharges = sum(DISCWT, na.rm = TRUE) # nolint: object_usage_linter. Data-masked field in the lazy query.
+      weighted_discharges = sum(DISCWT, na.rm = TRUE) # Data-masked field in the lazy query. # nolint
     ) |>
     dplyr::collect() |>
     dplyr::mutate(step = step)
