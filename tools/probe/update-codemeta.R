@@ -24,6 +24,16 @@ dependencies <- unlist(lapply(c("Depends", "Imports", "Suggests", "LinkingTo"), 
   trimws(strsplit(value, ",", fixed = TRUE)[[1L]])
 }), use.names = FALSE)
 
+maintainers <- unname(lapply(authors[vapply(authors, function(author) {
+  "cre" %in% author$role || identical(author$comment[["project_role"]], "co-maintainer")
+}, logical(1))], function(author) {
+  if (!is.null(author$comment) && "ORCID" %in% names(author$comment)) {
+    paste0("https://orcid.org/", author$comment[["ORCID"]])
+  } else {
+    paste(author$given, author$family)
+  }
+}))
+
 license <- sub(" \\+ file LICENSE$", "", field("License"))
 if (identical(license, "AGPL-3")) license <- "AGPL-3.0-only"
 
@@ -38,6 +48,7 @@ metadata <- list(
   "codeRepository" = trimws(strsplit(field("URL"), ",", fixed = TRUE)[[1L]][[1L]]),
   "issueTracker" = field("BugReports"),
   "author" = unname(lapply(authors, person_metadata)),
+  "maintainer" = maintainers,
   "softwareRequirements" = dependencies,
   "programmingLanguage" = list("@type" = "ComputerLanguage", "name" = "R"),
   "runtimePlatform" = dependencies[grepl("^R( |$)", dependencies)]
