@@ -26,4 +26,3 @@
 ^\.githooks($|[/\\])
 
 ^codemeta\.json$
-^LICENSE-CHOICE\.md$

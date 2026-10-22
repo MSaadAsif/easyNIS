@@ -23,7 +23,11 @@
       "@id": "https://orcid.org/0009-0001-1102-226X"
     }
   ],
-  "softwareRequirements": ["R (>= 4.1.0)", "DBI", "cli", "dbplyr", "dplyr", "duckdb", "rlang", "srvyr", "tidyselect", "broom.helpers", "cardx", "flextable", "forcats", "ggplot2", "gt", "gtsummary", "knitr", "medicalcoder (>= 0.10.0)", "purrr", "quarto", "readxl", "rmarkdown", "survey", "testthat (>= 3.1.7)", "zip"],
+  "maintainer": [
+    "https://orcid.org/0000-0002-1792-2357",
+    "https://orcid.org/0009-0001-1102-226X"
+  ],
+  "softwareRequirements": ["R (>= 4.1.0)", "arrow (>= 14.0.0)", "cli", "dplyr", "rlang", "srvyr", "tidyselect", "broom.helpers", "cardx", "dbplyr", "duckdb", "flextable", "forcats", "ggplot2", "gt", "gtsummary", "knitr", "jsonlite", "medicalcoder (>= 0.10.0)", "purrr", "quarto", "readxl", "rmarkdown", "survey", "testthat (>= 3.1.7)", "zip"],
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R"

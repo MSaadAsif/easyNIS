@@ -2,8 +2,7 @@
 
 Work on a branch or isolated worktree. Run focused tests and `devtools::check()`
 before requesting independent review. Use invented public fixtures and
-independently authored code compatible with the project's AGPL-3.0-only
-license. Never commit licensed inputs,
+independently authored code. Never commit licensed inputs,
 private paths, local validation receipts, or record-derived output. Real NIS
 results stay local under the ignored `local/loop/` directory. Follow
 `docs/LOOP.md` for the improvement cycle.
