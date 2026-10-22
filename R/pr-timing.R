@@ -101,7 +101,7 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   days <- lapply(slots, function(slot) {
     day_name <- unname(day_by_slot[as.character(slot)])
     if (length(day_name) == 0L || is.na(day_name)) rlang::expr(NA_real_) else
-      rlang::sym(day_name)
+      nis_numeric_value_expr(day_name) # nolint: object_usage_linter
   })
   day_missing <- lapply(slots, function(slot) {
     day_name <- unname(day_by_slot[as.character(slot)])
@@ -183,7 +183,7 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
       dplyr::coalesce(!!success, FALSE)
     ))
   }
-  eligibility <- code_system_filter(data_names, "PR", system)
+  eligibility <- code_system_filter(.data, data_names, "PR", system) # nolint: object_usage_linter
   if (!is.null(eligibility)) {
     result <- nis_and_expr(eligibility, result) # nolint: object_usage_linter
   }

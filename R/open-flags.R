@@ -7,9 +7,15 @@
 #'   [nis_flag_dx()]).
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
-#'   DuckDB-backed dbplyr table. The connection remains open while the lazy
-#'   table is in use and closes after it is released. Use `dplyr::collect()` to
-#'   return data to R. Earlier versions accepted `engine = "duckdb"`; remove
+#'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
+#'   and Hive directories named `YEAR=YYYY` containing Parquet parts. If a part file
+#'   has a physical `YEAR` column, its non-missing values must agree with the
+#'   directory year; missing or absent physical values use the partition year.
+#'   Schemas are combined by column name. When annual types differ, DuckDB may
+#'   promote them; for example, an integer field combined with a character field
+#'   is returned as character. The connection remains open while the lazy table
+#'   is in use and closes after it is released. Use `dplyr::collect()` to return
+#'   data to R. Earlier versions accepted `engine = "duckdb"`; remove
 #'   that argument when migrating because DuckDB is now the only engine.
 #'   String columns with malformed UTF-8 may fail during a native Parquet scan;
 #'   validate or repair those values before writing Parquet files.
@@ -96,6 +102,7 @@ nis_open <- function(path, years = NULL) {
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
     add = TRUE)
+  nis_validate_hive_years(con, sources) # nolint: object_usage_linter
   parquet <- nis_duckdb_parquet_sql(con, sources) # nolint: object_usage_linter
   query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
   old_names <- colnames(query)
@@ -277,7 +284,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     })
   }
 
-  eligibility <- code_system_filter(data_names, slots, system)
+  eligibility <- code_system_filter(.data, data_names, slots, system)
   if (!is.null(eligibility)) {
     flags <- lapply(flags, function(flag) {
       nis_and_expr(eligibility, flag) # nolint: object_usage_linter
@@ -300,27 +307,33 @@ normalize_prefixes <- function(value, arg = NULL) {
   unique(value)
 }
 
-code_system_filter <- function(columns, slots, system) {
+code_system_filter <- function(data, columns, slots, system) {
   conditions <- list()
   version_name <- paste0(slots, "VER")
   version <- if (system == "icd9") 9L else 10L
   if (version_name %in% columns) {
     field <- rlang::sym(version_name)
-    conditions <- c(conditions, list(rlang::expr(is.na(!!field) | !!field == !!version)))
+    missing_version <- nis_is_missing_expr(data, version_name) # nolint: object_usage_linter
+    conditions <- c(conditions, list(rlang::expr(
+      !!missing_version | !!field == !!version
+    )))
   }
   if ("YEAR" %in% columns) {
+    missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
     # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
       rlang::expr(YEAR >= 2015L)
     }
-    conditions <- c(conditions, list(rlang::expr(is.na(YEAR) | !!year_range)))
+    conditions <- c(conditions, list(rlang::expr(!!missing_year | !!year_range)))
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
+      missing_quarter <- nis_is_missing_expr(data, "DQTR") # nolint: object_usage_linter
       conditions <- c(conditions, list(rlang::expr(
-        is.na(YEAR) | YEAR != 2015L | is.na(!!quarter) | !!quarter %in% !!quarters
+        !!missing_year | YEAR != 2015L | !!missing_quarter |
+          !!quarter %in% !!quarters
       )))
     }
   }

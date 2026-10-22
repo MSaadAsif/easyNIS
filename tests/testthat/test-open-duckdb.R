@@ -74,6 +74,41 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_equal(selected_year$drift, 30.5)
 })
 
+test_that("nis_open rejects physical years that conflict with Hive partitions", {
+  path <- tempfile("nis-hive-year-conflict-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = c(2019L, NA_integer_), id = 1:2),
+    file.path(path, "YEAR=2019", "part-a.parquet")
+  )
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = 2020L, id = 3L),
+    file.path(path, "YEAR=2019", "part-b.parquet")
+  )
+  write_duckdb_parquet(
+    dplyr::tibble(id = 4L),
+    file.path(path, "YEAR=2020", "part.parquet")
+  )
+
+  expect_error(nis_open(path, years = 2019L),
+    "physical.*YEAR=2019")
+  valid_path <- tempfile("nis-hive-year-valid-")
+  dir.create(valid_path)
+  on.exit(unlink(valid_path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = c(2019L, NA_integer_), id = 1:2),
+    file.path(valid_path, "YEAR=2019", "part-a.parquet")
+  )
+  write_duckdb_parquet(dplyr::tibble(id = 3L),
+    file.path(valid_path, "YEAR=2019", "part-b.parquet"))
+
+  query <- nis_open(valid_path)
+  expect_s3_class(query, "tbl_duckdb_connection")
+  expect_equal(dplyr::collect(query |> dplyr::select(YEAR, id))$YEAR,
+    c(2019L, 2019L, 2019L))
+})
+
 test_that("nis_open unions representative all-NA Parquet column types", {
   path <- tempfile("nis-nullable-types-")
   dir.create(path)
@@ -96,7 +131,7 @@ test_that("nis_open unions representative all-NA Parquet column types", {
   expect_true(all(is.na(result$nullable_date)))
 })
 
-test_that("nis_open reports incompatible annual Parquet types clearly", {
+test_that("nis_open promotes numeric and character fields to character", {
   path <- tempfile("nis-incompatible-types-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -107,8 +142,9 @@ test_that("nis_open reports incompatible annual Parquet types clearly", {
 
   query <- nis_open(path)
   expect_s3_class(query, "tbl_sql")
-  expect_equal(dplyr::collect(query |> dplyr::select(YEAR, field))$field,
-    c("1", "two"))
+  result <- dplyr::collect(query |> dplyr::select(YEAR, field))
+  expect_type(result$field, "character")
+  expect_equal(result$field, c("1", "two"))
 })
 
 test_that("derived DuckDB queries retain the connection until all are released", {

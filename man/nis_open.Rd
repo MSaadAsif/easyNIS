@@ -33,9 +33,15 @@ Open annual NIS Parquet files lazily
 }
 \details{
 \code{nis_open()} reads Parquet directly with DuckDB and returns a
-DuckDB-backed dbplyr table. The connection remains open while the lazy
-table is in use and closes after it is released. Use \code{dplyr::collect()} to
-return data to R. Earlier versions accepted \code{engine = "duckdb"}; remove
+DuckDB-backed dbplyr table. It accepts annual \code{NIS_<year>.parquet} files
+and Hive directories named \code{YEAR=YYYY} containing Parquet parts. If a part file
+has a physical \code{YEAR} column, its non-missing values must agree with the
+directory year; missing or absent physical values use the partition year.
+Schemas are combined by column name. When annual types differ, DuckDB may
+promote them; for example, an integer field combined with a character field
+is returned as character. The connection remains open while the lazy table
+is in use and closes after it is released. Use \code{dplyr::collect()} to return
+data to R. Earlier versions accepted \code{engine = "duckdb"}; remove
 that argument when migrating because DuckDB is now the only engine.
 String columns with malformed UTF-8 may fail during a native Parquet scan;
 validate or repair those values before writing Parquet files.

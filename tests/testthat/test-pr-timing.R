@@ -371,3 +371,30 @@ test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
   expect_identical(nis_prday_completeness(query, "OUT"),
     nis_prday_completeness(data, "OUT"))
 })
+
+test_that("PRDAY missing checks support logical, character, and numeric columns", {
+  day_values <- list(
+    logical = NA,
+    character = NA_character_,
+    numeric = NA_real_
+  )
+  for (day_type in names(day_values)) {
+    data <- dplyr::tibble(
+      YEAR = 2020L, I10_PR1 = "IX", I10_PR2 = "OUT",
+      PRDAY1 = 0L, PRDAY2 = day_values[[day_type]]
+    )
+    expected <- nis_flag_pr_timing(data, "IX", "OUT",
+      relation = "same_day", missing_day = "indeterminate")
+    query <- duckdb_query_fixture(data)
+    actual <- nis_flag_pr_timing(query, "IX", "OUT",
+      relation = "same_day", missing_day = "indeterminate") |>
+      dplyr::collect()
+    expect_identical(actual, expected, info = day_type)
+    expect_identical(nis_prday_completeness(query, "OUT"),
+      nis_prday_completeness(data, "OUT"), info = day_type)
+    con <- query$src$con
+    query <- NULL
+    invisible(gc())
+    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+  }
+})

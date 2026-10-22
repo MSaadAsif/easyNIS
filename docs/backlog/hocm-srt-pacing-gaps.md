@@ -618,7 +618,7 @@ Risk adjustment using the Healthcare Cost and Utilization Project (HCUP) AHRQ El
 - **Current behaviour:** It reshapes wide `I10_DX1`–`I10_DXk` columns of a collected data frame to long format and calls `medicalcoder::comorbidities()`.
 - **Gaps:**
   1. **Licensing Friction:** `medicalcoder` is licensed under GPL-3, creating license tension with easyNIS's permissive MIT license and the AGENTS.md mandate ("Use invented public fixtures and independent MIT code").
-  2. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB or DuckDB.
+  2. **Memory Blowup & Lack of Laziness:** It requires `dplyr::collect()` first. Reshaping 40 diagnosis columns for hundreds of thousands of discharges creates an intermediate object of tens of millions of rows in local RAM, causing out-of-memory crashes on typical workstations. It cannot evaluate lazily in DuckDB or R.
   3. **Heavy Dependency:** If `medicalcoder` is not installed or CRAN binary compilation fails in locked down research environments, comorbidity scoring is completely unavailable.
 
 ### Behaviour & Specification
@@ -628,7 +628,7 @@ Risk adjustment using the Healthcare Cost and Utilization Project (HCUP) AHRQ El
 - **Inputs:**
   - `.data`: Lazy DuckDB query, DuckDB connection, or data frame.
   - `version`: AHRQ software release version (`"v2022"`, `"v2023"`, `"v2024"`, `"v2025"`).
-  - `engine`: Compute backend (`"duckdb"`, `"DuckDB"`, or `"r"`).
+  - `engine`: Compute backend (`"duckdb"` or `"r"`).
   - `prefix`: Column prefix (default `"cmrb_"`).
 - **Outputs:**
   - Augmented `.data` with 38 logical comorbidity indicators (e.g., `<prefix>hf`, `<prefix>dm_cx`), summary condition count `<prefix>n`, `<prefix>any`, and numeric risk index weights `<prefix>mortality_index` and `<prefix>readmission_index`.

@@ -64,7 +64,7 @@ nis_prday_completeness <- function(.data, pr,
       nis_sql_match(pr, column) # nolint: object_usage_linter
     }
   })
-  eligibility <- code_system_filter(columns, "PR", system)
+  eligibility <- code_system_filter(.data, columns, "PR", system) # nolint: object_usage_linter
   if (!is.null(eligibility)) {
     matches <- lapply(matches, function(match) {
       nis_and_expr(eligibility, match) # nolint: object_usage_linter
@@ -86,7 +86,7 @@ nis_prday_completeness <- function(.data, pr,
       counts[[paste0("absent_prday_column", suffix)]] <-
         rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     } else {
-      day <- rlang::sym(day_name)
+      day <- nis_numeric_value_expr(day_name) # nolint: object_usage_linter
       missing <- nis_is_missing_expr(.data, day_name) # nolint: object_usage_linter
       counts[[paste0("known_day", suffix)]] <- rlang::expr(
         sum(as.integer(!!match & ! (!!missing) & !!day >= 0), na.rm = TRUE))

@@ -288,6 +288,28 @@ test_that("version, year and 2015 quarter metadata prevent wrong-era matches", {
   expect_false(any((add_flags(projected) |> dplyr::collect())$old))
 })
 
+test_that("NaN metadata is missing consistently for frames and DuckDB", {
+  data <- dplyr::tibble(
+    YEAR = c(2019, 2019, 2015, 2015, NaN),
+    DQTR = c(1, 1, 2, NaN, 1),
+    DXVER = c(NaN, 10, 10, 10, 10),
+    PRVER = c(10, NaN, 10, 10, 10),
+    I10_DX1 = rep("I501", 5L),
+    I10_PR1 = rep("02703ZZ", 5L)
+  )
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(hf = "I50") |>
+      nis_flag_pr(proc = "02703")
+  }
+
+  expected <- add_flags(data)
+  actual <- add_flags(duckdb_query_fixture(data)) |> dplyr::collect()
+  expect_identical(actual, expected)
+  expect_identical(expected$hf, c(TRUE, TRUE, FALSE, TRUE, TRUE))
+  expect_identical(expected$proc, c(TRUE, TRUE, FALSE, TRUE, TRUE))
+})
+
 test_that("invented 2015 split stays lazy across pooled years", {
   path <- nis_example(2012:2016)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
