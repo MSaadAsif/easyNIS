@@ -1,40 +1,61 @@
-test_that("nis_new_study copies the packaged template without overwriting", {
-  new_study <- getFromNamespace("nis_new_study", "easyNIS")
+test_that("nis_new_study copies the packaged template byte for byte", {
   parent <- tempfile("nis-study-")
-  target <- file.path(parent, "analysis")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  target <- file.path(parent, "nested", "analysis")
+  template <- system.file("templates", "nis-study", package = "easyNIS")
 
   expect_identical(
-    normalizePath(new_study(target), winslash = "/", mustWork = FALSE),
+    normalizePath(easyNIS::nis_new_study(target), winslash = "/", mustWork = FALSE),
     normalizePath(target, winslash = "/", mustWork = FALSE)
   )
-  expect_setequal(
-    list.files(target, all.files = TRUE, no.. = TRUE),
-    c("_quarto.yml", ".gitignore", "analysis.qmd")
-  )
-  expect_setequal(
-    readLines(file.path(target, ".gitignore")),
-    c("docs/", "*_files/", "*_cache/", ".quarto/", "*.html", "*.docx")
-  )
-  writeLines("keep me", file.path(target, "sentinel.txt"))
+  expected <- c("_quarto.yml", "analysis.qmd", ".gitignore")
+  expect_setequal(list.files(target, all.files = TRUE, no.. = TRUE), expected)
 
-  expect_error(new_study(target), "already exists")
-  expect_identical(readLines(file.path(target, "sentinel.txt")), "keep me")
-
-  unlink(parent, recursive = TRUE)
+  for (file in c("_quarto.yml", "analysis.qmd")) {
+    expect_identical(
+      readBin(file.path(target, file), "raw", n = file.info(file.path(target, file))$size),
+      readBin(file.path(template, file), "raw", n = file.info(file.path(template, file))$size)
+    )
+  }
+  expect_identical(
+    readBin(file.path(target, ".gitignore"), "raw",
+            n = file.info(file.path(target, ".gitignore"))$size),
+    readBin(file.path(template, "gitignore"), "raw",
+            n = file.info(file.path(template, "gitignore"))$size)
+  )
 })
 
-test_that("nis_new_study rejects invalid and occupied destinations", {
-  new_study <- getFromNamespace("nis_new_study", "easyNIS")
-  expect_error(new_study(NA_character_), "one non-empty")
-  expect_error(new_study(""), "one non-empty")
+test_that("nis_new_study preserves occupied destinations", {
+  parent <- tempfile("nis-study-occupied-")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  target <- file.path(parent, "analysis")
+  dir.create(target, recursive = TRUE)
+  writeLines("keep me", file.path(target, "sentinel.txt"))
 
-  parent <- tempfile("nis-study-file-")
-  dir.create(parent)
-  target <- file.path(parent, "occupied")
-  writeLines("keep me", target)
-  expect_error(new_study(target), "already exists")
-  expect_identical(readLines(target), "keep me")
-  unlink(parent, recursive = TRUE)
+  expect_error(easyNIS::nis_new_study(target), "already exists")
+  expect_identical(readLines(file.path(target, "sentinel.txt")), "keep me")
+
+  file_target <- file.path(parent, "occupied-file")
+  writeLines("also keep me", file_target)
+  expect_error(easyNIS::nis_new_study(file_target), "already exists")
+  expect_identical(readLines(file_target), "also keep me")
+})
+
+test_that("nis_new_study validates path arguments with stable conditions", {
+  expect_invalid_path <- function(path) {
+    error <- tryCatch(easyNIS::nis_new_study(path), error = identity)
+    expect_s3_class(error, "rlang_error")
+    expect_identical(conditionMessage(error),
+                     "`path` must be one non-empty directory path.")
+    expect_identical(conditionCall(error), quote(easyNIS::nis_new_study(path)))
+  }
+
+  expect_invalid_path(NA_character_)
+  expect_invalid_path("")
+  expect_invalid_path(" \t ")
+  expect_invalid_path(character())
+  expect_invalid_path(c("one", "two"))
+  expect_invalid_path(1)
 })
 
 test_that("the packaged Quarto template follows the scaffold contract", {
