@@ -208,7 +208,13 @@ test_that("nis_cell_counts handles an unstratified cell and validates its inputs
   expect_error(nis_cell_counts(records, by = "missing"), "missing")
   expect_error(nis_cell_counts(records["YEAR"], by = character()), "HOSP_NIS")
   expect_error(nis_cell_counts(list(records), by = character()), "record-level data frame")
+  expect_error(nis_cell_counts(transform(records, YEAR = "2020"), by = character()),
+    "finite positive")
   expect_error(nis_cell_counts(transform(records, YEAR = NA_real_), by = character()),
+    "finite positive")
+  expect_error(nis_cell_counts(transform(records, HOSP_NIS = Inf), by = character()),
+    "finite positive")
+  expect_error(nis_cell_counts(transform(records, HOSP_NIS = NA_real_), by = character()),
     "finite positive")
   expect_error(nis_cell_counts(transform(records, HOSP_NIS = 0), by = character()),
     "finite positive")
