@@ -7,6 +7,8 @@
 
 ## New features
 
+- Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
+  the repository limit without changing `nis_ccsr_codes()` behavior.
 - `nis_open()` combines annual Parquet files with Hive year partitions and
   returns `YEAR` as integer, rejecting invalid year values with a
   file-specific error.
@@ -45,6 +47,10 @@
   into internal helpers without changing their results or validation behavior.
 - Refactored `nis_design()` and `nis_reweight()` into private validation and
   preparation helpers without changing survey design behavior.
+
+## Maintenance
+
+- Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
 
 # easyNIS 0.2.0
 
