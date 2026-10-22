@@ -10,10 +10,8 @@
 ^\.Rproj$
 ^AGENTS\.md$
 ^CONTRIBUTING\.md$
-^CODE_OF_CONDUCT\.md$
 ^SECURITY\.md$
 ^GLOSSARY\.md$
-^LICENSE\.md$
 ^docs$
 ^tools($|[/\\])
 ^vignettes/articles($|[/\\])
@@ -26,3 +24,6 @@
 ^_pkgdown\.yml$
 ^_site($|[/\\])
 ^\.githooks($|[/\\])
+
+^codemeta\.json$
+^LICENSE-CHOICE\.md$

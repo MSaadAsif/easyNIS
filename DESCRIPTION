@@ -5,7 +5,8 @@ Authors@R: c(
     person("Muhammad", "Saad", role = c("aut", "cre"),
            email = "msaadasif.md@gmail.com",
            comment = c(ORCID = "0000-0002-1792-2357")),
-    person("Ali", role = "aut"))
+    person("Ali", "Salman", role = "aut",
+           comment = c(ORCID = "0009-0001-1102-226X")))
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
     diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
@@ -14,7 +15,7 @@ Description: Pipe-friendly tools for opening annual Healthcare Cost and
     applying supported HCUP labels, adjusting charges and costs, and reviewing
     disclosure risks. Experimental methods and annual-layout assumptions are
     not independently verified or scientifically approved.
-License: MIT + file LICENSE
+License: AGPL-3 + file LICENSE
 URL: https://github.com/MSaadAsif/easyNIS,
     https://msaadasif.github.io/easyNIS/
 BugReports: https://github.com/MSaadAsif/easyNIS/issues

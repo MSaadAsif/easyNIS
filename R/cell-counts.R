@@ -1,3 +1,50 @@
+.nis_cell_count_records <- function(.data) {
+  if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
+    .data <- .data$variables
+    if (".in_cohort" %in% names(.data)) {
+      .data <- dplyr::filter(.data, .in_cohort)
+    }
+  }
+  if (!is.data.frame(.data)) {
+    cli::cli_abort("`.data` must be a record-level data frame or `nis_design()` result.")
+  }
+  .data
+}
+
+.nis_cell_count_validate_by <- function(by) {
+  if (!is.character(by) || anyNA(by) || any(!nzchar(by))) {
+    cli::cli_abort("`by` must be a character vector of cell-defining columns.")
+  }
+}
+
+.nis_cell_count_validate_cols <- function(.data, by) {
+  required <- c("YEAR", "HOSP_NIS", by)
+  absent <- setdiff(required, names(.data))
+  if (length(absent)) {
+    cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
+  }
+}
+
+.nis_cell_count_valid_id <- function(value) {
+  is.numeric(value) && !anyNA(value) && all(is.finite(value)) && all(value > 0)
+}
+
+.nis_cell_count_validate_ids <- function(.data) {
+  year <- .data[["YEAR"]]
+  hospital <- .data[["HOSP_NIS"]]
+  if (!.nis_cell_count_valid_id(year) || !.nis_cell_count_valid_id(hospital)) {
+    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
+  }
+}
+
+.nis_cell_count_group <- function(.data, by) {
+  if (length(by)) {
+    dplyr::group_by(.data, dplyr::across(dplyr::all_of(by)))
+  } else {
+    dplyr::group_by(.data)
+  }
+}
+
 #' Count discharges and contributing hospitals by cell
 #'
 #' Produces the unweighted discharge and distinct hospital counts used by
@@ -20,35 +67,11 @@
 #' )
 #' nis_cell_counts(records, by = "group")
 nis_cell_counts <- function(.data, by) {
-  if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
-    .data <- .data$variables
-    if (".in_cohort" %in% names(.data)) {
-      .data <- dplyr::filter(.data, .in_cohort)
-    }
-  }
-  if (!is.data.frame(.data)) {
-    cli::cli_abort("`.data` must be a record-level data frame or `nis_design()` result.")
-  }
-  if (!is.character(by) || anyNA(by) || any(!nzchar(by))) {
-    cli::cli_abort("`by` must be a character vector of cell-defining columns.")
-  }
-  required <- c("YEAR", "HOSP_NIS", by)
-  absent <- setdiff(required, names(.data))
-  if (length(absent)) {
-    cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
-  }
-  year <- .data[["YEAR"]]
-  hospital <- .data[["HOSP_NIS"]]
-  if (!is.numeric(year) || !is.numeric(hospital) || anyNA(year) || anyNA(hospital) ||
-      any(!is.finite(year)) || any(!is.finite(hospital)) || any(year <= 0) ||
-      any(hospital <= 0)) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
-  }
-  grouped <- if (length(by)) {
-    dplyr::group_by(.data, dplyr::across(dplyr::all_of(by)))
-  } else {
-    dplyr::group_by(.data)
-  }
+  .data <- .nis_cell_count_records(.data)
+  .nis_cell_count_validate_by(by)
+  .nis_cell_count_validate_cols(.data, by)
+  .nis_cell_count_validate_ids(.data)
+  grouped <- .nis_cell_count_group(.data, by)
   dplyr::summarise(
     grouped,
     n = dplyr::n(),

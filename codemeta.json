@@ -5,7 +5,7 @@
   "name": "easyNIS",
   "description": "Pipe-friendly tools for opening annual Healthcare Cost and\nUtilization Project National Inpatient Sample Parquet files, flagging\ndiagnosis and procedure codes, looking up user-supplied CCSR codes, adding\nexperimental Elixhauser indicators, preparing designs and weights with the\n'survey' package,\napplying supported HCUP labels, adjusting charges and costs, and reviewing\ndisclosure risks. Experimental methods and annual-layout assumptions are\nnot independently verified or scientifically approved.",
   "version": "0.2.0.9000",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "codeRepository": "https://github.com/MSaadAsif/easyNIS",
   "issueTracker": "https://github.com/MSaadAsif/easyNIS/issues",
   "author": [
@@ -18,7 +18,9 @@
     },
     {
       "@type": "Person",
-      "givenName": "Ali"
+      "givenName": "Ali",
+      "familyName": "Salman",
+      "@id": "https://orcid.org/0009-0001-1102-226X"
     }
   ],
   "softwareRequirements": ["R (>= 4.1.0)", "arrow (>= 14.0.0)", "cli", "dplyr", "rlang", "srvyr", "tidyselect", "broom.helpers", "cardx", "dbplyr", "duckdb", "flextable", "forcats", "ggplot2", "gt", "gtsummary", "knitr", "medicalcoder (>= 0.10.0)", "purrr", "quarto", "readxl", "rmarkdown", "survey", "testthat (>= 3.1.7)", "zip"],

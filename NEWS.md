@@ -1,5 +1,11 @@
 # easyNIS (development version)
 
+## Project metadata
+
+- Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs
+  across package metadata, and remove duplicate MIT license files. Earlier MIT
+  releases retain their original license grant.
+
 ## New features
 
 - `nis_design()` warns when annualized valid-design data represented in `DQTR`
@@ -32,6 +38,8 @@
 - `nis_suppress()` now suppresses zero discharge counts at or below the
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.
+- Refactored code-transition auditing, cell counts, and attrition summaries
+  into internal helpers without changing their results or validation behavior.
 
 # easyNIS 0.2.0
 

@@ -24,6 +24,9 @@ dependencies <- unlist(lapply(c("Depends", "Imports", "Suggests", "LinkingTo"), 
   trimws(strsplit(value, ",", fixed = TRUE)[[1L]])
 }), use.names = FALSE)
 
+license <- sub(" \\+ file LICENSE$", "", field("License"))
+if (identical(license, "AGPL-3")) license <- "AGPL-3.0-only"
+
 metadata <- list(
   "@context" = "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type" = "SoftwareSourceCode",
@@ -31,7 +34,7 @@ metadata <- list(
   "name" = field("Package"),
   "description" = field("Description"),
   "version" = field("Version"),
-  "license" = sub(" \\+ file LICENSE$", "", field("License")),
+  "license" = license,
   "codeRepository" = trimws(strsplit(field("URL"), ",", fixed = TRUE)[[1L]][[1L]]),
   "issueTracker" = field("BugReports"),
   "author" = unname(lapply(authors, person_metadata)),
