@@ -613,3 +613,18 @@ test_that("survey suppression masks an overall cell when its own count is small"
   small <- dplyr::filter(suppressed$table_body, label == "small")
   expect_identical(enc2utf8(small$stat_0), "\u226410")
 })
+
+test_that("nis_suppress validation errors retain the public call", {
+  data <- data.frame(n = -1)
+  threshold_error <- tryCatch(
+    nis_suppress(data, count_col = "n", threshold = -1),
+    error = identity
+  )
+  count_error <- tryCatch(
+    nis_suppress(data, count_col = "n"),
+    error = identity
+  )
+
+  expect_identical(rlang::call_name(conditionCall(threshold_error)), "nis_suppress")
+  expect_identical(rlang::call_name(conditionCall(count_error)), "nis_suppress")
+})

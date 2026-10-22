@@ -33,6 +33,10 @@
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.
 
+## Maintenance
+
+- Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
+
 # easyNIS 0.2.0
 
 ## Highlights
