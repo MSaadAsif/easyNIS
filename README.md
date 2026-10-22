@@ -50,7 +50,7 @@ documentation and other methods or code-set references used in your analysis.
 
 Muhammad Saad ([ORCID](https://orcid.org/0000-0002-1792-2357)) and Ali Salman
 ([ORCID](https://orcid.org/0009-0001-1102-226X)) are the package authors.
-easyNIS is licensed under the [GNU Affero General Public License v3.0 only](LICENSE).
+easyNIS is licensed under the [GNU Affero General Public License v3.0 only](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).
 See [the license choice](LICENSE-CHOICE.md) for a comparison with MIT,
 Apache-2.0, and GPLv3. Earlier releases published under MIT remain available
 under the MIT license terms that applied to those releases.
