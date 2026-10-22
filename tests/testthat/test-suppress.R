@@ -535,3 +535,81 @@ test_that("nis_suppress masks the overall cell for continuous and missing rows",
   )
   expect_false(any(vapply(missing_row[c("stat_0", "stat_1", "stat_2")], is_masked, logical(1))))
 })
+
+test_that("nis_suppress preserves data-frame argument and value validation", {
+  data <- data.frame(n = c(4, 20), estimate = c(4.5, 20.5),
+    hospitals = c(2, 3), group = c("A", "A"))
+
+  expect_error(nis_suppress(data, count_col = "n", unused = TRUE), "Unused arguments")
+  for (threshold in list(-1, NA_real_, Inf, 0.5, "10", c(1, 2))) {
+    expect_error(nis_suppress(data, count_col = "n", threshold = threshold),
+      "non-negative whole number")
+  }
+  for (count_col in list(NULL, character(), c("n", "estimate"), NA_character_, "")) {
+    expect_error(nis_suppress(data, count_col = count_col), "count_col")
+  }
+  expect_error(nis_suppress(data, count_col = "n", secondary = NA), "secondary")
+  expect_error(nis_suppress(data, count_col = "n", secondary = 1), "secondary")
+  expect_error(nis_suppress(data, count_col = "n", weighted_cols = 1), "character vector")
+  expect_error(nis_suppress(data, count_col = "n", weighted_cols = NA_character_),
+    "character vector")
+  expect_error(nis_suppress(data, count_col = "n", by = 1), "character vector")
+  expect_error(nis_suppress(data, count_col = "n", hospital_col = c("hospitals", "n")),
+    "must name one column")
+  expect_error(nis_suppress(data, count_col = "n", hospital_col = "group"), "numeric")
+
+  for (hospital_count in list(NA_real_, Inf, -1, 1.5)) {
+    invalid <- data.frame(n = 20, hospitals = hospital_count)
+    expect_error(nis_suppress(invalid, count_col = "n", hospital_col = "hospitals"),
+      "finite, non-negative whole counts without missing values")
+  }
+})
+
+test_that("nis_suppress preserves survey-summary input errors and notices", {
+  table <- structure(list(cards = list(tbl_svysummary = data.frame())), class = "tbl_svysummary")
+  expect_error(nis_suppress(table, count_col = "n"), "apply only to data frames")
+  expect_error(nis_suppress(table, weighted_cols = "estimate"), "apply only to data frames")
+  expect_error(nis_suppress(table, by = "group"), "apply only to data frames")
+  expect_error(nis_suppress(table, hospital_col = "hospitals"), "apply only to data frames")
+  expect_error(nis_suppress(table, secondary = FALSE), "applies only to data frames")
+  expect_error(nis_suppress(list()), "tbl_svysummary")
+})
+
+test_that("data-frame complementary suppression leaves safe strata unchanged", {
+  data <- data.frame(n = c(20, 30), estimate = c(20.5, 30.5))
+  result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate")
+  expect_identical(result$n, c("20", "30"))
+  expect_identical(result$estimate, c("20.5", "30.5"))
+})
+
+test_that("survey suppression preserves unmatched and unclassified rows", {
+  data <- data.frame(category = factor(rep(c("small", "large"), c(4L, 12L))))
+  table <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), include = category, missing = "no"
+  )
+  original <- table$table_body
+  cards_without_levels <- table
+  cards_without_levels$cards$tbl_svysummary$variable_level <- NULL
+  without_levels <- nis_suppress(cards_without_levels)
+  expect_identical(without_levels$table_body$stat_0, original$stat_0)
+
+  unclassified <- table
+  row <- which(unclassified$table_body$row_type == "level")[[1L]]
+  unclassified$table_body$row_type[[row]] <- "unclassified"
+  unchanged <- nis_suppress(unclassified)
+  expect_identical(unchanged$table_body$stat_0[[row]], original$stat_0[[row]])
+})
+
+test_that("survey suppression masks an overall cell when its own count is small", {
+  data <- data.frame(
+    group = factor(rep(c("A", "B"), each = 4L)),
+    category = factor(rep(c("small", "large"), 4L), levels = c("small", "large"))
+  )
+  table <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), by = group, include = category, missing = "no"
+  ) |>
+    gtsummary::add_overall()
+  suppressed <- nis_suppress(table)
+  small <- dplyr::filter(suppressed$table_body, label == "small")
+  expect_identical(enc2utf8(small$stat_0), "\u226410")
+})
