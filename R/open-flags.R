@@ -11,10 +11,13 @@
 #'   and Hive directories named `YEAR=YYYY` containing Parquet parts. If a part file
 #'   has a physical `YEAR` column, its non-missing values must agree with the
 #'   directory year; missing or absent physical values use the partition year.
-#'   Schemas are combined by column name. When annual types differ, DuckDB may
-#'   promote them; for example, an integer field combined with a character field
-#'   is returned as character. The connection remains open while the lazy table
-#'   is in use and closes after it is released. Use `dplyr::collect()` to return
+#'   Schemas are combined by column name, including when annual files and Hive
+#'   partitions are mixed. When annual types differ, DuckDB may promote them;
+#'   for example, an integer field combined with a character field is returned
+#'   as character. When present, `YEAR` is validated and returned as integer;
+#'   invalid values identify the offending file in an error. The connection
+#'   remains open while the lazy table is in use and closes after it is released.
+#'   Use `dplyr::collect()` to return
 #'   data to R. Earlier versions accepted `engine = "duckdb"`; remove
 #'   that argument when migrating because DuckDB is now the only engine.
 #'   String columns with malformed UTF-8 may fail during a native Parquet scan;
@@ -103,8 +106,8 @@ nis_open <- function(path, years = NULL) {
   on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
     add = TRUE)
   nis_validate_hive_years(con, sources) # nolint: object_usage_linter
-  parquet <- nis_duckdb_parquet_sql(con, sources) # nolint: object_usage_linter
-  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  nis_validate_year_values(con, sources) # nolint: object_usage_linter
+  query <- nis_duckdb_query_from_parquet(con, sources) # nolint: object_usage_linter
   old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
   name_groups <- split(old_names, new_names)

@@ -74,6 +74,60 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_equal(selected_year$drift, 30.5)
 })
 
+test_that("nis_open combines annual files with Hive partitions", {
+  path <- tempfile("nis-mixed-layouts-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2019L, id = 1L, annual_only = "a"),
+    file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(dplyr::tibble(id = 2L, hive_only = "b"),
+    file.path(path, "YEAR=2020", "part.parquet"))
+
+  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id,
+    annual_only, hive_only))
+  expect_identical(sort(result$YEAR), c(2019L, 2020L))
+  expect_identical(sort(result$id), c(1L, 2L))
+  expect_identical(result$annual_only[!is.na(result$annual_only)], "a")
+  expect_identical(result$hive_only[!is.na(result$hive_only)], "b")
+  selected <- dplyr::collect(nis_open(path, years = 2020L) |>
+    dplyr::select(YEAR, id))
+  expect_identical(selected$YEAR, 2020L)
+  expect_identical(selected$id, 2L)
+})
+
+test_that("nis_open casts YEAR to integer and rejects non-numeric years", {
+  path <- tempfile("nis-year-types-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(
+    YEAR = 2019L, I10_DX1 = "I509", I10_PR1 = "02703ZZ"
+  ), file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(dplyr::tibble(
+    YEAR = "2020", I10_DX1 = "J189", I10_PR1 = "0JH60DZ"
+  ), file.path(path, "NIS_2020.parquet"))
+
+  query <- nis_open(path)
+  result <- query |>
+    nis_flag_dx(hf = "I50") |>
+    nis_flag_pr(proc = "02703") |>
+    dplyr::collect()
+  expect_type(result$YEAR, "integer")
+  expect_identical(result$hf, c(TRUE, FALSE))
+  expect_identical(result$proc, c(TRUE, FALSE))
+
+  write_duckdb_parquet(dplyr::tibble(YEAR = "unknown"),
+    file.path(path, "NIS_2021.parquet"))
+  expect_error(nis_open(path, years = 2021L), "YEAR.*NIS_2021[.]parquet")
+
+  for (bad_year in c("2019.5", "2147483648")) {
+    write_duckdb_parquet(dplyr::tibble(YEAR = bad_year),
+      file.path(path, "NIS_2022.parquet"))
+    expect_error(nis_open(path, years = 2022L),
+      "whole numbers within the integer range")
+    unlink(file.path(path, "NIS_2022.parquet"))
+  }
+})
+
 test_that("nis_open rejects physical years that conflict with Hive partitions", {
   path <- tempfile("nis-hive-year-conflict-")
   dir.create(path)
@@ -97,7 +151,7 @@ test_that("nis_open rejects physical years that conflict with Hive partitions", 
   dir.create(valid_path)
   on.exit(unlink(valid_path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(
-    dplyr::tibble(YEAR = c(2019L, NA_integer_), id = 1:2),
+    dplyr::tibble(YEAR = c(2019L, NaN), id = 1:2),
     file.path(valid_path, "YEAR=2019", "part-a.parquet")
   )
   write_duckdb_parquet(dplyr::tibble(id = 3L),

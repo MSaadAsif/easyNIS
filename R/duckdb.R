@@ -87,13 +87,72 @@ nis_duckdb_attach_finalizer <- function(tbl, con) {
   tbl
 }
 
-nis_duckdb_parquet_sql <- function(con, sources) {
+nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
   paths <- vapply(sources, function(path) {
     path <- normalizePath(path, winslash = "/", mustWork = TRUE)
     as.character(DBI::dbQuoteString(con, path))
   }, character(1))
   paste0("read_parquet([", paste(paths, collapse = ", "),
-    "], union_by_name = true, hive_partitioning = true)")
+    "], union_by_name = true, hive_partitioning = ",
+    if (hive_partitioning) "true" else "false", ")")
+}
+
+nis_duckdb_query_from_parquet <- function(con, sources) {
+  normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
+  is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
+  scans <- vapply(c(FALSE, TRUE), function(hive) {
+    selected <- sources[is_hive == hive]
+    if (length(selected) == 0L) return(NA_character_)
+    paste0("SELECT * FROM ", nis_duckdb_parquet_sql(con, selected,
+      hive_partitioning = hive))
+  }, character(1))
+  scans <- scans[!is.na(scans)]
+  parquet <- paste0("(", paste(scans, collapse = " UNION ALL BY NAME "), ")")
+  raw_query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  year_name <- colnames(raw_query)[toupper(colnames(raw_query)) == "YEAR"]
+  if (length(year_name) == 0L) return(raw_query)
+
+  year_column <- as.character(DBI::dbQuoteIdentifier(con, year_name[[1L]]))
+  year_double <- paste0("TRY_CAST(", year_column, " AS DOUBLE)")
+  normalized_year <- paste0("CASE WHEN isnan(", year_double,
+    ") THEN NULL ELSE TRY_CAST(", year_column, " AS INTEGER) END")
+  sql <- paste0("SELECT ", normalized_year, " AS YEAR, ",
+    "* EXCLUDE (", year_column, ") FROM ", parquet)
+  dplyr::tbl(con, dbplyr::sql(sql))
+}
+
+nis_validate_year_values <- function(con, sources) {
+  invalid <- character()
+  for (source in sources) {
+    normalized <- normalizePath(source, winslash = "/", mustWork = TRUE)
+    quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
+    scan <- paste0("read_parquet(", quoted_path,
+      ", hive_partitioning = false)")
+    schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
+    year_rows <- which(toupper(schema$column_name) == "YEAR")
+    if (length(year_rows) == 0L) next
+    year_column <- as.character(DBI::dbQuoteIdentifier(con,
+      schema$column_name[[year_rows[[1L]]]]))
+    year_double <- paste0("TRY_CAST(", year_column, " AS DOUBLE)")
+    is_out_of_range <- paste0("(", year_double, " < -2147483648 OR ",
+      year_double, " > 2147483647)")
+    is_fractional <- paste0("(", year_double, " <> floor(", year_double,
+      "))")
+    invalid_value <- paste0("(", year_column, " IS NOT NULL AND (",
+      year_double, " IS NULL OR (NOT isnan(", year_double, ") AND (",
+      is_fractional, " OR ", is_out_of_range, "))))")
+    count <- DBI::dbGetQuery(con, paste0(
+      "SELECT COUNT(*) AS n FROM ", scan, " WHERE ", invalid_value
+    ))$n[[1L]]
+    if (count > 0L) invalid <- c(invalid, source)
+  }
+  if (length(invalid) > 0L) {
+    cli::cli_abort(paste0(
+      "Invalid `YEAR` values were found in {.path {invalid}}; values must be ",
+      "whole numbers within the integer range."
+    ))
+  }
+  invisible(NULL)
 }
 
 nis_duckdb_write_parquet <- function(data, path) {

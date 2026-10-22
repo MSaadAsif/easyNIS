@@ -7,6 +7,9 @@
 
 ## New features
 
+- `nis_open()` combines annual Parquet files with Hive year partitions and
+  returns `YEAR` as integer, rejecting invalid year values with a
+  file-specific error.
 - `nis_design()` warns when annualized valid-design data represented in `DQTR`
   have fewer than four quarters, and explains how to exclude or separately
   reweight those years. It also warns when a 2015 cohort contains only
