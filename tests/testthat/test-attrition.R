@@ -113,4 +113,8 @@ test_that("nis_attrition returns an empty annual summary for empty input", {
   expect_named(result, c("YEAR", "step", "criterion", "n_unweighted",
     "n_dropped_unweighted", "n_weighted", "n_dropped_weighted", "pct_retained"))
   expect_equal(nrow(result), 0L)
+  expect_type(result$YEAR, "integer")
+  expect_type(result$n_unweighted, "integer")
+  expect_type(result$n_weighted, "double")
+  expect_type(result$pct_retained, "double")
 })
