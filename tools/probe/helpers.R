@@ -242,7 +242,52 @@ private_quality_diagnostics <- function(checks, records) {
       identical(record$pass, FALSE)
     }, logical(1)))
   }, logical(1))]
-  stats::setNames(lapply(failed, function(name) checks[[name]]$value), failed)
+  stats::setNames(lapply(failed, function(name) {
+    warnings <- checks[[name]]$warning_conditions
+    if (is.null(warnings)) warnings <- list()
+    list(result = checks[[name]]$value,
+      warnings = warnings)
+  }), failed)
+}
+
+capture_quality_step <- function(name, fn) {
+  started <- proc.time()[["elapsed"]]
+  warnings <- list()
+  value <- tryCatch(withCallingHandlers(fn(),
+    warning = function(w) {
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }), error = identity)
+  list(name = name, pass = !inherits(value, "error"),
+    error_class = if (inherits(value, "error")) class(value)[[1L]] else "",
+    error = if (inherits(value, "error")) "diagnostic text redacted" else "",
+    warning_conditions = warnings,
+    warnings = if (length(warnings)) "warning(s) captured" else "",
+    elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
+}
+
+goodpractice_pass <- function(value) {
+  if (!inherits(value, "goodPractice") || !is.list(value$checks) || !length(value$checks)) {
+    return(NA)
+  }
+  prep_values <- value[setdiff(names(value), "checks")]
+  if (any(vapply(prep_values, inherits, logical(1), "try-error"))) return(FALSE)
+  statuses <- lapply(value$checks, function(check) {
+    if (is.list(check) && "status" %in% names(check)) check$status else check
+  })
+  if (any(vapply(statuses, function(status) length(status) != 1L || is.na(status), logical(1)))) {
+    return(NA)
+  }
+  failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
+  if (is.null(failed)) return(NA)
+  !length(failed)
+}
+
+quality_public_detail <- function(name, passed) {
+  if (name %in% c("goodpractice", "pkgcheck") && identical(passed, FALSE)) {
+    return("check failures present")
+  }
+  ""
 }
 
 write_private_quality_diagnostics <- function(run_dir, checks, records) {

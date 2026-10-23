@@ -108,18 +108,42 @@ local({
 })
 
 local({
-  nested_message <- "synthetic manual generation failed because a required tool is unavailable"
-  synthetic_pkgcheck <- structure(list(
-    checks = list(rcmdcheck = list(errors = nested_message))
-  ), class = c("pkgcheck", "list"))
-  synthetic_goodpractice <- structure(list(checks = list(manual = nested_message)),
-    class = c("goodPractice", "list"))
-  checks <- list(pkgcheck = list(value = synthetic_pkgcheck),
-    goodpractice = list(value = synthetic_goodpractice))
-  records <- list(list(step = "pkgcheck", pass = FALSE,
-    detail = "pkgcheck reported a failed check"),
-    list(step = "goodpractice", pass = FALSE,
-      detail = "goodpractice reported a failed check"))
+  nested_pkgcheck_message <- "SYNTHETIC_PKG_CHECK_CONDITION_ABC"
+  nested_prep_message <- "SYNTHETIC_GOODPRACTICE_PREP_CONDITION_XYZ"
+  pkgcheck_condition <- simpleError(nested_pkgcheck_message)
+  rcmd_error <- structure(nested_pkgcheck_message, class = "try-error",
+    condition = pkgcheck_condition)
+  pkgcheck_summary <- getFromNamespace("summarise_gp_checks", "pkgcheck")(
+    list(goodpractice = list(rcmdcheck = rcmd_error)))
+  stopifnot(grepl(nested_pkgcheck_message, pkgcheck_summary$rcmd_errs, fixed = TRUE))
+
+  prep_result <- capture_quality_step("goodpractice", function() {
+    getFromNamespace("run_prep_step", "goodpractice")(
+      list(), "manual", function(...) stop(simpleError(nested_prep_message)), silent = TRUE)
+  })
+  stopifnot(length(prep_result$warning_conditions) == 1L,
+    grepl(nested_prep_message, conditionMessage(prep_result$warning_conditions[[1L]]), fixed = TRUE))
+  synthetic_goodpractice <- structure(list(
+    manual = prep_result$value$manual,
+    checks = list(manual = list(status = NA))
+  ), class = c("goodPractice", "list"))
+  stopifnot(length(goodpractice::failed_checks(synthetic_goodpractice)) == 0L,
+    identical(goodpractice_pass(synthetic_goodpractice), FALSE),
+    is.na(goodpractice_pass(structure(list(checks = list(manual = list(status = NA))),
+      class = c("goodPractice", "list")))))
+
+  synthetic_pkgcheck <- structure(list(checks = list(
+    goodpractice = list(rcmdcheck = rcmd_error)
+  )), class = c("pkgcheck", "list"))
+  checks <- list(pkgcheck = list(value = synthetic_pkgcheck, warning_conditions = list()),
+    goodpractice = list(value = synthetic_goodpractice,
+      warning_conditions = prep_result$warning_conditions))
+  records <- list(
+    list(step = "pkgcheck", status = "failed", pass = FALSE, error = "",
+      detail = quality_public_detail("pkgcheck", FALSE), warnings = ""),
+    list(step = "goodpractice", status = "failed", pass = FALSE, error = "",
+      detail = quality_public_detail("goodpractice", FALSE), warnings = prep_result$warnings)
+  )
   run_dir <- tempfile("synthetic-quality-run-")
   dir.create(run_dir)
   on.exit(unlink(run_dir, recursive = TRUE))
@@ -129,10 +153,19 @@ local({
   stopifnot(file.exists(private_path),
     identical(basename(dirname(private_path)), "private"),
     identical(basename(private_path), "quality-diagnostics.rds"),
-    identical(restored$pkgcheck$checks$rcmdcheck$errors, nested_message),
-    identical(restored$goodpractice$checks$manual, nested_message),
-    !grepl(nested_message, public_receipt, fixed = TRUE),
-    !grepl("failed because a required tool is unavailable", public_receipt, fixed = TRUE),
+    inherits(restored$pkgcheck$result, "pkgcheck"),
+    identical(attr(restored$pkgcheck$result$checks$goodpractice$rcmdcheck, "condition")$message,
+      nested_pkgcheck_message),
+    inherits(restored$goodpractice$result$manual, "try-error"),
+    identical(attr(restored$goodpractice$result$manual, "condition")$message, nested_prep_message),
+    identical(conditionMessage(restored$goodpractice$warnings[[1L]]),
+      conditionMessage(prep_result$warning_conditions[[1L]])),
+    !grepl(nested_pkgcheck_message, public_receipt, fixed = TRUE),
+    !grepl(nested_prep_message, public_receipt, fixed = TRUE),
+    !grepl("SYNTHETIC", public_receipt, fixed = TRUE),
+    identical(records[[2L]]$detail, "check failures present"),
+    identical(records[[2L]]$warnings, "warning(s) captured"),
+    identical(records[[2L]]$error, ""),
     length(private_quality_diagnostics(checks, list(list(step = "pkgcheck", pass = TRUE),
       list(step = "goodpractice", pass = TRUE)))) == 0L)
   clean_run_dir <- tempfile("synthetic-clean-quality-run-")

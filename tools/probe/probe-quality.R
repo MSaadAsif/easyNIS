@@ -19,18 +19,6 @@ if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && file.exists(file.path(quarto_pandoc
   Sys.setenv(RSTUDIO_PANDOC = quarto_pandoc)
 }
 
-safe <- function(name, fn) {
-  started <- proc.time()[["elapsed"]]
-  warnings <- character()
-  value <- tryCatch(withCallingHandlers(fn(),
-    warning = function(w) { warnings <<- c(warnings, conditionMessage(w)); invokeRestart("muffleWarning") }),
-    error = identity)
-  list(name = name, pass = !inherits(value, "error"),
-    error_class = if (inherits(value, "error")) class(value)[[1L]] else "",
-    error = if (inherits(value, "error")) redact_public_diagnostic(conditionMessage(value)) else "",
-    warnings = paste(redact_public_diagnostic(warnings), collapse = " | "),
-    elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
-}
 requested_text <- Sys.getenv("EASYNIS_QUALITY_STEPS", unset = "")
 requested_steps <- if (nzchar(requested_text)) strsplit(requested_text, ",", fixed = TRUE)[[1L]] else character()
 step_keys <- c("as_cran", "lintr", "cyclocomp", "coverage", "goodpractice", "pkgcheck", "pkgdown")
@@ -41,7 +29,7 @@ run_step <- function(key, name, fn) {
     return(list(name = name, pass = NA, error_class = "", error = "",
       warnings = "", elapsed_seconds = 0, value = "skipped_by_selection"))
   }
-  safe(name, fn)
+  capture_quality_step(name, fn)
 }
 
 checks <- list()
@@ -68,12 +56,6 @@ checks[["pkgdown"]] <- run_step("pkgdown", "pkgdown::check_pkgdown", function() 
   pkgdown::check_pkgdown(root)
 })
 
-goodpractice_pass <- function(value) {
-  if (!inherits(value, "goodPractice")) return(NA)
-  failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
-  if (is.null(failed)) return(NA)
-  !length(failed)
-}
 pkgcheck_pass <- function(value) {
   if (!inherits(value, "pkgcheck")) return(NA)
   summary_lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
@@ -82,18 +64,6 @@ pkgcheck_pass <- function(value) {
   if (!is.logical(okay) || length(okay) != 1L || is.na(okay)) return(NA)
   okay
 }
-tool_failures <- function(name, value) {
-  if (inherits(value, "goodPractice")) {
-    return(paste(goodpractice::failed_checks(value), collapse = ", "))
-  }
-  if (inherits(value, "pkgcheck")) {
-    lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
-      error = function(e) character())
-    return(paste(grep("heavy_multiplication_x", lines, value = TRUE), collapse = " | "))
-  }
-  ""
-}
-
 export_docs <- exported_example_status(root)
 exports <- export_docs$exports
 examples <- export_docs$has_examples
@@ -184,7 +154,10 @@ lint_detail <- function(value) {
 quality_step_detail <- function(x, counts) {
   value <- x$value
   if (inherits(value, "error")) return(x$error)
-  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(x$name, value))
+  if (x$name %in% c("goodpractice", "pkgcheck")) {
+    passed <- quality_step_pass(x, check_counts_for(value))
+    return(quality_public_detail(x$name, passed))
+  }
   if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
   if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(lint_detail(value))
   ""
