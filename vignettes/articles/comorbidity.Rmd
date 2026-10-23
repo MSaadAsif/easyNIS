@@ -26,7 +26,7 @@ other diagnosis columns.
 ```{r comorbidity, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
 discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::filter(AGE >= 18) |>
-  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 scored <- nis_comorbidity(discharges)
 head(scored[c("AGE", "cmrb_n", "cmrb_any")])
@@ -47,7 +47,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 design <- nis_design(
   nis,
   cohort = heart_failure,
-  keep = c(AGE, dplyr::starts_with("I10_DX"))
+  keep = c(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA"))
 )
 scored_design <- nis_comorbidity(design)
 head(scored_design$variables[c("AGE", "cmrb_n", "cmrb_any")])

@@ -94,7 +94,7 @@ above. Do not mix the two sets of indicators in one model.
 so do not collect and enrich the cohort before calling it. Keep the diagnosis
 columns in the design instead, then pass the design here:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
 design <- nis_comorbidity(design)
 }\if{html}{\out{</div>}}
 
@@ -105,7 +105,7 @@ design (clusters, strata, weights) untouched.
 \examples{
 \dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 comorbid <- nis_comorbidity(discharges)
 comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()

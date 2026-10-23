@@ -59,7 +59,7 @@
 #' columns in the design instead, then pass the design here:
 #'
 #' ```r
-#' design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
+#' design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
 #' design <- nis_comorbidity(design)
 #' ```
 #'
@@ -87,7 +87,7 @@
 #' @export
 #' @examplesIf rlang::is_installed("medicalcoder", version = "0.10.0")
 #' discharges <- nis_open(nis_example(years = 2019)) |>
-#'   dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+#'   dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
 #'   dplyr::collect()
 #' comorbid <- nis_comorbidity(discharges)
 #' comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
