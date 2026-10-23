@@ -316,6 +316,7 @@ test_that("invented 2015 split stays lazy across pooled years", {
   path <- nis_example(2012:2016)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   rlang::reset_message_verbosity("easyNIS_icd9_layout")
+  withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
   expect_message(query <- nis_open(path), "Experimental")
   repeated_messages <- character()
   withCallingHandlers(
@@ -357,9 +358,21 @@ test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", 
   path <- nis_example(2012:2013)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   rlang::reset_message_verbosity("easyNIS_icd9_layout")
+  withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
   expect_message(query <- nis_open(path, years = 2012), "ICD-9")
   expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
   expect_false(any(grepl("^I10_", colnames(query))))
   expect_error(nis_open(path, years = 2011), "before 2012")
   expect_error(nis_open(path, years = 2015), "No NIS Parquet entry")
+})
+
+test_that("nis_open validation errors retain the full public call", {
+  path <- tempfile("nis-open-invalid-years-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  condition <- tryCatch(nis_open(path, years = 2011L), error = identity)
+
+  expect_s3_class(condition, "rlang_error")
+  expect_identical(conditionCall(condition),
+    quote(nis_open(path, years = 2011L)))
 })

@@ -41,19 +41,21 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
                                missing_day = c("exclude", "assume_same_day",
                                  "indeterminate"),
                                system = c("icd10", "icd9")) {
+  error_call <- rlang::current_call()
   relation <- match.arg(relation)
   missing_day <- match.arg(missing_day)
   system <- match.arg(system)
   if (missing(window)) window <- NULL
   arguments <- timing_validate_args(.data, index_pr, outcome_pr, name,
-    relation, window, missing_day, system)
+    relation, window, missing_day, system, error_call)
   relation <- arguments$relation
   missing_day <- arguments$missing_day
   system <- arguments$system
   index_pr <- arguments$index_pr
   outcome_pr <- arguments$outcome_pr
   data_names <- arguments$data_names
-  layout <- timing_layout(data_names, system)
+  window <- arguments$window
+  layout <- timing_layout(data_names, system, error_call)
   matched <- timing_matches(.data, layout$procedure_names, index_pr, outcome_pr,
     data_names)
   .data <- matched$data
@@ -75,38 +77,39 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
 }
 
 timing_validate_args <- function(.data, index_pr, outcome_pr, name, relation,
-                                 window, missing_day, system) {
+                                 window, missing_day, system, error_call) {
   data_names <- nis_names(.data) # nolint: object_usage_linter
-  timing_validate_name(name, data_names)
-  timing_validate_window(relation, window)
+  timing_validate_name(name, data_names, error_call)
+  timing_validate_window(relation, window, error_call)
   if (relation == "within_days") window <- as.integer(window)
   index_pr <- normalize_prefixes(index_pr, "index_pr") # nolint: object_usage_linter
   outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr") # nolint: object_usage_linter
   list(relation = relation, missing_day = missing_day, system = system,
-    index_pr = index_pr, outcome_pr = outcome_pr, data_names = data_names)
+    index_pr = index_pr, outcome_pr = outcome_pr, data_names = data_names,
+    window = window)
 }
 
-timing_validate_name <- function(name, data_names) {
+timing_validate_name <- function(name, data_names, error_call) {
   if (!is.character(name) || length(name) != 1L || is.na(name) || !nzchar(name)) {
     cli::cli_abort("name must be a single non-empty column name.",
-      call = as.call(list(as.name("nis_flag_pr_timing"))))
+      call = error_call)
   }
   if (name %in% data_names) {
     cli::cli_abort("name must not replace an existing column.",
-      call = as.call(list(as.name("nis_flag_pr_timing"))))
+      call = error_call)
   }
 }
 
-timing_validate_window <- function(relation, window) {
+timing_validate_window <- function(relation, window, error_call) {
   if (relation == "within_days") {
     if (!timing_window_scalar(window) || !timing_window_range(window) ||
         window != as.integer(window)) {
       cli::cli_abort("window must be a single non-negative integer for within_days.",
-        call = as.call(list(as.name("nis_flag_pr_timing"))))
+        call = error_call)
     }
   } else if (!is.null(window)) {
     cli::cli_abort("window must be NULL unless relation is within_days.",
-      call = as.call(list(as.name("nis_flag_pr_timing"))))
+      call = error_call)
   }
 }
 
@@ -119,11 +122,11 @@ timing_window_range <- function(window) {
   window >= 0 && window <= .Machine$integer.max
 }
 
-timing_layout <- function(data_names, system) {
+timing_layout <- function(data_names, system, error_call) {
   stem <- if (system == "icd10") "I10_PR" else "PR"
   procedure_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
   day_names <- grep("^PRDAY[0-9]+$", data_names, value = TRUE)
-  timing_validate_layout(procedure_names, day_names, stem, system)
+  timing_validate_layout(procedure_names, day_names, stem, system, error_call)
   slots <- as.integer(sub(paste0("^", stem), "", procedure_names))
   order_slots <- order(slots)
   procedure_names <- procedure_names[order_slots]
@@ -134,15 +137,16 @@ timing_layout <- function(data_names, system) {
     day_by_slot = day_by_slot)
 }
 
-timing_validate_layout <- function(procedure_names, day_names, stem, system) {
+timing_validate_layout <- function(procedure_names, day_names, stem, system,
+                                   error_call) {
   if (length(procedure_names) == 0L) {
     cli::cli_abort(paste0("No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} PR columns (",
       stem, "<n>) were found."),
-      call = as.call(list(as.name("nis_flag_pr_timing"))))
+      call = error_call)
   }
   if (length(day_names) == 0L) {
     cli::cli_abort("No PRDAY<n> columns were found for procedure timing.",
-      call = as.call(list(as.name("nis_flag_pr_timing"))))
+      call = error_call)
   }
 }
 

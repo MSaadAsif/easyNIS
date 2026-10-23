@@ -1,4 +1,4 @@
-nis_validate_layout_years <- function(entries, found, years) {
+nis_validate_layout_years <- function(entries, found, years, error_call) {
   annual <- !dir.exists(entries)
   annual_years <- found[annual]
   hive_years <- found[!annual]
@@ -15,7 +15,7 @@ nis_validate_layout_years <- function(entries, found, years) {
     "A year is present in both annual and Hive layouts.\n",
     paste0("x Year is duplicated: ", details, collapse = "\n"),
     "\ni Keep one layout per year."
-  ), call = as.call(list(as.name("nis_open"))))
+  ), call = error_call)
 }
 
 #' Open annual NIS Parquet files lazily
@@ -71,7 +71,8 @@ nis_validate_layout_years <- function(entries, found, years) {
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 nis_open <- function(path, years = NULL) {
-  selected <- nis_open_select(path, years)
+  error_call <- rlang::current_call()
+  selected <- nis_open_select(path, years, error_call)
   nis_open_notice(selected$years)
   sources <- nis_open_sources(selected$entries, selected$found, selected$years)
   con <- nis_duckdb_connect() # nolint: object_usage_linter
@@ -86,16 +87,16 @@ nis_open <- function(path, years = NULL) {
   nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
 }
 
-nis_open_select <- function(path, years) {
-  entries <- nis_open_entries(path)
-  years <- nis_open_years(entries$found, years)
-  nis_validate_layout_years(entries$entries, entries$found, years)
+nis_open_select <- function(path, years, error_call) {
+  entries <- nis_open_entries(path, error_call)
+  years <- nis_open_years(entries$found, years, error_call)
+  nis_validate_layout_years(entries$entries, entries$found, years, error_call)
   list(entries = entries$entries, found = entries$found, years = years)
 }
 
-nis_open_entries <- function(path) {
+nis_open_entries <- function(path, error_call) {
   if (!dir.exists(path)) {
-    cli::cli_abort("`path` must name an existing directory.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("`path` must name an existing directory.", call = error_call)
   }
 
   entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
@@ -108,36 +109,36 @@ nis_open_entries <- function(path) {
   entries <- entries[!is.na(found)]
   found <- found[!is.na(found)]
   if (length(found) == 0L) {
-    cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.", call = error_call)
   }
   list(entries = entries, found = found)
 }
 
-nis_open_years <- function(found, years) {
+nis_open_years <- function(found, years, error_call) {
   if (is.null(years)) {
     years <- sort(found)
   }
-  years <- nis_open_validate_years(years)
+  years <- nis_open_validate_years(years, error_call)
   missing <- setdiff(years, found)
   if (length(missing) > 0L) {
     cli::cli_abort(
       "No NIS Parquet entry was found for year{?s} {.val {missing}}.",
-      call = as.call(list(as.name("nis_open")))
+      call = error_call
     )
   }
   years
 }
 
-nis_open_validate_years <- function(years) {
+nis_open_validate_years <- function(years, error_call) {
   if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
-    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
   }
   if (!nis_open_whole_years(years)) {
-    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
   }
   years <- unique(as.integer(years))
   if (any(years < 2012L)) {
-    cli::cli_abort("NIS years before 2012 are not supported.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("NIS years before 2012 are not supported.", call = error_call)
   }
   years
 }
