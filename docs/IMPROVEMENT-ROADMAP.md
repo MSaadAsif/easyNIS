@@ -8,7 +8,9 @@ real NIS results.
 ## Ready criteria
 
 1. **R CMD check --as-cran:** zero errors, warnings, and notes on CI. See the
-   `R CMD check --as-cran` criterion in `readiness.R`.
+   `R CMD check --as-cran` criterion in `readiness.R`. CI runs are looked up
+   by the current commit SHA; readiness still requires an `R-CMD-check` run
+   with that exact head SHA, completed status, and successful conclusion.
 2. **rOpenSci packaging guide:** conform to the packaging guide. See
    `rOpenSci packaging-guide conformance`.
 3. **Coverage:** test coverage is at least 90%. See `Test coverage >= 90%`.
