@@ -2,6 +2,8 @@
 
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
+- Preserve nested pkgcheck and goodpractice failure details in private quality
+  probe artifacts while keeping the public quality receipt summary-level.
 
 ## Project metadata
 

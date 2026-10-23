@@ -1,4 +1,5 @@
 source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "quality-diagnostics.R"))
 
 test_paths <- c(
   "C:\\sandbox\\invented person\\nis.parquet",
@@ -128,6 +129,70 @@ local({
   Sys.setenv(EASYNIS_LOOP_DIR = "from-shell")
   read_main_renviron(repo)
   stopifnot(identical(Sys.getenv("EASYNIS_LOOP_DIR"), "from-shell"))
+})
+
+local({
+  run_dir <- tempfile("synthetic-quality-run-")
+  dir.create(run_dir)
+  on.exit(unlink(run_dir, recursive = TRUE))
+  synthetic_failure <- "synthetic manual generation failed because a required tool is unavailable"
+  synthetic_check <- structure(list(
+    goodpractice = list(
+      checks = list(),
+      rcmdcheck = list(
+        errors = synthetic_failure,
+        warnings = "synthetic warning",
+        notes = character(),
+        status = 1L,
+        checkdir = "C:/synthetic/check"
+      )
+    )
+  ), class = c("pkgcheck", "list"))
+
+  private_file <- write_private_quality_diagnostics("pkgcheck", synthetic_check,
+    failed = TRUE, run_dir = run_dir)
+  private_text <- readLines(private_file, warn = FALSE)
+  public_summary <- quality_public_diagnostic_summary(synthetic_check)
+  public_receipt <- list(
+    step = "pkgcheck", status = "completed", pass = FALSE,
+    detail = public_summary,
+    private_diagnostics = "private/pkgcheck-diagnostics.txt",
+    commit = "synthetic-commit", working_tree_clean = TRUE,
+    errors = 1L
+  )
+  public_text <- paste(capture.output(dput(public_receipt)), collapse = "\n")
+
+  stopifnot(grepl(synthetic_failure, paste(private_text, collapse = "\n"), fixed = TRUE),
+    grepl("checkdir", paste(private_text, collapse = "\n"), fixed = TRUE),
+    !grepl(synthetic_failure, public_text, fixed = TRUE),
+    grepl("failed_checks=0; rcmdcheck_errors=1", public_summary, fixed = TRUE),
+    !grepl("synthetic", public_summary, fixed = TRUE),
+    identical(public_receipt$private_diagnostics, "private/pkgcheck-diagnostics.txt"),
+    identical(public_receipt$status, "completed"),
+    identical(public_receipt$pass, FALSE), identical(public_receipt$errors, 1L),
+    is.null(write_private_quality_diagnostics("pkgcheck", synthetic_check,
+      failed = FALSE, run_dir = tempfile("no-output-"))))
+
+  synthetic_gp <- structure(list(
+    checks = list(synthetic_check = list(status = FALSE,
+      positions = "synthetic source diagnostic")),
+    rcmdcheck = list(errors = synthetic_failure, checkdir = "C:/synthetic/check")
+  ), class = c("goodPractice", "list"))
+  gp_file <- write_private_quality_diagnostics("goodpractice", synthetic_gp,
+    failed = TRUE, run_dir = run_dir)
+  gp_summary <- quality_public_diagnostic_summary(synthetic_gp)
+  stopifnot(grepl("synthetic source diagnostic", paste(readLines(gp_file), collapse = "\n"), fixed = TRUE),
+    grepl("failed_checks=1; rcmdcheck_errors=1", gp_summary, fixed = TRUE),
+    !grepl("synthetic", gp_summary, fixed = TRUE))
+
+  synthetic_error <- simpleError("synthetic package check process error")
+  error_file <- write_private_quality_diagnostics("pkgcheck", synthetic_error,
+    failed = TRUE, run_dir = run_dir)
+  error_summary <- quality_public_diagnostic_summary(synthetic_error)
+  stopifnot(grepl("synthetic package check process error",
+    paste(readLines(error_file), collapse = "\n"), fixed = TRUE),
+    identical(error_summary, "tool execution failed"),
+    !grepl("synthetic", error_summary, fixed = TRUE))
 })
 
 cat("Probe-helper tests passed.\n")

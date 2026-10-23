@@ -2,6 +2,7 @@
 
 root <- normalizePath(".", mustWork = TRUE)
 source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "quality-diagnostics.R"))
 main_repo <- find_main_repo(root)
 read_main_renviron(main_repo)
 loop_dir <- Sys.getenv("EASYNIS_LOOP_DIR", unset = file.path(main_repo, "local", "loop"))
@@ -82,18 +83,6 @@ pkgcheck_pass <- function(value) {
   if (!is.logical(okay) || length(okay) != 1L || is.na(okay)) return(NA)
   okay
 }
-tool_failures <- function(name, value) {
-  if (inherits(value, "goodPractice")) {
-    return(paste(goodpractice::failed_checks(value), collapse = ", "))
-  }
-  if (inherits(value, "pkgcheck")) {
-    lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
-      error = function(e) character())
-    return(paste(grep("heavy_multiplication_x", lines, value = TRUE), collapse = " | "))
-  }
-  ""
-}
-
 export_docs <- exported_example_status(root)
 exports <- export_docs$exports
 examples <- export_docs$has_examples
@@ -183,8 +172,10 @@ lint_detail <- function(value) {
 }
 quality_step_detail <- function(x, counts) {
   value <- x$value
+  if (x$name %in% c("goodpractice", "pkgcheck")) {
+    return(quality_public_diagnostic_summary(value))
+  }
   if (inherits(value, "error")) return(x$error)
-  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(x$name, value))
   if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
   if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(lint_detail(value))
   ""
@@ -194,13 +185,22 @@ quality_record <- function(x, evidence) {
   counts <- check_counts_for(value)
   passed <- quality_step_pass(x, counts)
   detail <- quality_step_detail(x, counts)
+  warnings <- if (x$name %in% c("goodpractice", "pkgcheck")) length(x$warnings) else x$warnings
   if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
   list(step = x$name, status = quality_step_status(value, passed), pass = passed,
     error_class = x$error_class, result_class = paste(class(value), collapse = ","),
     commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
-    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds)
+    detail = detail, warnings = warnings, elapsed_seconds = x$elapsed_seconds)
 }
 records <- lapply(checks, quality_record, evidence = run_evidence)
+for (step in c("goodpractice", "pkgcheck")) {
+  private_file <- write_private_quality_diagnostics(step, checks[[step]]$value,
+    failed = identical(quality_step_pass(checks[[step]], check_counts_for(checks[[step]]$value)), FALSE),
+    run_dir = run_dir)
+  if (!is.null(private_file)) {
+    records[[step]]$private_diagnostics <- file.path("private", basename(private_file))
+  }
+}
 records[[length(records) + 1L]] <- list(step = "export_documentation", status = "completed",
   pass = all(examples), commit = run_evidence$commit,
   working_tree_clean = run_evidence$working_tree_clean, evidence = docs)
