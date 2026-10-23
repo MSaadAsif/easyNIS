@@ -24,7 +24,7 @@ errors enter.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -32,7 +32,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -43,7 +43,7 @@ files <- list.files(path, pattern = "part-0[.]parquet$", recursive = TRUE,
                     full.names = TRUE)
 con <- DBI::dbConnect(duckdb::duckdb())
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -84,7 +84,7 @@ no cohort cases from the design.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -92,7 +92,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -103,7 +103,7 @@ nis <- nis_open(path) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(one = 1L)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -179,7 +179,7 @@ with data-frame suppression.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -187,7 +187,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -196,7 +196,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -230,7 +230,7 @@ See how a cohort definition changes the discharge count at each step:
 
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -238,7 +238,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -246,7 +246,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -258,12 +258,12 @@ nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure, by_year = 
 #> # A tibble: 6 × 8
 #>    YEAR  step criterion      n_unweighted n_dropped_unweighted n_weighted
 #>   <int> <int> <chr>                 <int>                <int>      <dbl>
-#> 1  2019     0 All discharges           96                    0      114. 
-#> 2  2019     1 adults                   96                    0      114. 
-#> 3  2019     2 heart_failure            54                   42       62.4
-#> 4  2020     0 All discharges           96                    0      114. 
-#> 5  2020     1 adults                   96                    0      114. 
-#> 6  2020     2 heart_failure            54                   42       62.4
+#> 1  2020     0 All discharges           96                    0      114. 
+#> 2  2020     1 adults                   96                    0      114. 
+#> 3  2020     2 heart_failure            54                   42       62.4
+#> 4  2019     0 All discharges           96                    0      114. 
+#> 5  2019     1 adults                   96                    0      114. 
+#> 6  2019     2 heart_failure            54                   42       62.4
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
 ```
 
@@ -274,7 +274,7 @@ principal diagnosis:
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -282,7 +282,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4y9OOs/duckdb
+#> ℹ /tmp/Rtmpa015Y0/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

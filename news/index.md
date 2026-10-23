@@ -137,6 +137,9 @@
 
 ### Maintenance
 
+- Readiness finds CI runs by the current commit SHA, so successful
+  checks on another branch at the same commit are recognized while all
+  existing success requirements remain in place.
 - Refactored
   [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   into internal helpers; behavior is unchanged.
