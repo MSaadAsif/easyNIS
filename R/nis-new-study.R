@@ -351,7 +351,7 @@ nis_study_copy_template <- function(path, call) {
 #' study_path <- tempfile("nis-study-example-")
 #' nis_new_study(study_path)
 #' list.files(study_path, all.files = TRUE, no.. = TRUE)
-nis_new_study <- function(path = NULL) {
+nis_new_study <- function(path) {
   call <- sys.call()
   path <- nis_study_check_path(path, call)
   nis_study_create_path(path, call)
