@@ -12,7 +12,7 @@ nis_flag_dx(
 )
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{...}{Named flag definitions, such as \code{heart_failure = "I50"}.}
 
@@ -28,9 +28,9 @@ slots only.}
 \description{
 Each diagnosis slot is checked separately. Supplied prefixes are
 case-insensitive, and periods and spaces in them are ignored. Slot values are
-compared as stored, byte for byte, because NIS stores upper-case codes
-without periods; malformed UTF-8 therefore cannot raise an error. Matching
-stays lazy on Arrow queries and avoids per-row text normalization.
+compared as stored, case sensitively, because NIS stores upper-case codes
+without periods. Matching stays lazy in DuckDB and avoids per-row text
+normalization.
 }
 \details{
 \code{system} picks which slots are tested. \code{"icd10"} reads \code{I10_DX1}, \code{I10_DX2},

@@ -15,7 +15,7 @@ nis_audit_code_transition(
 )
 }
 \arguments{
-\item{.data}{A data frame or lazy Arrow query.}
+\item{.data}{A data frame or lazy DuckDB query.}
 
 \item{codes}{A named character vector or named list of character vectors.
 Each name is a \code{code_group}; each value contains prefixes. Names must be

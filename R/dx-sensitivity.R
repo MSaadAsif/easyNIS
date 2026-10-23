@@ -4,7 +4,7 @@
 #' positions only, and any position. Prefix matching and code-system eligibility
 #' follow [nis_flag_dx()].
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param code Non-missing character vector of diagnosis prefixes.
 #' @param name Base name for the added columns. The function adds
 #'   `<name>_principal`, `<name>_secondary_only`, and `<name>_any`.
@@ -26,7 +26,7 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
     cli::cli_abort("`name` must be one syntactic column-name prefix.")
   }
   output_names <- paste0(name, c("_principal", "_secondary_only", "_any"))
-  if (any(output_names %in% names(.data))) {
+  if (any(output_names %in% nis_names(.data))) { # nolint: object_usage_linter
     cli::cli_abort("The diagnosis-position output columns must not replace existing columns.")
   }
 
@@ -52,7 +52,7 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
 #' [nis_suppress()] before reporting under the HCUP Data Use Agreement, which
 #' prohibits reporting cells of 1–10.
 #'
-#' @param .data A data frame or lazy Arrow query.
+#' @param .data A data frame or lazy DuckDB query.
 #' @param code Non-missing character vector of diagnosis prefixes.
 #' @param system Code system of the diagnosis slots: `"icd10"` (default) or
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
@@ -75,20 +75,10 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
                                outcomes = c("DIED", "ELECTIVE")) {
   system <- match.arg(system)
   outcomes_were_supplied <- !missing(outcomes)
-  if (!is.character(weight_var) || length(weight_var) != 1L ||
-      is.na(weight_var) || !nzchar(weight_var)) {
-    cli::cli_abort("`weight_var` must be one column name.")
-  }
-  if (!is.character(outcomes) || anyNA(outcomes) || any(!nzchar(outcomes)) ||
-      anyDuplicated(outcomes)) {
-    cli::cli_abort("`outcomes` must be a character vector of unique column names.")
-  }
-  absent_outcomes <- setdiff(outcomes, names(.data))
-  if (outcomes_were_supplied && length(absent_outcomes) > 0L) {
-    cli::cli_abort("Missing requested outcome column{?s}: {.val {absent_outcomes}}.")
-  }
-  outcomes <- intersect(outcomes, names(.data))
-  if (!weight_var %in% names(.data)) {
+  dx_validate_weight(weight_var)
+  outcomes <- dx_validate_outcomes(outcomes, .data, outcomes_were_supplied)
+  outcomes <- intersect(outcomes, nis_names(.data)) # nolint: object_usage_linter
+  if (!weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
     cli::cli_abort("Weight column {.val {weight_var}} is missing from `.data`.")
   }
 
@@ -99,39 +89,72 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
   }
   data <- add_position_flags(.data)
 
-  summary_exprs <- list()
-  for (presentation in names(flags)) {
-    flag <- flags[[presentation]]
-    summary_exprs[[paste0(flag, "_n")]] <- rlang::expr(
-      sum(dplyr::coalesce(!!rlang::sym(flag), FALSE))
-    )
-    summary_exprs[[paste0(flag, "_weighted")]] <- rlang::expr(
-      sum(dplyr::if_else(!!rlang::sym(flag), !!rlang::sym(weight_var), 0),
-        na.rm = TRUE)
-    )
-    for (outcome in outcomes) {
-      value <- rlang::sym(outcome)
-      weight <- rlang::sym(weight_var)
-      selected <- rlang::sym(flag)
-      summary_exprs[[paste0(flag, "_", outcome, "_n")]] <- rlang::expr(
-        sum(!!selected & !is.na(!!value))
-      )
-      summary_exprs[[paste0(flag, "_", outcome, "_events")]] <- rlang::expr(
-        sum(!!selected & !is.na(!!value) & !!value == 1)
-      )
-      summary_exprs[[paste0(flag, "_", outcome, "_weighted_n")]] <- rlang::expr(
-        sum(dplyr::if_else(!!selected & !is.na(!!value), !!weight, 0),
-          na.rm = TRUE)
-      )
-      summary_exprs[[paste0(flag, "_", outcome, "_weighted_events")]] <- rlang::expr(
-        sum(dplyr::if_else(!!selected & !is.na(!!value) & !!value == 1,
-          !!weight, 0), na.rm = TRUE)
-      )
-    }
-  }
+  summary_exprs <- dx_summary_exprs(flags, outcomes, weight_var)
   summary <- dplyr::summarise(data, !!!summary_exprs) |>
     dplyr::collect()
+  dx_summary_result(summary, flags, outcomes)
+}
 
+dx_validate_weight <- function(weight_var) {
+  if (!is.character(weight_var) || length(weight_var) != 1L ||
+      is.na(weight_var) || !nzchar(weight_var)) {
+    cli::cli_abort("`weight_var` must be one column name.",
+      call = rlang::caller_call())
+  }
+}
+
+dx_validate_outcomes <- function(outcomes, data, supplied) {
+  if (!is.character(outcomes) || anyNA(outcomes) || any(!nzchar(outcomes)) ||
+      anyDuplicated(outcomes)) {
+    cli::cli_abort("`outcomes` must be a character vector of unique column names.",
+      call = rlang::caller_call())
+  }
+  absent <- setdiff(outcomes, nis_names(data)) # nolint: object_usage_linter
+  if (supplied && length(absent) > 0L) {
+    cli::cli_abort("Missing requested outcome column{?s}: {.val {absent}}.",
+      call = rlang::caller_call())
+  }
+  outcomes
+}
+
+dx_summary_exprs <- function(flags, outcomes, weight_var) {
+  Reduce(c, lapply(names(flags), function(presentation) {
+    dx_flag_exprs(flags[[presentation]], outcomes, weight_var)
+  }))
+}
+
+dx_flag_exprs <- function(flag, outcomes, weight_var) {
+  expressions <- list(
+    rlang::expr(sum(dplyr::coalesce(!!rlang::sym(flag), FALSE))),
+    rlang::expr(sum(dplyr::if_else(!!rlang::sym(flag),
+      !!rlang::sym(weight_var), 0), na.rm = TRUE))
+  )
+  names(expressions) <- paste0(flag, c("_n", "_weighted"))
+  for (outcome in outcomes) {
+    expressions <- c(expressions,
+      dx_outcome_exprs(flag, outcome, weight_var))
+  }
+  expressions
+}
+
+dx_outcome_exprs <- function(flag, outcome, weight_var) {
+  value <- rlang::sym(outcome)
+  weight <- rlang::sym(weight_var)
+  selected <- rlang::sym(flag)
+  expressions <- list(
+    rlang::expr(sum(!!selected & !is.na(!!value))),
+    rlang::expr(sum(!!selected & !is.na(!!value) & !!value == 1)),
+    rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value),
+      !!weight, 0), na.rm = TRUE)),
+    rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value) &
+      !!value == 1, !!weight, 0), na.rm = TRUE))
+  )
+  names(expressions) <- paste0(flag, "_", outcome,
+    c("_n", "_events", "_weighted_n", "_weighted_events"))
+  expressions
+}
+
+dx_summary_result <- function(summary, flags, outcomes) {
   any_n <- summary[[paste0(flags[["any"]], "_n")]][[1L]]
   any_weighted <- summary[[paste0(flags[["any"]], "_weighted")]][[1L]]
   result <- dplyr::tibble(
@@ -154,16 +177,28 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
     NA_real_
   }
   for (outcome in outcomes) {
-    result[[paste0(outcome, "_rate_unweighted")]] <- unname(vapply(flags, function(flag) {
-      denominator <- summary[[paste0(flag, "_", outcome, "_n")]][[1L]]
-      if (denominator == 0) NA_real_ else
-        summary[[paste0(flag, "_", outcome, "_events")]][[1L]] / denominator
-    }, numeric(1)))
-    result[[paste0(outcome, "_rate_weighted")]] <- unname(vapply(flags, function(flag) {
-      denominator <- summary[[paste0(flag, "_", outcome, "_weighted_n")]][[1L]]
-      if (denominator == 0) NA_real_ else
-        summary[[paste0(flag, "_", outcome, "_weighted_events")]][[1L]] / denominator
-    }, numeric(1)))
+    result <- dx_append_rates(result, summary, flags, outcome)
   }
   result
+}
+
+dx_append_rates <- function(result, summary, flags, outcome) {
+  result[[paste0(outcome, "_rate_unweighted")]] <- dx_rate_vector(
+    summary, flags, outcome, FALSE)
+  result[[paste0(outcome, "_rate_weighted")]] <- dx_rate_vector(
+    summary, flags, outcome, TRUE)
+  result
+}
+
+dx_rate_vector <- function(summary, flags, outcome, weighted) {
+  suffix <- if (weighted) "_weighted" else ""
+  events <- if (weighted) "_weighted_events" else "_events"
+  unname(vapply(flags, function(flag) {
+    denominator <- summary[[paste0(flag, "_", outcome, suffix, "_n")]][[1L]]
+    if (denominator == 0) {
+      NA_real_
+    } else {
+      summary[[paste0(flag, "_", outcome, events)]][[1L]] / denominator
+    }
+  }, numeric(1)))
 }

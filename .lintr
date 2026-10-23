@@ -1,10 +1,18 @@
 linters: linters_with_defaults(
+    cyclocomp_linter(15),
     line_length_linter(120),
     indentation_linter = NULL
   )
 exclusions: list(
-    "inst/templates" = list(object_usage_linter = Inf),
-    "tests/testthat" = list(object_usage_linter = Inf),
-    "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf, object_usage_linter = Inf)
+    "R/ccsr.R" = list(cyclocomp_linter = Inf),
+    "R/comorbidity.R" = list(cyclocomp_linter = Inf),
+    "R/cost-example.R" = list(cyclocomp_linter = Inf),
+    "R/dx-sensitivity.R" = list(cyclocomp_linter = Inf),
+    "R/labels.R" = list(cyclocomp_linter = Inf),
+    "R/nis-new-study.R" = list(cyclocomp_linter = Inf),
+    "R/open-flags.R" = list(cyclocomp_linter = Inf),
+    "R/pr-timing.R" = list(cyclocomp_linter = Inf),
+    "R/suppress.R" = list(cyclocomp_linter = Inf),
+    "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf)
   )
 encoding: "UTF-8"
