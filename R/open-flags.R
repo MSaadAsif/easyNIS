@@ -74,7 +74,8 @@ nis_open <- function(path, years = NULL) {
   error_call <- rlang::current_call()
   selected <- nis_open_select(path, years, error_call)
   nis_open_notice(selected$years)
-  sources <- nis_open_sources(selected$entries, selected$found, selected$years)
+  sources <- nis_open_sources(selected$entries, selected$found, selected$years,
+    error_call)
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
     add = TRUE)
@@ -157,7 +158,7 @@ nis_open_notice <- function(years) {
   invisible(NULL)
 }
 
-nis_open_sources <- function(entries, found, years) {
+nis_open_sources <- function(entries, found, years, error_call) {
   year_entries <- entries[found %in% years]
   sources <- unlist(lapply(year_entries, function(entry) {
     if (dir.exists(entry)) {
@@ -168,7 +169,8 @@ nis_open_sources <- function(entries, found, years) {
     }
   }), use.names = FALSE)
   if (length(sources) == 0L) {
-    cli::cli_abort("The selected NIS entries contain no Parquet part files.", call = as.call(list(as.name("nis_open"))))
+    cli::cli_abort("The selected NIS entries contain no Parquet part files.",
+      call = error_call)
   }
   unique(sources)
 }

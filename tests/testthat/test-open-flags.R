@@ -376,3 +376,16 @@ test_that("nis_open validation errors retain the full public call", {
   expect_identical(conditionCall(condition),
     quote(nis_open(path, years = 2011L)))
 })
+
+test_that("nis_open source errors retain the full public call", {
+  path <- tempfile("nis-open-empty-hive-")
+  dir.create(file.path(path, "YEAR=2012"), recursive = TRUE)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+
+  condition <- tryCatch(nis_open(path, years = 2012L), error = identity)
+
+  expect_s3_class(condition, "rlang_error")
+  expect_match(conditionMessage(condition), "no Parquet part files")
+  expect_identical(conditionCall(condition),
+    quote(nis_open(path, years = 2012L)))
+})

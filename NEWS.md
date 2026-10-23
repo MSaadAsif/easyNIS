@@ -12,8 +12,6 @@
 
 - Reduced cyclomatic complexity in data opening and procedure timing helpers
   without changing their results or lazy DuckDB query behavior.
-- Procedure timing now consistently accepts whole-number numeric windows after
-  validating them as non-negative integers.
 - The experimental pre-2016 ICD-9 layout notice from `nis_open()` now appears
   once per R session.
 - Internal helpers now split validation, cost adjustment, and synthetic fixture
