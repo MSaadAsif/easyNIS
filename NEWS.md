@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- The real-data workflow probe discovers diagnosis and POA fields from lazy
+  query schemas with `colnames()`, so those fields are retained by `nis_design()`.
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 
