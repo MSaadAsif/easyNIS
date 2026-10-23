@@ -44,12 +44,22 @@ remain pending scientific approval.
 \section{Assumptions}{
 
 \itemize{
-\item \strong{Present on admission is approximated.} NIS includes diagnosis POA fields
-(\code{DXPOA1}, \code{DXPOA2}, and so on), but this helper does not use them. It passes
-every diagnosis as present on admission (\code{poa = 1L}). AHRQ's refined
-Elixhauser method requires POA for 18 of its 38 measures, so this
-approximation can count a complication that arose during the stay as
-pre-existing for a POA-sensitive measure.
+\item \strong{Present on admission uses available diagnosis indicators.} Matching
+\code{DXPOAn} columns are aligned with \code{I10_DXn}; \code{Y} and \code{W} map to present,
+while \code{N} and \code{U} map to not present. Other values, including \code{1} and
+invalid UTF-8 values, are treated as unknown. \code{medicalcoder} applies its
+POA-exempt code table, based
+on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
+adjusted for discharge date, so exempt-code results can differ slightly
+from AHRQ software across fiscal years. If a matching POA column is absent,
+that diagnosis is assumed present to retain compatibility with older years
+and inputs that did not keep POA fields. A warning names the affected slots;
+their POA-dependent comorbidities may include conditions acquired in
+hospital. AHRQ's refined software requires POA to assign 18 of 38 measures
+and returns missing results when required POA data are unavailable
+(\href{https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf}{AHRQ User Guide}).
+Thus, results can change for inputs that include POA fields: AHRQ's refined
+Elixhauser method requires POA for 18 of its 38 measures.
 \item \strong{Principal diagnosis} is \code{I10_DX1}. It is passed as the primary
 diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
@@ -84,7 +94,7 @@ above. Do not mix the two sets of indicators in one model.
 so do not collect and enrich the cohort before calling it. Keep the diagnosis
 columns in the design instead, then pass the design here:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
 design <- nis_comorbidity(design)
 }\if{html}{\out{</div>}}
 
@@ -95,7 +105,7 @@ design (clusters, strata, weights) untouched.
 \examples{
 \dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 comorbid <- nis_comorbidity(discharges)
 comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()

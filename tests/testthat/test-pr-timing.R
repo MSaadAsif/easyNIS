@@ -36,6 +36,31 @@ test_that("procedure timing evaluates every relation and the earliest index day"
   expect_error(nis_flag_pr_timing(data, "ix", "out-"), "letters and numbers")
 })
 
+test_that("procedure timing validation errors retain their public call", {
+  data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
+    PRDAY2 = 1L)
+  condition <- tryCatch(
+    nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days", window = Inf),
+    error = identity
+  )
+
+  expect_s3_class(condition, "rlang_error")
+  expect_identical(conditionCall(condition),
+    quote(nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days",
+      window = Inf)))
+})
+
+test_that("procedure timing normalizes whole numeric windows in SQL", {
+  data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
+    PRDAY2 = 1L)
+  query <- duckdb_query_fixture(data)
+  sql <- dbplyr::sql_render(nis_flag_pr_timing(query, "IX", "OUT",
+    relation = "within_days", window = 2.0))
+
+  expect_true(any(grepl("<= 2[,)]", sql)))
+  expect_false(any(grepl("<= 2[.]0", sql)))
+})
+
 test_that("procedure timing accepts integer and mixed numeric day columns", {
   integer_days <- dplyr::tibble(
     I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),

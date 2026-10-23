@@ -10,6 +10,10 @@
 
 ## New features
 
+- Reduced cyclomatic complexity in data opening and procedure timing helpers
+  without changing their results or lazy DuckDB query behavior.
+- The experimental pre-2016 ICD-9 layout notice from `nis_open()` now appears
+  once per R session.
 - Internal helpers now split validation, cost adjustment, and synthetic fixture
   construction in `nis_cost()` and `nis_example()` while preserving their
   existing behavior.
@@ -52,6 +56,18 @@
 - `nis_suppress()` now suppresses zero discharge counts at or below the
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.
+- `nis_comorbidity()` now uses aligned `DXPOAn` fields when available. `Y` and
+  `W` count as present on admission, `N` and `U` do not, and other values are
+  unknown, including invalid UTF-8 values. Missing POA columns retain the prior
+  assumed-present behavior and now warn with the affected diagnosis slots;
+  POA-dependent comorbidities may include conditions acquired in hospital.
+  AHRQ requires POA to assign 18 of 38 measures and returns missing results
+  when required POA information is absent
+  ([User Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
+  `medicalcoder` 0.10.0's exemption mapping covers AHRQ FY2022–FY2026 and
+  reports consistent exemption status across those releases, but does not
+  adjust exemption status for discharge date. Exempt-code results can therefore
+  differ slightly from AHRQ software across fiscal years.
 - Refactored code-transition auditing, cell counts, and attrition summaries
   into internal helpers without changing their results or validation behavior.
 - Refactored `nis_design()` and `nis_reweight()` into private validation and
