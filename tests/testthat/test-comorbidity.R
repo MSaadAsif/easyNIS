@@ -20,6 +20,14 @@ direct <- function(rows, method = "elixhauser_ahrq_icd10") {
   )
 }
 
+without_poa_warning <- function(expr) {
+  withCallingHandlers(expr, warning = function(warning) {
+    if (grepl("No matching POA column", conditionMessage(warning))) {
+      invokeRestart("muffleWarning")
+    }
+  })
+}
+
 test_that("codes map to the conditions in medicalcoder's own tables", {
   skip_if_not_installed("medicalcoder")
   conditions <- c("AIDS", "DEMENTIA", "PSYCHOSES")
@@ -30,7 +38,7 @@ test_that("codes map to the conditions in medicalcoder's own tables", {
     I10_DX3 = NA_character_
   )
 
-  out <- nis_comorbidity(data)
+  out <- suppressWarnings(nis_comorbidity(data))
 
   for (i in seq_along(conditions)) {
     expect_true(out[[paste0("cmrb_", tolower(conditions[[i]]))]][[i]])
@@ -59,7 +67,7 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
       codes[["AIDS"]])
   )
 
-  expect_warning(out <- nis_comorbidity(data), "2 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "2 rows")
 
   expect_identical(out$KEY, 1:6)
   expect_identical(out$cmrb_aids, c(FALSE, NA, NA, TRUE, FALSE, TRUE))
@@ -82,7 +90,7 @@ test_that("I10_DX1 is passed as the principal diagnosis", {
     I10_DX1 = c(hf, "ZZZ99"),
     I10_DX2 = c(NA, hf)
   )
-  out <- nis_comorbidity(data)
+  out <- suppressWarnings(nis_comorbidity(data))
 
   expected <- direct(data.frame(
     id = c(1L, 2L, 2L),
@@ -93,6 +101,102 @@ test_that("I10_DX1 is passed as the principal diagnosis", {
   expect_true(out$cmrb_hf[[2L]])
 })
 
+test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
+  skip_if_not_installed("medicalcoder")
+  hf <- single_codes("HF")
+  data <- dplyr::tibble(
+    I10_DX1 = "ZZZ99",
+    I10_DX2 = hf,
+    DXPOA1 = "Y",
+    DXPOA2 = "N"
+  )
+
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "Y"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "U"
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA2 <- "W"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+
+  data <- dplyr::select(data, -dplyr::starts_with("DXPOA"))
+  expect_warning(out <- nis_comorbidity(data), "I10_DX1.*I10_DX2")
+  expect_true(out$cmrb_hf)
+})
+
+test_that("invalid UTF-8 POA indicators are treated as unknown", {
+  skip_if_not_installed("medicalcoder")
+  malformed <- rawToChar(as.raw(c(0x59, 0xff)))
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = malformed)
+
+  long <- nis_comorbidity_long(data, "I10_DX1", 1L, nrow(data))
+  expect_true(is.na(long$poa[[1L]]))
+  expect_no_error(nis_comorbidity(data))
+})
+
+test_that("POA indicators follow sparse diagnosis suffixes", {
+  skip_if_not_installed("medicalcoder")
+  hf <- single_codes("HF")
+  data <- dplyr::tibble(
+    I10_DX3 = hf,
+    DXPOA1 = "Y",
+    I10_DX1 = "ZZZ99",
+    DXPOA3 = "N"
+  )
+
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA3 <- "W"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+})
+
+test_that("partial and absent POA columns warn and assume present", {
+  skip_if_not_installed("medicalcoder")
+  hf <- single_codes("HF")
+  partial <- dplyr::tibble(
+    I10_DX1 = "ZZZ99", I10_DX2 = "ZZZ99", I10_DX3 = hf,
+    DXPOA1 = "Y", DXPOA2 = "Y"
+  )
+  expect_warning(partial_out <- nis_comorbidity(partial), "I10_DX3")
+  expect_true(partial_out$cmrb_hf)
+
+  absent <- dplyr::select(partial, -dplyr::starts_with("DXPOA"))
+  expect_warning(absent_out <- nis_comorbidity(absent), "I10_DX1.*I10_DX2.*I10_DX3")
+  expect_true(absent_out$cmrb_hf)
+})
+
+test_that("POA exemptions are applied to exempt codes in POA-required conditions", {
+  skip_if_not_installed("medicalcoder")
+  codes <- medicalcoder::get_elixhauser_codes()
+  poa <- medicalcoder::get_elixhauser_poa()
+  candidates <- merge(
+    codes[codes$icdv == 10 & codes$dx == 1 &
+      codes[[method]] == 1 & codes$poaexempt == 1,
+    c("code", "condition")],
+    poa[poa$poa_required == 1 & poa[[method]] == 1,
+      c("condition", "poa_required")],
+    by = "condition"
+  )
+  candidate <- candidates[1L, , drop = FALSE]
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = candidate$code,
+    DXPOA1 = "Y", DXPOA2 = "N")
+
+  condition_column <- paste0("cmrb_", tolower(candidate$condition[[1L]]))
+  expect_true(nis_comorbidity(data)[[condition_column]])
+})
+
+test_that("conditions that do not require POA remain flaggable", {
+  skip_if_not_installed("medicalcoder")
+  aids <- single_codes("AIDS")
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = aids,
+    DXPOA1 = "Y", DXPOA2 = "N")
+
+  expect_true(nis_comorbidity(data)$cmrb_aids)
+})
+
 test_that("a discharge with no usable code gets NA and a warning, not zeros", {
   skip_if_not_installed("medicalcoder")
   malformed <- rawToChar(as.raw(c(0x49, 0x35, 0x30, 0xff, 0xfe)))
@@ -100,7 +204,7 @@ test_that("a discharge with no usable code gets NA and a warning, not zeros", {
     I10_DX1 = c(NA_character_, malformed, "ZZZ99", ""),
     I10_DX2 = NA_character_
   )
-  expect_warning(out <- nis_comorbidity(data), "3 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "3 rows")
   expect_identical(out$cmrb_n[c(1, 2, 4)], rep(NA_integer_, 3L))
   expect_identical(out$cmrb_n[[3L]], 0L)
   expect_identical(out$cmrb_any, c(NA, NA, FALSE, NA))
@@ -110,10 +214,10 @@ test_that("a discharge with no usable code gets NA and a warning, not zeros", {
   expect_true(all(vapply(out[grepl("^cmrb_", names(out))][c(1, 2, 4), ],
     function(column) all(is.na(column)), logical(1))))
 
-  all_usable <- dplyr::tibble(I10_DX1 = "ZZZ99")
+  all_usable <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = "Y")
   expect_no_warning(nis_comorbidity(all_usable))
 
-  expect_no_warning(empty <- nis_comorbidity(data[0, ]))
+  empty <- suppressWarnings(nis_comorbidity(data[0, ]))
   expect_identical(nrow(empty), 0L)
   expect_identical(names(empty), names(suppressWarnings(nis_comorbidity(data))))
 })
@@ -126,7 +230,7 @@ test_that("ICD-9-era rows are NA while ICD-10 rows in the same data are scored",
     I10_DX1 = c(NA_character_, "ZZZ99"),
     I10_DX2 = c(NA_character_, codes[["AIDS"]])
   )
-  expect_warning(out <- nis_comorbidity(data), "no usable")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "no usable")
   expect_identical(out$cmrb_any, c(NA, TRUE))
   expect_identical(out$cmrb_n, c(NA, 1L))
 })
@@ -136,14 +240,14 @@ test_that("method and prefix options and input errors are explicit", {
   codes <- single_codes("AIDS", "elixhauser_ahrq2026")
   data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = unname(codes))
 
-  pinned <- nis_comorbidity(data, method = "elixhauser_ahrq2026", prefix = "e_")
+  pinned <- suppressWarnings(nis_comorbidity(data, method = "elixhauser_ahrq2026", prefix = "e_"))
   expect_true(pinned$e_aids)
   expect_false(any(grepl("^cmrb_", names(pinned))))
 
   expect_error(nis_comorbidity(data, method = "charlson_quan2011"), "Elixhauser")
-  expect_error(nis_comorbidity(data, method = "elixhauser_nonsense"))
+  expect_error(suppressWarnings(nis_comorbidity(data, method = "elixhauser_nonsense")))
   expect_error(nis_comorbidity(data, prefix = NA_character_), "prefix")
-  expect_error(nis_comorbidity(nis_comorbidity(data)), "replace existing")
+  expect_error(suppressWarnings(nis_comorbidity(suppressWarnings(nis_comorbidity(data)))), "replace existing")
   expect_error(nis_comorbidity(dplyr::tibble(AGE = 1)), "diagnosis columns")
   expect_error(nis_comorbidity(dplyr::tibble(I10_DX2 = "ZZZ99")), "I10_DX1")
   expect_error(nis_comorbidity(list(I10_DX1 = "ZZZ99")), "collected")
@@ -166,7 +270,7 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
     keep = c(AGE, dplyr::starts_with("I10_DX"))
   ))
 
-  enriched <- nis_comorbidity(design)
+  enriched <- suppressWarnings(nis_comorbidity(design))
 
   labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
   labels <- lapply(labelled_fields, function(field) {
@@ -184,7 +288,7 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   expect_identical(enriched$cluster, design$cluster)
   expect_identical(enriched$strata, design$strata)
   expect_identical(enriched$prob, design$prob)
-  expected <- nis_comorbidity(design$variables)
+  expected <- suppressWarnings(nis_comorbidity(design$variables))
   expect_identical(enriched$variables, expected)
   expect_true(all(c("cmrb_hf", "cmrb_n", "cmrb_mortality_index") %in%
     names(enriched$variables)))
@@ -202,7 +306,7 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
     query, heart_failure,
     keep = c(AGE, dplyr::starts_with("I10_DX"))
   ))
-  enriched <- nis_comorbidity(design)
+  enriched <- suppressWarnings(nis_comorbidity(design))
 
   labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
   labels <- lapply(labelled_fields, function(field) {
@@ -228,7 +332,7 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
       attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
     )
   }
-  comorbid_after_reweight <- nis_comorbidity(reference)
+  comorbid_after_reweight <- suppressWarnings(nis_comorbidity(reference))
   for (field in labelled_fields) {
     expect_identical(
       attr(comorbid_after_reweight$variables[[field]], "label", exact = TRUE),
