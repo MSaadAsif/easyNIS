@@ -42,6 +42,27 @@ test_that("diagnosis sensitivity summary matches manual counts and rates", {
     "Missing requested outcome")
 })
 
+test_that("diagnosis sensitivity validation conditions keep public calls", {
+  data <- dx_sensitivity_fixture()
+  capture_error <- function(expr) tryCatch(force(expr), error = identity)
+  errors <- list(
+    capture_error(nis_dx_sensitivity(data, "I42", weight_var = NA_character_)),
+    capture_error(nis_dx_sensitivity(data, "I42", outcomes = c("DIED", "DIED"))),
+    capture_error(nis_dx_sensitivity(data, "I42", outcomes = "MISSING")),
+    capture_error(nis_dx_sensitivity(dplyr::select(data, -DISCWT), "I42"))
+  )
+  expect_identical(vapply(errors, conditionMessage, character(1)), c(
+    "`weight_var` must be one column name.",
+    "`outcomes` must be a character vector of unique column names.",
+    "Missing requested outcome column: \"MISSING\".",
+    "Weight column \"DISCWT\" is missing from `.data`."
+  ))
+  expect_true(all(vapply(errors, inherits, logical(1), "rlang_error")))
+  expect_true(all(vapply(errors, function(error) {
+    identical(conditionCall(error)[[1L]], quote(nis_dx_sensitivity))
+  }, logical(1))))
+})
+
 test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
 
   data <- dx_sensitivity_fixture()
@@ -55,8 +76,15 @@ test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
   expect_s3_class(lazy_flags, "tbl_sql")
   expect_identical(dplyr::collect(lazy_flags),
     nis_flag_dx_position(data, "I42", name = "hocm"))
-  expect_equal(nis_dx_sensitivity(query, "I42"),
-    nis_dx_sensitivity(data, "I42"))
+  expect_no_warning(lazy_default <- nis_dx_sensitivity(query, "I42"))
+  expect_equal(lazy_default, nis_dx_sensitivity(data, "I42"))
+
+  expect_no_warning(lazy_explicit <- nis_dx_sensitivity(
+    query, "I42", outcomes = c("DIED", "ELECTIVE")
+  ))
+  expect_equal(lazy_explicit, nis_dx_sensitivity(
+    data, "I42", outcomes = c("DIED", "ELECTIVE")
+  ))
 })
 
 test_that("sensitivity summary skips absent defaults and excludes missing outcomes", {
