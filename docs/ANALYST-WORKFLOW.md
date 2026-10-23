@@ -17,6 +17,9 @@ Use `nis_example()` to explore the API with invented data.
 
 Use `nis_design()` to create a NIS survey design with year-specific hospital
 and stratum identifiers, discharge weights, and optional domain restrictions.
+When discovering fields on a lazy query, use `colnames()` to inspect its schema;
+`names()` on a lazy table may return internal object names. Include any required
+diagnosis and POA fields in `keep` so they remain in the collected design.
 It excludes records with missing, non-finite, or non-positive design fields
 before cohort filtering and warns with aggregate counts by field (and by year
 when multiple years are affected). Report `attr(design, "nis_excluded")` with

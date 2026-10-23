@@ -119,7 +119,7 @@ record_step("hocm_cohort", year, function() {
 design <- NULL
 record_step("survey_design", year, function() {
   flagged <- query |> easyNIS::nis_flag_dx(ami = "I21")
-  diagnosis_fields <- grep("^(?:I10_DX|DXPOA)[0-9]+$", names(query),
+  diagnosis_fields <- grep("^(?:I10_DX|DXPOA)[0-9]+$", colnames(query),
     value = TRUE, perl = TRUE)
   design <<- easyNIS::nis_design(flagged, cohort = ami,
     keep = c(AGE, FEMALE, DIED, TOTCHG, CCR_NIS, HOSP_NIS, diagnosis_fields))
