@@ -225,3 +225,184 @@ test_that("report cache keys include model inputs, format, and dependency versio
   expect_false(identical(html, docx))
   expect_false(identical(html, updated))
 })
+
+coef.study_fit_test <- function(object, ...) c(`(Intercept)` = 1, exposed = 0.5)
+vcov.study_fit_test <- function(object, ...) diag(2)
+coef.study_bad_coef <- function(object, ...) c(`(Intercept)` = NA_real_)
+vcov.study_bad_coef <- function(object, ...) matrix(1)
+coef.study_bad_vcov <- function(object, ...) c(`(Intercept)` = 1)
+vcov.study_bad_vcov <- function(object, ...) matrix(Inf)
+registerS3method("coef", "study_fit_test", coef.study_fit_test,
+                 envir = asNamespace("stats"))
+registerS3method("vcov", "study_fit_test", vcov.study_fit_test,
+                 envir = asNamespace("stats"))
+registerS3method("coef", "study_bad_coef", coef.study_bad_coef,
+                 envir = asNamespace("stats"))
+registerS3method("vcov", "study_bad_coef", vcov.study_bad_coef,
+                 envir = asNamespace("stats"))
+registerS3method("coef", "study_bad_vcov", coef.study_bad_vcov,
+                 envir = asNamespace("stats"))
+registerS3method("vcov", "study_bad_vcov", vcov.study_bad_vcov,
+                 envir = asNamespace("stats"))
+study_original_file_copy <- base::file.copy
+study_original_dir_exists <- base::dir.exists
+study_original_dir_create <- base::dir.create
+
+test_that("study model fitting reports successful, failed, and unstable fits", {
+  fit_model <- getFromNamespace("nis_study_fit_model", "easyNIS")
+  design <- list(variables = data.frame(
+    y = c(0, 1, 0, 1), exposed = c(0, 1, 0, 1), x = c(1, 2, 2, 1)
+  ))
+  formula <- y ~ exposed + x
+  fitted <- structure(list(converged = TRUE), class = "study_fit_test")
+  fit_ok <- function(...) fitted
+
+  success <- fit_model(formula, design, stats::gaussian(), fit = fit_ok,
+                       outcome = "y", exposure = "exposed")
+  expect_identical(success$model, fitted)
+  expect_null(success$status)
+  expect_identical(success$warnings, character())
+
+  fit_error <- function(...) stop("synthetic fit failure")
+  failed <- fit_model(formula, design, stats::gaussian(), fit = fit_error)
+  expect_null(failed$model)
+  expect_identical(failed$status, "Model fit failed: synthetic fit failure")
+  expect_identical(failed$warnings, character())
+
+  not_converged <- fit_model(formula, design, stats::gaussian(), fit = function(...) {
+    structure(list(converged = FALSE), class = "study_fit_test")
+  })
+  expect_null(not_converged$model)
+  expect_identical(not_converged$status, "The model did not converge.")
+
+  benign <- fit_model(formula, design, stats::gaussian(), fit = function(...) {
+    warning("synthetic benign warning")
+    fitted
+  })
+  expect_identical(benign$model, fitted)
+  expect_null(benign$status)
+  expect_identical(benign$warnings, "synthetic benign warning")
+
+  material <- fit_model(formula, design, stats::gaussian(), fit = function(...) {
+    warning("synthetic fit did not converge")
+    fitted
+  })
+  expect_null(material$model)
+  expect_match(material$status, "model fit is unstable")
+  expect_identical(material$warnings, "synthetic fit did not converge")
+})
+
+test_that("study model fitting rejects invalid coefficient and covariance estimates", {
+  fit_model <- getFromNamespace("nis_study_fit_model", "easyNIS")
+  design <- list(variables = data.frame(y = 0:3, exposed = c(0, 1, 0, 1)))
+  formula <- y ~ exposed
+  expect_error_methods <- function(model, expected) {
+    result <- fit_model(formula, design, stats::gaussian(), fit = function(...) model)
+    expect_null(result$model)
+    expect_identical(result$status, expected)
+    expect_identical(result$warnings, character())
+  }
+  expect_error_methods(structure(list(converged = TRUE, bad = "coef"),
+                                class = "study_bad_coef"),
+                       "The model returned missing or non-finite coefficients.")
+  expect_error_methods(structure(list(converged = TRUE, bad = "vcov"),
+                                class = "study_bad_vcov"),
+                       "The model returned missing or non-finite covariance estimates.")
+})
+
+test_that("study model formula preflight handles complete cases and invalid specifications", {
+  model_status <- getFromNamespace("nis_study_model_data_status", "easyNIS")
+  valid <- data.frame(y = c(0, 1, 0, NA), exposed = c(0, 1, 0, 1), x = c(1, 2, 3, 4))
+  expect_null(model_status(valid, "y", "exposed", y ~ exposed + x))
+
+  expect_match(model_status(valid, "y", "exposed", y ~ absent), "fails on complete-case rows")
+  no_complete_cases <- data.frame(y = c(0, 1), exposed = c(0, 1), x = c(NA, NA))
+  expect_match(model_status(no_complete_cases, "y", "exposed", y ~ exposed + x),
+               "no complete-case rows")
+
+  # Inject a QR failure to exercise the otherwise difficult rank-evaluation boundary.
+  testthat::local_mocked_bindings(
+    qr = function(...) stop("synthetic QR failure"), .package = "base"
+  )
+  expect_match(model_status(valid, "y", "exposed", y ~ exposed + x),
+               "rank could not be evaluated")
+})
+
+test_that("study model preflight describes missing data and non-finite values", {
+  model_status <- getFromNamespace("nis_study_model_data_status", "easyNIS")
+  expect_match(model_status(NULL, "y", "exposed"), "unavailable")
+  expect_match(model_status(data.frame(y = 0:1), "y", "exposed"), "missing exposed")
+  expect_match(model_status(data.frame(y = c(0, 1), exposed = c(0, Inf)),
+                            "y", "exposed", y ~ exposed), "non-finite")
+  expect_match(model_status(data.frame(y = c(0, 1), exposed = c(0, Inf)),
+                            "y", "exposed"), "exposure exposed contains non-finite")
+  expect_match(model_status(data.frame(y = c(0, 1), exposed = c(0, 1),
+                                       x = c(Inf, 1)), "y", "exposed", y ~ exposed + x),
+               "non-finite values on complete-case rows")
+})
+
+test_that("study scaffold reports parent creation failure", {
+  parent <- tempfile("nis-scaffold-fault-")
+  on.exit(unlink(parent), add = TRUE)
+  writeLines("not a directory", parent)
+  error <- tryCatch(easyNIS::nis_new_study(file.path(parent, "study")), error = identity)
+  expect_s3_class(error, "error")
+  expect_match(conditionMessage(error), "Could not create the parent directory")
+  expect_true(file.exists(parent))
+})
+
+test_that("study scaffold reports destination creation failure", {
+  parent <- tempfile("nis-scaffold-fault-")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  dir.create(parent)
+  destination <- file.path(parent, "study")
+  create_calls <- 0L
+  testthat::local_mocked_bindings(
+    dir.create = function(path, ...) {
+      create_calls <<- create_calls + 1L
+      if (create_calls == 1L) FALSE else study_original_dir_create(path, ...)
+    },
+    .package = "base"
+  )
+  expect_error(easyNIS::nis_new_study(destination), "Could not create the study directory")
+  expect_false(dir.exists(destination))
+})
+
+test_that("study scaffold removes partial destination when template is unavailable", {
+  parent <- tempfile("nis-scaffold-fault-")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  destination <- file.path(parent, "study")
+  template <- system.file("templates", "nis-study", package = "easyNIS")
+  testthat::local_mocked_bindings(
+    dir.exists = function(path, ...) {
+      if (identical(path, template)) FALSE else study_original_dir_exists(path, ...)
+    },
+    .package = "base"
+  )
+  expect_error(easyNIS::nis_new_study(destination), "template is unavailable")
+  expect_false(dir.exists(destination))
+})
+
+test_that("study scaffold removes partial destination after copy failure", {
+  parent <- tempfile("nis-scaffold-fault-")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  destination <- file.path(parent, "study")
+  testthat::local_mocked_bindings(
+    file.copy = function(from, to, ...) {
+      study_original_file_copy(from[[1]], to, ...)
+      FALSE
+    },
+    .package = "base"
+  )
+  expect_error(easyNIS::nis_new_study(destination), "Could not copy the packaged")
+  expect_false(dir.exists(destination))
+})
+
+test_that("study scaffold removes copied files after gitignore rename failure", {
+  parent <- tempfile("nis-scaffold-fault-")
+  on.exit(unlink(parent, recursive = TRUE), add = TRUE)
+  destination <- file.path(parent, "study")
+  testthat::local_mocked_bindings(file.rename = function(...) FALSE, .package = "base")
+  expect_error(easyNIS::nis_new_study(destination), "Could not create the study output")
+  expect_false(dir.exists(destination))
+})
