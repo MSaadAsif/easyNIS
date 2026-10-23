@@ -1,5 +1,6 @@
 root <- normalizePath(".", mustWork = TRUE)
 source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "readiness-ci.R"))
 main_repo <- find_main_repo(root)
 read_main_renviron(main_repo)
 loop_dir <- resolve_loop_dir(main_repo)
@@ -49,26 +50,11 @@ issue_queries <- lapply(c("P0", "P1"), query_open_issues)
 issues_clean <- length(issue_queries) == 2L &&
   all(vapply(issue_queries, `[[`, logical(1), "ok")) &&
   all(vapply(issue_queries, `[[`, integer(1), "count") == 0L)
-current_branch <- tryCatch(system2("git", c("branch", "--show-current"),
-  stdout = TRUE, stderr = FALSE)[[1L]], error = function(e) "")
 ci_configured <- grepl("--as-cran", ci_text, fixed = TRUE)
-ci_runs <- if (ci_configured) tryCatch(system2("gh", c("run", "list", "--branch",
-  current_branch, "--json", "name,status,conclusion,headSha", "--limit", "100"),
+ci_runs <- if (ci_configured) tryCatch(system2("gh", ci_run_list_args(current_commit),
   stdout = TRUE, stderr = FALSE), error = identity) else character()
-ci_run_succeeded <- function(run, commit) {
-  grepl("R-CMD-check", run$name, ignore.case = TRUE) &&
-    identical(run$headSha, commit) && identical(run$status, "completed") &&
-    identical(run$conclusion, "success")
-}
-ci_runs_ok <- FALSE
-if (ci_configured && !inherits(ci_runs, "error") &&
-    (!length(attr(ci_runs, "status")) || attr(ci_runs, "status") == 0L)) {
-  parsed_runs <- tryCatch(jsonlite::fromJSON(paste(ci_runs, collapse = "\n"),
-    simplifyVector = FALSE), error = function(e) NULL)
-  if (is.list(parsed_runs)) {
-    ci_runs_ok <- any(vapply(parsed_runs, ci_run_succeeded, logical(1), commit = current_commit))
-  }
-}
+ci_runs_ok <- ci_configured && !inherits(ci_runs, "error") &&
+  ci_runs_succeeded(ci_runs, current_commit)
 doc_files <- c("README.md", list.files("vignettes", pattern = "[.](Rmd|qmd|md)$",
   recursive = TRUE, full.names = TRUE))
 doc_text <- paste(unlist(lapply(doc_files[file.exists(doc_files)], readLines, warn = FALSE)), collapse = "\n")
