@@ -315,7 +315,17 @@ test_that("NaN metadata is missing consistently for frames and DuckDB", {
 test_that("invented 2015 split stays lazy across pooled years", {
   path <- nis_example(2012:2016)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  rlang::reset_message_verbosity("easyNIS_icd9_layout")
   expect_message(query <- nis_open(path), "Experimental")
+  repeated_messages <- character()
+  withCallingHandlers(
+    nis_open(path, years = 2012L),
+    message = function(message) {
+      repeated_messages <<- c(repeated_messages, conditionMessage(message))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_false(any(grepl("Experimental", repeated_messages)))
   lazy <- query |>
     nis_flag_dx(old = "123", system = "icd9") |>
     nis_flag_pr(old_proc = "012", system = "icd9") |>
@@ -346,6 +356,7 @@ test_that("missing slot columns for a code system give a system-specific error",
 test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", {
   path <- nis_example(2012:2013)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  rlang::reset_message_verbosity("easyNIS_icd9_layout")
   expect_message(query <- nis_open(path, years = 2012), "ICD-9")
   expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
   expect_false(any(grepl("^I10_", colnames(query))))

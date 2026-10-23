@@ -36,6 +36,19 @@ test_that("procedure timing evaluates every relation and the earliest index day"
   expect_error(nis_flag_pr_timing(data, "ix", "out-"), "letters and numbers")
 })
 
+test_that("procedure timing validation errors retain their public call", {
+  data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
+    PRDAY2 = 1L)
+  condition <- tryCatch(
+    nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days", window = Inf),
+    error = identity
+  )
+
+  expect_s3_class(condition, "rlang_error")
+  expect_identical(as.character(conditionCall(condition)[[1L]]),
+    "nis_flag_pr_timing")
+})
+
 test_that("procedure timing accepts integer and mixed numeric day columns", {
   integer_days <- dplyr::tibble(
     I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),

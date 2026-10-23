@@ -7,6 +7,11 @@
 
 ## New features
 
+- Reduced cyclomatic complexity in data opening and procedure timing helpers
+  without changing their results or lazy DuckDB query behavior.
+- The experimental pre-2016 ICD-9 layout notice from `nis_open()` now appears
+  once per R session.
+
 - Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
   the repository limit without changing `nis_ccsr_codes()` behavior.
 - `nis_open()` combines annual Parquet files with Hive year partitions and
