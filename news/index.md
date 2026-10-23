@@ -12,14 +12,23 @@
 
 ### New features
 
+- Internal helpers now split validation, cost adjustment, and synthetic
+  fixture construction in
+  [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
+  and
+  [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+  while preserving their existing behavior.
+
 - Refactored internal CCSR mapping helpers to keep cyclomatic complexity
   within the repository limit without changing
   [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   behavior.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   combines annual Parquet files with Hive year partitions and returns
   `YEAR` as integer, rejecting invalid year values with a file-specific
   error.
+
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   warns when annualized valid-design data represented in `DQTR` have
   fewer than four quarters, and explains how to exclude or separately
@@ -27,6 +36,7 @@
   ICD-9-coded quarters (Q1–Q3) or only the ICD-10-coded quarter (Q4),
   and informs when `DQTR` is missing so the 2015 split cannot be
   checked.
+
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   records charge/CCR fields, CPI-U source and multipliers, base year,
   invalid CCR and missing charge counts, and adjusted-output meanings.
@@ -40,32 +50,40 @@
   on its result or the
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   survey design.
+
 - Added
   [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
   for unweighted PRDAY completeness summaries by year and matched
   procedure slot.
+
 - Added
   [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
   for procedure timing flags.
+
 - Added
   [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
   for cohort attrition summaries.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   now reads Parquet natively with DuckDB; DuckDB-backed lazy
   transformations are used throughout. The `engine` argument was removed
   entirely; callers should omit it regardless of the value they
   previously passed.
+
 - Added
   [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
   to summarize code-system transitions.
+
 - Added
   [`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md)
   and
   [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
   for descriptive point estimates; these are not design-based estimates.
+
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   now accepts data frames with `count_col`, `weighted_cols`, and `by`,
   and supports single-dimension complementary suppression.
+
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   accepts `hospital_col` to mask cells based on fewer than two
   contributing hospitals;
@@ -73,13 +91,16 @@
   computes unweighted discharge and year-scoped hospital counts from
   record-level data or an
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   now suppresses zero discharge counts at or below the threshold and
   rejects missing, non-finite, negative, or fractional data-frame count
   values.
+
 - Refactored code-transition auditing, cell counts, and attrition
   summaries into internal helpers without changing their results or
   validation behavior.
+
 - Refactored
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   and
