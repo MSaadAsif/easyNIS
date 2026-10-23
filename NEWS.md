@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- The quality probe now saves nested `pkgcheck` and `goodpractice` failure
+  diagnostics in an ignored local artifact while keeping its public receipt
+  redacted.
+
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 

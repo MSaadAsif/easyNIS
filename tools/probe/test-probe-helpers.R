@@ -108,6 +108,42 @@ local({
 })
 
 local({
+  nested_message <- "synthetic manual generation failed because a required tool is unavailable"
+  synthetic_pkgcheck <- structure(list(
+    checks = list(rcmdcheck = list(errors = nested_message))
+  ), class = c("pkgcheck", "list"))
+  synthetic_goodpractice <- structure(list(checks = list(manual = nested_message)),
+    class = c("goodPractice", "list"))
+  checks <- list(pkgcheck = list(value = synthetic_pkgcheck),
+    goodpractice = list(value = synthetic_goodpractice))
+  records <- list(list(step = "pkgcheck", pass = FALSE,
+    detail = "pkgcheck reported a failed check"),
+    list(step = "goodpractice", pass = FALSE,
+      detail = "goodpractice reported a failed check"))
+  run_dir <- tempfile("synthetic-quality-run-")
+  dir.create(run_dir)
+  on.exit(unlink(run_dir, recursive = TRUE))
+  private_path <- write_private_quality_diagnostics(run_dir, checks, records)
+  restored <- readRDS(private_path)
+  public_receipt <- jsonlite::toJSON(records, auto_unbox = TRUE)
+  stopifnot(file.exists(private_path),
+    identical(basename(dirname(private_path)), "private"),
+    identical(basename(private_path), "quality-diagnostics.rds"),
+    identical(restored$pkgcheck$checks$rcmdcheck$errors, nested_message),
+    identical(restored$goodpractice$checks$manual, nested_message),
+    !grepl(nested_message, public_receipt, fixed = TRUE),
+    !grepl("failed because a required tool is unavailable", public_receipt, fixed = TRUE),
+    length(private_quality_diagnostics(checks, list(list(step = "pkgcheck", pass = TRUE),
+      list(step = "goodpractice", pass = TRUE)))) == 0L)
+  clean_run_dir <- tempfile("synthetic-clean-quality-run-")
+  dir.create(clean_run_dir)
+  on.exit(unlink(clean_run_dir, recursive = TRUE), add = TRUE)
+  clean_records <- list(list(step = "pkgcheck", pass = TRUE))
+  stopifnot(is.null(write_private_quality_diagnostics(clean_run_dir, checks, clean_records)),
+    !dir.exists(file.path(clean_run_dir, "private")))
+})
+
+local({
   root <- tempfile("synthetic-package-")
   dir.create(file.path(root, "man"), recursive = TRUE)
   on.exit(unlink(root, recursive = TRUE))

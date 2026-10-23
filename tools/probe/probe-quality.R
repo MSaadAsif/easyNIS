@@ -224,6 +224,7 @@ if (identical(coverage, "skipped_by_selection")) {
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")
 writeLines(lines, output, useBytes = TRUE)
+write_private_quality_diagnostics(run_dir, checks, records)
 failed <- vapply(records, function(record) identical(record$pass, FALSE), logical(1))
 failed_steps <- unique(vapply(records[failed], `[[`, character(1), "step"))
 if (length(failed_steps)) {

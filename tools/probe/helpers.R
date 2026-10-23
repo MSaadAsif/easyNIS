@@ -234,6 +234,27 @@ quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
     identical(item$commit, current_commit) && identical(item$working_tree_clean, TRUE)
 }
 
+private_quality_diagnostics <- function(checks, records) {
+  tool_names <- intersect(c("goodpractice", "pkgcheck"), names(checks))
+  failed <- tool_names[vapply(tool_names, function(name) {
+    matching_records <- Filter(function(record) identical(record$step, name), records)
+    length(matching_records) > 0L && any(vapply(matching_records, function(record) {
+      identical(record$pass, FALSE)
+    }, logical(1)))
+  }, logical(1))]
+  stats::setNames(lapply(failed, function(name) checks[[name]]$value), failed)
+}
+
+write_private_quality_diagnostics <- function(run_dir, checks, records) {
+  diagnostics <- private_quality_diagnostics(checks, records)
+  if (!length(diagnostics)) return(NULL)
+  private_dir <- file.path(run_dir, "private")
+  dir.create(private_dir, recursive = TRUE, showWarnings = FALSE)
+  output <- file.path(private_dir, "quality-diagnostics.rds")
+  saveRDS(diagnostics, output)
+  output
+}
+
 coverage_percent_value <- function(item) {
   value <- item$value
   if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) return(NA_real_)

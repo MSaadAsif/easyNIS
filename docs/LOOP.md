@@ -52,6 +52,9 @@ complexity.
 No output from a real-data run may be copied into an issue, PR, commit, or
 document. This includes `findings.jsonl`; keep every real-data output local.
 Full condition text may be stored only under `local/loop/<run>/private/`.
+When `pkgcheck` or `goodpractice` fails, `probe-quality.R` saves its nested
+diagnostic result in `private/quality-diagnostics.rds`; keep that artifact
+local as well.
 A public issue contains only a synthetic reproduction using `nis_example()` or
 another fixture, plus a description of the problem in general terms. The
 public-text scanner is a backstop, not publication clearance. Use judgment and
