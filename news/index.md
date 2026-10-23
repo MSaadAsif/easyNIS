@@ -12,6 +12,13 @@
 
 ### New features
 
+- Reduced cyclomatic complexity in data opening and procedure timing
+  helpers without changing their results or lazy DuckDB query behavior.
+
+- The experimental pre-2016 ICD-9 layout notice from
+  [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  now appears once per R session.
+
 - Internal helpers now split validation, cost adjustment, and synthetic
   fixture construction in
   [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)

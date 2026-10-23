@@ -61,7 +61,9 @@
 </ul></div>
 <div class="section level3">
 <h3 id="new-features-development-version">New features<a class="anchor" aria-label="anchor" href="#new-features-development-version"></a></h3>
-<ul><li><p>Internal helpers now split validation, cost adjustment, and synthetic fixture construction in <code><a href="../reference/nis_cost.html">nis_cost()</a></code> and <code><a href="../reference/nis_example.html">nis_example()</a></code> while preserving their existing behavior.</p></li>
+<ul><li><p>Reduced cyclomatic complexity in data opening and procedure timing helpers without changing their results or lazy DuckDB query behavior.</p></li>
+<li><p>The experimental pre-2016 ICD-9 layout notice from <code><a href="../reference/nis_open.html">nis_open()</a></code> now appears once per R session.</p></li>
+<li><p>Internal helpers now split validation, cost adjustment, and synthetic fixture construction in <code><a href="../reference/nis_cost.html">nis_cost()</a></code> and <code><a href="../reference/nis_example.html">nis_example()</a></code> while preserving their existing behavior.</p></li>
 <li><p>Refactored internal CCSR mapping helpers to keep cyclomatic complexity within the repository limit without changing <code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> behavior.</p></li>
 <li><p>Refactored new-study scaffolding and model-preflight helpers to keep cyclomatic complexity within the repository limit without changing behavior.</p></li>
 <li><p><code><a href="../reference/nis_open.html">nis_open()</a></code> combines annual Parquet files with Hive year partitions and returns <code>YEAR</code> as integer, rejecting invalid year values with a file-specific error.</p></li>

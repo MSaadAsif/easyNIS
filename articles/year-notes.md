@@ -51,7 +51,7 @@ operations. Its rows are not a complete copy of annual layouts.
 
 path <- nis_example(years = c(2015, 2019, 2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpykVMKA/duckdb
+#> ℹ /tmp/RtmpdLlInh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -59,7 +59,7 @@ path <- nis_example(years = c(2015, 2019, 2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpykVMKA/duckdb
+#> ℹ /tmp/RtmpdLlInh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -67,7 +67,7 @@ path <- nis_example(years = c(2015, 2019, 2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpykVMKA/duckdb
+#> ℹ /tmp/RtmpdLlInh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -79,19 +79,20 @@ nis <- nis_open(path)
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpykVMKA/duckdb
+#> ℹ /tmp/RtmpdLlInh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
+#> This message is displayed once per session.
 nis |> dplyr::count(YEAR) |> dplyr::collect()
 #> # A tibble: 3 × 2
 #>    YEAR     n
 #>   <int> <dbl>
-#> 1  2015    96
-#> 2  2020    96
+#> 1  2020    96
+#> 2  2015    96
 #> 3  2019    96
 ```
 
