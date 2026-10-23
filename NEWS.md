@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_design()` resolves kept fields from a lazy query's schema, preserving
+  selected diagnosis and POA columns for downstream comorbidity analysis.
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 

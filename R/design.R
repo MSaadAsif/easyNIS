@@ -16,7 +16,8 @@ nis_design_validate <- function(.data, charges, annualize, call) {
 
 nis_design_fields <- function(.data, keep_quo, call) {
   design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
-  data_names <- nis_names(.data) # nolint: object_usage_linter
+  # `names()` on a lazy table exposes its internals; `colnames()` reads its schema.
+  data_names <- colnames(.data) # nolint: object_usage_linter
   absent <- setdiff(design_fields, data_names)
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
