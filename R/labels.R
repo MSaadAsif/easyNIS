@@ -161,66 +161,69 @@ nis_label <- function(data) {
   if (!is.data.frame(data)) {
     cli::cli_abort("`data` must be a collected data frame.")
   }
-  for (variable in names(data)) {
+  for (variable in nis_names(data)) { # nolint: object_usage_linter
     if (startsWith(variable, ".")) next
-    x <- data[[variable]]
-    definition <- .hcup_labels[.hcup_labels$variable == variable, , drop = FALSE]
-    value_rows <- !is.na(definition$code)
-    binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
-
-    if (any(value_rows) || binary_comorbidity) {
-      codes <- if (binary_comorbidity) {
-        c("0", "1")
-      } else {
-        as.character(definition$code[value_rows])
-      }
-      values <- if (binary_comorbidity) {
-        c("No", "Yes")
-      } else {
-        definition$value_label[value_rows]
-      }
-      raw <- as.character(x)
-      already_labelled <- !is.na(raw) & (
-        raw %in% values | grepl("^Code .+", raw)
-      )
-      if (is.factor(x) && all(is.na(raw) | already_labelled)) {
-        x <- factor(raw, levels = levels(x), ordered = is.ordered(x))
-      } else {
-        unknown <- !is.na(raw) & !raw %in% codes
-        unknown_labels <- if (any(unknown)) {
-          unique(paste0("Code ", raw[unknown]))
-        } else {
-          character()
-        }
-        if (any(unknown)) {
-          cli::cli_warn(
-            paste0(
-              "Unknown code(s) in {.var {variable}}: ",
-              "{paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
-            )
-          )
-        }
-        labels <- ifelse(is.na(raw), NA_character_,
-          ifelse(raw %in% codes, values[match(raw, codes)], paste0("Code ", raw)))
-        x <- factor(labels, levels = c(values, unique(unknown_labels)))
-      }
-    } else if (is.logical(x)) {
-      x <- factor(ifelse(is.na(x), NA_character_, ifelse(x, "Yes", "No")),
-        levels = c("No", "Yes"))
-    }
-
-    variable_label <- if (nrow(definition) > 0L) {
-      definition$variable_label[[1L]]
-    } else {
-      NULL
-    }
-    old_label <- attr(data[[variable]], "label", exact = TRUE)
-    data[[variable]] <- x
-    if (!is.null(old_label)) {
-      attr(data[[variable]], "label") <- old_label
-    } else if (!is.null(variable_label)) {
-      attr(data[[variable]], "label") <- variable_label
-    }
+    data[[variable]] <- label_one(data, variable)
   }
   data
+}
+
+label_one <- function(data, variable) {
+  x <- data[[variable]]
+  definition <- .hcup_labels[.hcup_labels$variable == variable, , drop = FALSE]
+  value_rows <- !is.na(definition$code)
+  binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
+  call <- rlang::caller_call()
+  if (any(value_rows) || binary_comorbidity) {
+    x <- label_coded(x, definition, value_rows, binary_comorbidity, variable,
+      call)
+  } else if (is.logical(x)) {
+    x <- factor(ifelse(is.na(x), NA_character_, ifelse(x, "Yes", "No")),
+      levels = c("No", "Yes"))
+  }
+  old_label <- attr(data[[variable]], "label", exact = TRUE)
+  variable_label <- if (nrow(definition) > 0L) {
+    definition$variable_label[[1L]]
+  } else {
+    NULL
+  }
+  if (!is.null(old_label)) attr(x, "label") <- old_label
+  else if (!is.null(variable_label)) attr(x, "label") <- variable_label
+  x
+}
+
+label_coded <- function(x, definition, value_rows, binary_comorbidity,
+                        variable, call) {
+  codes <- if (binary_comorbidity) c("0", "1") else
+    as.character(definition$code[value_rows])
+  values <- if (binary_comorbidity) c("No", "Yes") else
+    definition$value_label[value_rows]
+  raw <- as.character(x)
+  already_labelled <- !is.na(raw) &
+    (raw %in% values | grepl("^Code .+", raw))
+  if (is.factor(x) && all(is.na(raw) | already_labelled)) {
+    return(factor(raw, levels = levels(x), ordered = is.ordered(x)))
+  }
+  label_raw_codes(raw, codes, values, variable, call)
+}
+
+label_raw_codes <- function(raw, codes, values, variable, call) {
+  unknown <- !is.na(raw) & !raw %in% codes
+  unknown_labels <- if (any(unknown)) {
+    unique(paste0("Code ", raw[unknown]))
+  } else {
+    character()
+  }
+  if (any(unknown)) {
+    cli::cli_warn(
+      paste0(
+        "Unknown code(s) in {.var {variable}}: ",
+        "{paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
+      ),
+      call = call
+    )
+  }
+  labels <- ifelse(is.na(raw), NA_character_,
+    ifelse(raw %in% codes, values[match(raw, codes)], paste0("Code ", raw)))
+  factor(labels, levels = c(values, unique(unknown_labels)))
 }

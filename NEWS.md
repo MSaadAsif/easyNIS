@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
+  labeling without changing their results.
+
 ## Project metadata
 
 - Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs
@@ -11,6 +14,9 @@
   without changing their results or lazy DuckDB query behavior.
 - The experimental pre-2016 ICD-9 layout notice from `nis_open()` now appears
   once per R session.
+- Internal helpers now split validation, cost adjustment, and synthetic fixture
+  construction in `nis_cost()` and `nis_example()` while preserving their
+  existing behavior.
 
 - Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
   the repository limit without changing `nis_ccsr_codes()` behavior.
