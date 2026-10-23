@@ -30,7 +30,7 @@ codes, then creates diagnosis and procedure flags:
 
 example_path <- nis_example(years = 2018:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNXdUut/duckdb
+#> ℹ /tmp/RtmpaaA5B9/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -38,7 +38,7 @@ example_path <- nis_example(years = 2018:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNXdUut/duckdb
+#> ℹ /tmp/RtmpaaA5B9/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -46,7 +46,7 @@ example_path <- nis_example(years = 2018:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNXdUut/duckdb
+#> ℹ /tmp/RtmpaaA5B9/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -64,7 +64,7 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNXdUut/duckdb
+#> ℹ /tmp/RtmpaaA5B9/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
