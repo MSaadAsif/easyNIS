@@ -1,4 +1,4 @@
-nis_validate_layout_years <- function(entries, found, years) {
+nis_validate_layout_years <- function(entries, found, years, error_call) {
   annual <- !dir.exists(entries)
   annual_years <- found[annual]
   hive_years <- found[!annual]
@@ -15,7 +15,7 @@ nis_validate_layout_years <- function(entries, found, years) {
     "A year is present in both annual and Hive layouts.\n",
     paste0("x Year is duplicated: ", details, collapse = "\n"),
     "\ni Keep one layout per year."
-  ))
+  ), call = error_call)
 }
 
 #' Open annual NIS Parquet files lazily
@@ -38,7 +38,8 @@ nis_validate_layout_years <- function(entries, found, years) {
 #'   invalid values identify the offending file in an error. The connection
 #'   remains open while the lazy table is in use and closes after it is released.
 #'   Use `dplyr::collect()` to return
-#'   data to R. The `engine` argument was removed entirely; omit it regardless
+#'   data to R. Years before 2016 emit an experimental ICD-9 layout notice once
+#'   per R session. The `engine` argument was removed entirely; omit it regardless
 #'   of the value used in older code.
 #'   String columns with malformed UTF-8 may fail during a native Parquet scan;
 #'   validate or repair those values before writing Parquet files.
@@ -70,8 +71,33 @@ nis_validate_layout_years <- function(entries, found, years) {
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 nis_open <- function(path, years = NULL) {
+  error_call <- rlang::current_call()
+  selected <- nis_open_select(path, years, error_call)
+  nis_open_notice(selected$years)
+  sources <- nis_open_sources(selected$entries, selected$found, selected$years,
+    error_call)
+  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
+    add = TRUE)
+  nis_validate_hive_years(con, sources) # nolint: object_usage_linter
+  nis_validate_year_values(con, sources) # nolint: object_usage_linter
+  query <- nis_duckdb_query_from_parquet(con, sources) # nolint: object_usage_linter
+  query <- nis_open_normalize_names(query)
+  query <- nis_open_warn_2023(query)
+  on.exit(NULL, add = FALSE)
+  nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
+}
+
+nis_open_select <- function(path, years, error_call) {
+  entries <- nis_open_entries(path, error_call)
+  years <- nis_open_years(entries$found, years, error_call)
+  nis_validate_layout_years(entries$entries, entries$found, years, error_call)
+  list(entries = entries$entries, found = entries$found, years = years)
+}
+
+nis_open_entries <- function(path, error_call) {
   if (!dir.exists(path)) {
-    cli::cli_abort("`path` must name an existing directory.")
+    cli::cli_abort("`path` must name an existing directory.", call = error_call)
   }
 
   entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
@@ -84,31 +110,55 @@ nis_open <- function(path, years = NULL) {
   entries <- entries[!is.na(found)]
   found <- found[!is.na(found)]
   if (length(found) == 0L) {
-    cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.")
+    cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.", call = error_call)
   }
+  list(entries = entries, found = found)
+}
+
+nis_open_years <- function(found, years, error_call) {
   if (is.null(years)) {
     years <- sort(found)
   }
-  if (!is.numeric(years) || length(years) == 0L || anyNA(years) ||
-      any(!is.finite(years)) || any(years != as.integer(years))) {
-    cli::cli_abort("`years` must be a non-empty vector of whole years.")
+  years <- nis_open_validate_years(years, error_call)
+  missing <- setdiff(years, found)
+  if (length(missing) > 0L) {
+    cli::cli_abort(
+      "No NIS Parquet entry was found for year{?s} {.val {missing}}.",
+      call = error_call
+    )
+  }
+  years
+}
+
+nis_open_validate_years <- function(years, error_call) {
+  if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
+    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
+  }
+  if (!nis_open_whole_years(years)) {
+    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
   }
   years <- unique(as.integer(years))
   if (any(years < 2012L)) {
-    cli::cli_abort("NIS years before 2012 are not supported.")
+    cli::cli_abort("NIS years before 2012 are not supported.", call = error_call)
   }
-  missing <- setdiff(years, found)
-  if (length(missing) > 0L) {
-    cli::cli_abort("No NIS Parquet entry was found for year{?s} {.val {missing}}.")
-  }
-  nis_validate_layout_years(entries, found, years)
+  years
+}
+
+nis_open_whole_years <- function(years) {
+  all(is.finite(years)) && all(years == as.integer(years))
+}
+
+nis_open_notice <- function(years) {
   if (any(years < 2016L)) {
     cli::cli_inform(c(
       "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
       i = "Flag them with {.code system = \"icd9\"}; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4) slots."
-    ))
+    ), .frequency = "once", .frequency_id = "easyNIS_icd9_layout")
   }
+  invisible(NULL)
+}
 
+nis_open_sources <- function(entries, found, years, error_call) {
   year_entries <- entries[found %in% years]
   sources <- unlist(lapply(year_entries, function(entry) {
     if (dir.exists(entry)) {
@@ -119,15 +169,13 @@ nis_open <- function(path, years = NULL) {
     }
   }), use.names = FALSE)
   if (length(sources) == 0L) {
-    cli::cli_abort("The selected NIS entries contain no Parquet part files.")
+    cli::cli_abort("The selected NIS entries contain no Parquet part files.",
+      call = error_call)
   }
-  sources <- unique(sources)
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
-  on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
-    add = TRUE)
-  nis_validate_hive_years(con, sources) # nolint: object_usage_linter
-  nis_validate_year_values(con, sources) # nolint: object_usage_linter
-  query <- nis_duckdb_query_from_parquet(con, sources) # nolint: object_usage_linter
+  unique(sources)
+}
+
+nis_open_normalize_names <- function(query) {
   old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
   name_groups <- split(old_names, new_names)
@@ -145,7 +193,11 @@ nis_open <- function(path, years = NULL) {
     }, fields)
     query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
   }
-  output_names <- names(name_groups)
+  dplyr::select(query, dplyr::all_of(names(name_groups)))
+}
+
+nis_open_warn_2023 <- function(query) {
+  output_names <- colnames(query)
   if ("TOTCHG_2023" %in% output_names) {
     warning_messages <- c(
       paste(
@@ -171,9 +223,7 @@ nis_open <- function(path, years = NULL) {
       .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
     )
   }
-  query <- dplyr::select(query, dplyr::all_of(output_names))
-  on.exit(NULL, add = FALSE)
-  nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
+  query
 }
 
 #' Add diagnosis prefix flags

@@ -10,8 +10,6 @@ exclusions: list(
     "R/dx-sensitivity.R" = list(cyclocomp_linter = Inf),
     "R/labels.R" = list(cyclocomp_linter = Inf),
     "R/nis-new-study.R" = list(cyclocomp_linter = Inf),
-    "R/open-flags.R" = list(cyclocomp_linter = Inf),
-    "R/pr-timing.R" = list(cyclocomp_linter = Inf),
     "R/suppress.R" = list(cyclocomp_linter = Inf),
     "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf)
   )
