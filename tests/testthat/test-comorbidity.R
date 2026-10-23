@@ -127,6 +127,22 @@ test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
   expect_true(out$cmrb_hf)
 })
 
+test_that("POA indicators follow sparse diagnosis suffixes", {
+  skip_if_not_installed("medicalcoder")
+  hf <- single_codes("HF")
+  data <- dplyr::tibble(
+    I10_DX3 = hf,
+    DXPOA1 = "Y",
+    I10_DX1 = "ZZZ99",
+    DXPOA3 = "N"
+  )
+
+  expect_false(nis_comorbidity(data)$cmrb_hf)
+
+  data$DXPOA3 <- "W"
+  expect_true(nis_comorbidity(data)$cmrb_hf)
+})
+
 test_that("partial and absent POA columns warn and assume present", {
   skip_if_not_installed("medicalcoder")
   hf <- single_codes("HF")

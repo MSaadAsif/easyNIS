@@ -210,7 +210,6 @@ nis_comorbidity_columns <- function(result, n, usable_rows, prefix) {
     if (column %in% counts) as.integer(value) else value == 1L
   })
   names(added) <- paste0(prefix, ifelse(columns == "num_cmrb", "n",
-                                        ifelse(columns == "cmrb_flag", "any", tolower(columns))))
     ifelse(columns == "cmrb_flag", "any", tolower(columns))))
   added
 }
