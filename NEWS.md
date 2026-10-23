@@ -54,10 +54,11 @@
   data-frame count values.
 - `nis_comorbidity()` now uses aligned `DXPOAn` fields when available. `Y` and
   `W` count as present on admission, `N` and `U` do not, and other values are
-  unknown. Missing POA columns retain the prior assumed-present behavior and
-  now warn with the affected diagnosis slots; POA-dependent comorbidities may
-  include conditions acquired in hospital. AHRQ requires POA to assign 18 of 38
-  measures and returns missing results when required POA information is absent
+  unknown, including invalid UTF-8 values. Missing POA columns retain the prior
+  assumed-present behavior and now warn with the affected diagnosis slots;
+  POA-dependent comorbidities may include conditions acquired in hospital.
+  AHRQ requires POA to assign 18 of 38 measures and returns missing results
+  when required POA information is absent
   ([User Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
   `medicalcoder` 0.10.0's exemption mapping covers AHRQ FY2022–FY2026 and
   reports consistent exemption status across those releases, but does not

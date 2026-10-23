@@ -127,6 +127,16 @@ test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
   expect_true(out$cmrb_hf)
 })
 
+test_that("invalid UTF-8 POA indicators are treated as unknown", {
+  skip_if_not_installed("medicalcoder")
+  malformed <- rawToChar(as.raw(c(0x59, 0xff)))
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = malformed)
+
+  long <- nis_comorbidity_long(data, "I10_DX1", 1L, nrow(data))
+  expect_true(is.na(long$poa[[1L]]))
+  expect_no_error(nis_comorbidity(data))
+})
+
 test_that("POA indicators follow sparse diagnosis suffixes", {
   skip_if_not_installed("medicalcoder")
   hf <- single_codes("HF")
@@ -158,7 +168,27 @@ test_that("partial and absent POA columns warn and assume present", {
   expect_true(absent_out$cmrb_hf)
 })
 
-test_that("POA-exempt conditions follow medicalcoder's mapping", {
+test_that("POA exemptions are applied to exempt codes in POA-required conditions", {
+  skip_if_not_installed("medicalcoder")
+  codes <- medicalcoder::get_elixhauser_codes()
+  poa <- medicalcoder::get_elixhauser_poa()
+  candidates <- merge(
+    codes[codes$icdv == 10 & codes$dx == 1 &
+      codes[[method]] == 1 & codes$poaexempt == 1,
+    c("code", "condition")],
+    poa[poa$poa_required == 1 & poa[[method]] == 1,
+      c("condition", "poa_required")],
+    by = "condition"
+  )
+  candidate <- candidates[1L, , drop = FALSE]
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = candidate$code,
+    DXPOA1 = "Y", DXPOA2 = "N")
+
+  condition_column <- paste0("cmrb_", tolower(candidate$condition[[1L]]))
+  expect_true(nis_comorbidity(data)[[condition_column]])
+})
+
+test_that("conditions that do not require POA remain flaggable", {
   skip_if_not_installed("medicalcoder")
   aids <- single_codes("AIDS")
   data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = aids,

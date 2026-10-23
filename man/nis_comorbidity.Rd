@@ -46,8 +46,9 @@ remain pending scientific approval.
 \itemize{
 \item \strong{Present on admission uses available diagnosis indicators.} Matching
 \code{DXPOAn} columns are aligned with \code{I10_DXn}; \code{Y} and \code{W} map to present,
-while \code{N} and \code{U} map to not present. Other values, including \code{1}, are
-treated as unknown. \code{medicalcoder} applies its POA-exempt code table, based
+while \code{N} and \code{U} map to not present. Other values, including \code{1} and
+invalid UTF-8 values, are treated as unknown. \code{medicalcoder} applies its
+POA-exempt code table, based
 on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
 adjusted for discharge date, so exempt-code results can differ slightly
 from AHRQ software across fiscal years. If a matching POA column is absent,

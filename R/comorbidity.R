@@ -15,8 +15,9 @@
 #' @section Assumptions:
 #' * **Present on admission uses available diagnosis indicators.** Matching
 #'   `DXPOAn` columns are aligned with `I10_DXn`; `Y` and `W` map to present,
-#'   while `N` and `U` map to not present. Other values, including `1`, are
-#'   treated as unknown. `medicalcoder` applies its POA-exempt code table, based
+#'   while `N` and `U` map to not present. Other values, including `1` and
+#'   invalid UTF-8 values, are treated as unknown. `medicalcoder` applies its
+#'   POA-exempt code table, based
 #'   on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
 #'   adjusted for discharge date, so exempt-code results can differ slightly
 #'   from AHRQ software across fiscal years. If a matching POA column is absent,
@@ -179,7 +180,9 @@ nis_comorbidity_long <- function(.data, slots, slot_number, n) {
     if (!field %in% names(.data)) {
       return(rep(1L, n))
     }
-    value <- toupper(as.character(.data[[field]]))
+    value <- as.character(.data[[field]])
+    value[!validUTF8(value)] <- NA_character_
+    value <- toupper(value)
     unname(c(N = 0L, U = 0L, W = 1L, Y = 1L)[value])
   }), use.names = FALSE)
   data.frame(
