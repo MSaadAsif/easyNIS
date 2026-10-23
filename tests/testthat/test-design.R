@@ -397,32 +397,6 @@ test_that("nis_design keeps computed cohort flags out of collected variables", {
   expect_false("unrelated_payload" %in% names(design$variables))
 })
 
-test_that("nis_design selects diagnosis and POA fields from a lazy query schema", {
-  data <- dplyr::tibble(
-    YEAR = 2022L,
-    HOSP_NIS = 1L,
-    NIS_STRATUM = 1L,
-    DISCWT = 1,
-    eligible = TRUE,
-    I10_DX1 = "I210",
-    DXPOA1 = "Y"
-  )
-  query <- duckdb_query_fixture(data)
-
-  expect_identical(
-    grep("^(?:I10_DX|DXPOA)[0-9]+$", colnames(query), value = TRUE, perl = TRUE),
-    c("I10_DX1", "DXPOA1")
-  )
-  design <- nis_design(
-    query,
-    eligible,
-    keep = c(dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA"))
-  )
-  expect_true(all(c("I10_DX1", "DXPOA1") %in% names(design$variables)))
-  expect_identical(design$variables$I10_DX1, "I210")
-  expect_identical(design$variables$DXPOA1, "Y")
-})
-
 test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {
   designs <- comparison_designs()
   on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)

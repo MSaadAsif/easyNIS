@@ -39,9 +39,7 @@ ICD-10 codes have missing results rather than “no comorbidity.”
 ## Add scores after design construction
 
 If an analysis uses `nis_design()`, keep diagnosis columns in the design and
-pass the design to `nis_comorbidity()`. Diagnosis and POA selections are
-resolved from the query schema, so this also works when `nis` is a lazy DuckDB
-query. This preserves the design object.
+pass the design to `nis_comorbidity()`. This preserves the design object.
 
 ```{r design, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
 nis <- nis_open(nis_example(years = 2019)) |>
