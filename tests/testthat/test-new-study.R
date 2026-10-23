@@ -56,6 +56,13 @@ test_that("nis_new_study validates path arguments with stable conditions", {
   expect_invalid_path(character())
   expect_invalid_path(c("one", "two"))
   expect_invalid_path(1)
+
+  missing <- tryCatch(easyNIS::nis_new_study(), error = identity)
+  expect_identical(
+    conditionMessage(missing),
+    "argument \"path\" is missing, with no default"
+  )
+  expect_identical(conditionCall(missing), quote(easyNIS::nis_new_study()))
 })
 
 test_that("the packaged Quarto template follows the scaffold contract", {
