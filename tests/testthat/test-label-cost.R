@@ -1,5 +1,9 @@
 test_that("labels require collected data", {
-  expect_error(nis_label(list(AGE = 40)), "collected data frame")
+  error <- tryCatch(nis_label(list(AGE = 40)), error = identity)
+  expect_identical(conditionMessage(error),
+    "`data` must be a collected data frame.")
+  expect_true(inherits(error, "rlang_error"))
+  expect_identical(conditionCall(error)[[1L]], quote(nis_label))
 })
 
 test_that("cost adjustment validates inputs and preserves missing amounts", {
@@ -52,6 +56,17 @@ test_that("nis_label maps common codes and preserves existing labels", {
   expect_identical(attr(labelled$PAY1, "label"), "Expected primary payer")
   expect_identical(attr(labelled$ynel1, "label"), "Existing Elixhauser label")
   expect_identical(nis_label(labelled), labelled)
+})
+
+test_that("nis_label maps logical fields and skips internal columns", {
+  data <- dplyr::tibble(
+    ready = c(TRUE, FALSE, NA),
+    `.internal` = c("leave", "as", "is")
+  )
+  labelled <- nis_label(data)
+  expect_identical(as.character(labelled$ready), c("Yes", "No", NA))
+  expect_identical(levels(labelled$ready), c("No", "Yes"))
+  expect_identical(labelled$.internal, data$.internal)
 })
 
 test_that("nis_label retains unknown codes and warns once per variable", {

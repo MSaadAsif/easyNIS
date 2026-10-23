@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
+  labeling without changing their results.
+
 ## Project metadata
 
 - Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs
