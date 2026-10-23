@@ -54,12 +54,23 @@ below remain pending scientific approval.
 
 ## Assumptions
 
-- **Present on admission is approximated.** NIS includes diagnosis POA
-  fields (`DXPOA1`, `DXPOA2`, and so on), but this helper does not use
-  them. It passes every diagnosis as present on admission (`poa = 1L`).
-  AHRQ's refined Elixhauser method requires POA for 18 of its 38
-  measures, so this approximation can count a complication that arose
-  during the stay as pre-existing for a POA-sensitive measure.
+- **Present on admission uses available diagnosis indicators.** Matching
+  `DXPOAn` columns are aligned with `I10_DXn`; `Y` and `W` map to
+  present, while `N` and `U` map to not present. Other values, including
+  `1` and invalid UTF-8 values, are treated as unknown. `medicalcoder`
+  applies its POA-exempt code table, based on AHRQ fiscal-year 2022
+  through 2026 mappings; its exemption status is not adjusted for
+  discharge date, so exempt-code results can differ slightly from AHRQ
+  software across fiscal years. If a matching POA column is absent, that
+  diagnosis is assumed present to retain compatibility with older years
+  and inputs that did not keep POA fields. A warning names the affected
+  slots; their POA-dependent comorbidities may include conditions
+  acquired in hospital. AHRQ's refined software requires POA to assign
+  18 of 38 measures and returns missing results when required POA data
+  are unavailable ([AHRQ User
+  Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
+  Thus, results can change for inputs that include POA fields: AHRQ's
+  refined Elixhauser method requires POA for 18 of its 38 measures.
 
 - **Principal diagnosis** is `I10_DX1`. It is passed as the primary
   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for
@@ -98,7 +109,7 @@ needs the whole hospital-year frame to build placeholder rows, so do not
 collect and enrich the cohort before calling it. Keep the diagnosis
 columns in the design instead, then pass the design here:
 
-    design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX")))
+    design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
     design <- nis_comorbidity(design)
 
 For a `tbl_svy` the function replaces `design$variables` and leaves the
@@ -113,10 +124,10 @@ indicators](https://msaadasif.github.io/easyNIS/reference/articles/comorbidity.m
 
 ``` r
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::select(AGE, dplyr::starts_with("I10_DX")) |>
+  dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzwSW2n/duckdb
+#> ℹ /tmp/Rtmpe41Z1U/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -124,7 +135,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzwSW2n/duckdb
+#> ℹ /tmp/Rtmpe41Z1U/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -132,6 +143,13 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 comorbid <- nis_comorbidity(discharges)
+#> Warning: No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,
+#> I10_DX12, I10_DX13, I10_DX14, I10_DX15, I10_DX16, I10_DX17, I10_DX18, I10_DX19,
+#> I10_DX2, I10_DX20, I10_DX21, I10_DX22, I10_DX23, I10_DX24, I10_DX25, I10_DX26,
+#> I10_DX27, I10_DX28, I10_DX29, I10_DX3, I10_DX30, I10_DX31, I10_DX32, I10_DX33,
+#> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,
+#> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.
+#> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
 comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
 #> # A tibble: 6 × 3
 #>     AGE cmrb_n cmrb_any

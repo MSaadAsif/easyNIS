@@ -123,12 +123,22 @@ remain pending scientific approval.</p>
     <h2 id="assumptions">Assumptions<a class="anchor" aria-label="anchor" href="#assumptions"></a></h2>
 
 
-<ul><li><p><strong>Present on admission is approximated.</strong> NIS includes diagnosis POA fields
-(<code>DXPOA1</code>, <code>DXPOA2</code>, and so on), but this helper does not use them. It passes
-every diagnosis as present on admission (<code>poa = 1L</code>). AHRQ's refined
-Elixhauser method requires POA for 18 of its 38 measures, so this
-approximation can count a complication that arose during the stay as
-pre-existing for a POA-sensitive measure.</p></li>
+<ul><li><p><strong>Present on admission uses available diagnosis indicators.</strong> Matching
+<code>DXPOAn</code> columns are aligned with <code>I10_DXn</code>; <code>Y</code> and <code>W</code> map to present,
+while <code>N</code> and <code>U</code> map to not present. Other values, including <code>1</code> and
+invalid UTF-8 values, are treated as unknown. <code>medicalcoder</code> applies its
+POA-exempt code table, based
+on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
+adjusted for discharge date, so exempt-code results can differ slightly
+from AHRQ software across fiscal years. If a matching POA column is absent,
+that diagnosis is assumed present to retain compatibility with older years
+and inputs that did not keep POA fields. A warning names the affected slots;
+their POA-dependent comorbidities may include conditions acquired in
+hospital. AHRQ's refined software requires POA to assign 18 of 38 measures
+and returns missing results when required POA data are unavailable
+(<a href="https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf" class="external-link">AHRQ User Guide</a>).
+Thus, results can change for inputs that include POA fields: AHRQ's refined
+Elixhauser method requires POA for 18 of its 38 measures.</p></li>
 <li><p><strong>Principal diagnosis</strong> is <code>I10_DX1</code>. It is passed as the primary
 diagnosis, and <code>medicalcoder</code> applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
@@ -163,7 +173,7 @@ above. Do not mix the two sets of indicators in one model.</p>
 <p><code><a href="nis_design.html">nis_design()</a></code> needs the whole hospital-year frame to build placeholder rows,
 so do not collect and enrich the cohort before calling it. Keep the diagnosis
 columns in the design instead, then pass the design here:</p>
-<p></p><div class="sourceCode r"><pre><code><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">starts_with</span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">starts_with</span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span>, <span class="fu">starts_with</span><span class="op">(</span><span class="st">"DXPOA"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_comorbidity.html">nis_comorbidity</a></span><span class="op">(</span><span class="va">design</span><span class="op">)</span></span></code></pre><p></p></div>
 <p>For a <code>tbl_svy</code> the function replaces <code>design$variables</code> and leaves the
 design (clusters, strata, weights) untouched.</p>
@@ -176,10 +186,10 @@ design (clusters, strata, weights) untouched.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">discharges</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"DXPOA"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpzwSW2n/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpe41Z1U/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -187,7 +197,7 @@ design (clusters, strata, weights) untouched.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpzwSW2n/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpe41Z1U/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -195,6 +205,13 @@ design (clusters, strata, weights) untouched.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-in"><span><span class="va">comorbid</span> <span class="op">&lt;-</span> <span class="fu">nis_comorbidity</span><span class="op">(</span><span class="va">discharges</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> I10_DX12, I10_DX13, I10_DX14, I10_DX15, I10_DX16, I10_DX17, I10_DX18, I10_DX19,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> I10_DX2, I10_DX20, I10_DX21, I10_DX22, I10_DX23, I10_DX24, I10_DX25, I10_DX26,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> I10_DX27, I10_DX28, I10_DX29, I10_DX3, I10_DX30, I10_DX31, I10_DX32, I10_DX33,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> POA-dependent comorbidities may include conditions acquired in hospital.</span>
 <span class="r-in"><span><span class="va">comorbid</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_any"</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 3</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     AGE cmrb_n cmrb_any</span>
