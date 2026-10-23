@@ -54,7 +54,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<div class="section level3">
+<ul><li>Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP labeling without changing their results.</li>
+</ul><div class="section level3">
 <h3 id="project-metadata-development-version">Project metadata<a class="anchor" aria-label="anchor" href="#project-metadata-development-version"></a></h3>
 <ul><li>Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs across package metadata.</li>
 </ul></div>
@@ -81,6 +82,7 @@
 <li>
 <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now suppresses zero discharge counts at or below the threshold and rejects missing, non-finite, negative, or fractional data-frame count values.</li>
 <li>Refactored code-transition auditing, cell counts, and attrition summaries into internal helpers without changing their results or validation behavior.</li>
+<li>Refactored <code><a href="../reference/nis_design.html">nis_design()</a></code> and <code><a href="../reference/nis_reweight.html">nis_reweight()</a></code> into private validation and preparation helpers without changing survey design behavior.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="maintenance-development-version">Maintenance<a class="anchor" aria-label="anchor" href="#maintenance-development-version"></a></h3>

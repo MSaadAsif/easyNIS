@@ -2,6 +2,9 @@
 
 ## easyNIS (development version)
 
+- Reduce cyclomatic complexity in diagnosis sensitivity summaries and
+  HCUP labeling without changing their results.
+
 ### Project metadata
 
 - Set the project license to GNU AGPL-3.0-only, update author names and
@@ -77,6 +80,12 @@
 - Refactored code-transition auditing, cell counts, and attrition
   summaries into internal helpers without changing their results or
   validation behavior.
+- Refactored
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  and
+  [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
+  into private validation and preparation helpers without changing
+  survey design behavior.
 
 ### Maintenance
 
