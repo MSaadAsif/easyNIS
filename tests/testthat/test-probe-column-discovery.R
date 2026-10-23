@@ -1,3 +1,5 @@
+source(test_path("../../tools/probe/column-discovery.R"))
+
 test_that("lazy probe column discovery keeps diagnosis and POA fields", {
   data <- dplyr::tibble(
     YEAR = 2022L,
@@ -13,9 +15,7 @@ test_that("lazy probe column discovery keeps diagnosis and POA fields", {
   )
   query <- duckdb_query_fixture(data)
 
-  diagnosis_fields <- grep(
-    "^(?:I10_DX|DXPOA)[0-9]+$", colnames(query), value = TRUE, perl = TRUE
-  )
+  diagnosis_fields <- probe_diagnosis_columns(query)
   expected_fields <- c("I10_DX1", "I10_DX2", "DXPOA1", "DXPOA2")
   expect_setequal(diagnosis_fields, expected_fields)
 
