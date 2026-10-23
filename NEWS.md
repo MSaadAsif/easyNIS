@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- Clarify procedure-column slot names in `nis_flag_pr_timing()` help so the
+  rendered HTML does not contain invalid placeholder markup.
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 

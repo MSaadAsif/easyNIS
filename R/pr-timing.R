@@ -24,7 +24,9 @@
 #' @param missing_day How to handle unknown days: exclude returns FALSE,
 #'   assume_same_day uses day 0, and indeterminate returns NA unless a
 #'   determinate match is TRUE.
-#' @param system Code system: icd10 uses I10_PR<n>; icd9 uses PR<n>.
+#' @param system Code system: ICD-10 procedure columns use the `I10_PR` prefix
+#'   followed by a slot number; ICD-9 procedure columns use `PR` followed by a
+#'   slot number.
 #'
 #' @return .data with the logical column named by name.
 #' @family cohort-definition

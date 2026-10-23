@@ -59,16 +59,9 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_match(sql, "read_parquet")
   expect_match(sql, "union_by_name = true")
   expect_match(sql, "hive_partitioning = false")
-  plan <- DBI::dbGetQuery(query$src$con, paste("EXPLAIN", as.character(sql)))
-  plan_lines <- strsplit(plan[[2L]], "\\n", fixed = FALSE)[[1L]]
-  projection_lines <- grep("│\\s+[A-Za-z][A-Za-z0-9_]*\\s+│",
-    plan_lines, value = TRUE)
-  projection_tokens <- sub(
-    "^.*│\\s*([A-Za-z][A-Za-z0-9_]*)\\s*│.*$", "\\1",
-    projection_lines, perl = TRUE
-  )
-  expect_true(all(c("YEAR", "B") %in% projection_tokens))
-  expect_false("A" %in% projection_tokens)
+  plan <- DBI::dbGetQuery(query$src$con,
+    paste("EXPLAIN (FORMAT JSON)", as.character(sql)))
+  expect_match(plan[[2L]], '"Projections":\\s*\\[\\s*"YEAR",\\s*"B"\\s*\\]')
   all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
   expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
   expect_equal(all_years$A, c(1L, 2L, NA_integer_))

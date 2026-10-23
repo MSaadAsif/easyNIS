@@ -36,6 +36,23 @@ test_that("procedure timing evaluates every relation and the earliest index day"
   expect_error(nis_flag_pr_timing(data, "ix", "out-"), "letters and numbers")
 })
 
+test_that("procedure timing help describes slots without HTML placeholders", {
+  rd_path <- test_path("../../man/nis_flag_pr_timing.Rd")
+  rd <- if (file.exists(rd_path)) {
+    tools::parse_Rd(rd_path)
+  } else {
+    utils:::.getHelpFile(help("nis_flag_pr_timing", package = "easyNIS"))
+  }
+  html_path <- tempfile(fileext = ".html")
+  on.exit(unlink(html_path), add = TRUE)
+  tools::Rd2HTML(rd, out = html_path, package = "easyNIS")
+  html <- paste(readLines(html_path, warn = FALSE), collapse = "\n")
+
+  expect_true(grepl("I10_PR", html, fixed = TRUE))
+  expect_true(grepl("slot number", html, fixed = TRUE))
+  expect_false(grepl("<n>", html, fixed = TRUE))
+})
+
 test_that("procedure timing validation errors retain their public call", {
   data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
     PRDAY2 = 1L)
