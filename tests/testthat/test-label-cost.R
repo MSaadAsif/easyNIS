@@ -18,8 +18,10 @@ test_that("cost adjustment validates inputs and preserves missing amounts", {
   data$TOTCHG <- c(NA_real_, 1000)
   data$YEAR <- c(NA_real_, 2025)
   expect_error(nis_cost(data, 2020), "without a CPI-U index")
-  for (years in list(numeric(), NA_real_, 2011, 2025, 2019.5)) {
-    expect_error(nis_example(years), "whole years")
+  for (years in list(numeric(), NA_real_, "2019", 2011, 2025, 2019.5, Inf)) {
+    error <- tryCatch(nis_example(years), error = identity)
+    expect_match(error$message, "whole years")
+    expect_identical(rlang::call_name(conditionCall(error)), "nis_example")
   }
 })
 

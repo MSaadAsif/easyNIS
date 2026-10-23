@@ -10,6 +10,10 @@
 
 ## New features
 
+- Internal helpers now split validation, cost adjustment, and synthetic fixture
+  construction in `nis_cost()` and `nis_example()` while preserving their
+  existing behavior.
+
 - Refactored internal CCSR mapping helpers to keep cyclomatic complexity within
   the repository limit without changing `nis_ccsr_codes()` behavior.
 - `nis_open()` combines annual Parquet files with Hive year partitions and
