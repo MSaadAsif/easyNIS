@@ -248,7 +248,7 @@ study_original_file_copy <- base::file.copy
 study_original_dir_exists <- base::dir.exists
 study_original_dir_create <- base::dir.create
 
-test_that("study model fitting reports successful, failed, and unstable fits", {
+test_that("internal helpers: model fitting reports successful, failed, and unstable fits", {
   fit_model <- getFromNamespace("nis_study_fit_model", "easyNIS")
   design <- list(variables = data.frame(
     y = c(0, 1, 0, 1), exposed = c(0, 1, 0, 1), x = c(1, 2, 2, 1)
@@ -292,7 +292,7 @@ test_that("study model fitting reports successful, failed, and unstable fits", {
   expect_identical(material$warnings, "synthetic fit did not converge")
 })
 
-test_that("study model fitting rejects invalid coefficient and covariance estimates", {
+test_that("internal helpers: model fitting rejects invalid estimates", {
   fit_model <- getFromNamespace("nis_study_fit_model", "easyNIS")
   design <- list(variables = data.frame(y = 0:3, exposed = c(0, 1, 0, 1)))
   formula <- y ~ exposed
@@ -310,7 +310,7 @@ test_that("study model fitting rejects invalid coefficient and covariance estima
                        "The model returned missing or non-finite covariance estimates.")
 })
 
-test_that("study model formula preflight handles complete cases and invalid specifications", {
+test_that("internal helpers: model formula preflight handles complete cases and invalid specifications", {
   model_status <- getFromNamespace("nis_study_model_data_status", "easyNIS")
   valid <- data.frame(y = c(0, 1, 0, NA), exposed = c(0, 1, 0, 1), x = c(1, 2, 3, 4))
   expect_null(model_status(valid, "y", "exposed", y ~ exposed + x))
@@ -328,7 +328,7 @@ test_that("study model formula preflight handles complete cases and invalid spec
                "rank could not be evaluated")
 })
 
-test_that("study model preflight describes missing data and non-finite values", {
+test_that("internal helpers: model preflight describes missing data and non-finite values", {
   model_status <- getFromNamespace("nis_study_model_data_status", "easyNIS")
   expect_match(model_status(NULL, "y", "exposed"), "unavailable")
   expect_match(model_status(data.frame(y = 0:1), "y", "exposed"), "missing exposed")
