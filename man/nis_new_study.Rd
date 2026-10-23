@@ -4,7 +4,7 @@
 \alias{nis_new_study}
 \title{Create a new NIS study folder}
 \usage{
-nis_new_study(path)
+nis_new_study(path = NULL)
 }
 \arguments{
 \item{path}{A new local directory path for the study.}
