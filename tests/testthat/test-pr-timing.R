@@ -1,3 +1,23 @@
+test_that("procedure timing system help renders its slot description as HTML", {
+  rd <- tryCatch(
+    tools::Rd_db("easyNIS")[["nis_flag_pr_timing.Rd"]],
+    error = function(error) NULL
+  )
+  if (is.null(rd)) {
+    rd_file <- test_path("..", "..", "man", "nis_flag_pr_timing.Rd")
+    if (!file.exists(rd_file)) skip("procedure timing Rd is unavailable")
+    rd <- tools::parse_Rd(rd_file)
+  }
+
+  html_path <- tempfile(fileext = ".html")
+  on.exit(unlink(html_path), add = TRUE)
+  tools::Rd2HTML(rd, out = html_path)
+  html <- paste(readLines(html_path, warn = FALSE), collapse = "\n")
+
+  expect_false(grepl("<n>", html, fixed = TRUE))
+  expect_match(html, "slot number", fixed = TRUE)
+})
+
 test_that("procedure timing evaluates every relation and the earliest index day", {
   data <- dplyr::tibble(
     I10_PR1 = c("IX", "IX", "IX", "IX", "IX", "IX"),
