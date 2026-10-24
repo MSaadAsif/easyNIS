@@ -1,13 +1,10 @@
 test_that("procedure timing system help renders its slot description as HTML", {
-  rd <- tryCatch(
-    tools::Rd_db("easyNIS")[["nis_flag_pr_timing.Rd"]],
-    error = function(error) NULL
-  )
-  if (is.null(rd)) {
-    rd_file <- test_path("..", "..", "man", "nis_flag_pr_timing.Rd")
-    if (!file.exists(rd_file)) skip("procedure timing Rd is unavailable")
-    rd <- tools::parse_Rd(rd_file)
+  rd_file <- test_path("..", "..", "man", "nis_flag_pr_timing.Rd")
+  rd <- if (file.exists(rd_file)) tools::parse_Rd(rd_file) else {
+    tryCatch(tools::Rd_db("easyNIS")[["nis_flag_pr_timing.Rd"]],
+      error = function(error) NULL)
   }
+  if (is.null(rd)) skip("procedure timing Rd is unavailable")
 
   html_path <- tempfile(fileext = ".html")
   on.exit(unlink(html_path), add = TRUE)
