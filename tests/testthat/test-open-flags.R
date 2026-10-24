@@ -345,6 +345,24 @@ test_that("invented 2015 split stays lazy across pooled years", {
   expect_error(nis_example(Inf), "2012 through 2024")
 })
 
+test_that("pre-2016 layout notice is shown once per session", {
+  path <- nis_example(years = 2015)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  rlang::reset_message_verbosity("easyNIS_icd9_layout")
+  withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
+
+  expect_message(nis_open(path, years = 2015), "Experimental")
+  repeated_messages <- character()
+  withCallingHandlers(
+    nis_open(path, years = 2015),
+    message = function(message) {
+      repeated_messages <<- c(repeated_messages, conditionMessage(message))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_false(any(grepl("Experimental", repeated_messages)))
+})
+
 test_that("missing slot columns for a code system give a system-specific error", {
   icd10_only <- dplyr::tibble(I10_DX1 = "I509", I10_PR1 = "02703ZZ")
   icd9_only <- dplyr::tibble(DX1 = "4280", PR1 = "3722", DXVER = 9L)
