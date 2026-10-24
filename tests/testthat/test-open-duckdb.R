@@ -59,6 +59,34 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_match(sql, "read_parquet")
   expect_match(sql, "union_by_name = true")
   expect_match(sql, "hive_partitioning = false")
+  all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
+  expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
+  expect_equal(all_years$A, c(1L, 2L, NA_integer_))
+  expect_equal(all_years$B, c(NA_integer_, NA_integer_, 3L))
+  expect_equal(all_years$drift, c(10, 20, 30.5))
+  selected_year <- dplyr::collect(nis_open(path, years = 2020L) |>
+    dplyr::select(YEAR, B, drift))
+  expect_equal(selected_year$YEAR, 2020L)
+  expect_equal(selected_year$drift, 30.5)
+})
+
+test_that("nis_open pushes selected columns down to Parquet", {
+  path <- tempfile("nis-hive-projection-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = c(2019L, 2019L), A = c(1L, 2L),
+      drift = c(10L, 20L)),
+    file.path(path, "YEAR=2019", "part.parquet")
+  )
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = 2020L, B = 3L, drift = 30.5),
+    file.path(path, "YEAR=2020", "part.parquet")
+  )
+
+  query <- nis_open(path)
+  sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
+  skip_if_not_installed("jsonlite")
   plan <- DBI::dbGetQuery(query$src$con, paste(
     "EXPLAIN (FORMAT JSON)", as.character(sql)
   ))
@@ -80,15 +108,6 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_gt(length(projection_tokens), 0L)
   expect_true(all(c("YEAR", "B") %in% projection_tokens))
   expect_false("A" %in% projection_tokens)
-  all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
-  expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
-  expect_equal(all_years$A, c(1L, 2L, NA_integer_))
-  expect_equal(all_years$B, c(NA_integer_, NA_integer_, 3L))
-  expect_equal(all_years$drift, c(10, 20, 30.5))
-  selected_year <- dplyr::collect(nis_open(path, years = 2020L) |>
-    dplyr::select(YEAR, B, drift))
-  expect_equal(selected_year$YEAR, 2020L)
-  expect_equal(selected_year$drift, 30.5)
 })
 
 test_that("nis_open combines annual files with Hive partitions", {
