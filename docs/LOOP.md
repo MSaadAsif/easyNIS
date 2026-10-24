@@ -52,6 +52,12 @@ complexity.
 No output from a real-data run may be copied into an issue, PR, commit, or
 document. This includes `findings.jsonl`; keep every real-data output local.
 Full condition text may be stored only under `local/loop/<run>/private/`.
+When `pkgcheck` or `goodpractice` fails, `probe-quality.R` saves its nested
+diagnostic results and captured warning conditions in
+`private/quality-diagnostics.rds`; keep that artifact local as well. Public
+quality receipts include numeric failed-check, R CMD check error, and captured
+warning counts, without nested condition text. A goodpractice prep failure is
+a failed step, while an unknown check status remains unverified.
 A public issue contains only a synthetic reproduction using `nis_example()` or
 another fixture, plus a description of the problem in general terms. The
 public-text scanner is a backstop, not publication clearance. Use judgment and
