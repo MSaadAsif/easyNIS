@@ -113,9 +113,6 @@ local({
   pkgcheck_condition <- simpleError(nested_pkgcheck_message)
   rcmd_error <- structure(nested_pkgcheck_message, class = "try-error",
     condition = pkgcheck_condition)
-  pkgcheck_summary <- getFromNamespace("summarise_gp_checks", "pkgcheck")(
-    list(goodpractice = list(rcmdcheck = rcmd_error)))
-  stopifnot(grepl(nested_pkgcheck_message, pkgcheck_summary$rcmd_errs, fixed = TRUE))
 
   prep_result <- capture_quality_step("goodpractice", function() {
     getFromNamespace("run_prep_step", "goodpractice")(
@@ -131,9 +128,13 @@ local({
     identical(goodpractice_pass(synthetic_goodpractice), FALSE),
     is.na(goodpractice_pass(structure(list(checks = list(manual = list(status = NA))),
       class = c("goodPractice", "list")))))
+  mixed_statuses <- structure(list(checks = list(
+    failed = list(status = FALSE), unknown = list(status = NA)
+  )), class = c("goodPractice", "list"))
+  stopifnot(identical(goodpractice_pass(mixed_statuses), FALSE))
 
-  synthetic_pkgcheck <- structure(list(checks = list(
-    goodpractice = list(rcmdcheck = rcmd_error)
+  synthetic_pkgcheck <- structure(list(goodpractice = list(
+    checks = list(manual = list(status = FALSE)), rcmdcheck = list(errors = rcmd_error)
   )), class = c("pkgcheck", "list"))
   checks <- list(pkgcheck = list(value = synthetic_pkgcheck, warning_conditions = list()),
     goodpractice = list(value = synthetic_goodpractice,
@@ -149,12 +150,18 @@ local({
   on.exit(unlink(run_dir, recursive = TRUE))
   private_path <- write_private_quality_diagnostics(run_dir, checks, records)
   restored <- readRDS(private_path)
-  public_receipt <- jsonlite::toJSON(records, auto_unbox = TRUE)
+  synthetic_receipt <- quality_receipt_record(list(name = "pkgcheck", value = synthetic_pkgcheck,
+    warning_conditions = list(simpleWarning("synthetic warning"),
+      simpleWarning("another synthetic warning")), error_class = "",
+    warnings = "warning(s) captured", elapsed_seconds = 0),
+    list(commit = "synthetic-commit", working_tree_clean = TRUE),
+    status = "completed", passed = FALSE, detail = "check failures present")
+  public_receipt <- jsonlite::toJSON(synthetic_receipt, auto_unbox = TRUE)
   stopifnot(file.exists(private_path),
     identical(basename(dirname(private_path)), "private"),
     identical(basename(private_path), "quality-diagnostics.rds"),
     inherits(restored$pkgcheck$result, "pkgcheck"),
-    identical(attr(restored$pkgcheck$result$checks$goodpractice$rcmdcheck, "condition")$message,
+    identical(attr(restored$pkgcheck$result$goodpractice$rcmdcheck$errors, "condition")$message,
       nested_pkgcheck_message),
     inherits(restored$goodpractice$result$manual, "try-error"),
     identical(attr(restored$goodpractice$result$manual, "condition")$message, nested_prep_message),
@@ -166,6 +173,11 @@ local({
     identical(records[[2L]]$detail, "check failures present"),
     identical(records[[2L]]$warnings, "warning(s) captured"),
     identical(records[[2L]]$error, ""),
+    identical(synthetic_receipt$failed_checks, 1L),
+    identical(synthetic_receipt$rcmdcheck_errors, 1L),
+    identical(synthetic_receipt$captured_warnings, 2L),
+    is.integer(synthetic_receipt$failed_checks), is.integer(synthetic_receipt$rcmdcheck_errors),
+    is.integer(synthetic_receipt$captured_warnings),
     length(private_quality_diagnostics(checks, list(list(step = "pkgcheck", pass = TRUE),
       list(step = "goodpractice", pass = TRUE)))) == 0L)
   clean_run_dir <- tempfile("synthetic-clean-quality-run-")
@@ -174,6 +186,27 @@ local({
   clean_records <- list(list(step = "pkgcheck", pass = TRUE))
   stopifnot(is.null(write_private_quality_diagnostics(clean_run_dir, checks, clean_records)),
     !dir.exists(file.path(clean_run_dir, "private")))
+
+  blocked_dir <- tempfile("synthetic-private-path-")
+  writeLines("synthetic", blocked_dir)
+  on.exit(unlink(blocked_dir), add = TRUE)
+  warnings <- character()
+  failed_write <- withCallingHandlers(write_private_quality_diagnostics(blocked_dir, checks, records),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  stopifnot(is.null(failed_write), length(warnings) == 1L,
+    grepl("Could not save private quality diagnostics", warnings[[1L]], fixed = TRUE))
+
+  synthetic_error <- simpleError("synthetic top-level package check error")
+  error_counts <- quality_public_diagnostic_counts(synthetic_error)
+  error_records <- list(list(step = "pkgcheck", pass = FALSE))
+  error_file <- write_private_quality_diagnostics(run_dir,
+    list(pkgcheck = list(value = synthetic_error, warning_conditions = list())), error_records)
+  stopifnot(inherits(readRDS(error_file)$pkgcheck$result, "error"),
+    identical(error_counts, list(failed_checks = 0L, rcmdcheck_errors = 0L,
+      captured_warnings = 0L)))
 })
 
 local({

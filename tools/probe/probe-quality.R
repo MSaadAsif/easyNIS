@@ -168,10 +168,7 @@ quality_record <- function(x, evidence) {
   passed <- quality_step_pass(x, counts)
   detail <- quality_step_detail(x, counts)
   if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
-  list(step = x$name, status = quality_step_status(value, passed), pass = passed,
-    error_class = x$error_class, result_class = paste(class(value), collapse = ","),
-    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
-    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds)
+  quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
 }
 records <- lapply(checks, quality_record, evidence = run_evidence)
 records[[length(records) + 1L]] <- list(step = "export_documentation", status = "completed",

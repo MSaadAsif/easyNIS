@@ -275,6 +275,7 @@ goodpractice_pass <- function(value) {
   statuses <- lapply(value$checks, function(check) {
     if (is.list(check) && "status" %in% names(check)) check$status else check
   })
+  if (any(vapply(statuses, function(status) identical(status, FALSE), logical(1)))) return(FALSE)
   if (any(vapply(statuses, function(status) length(status) != 1L || is.na(status), logical(1)))) {
     return(NA)
   }
@@ -290,14 +291,60 @@ quality_public_detail <- function(name, passed) {
   ""
 }
 
+quality_public_diagnostic_counts <- function(value, warning_conditions = list()) {
+  goodpractice_result <- if (inherits(value, "pkgcheck")) {
+    value$goodpractice
+  } else if (inherits(value, "goodPractice")) {
+    value
+  } else {
+    NULL
+  }
+  checks <- goodpractice_result$checks
+  failed_checks <- if (is.list(checks)) {
+    sum(vapply(checks, function(check) {
+      is.list(check) && identical(check$status, FALSE)
+    }, logical(1)))
+  } else {
+    0L
+  }
+  rcmdcheck <- goodpractice_result$rcmdcheck
+  rcmdcheck_errors <- if (inherits(rcmdcheck, "try-error")) {
+    1L
+  } else if (is.list(rcmdcheck)) {
+    length(rcmdcheck$errors)
+  } else {
+    0L
+  }
+  list(failed_checks = as.integer(failed_checks),
+    rcmdcheck_errors = as.integer(rcmdcheck_errors),
+    captured_warnings = as.integer(length(warning_conditions)))
+}
+
+quality_receipt_record <- function(x, evidence, status, passed, detail) {
+  diagnostic_counts <- quality_public_diagnostic_counts(x$value, x$warning_conditions)
+  c(list(step = x$name, status = status, pass = passed,
+    error_class = x$error_class, result_class = paste(class(x$value), collapse = ","),
+    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
+    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds),
+    diagnostic_counts)
+}
+
 write_private_quality_diagnostics <- function(run_dir, checks, records) {
   diagnostics <- private_quality_diagnostics(checks, records)
   if (!length(diagnostics)) return(NULL)
   private_dir <- file.path(run_dir, "private")
-  dir.create(private_dir, recursive = TRUE, showWarnings = FALSE)
-  output <- file.path(private_dir, "quality-diagnostics.rds")
-  saveRDS(diagnostics, output)
-  output
+  tryCatch({
+    if (!dir.exists(private_dir) && !suppressWarnings(dir.create(private_dir, recursive = TRUE))) {
+      stop("directory creation failed", call. = FALSE)
+    }
+    output <- file.path(private_dir, "quality-diagnostics.rds")
+    saveRDS(diagnostics, output)
+    output
+  }, error = function(error) {
+    warning("Could not save private quality diagnostics (", class(error)[[1L]], ").",
+      call. = FALSE)
+    NULL
+  })
 }
 
 coverage_percent_value <- function(item) {
