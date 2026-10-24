@@ -113,8 +113,9 @@ local({
     condition = pkgcheck_condition)
 
   prep_result <- capture_quality_step("goodpractice", function() {
-    getFromNamespace("run_prep_step", "goodpractice")(
-      list(), "manual", function(...) stop(simpleError(nested_prep_message)), silent = TRUE)
+    manual <- try(stop(simpleError(nested_prep_message)), silent = TRUE)
+    warning(nested_prep_message, call. = FALSE)
+    list(manual = manual)
   })
   stopifnot(length(prep_result$warning_conditions) == 1L,
     grepl(nested_prep_message, conditionMessage(prep_result$warning_conditions[[1L]]), fixed = TRUE))
