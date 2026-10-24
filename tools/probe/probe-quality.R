@@ -151,11 +151,10 @@ lint_detail <- function(value) {
     ": ", lint_table$message)
   paste(vapply(entries, redact_paths, character(1)), collapse = " | ")
 }
-quality_step_detail <- function(x, counts) {
+quality_step_detail <- function(x, counts, passed) {
   value <- x$value
   if (inherits(value, "error")) return(x$error)
   if (x$name %in% c("goodpractice", "pkgcheck")) {
-    passed <- quality_step_pass(x, check_counts_for(value))
     return(quality_public_detail(x$name, passed))
   }
   if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
@@ -166,7 +165,7 @@ quality_record <- function(x, evidence) {
   value <- x$value
   counts <- check_counts_for(value)
   passed <- quality_step_pass(x, counts)
-  detail <- quality_step_detail(x, counts)
+  detail <- quality_step_detail(x, counts, passed)
   if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
   quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
 }

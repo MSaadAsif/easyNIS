@@ -77,14 +77,6 @@ redact_public_text <- function(text) {
   gsub(number, "[number]", redact_paths(text), perl = TRUE)
 }
 
-redact_public_diagnostic <- function(text) {
-  text <- as.character(text)
-  contains_number <- grepl("[-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][-+]?[0-9]+)?[iL]?",
-    text, perl = TRUE)
-  text[contains_number] <- "[diagnostic text redacted]"
-  redact_public_text(text)
-}
-
 safe_static_condition_messages <- c(
   "The requested operation completed with a warning."
 )
