@@ -120,32 +120,63 @@ numeric_reference_value <- function(value) {
   parsed
 }
 
+valid_reference_estimate_labels <- function(estimate) {
+  if (!is.character(estimate$id) || length(estimate$id) != 1L || !nzchar(estimate$id)) {
+    return(FALSE)
+  }
+  is.character(estimate$label) && length(estimate$label) == 1L && nzchar(estimate$label)
+}
+
+valid_reference_estimate_text <- function(estimate) {
+  is.character(estimate$estimate_printed) && nzchar(estimate$estimate_printed) &&
+    is.character(estimate$ci_printed) && nzchar(estimate$ci_printed)
+}
+
+valid_reference_estimate_values <- function(estimate, estimate_value, interval) {
+  is.finite(estimate_value) && is.character(estimate$ci) && length(interval) == 2L &&
+    all(is.finite(interval)) && interval[[1L]] <= interval[[2L]]
+}
+
 valid_reference_estimate <- function(estimate) {
   required <- c("id", "label", "estimate_printed", "estimate", "ci_printed", "ci")
   if (!is.list(estimate) || !all(required %in% names(estimate))) return(FALSE)
   estimate_value <- numeric_reference_value(estimate$estimate)
   interval <- vapply(estimate$ci, numeric_reference_value, numeric(1))
-  is.character(estimate$id) && length(estimate$id) == 1L && nzchar(estimate$id) &&
-    is.character(estimate$label) && length(estimate$label) == 1L && nzchar(estimate$label) &&
-    is.character(estimate$estimate_printed) && nzchar(estimate$estimate_printed) &&
-    is.character(estimate$ci_printed) && nzchar(estimate$ci_printed) &&
-    is.finite(estimate_value) && is.character(estimate$ci) && length(interval) == 2L &&
-    all(is.finite(interval)) && interval[[1L]] <= interval[[2L]]
+  valid_reference_estimate_labels(estimate) && valid_reference_estimate_text(estimate) &&
+    valid_reference_estimate_values(estimate, estimate_value, interval)
+}
+
+valid_reference_study_identity <- function(study) {
+  if (!is.character(study$id) || length(study$id) != 1L || !nzchar(study$id)) return(FALSE)
+  is.character(study$doi) && length(study$doi) == 1L &&
+    grepl("^10[.][0-9]{4,9}/[^[:space:]]+$", study$doi)
+}
+
+valid_reference_study_cohort_text <- function(study) {
+  is.character(study$cohort_definition) && length(study$cohort_definition) == 1L &&
+    nzchar(study$cohort_definition)
+}
+
+valid_reference_study_tolerance <- function(study) {
+  is.numeric(study$tolerance) && length(study$tolerance) == 1L &&
+    is.finite(study$tolerance) && study$tolerance >= 0
+}
+
+valid_reference_study_cohort <- function(study) {
+  valid_reference_study_cohort_text(study) && valid_reference_study_tolerance(study)
+}
+
+valid_reference_estimates <- function(estimates) {
+  is.list(estimates) && length(estimates) > 0L &&
+    all(vapply(estimates, valid_reference_estimate, logical(1))) &&
+    !anyDuplicated(vapply(estimates, `[[`, character(1), "id"))
 }
 
 valid_reference_study <- function(study) {
   required <- c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")
   if (!is.list(study) || !all(required %in% names(study))) return(FALSE)
-  estimates <- study$headline_estimates
-  is.character(study$id) && length(study$id) == 1L && nzchar(study$id) &&
-    is.character(study$doi) && length(study$doi) == 1L &&
-    grepl("^10[.][0-9]{4,9}/[^[:space:]]+$", study$doi) &&
-    is.character(study$cohort_definition) && length(study$cohort_definition) == 1L &&
-    nzchar(study$cohort_definition) && is.numeric(study$tolerance) &&
-    length(study$tolerance) == 1L && is.finite(study$tolerance) && study$tolerance >= 0 &&
-    is.list(estimates) && length(estimates) > 0L &&
-    all(vapply(estimates, valid_reference_estimate, logical(1))) &&
-    !anyDuplicated(vapply(estimates, `[[`, character(1), "id"))
+  valid_reference_study_identity(study) && valid_reference_study_cohort(study) &&
+    valid_reference_estimates(study$headline_estimates)
 }
 
 valid_reference_studies <- function(studies) {
@@ -162,45 +193,89 @@ load_reference_studies <- function(path) {
   reference$studies
 }
 
+valid_receipt_header <- function(receipt, current_commit, reference_study) {
+  if (!is.list(receipt) || !identical(receipt$package_commit_hash, current_commit) ||
+      !identical(receipt$study_id, reference_study$id) || !valid_receipt_time(receipt$verified_at)) {
+    return(FALSE)
+  }
+  is.list(receipt$results) && length(receipt$results) == length(reference_study$headline_estimates)
+}
+
+receipt_result_id <- function(result) {
+  if (is.list(result) && is.character(result$estimate_id) && length(result$estimate_id) == 1L) {
+    result$estimate_id
+  } else {
+    ""
+  }
+}
+
+valid_receipt_result_ids <- function(results, expected) {
+  receipt_ids <- vapply(results, receipt_result_id, character(1))
+  !any(!nzchar(receipt_ids)) && !anyDuplicated(receipt_ids) &&
+    setequal(receipt_ids, names(expected))
+}
+
+valid_receipt_result_fields <- function(result) {
+  required <- c("estimate_id", "computed_estimate", "reference_value", "reference_ci",
+    "tolerance", "comparison_result")
+  is.list(result) && all(required %in% names(result))
+}
+
+valid_receipt_result_id <- function(result) {
+  is.character(result$estimate_id) && length(result$estimate_id) == 1L &&
+    !is.na(result$estimate_id) && nzchar(result$estimate_id)
+}
+
+valid_receipt_result_estimate <- function(result, computed, reference_value) {
+  is.finite(computed) && identical(numeric_reference_value(result$reference_value), reference_value)
+}
+
+valid_receipt_result_interval <- function(result, reference) {
+  identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
+    numeric_reference_value, numeric(1))))
+}
+
+valid_receipt_result_tolerance <- function(result, tolerance) {
+  identical(numeric_reference_value(result$tolerance), tolerance)
+}
+
+valid_receipt_result_comparison <- function(result, computed, reference_value, tolerance) {
+  comparison <- if (is.finite(computed) && abs(computed - reference_value) <= tolerance) "pass" else "fail"
+  identical(result$comparison_result, comparison) && identical(comparison, "pass")
+}
+
+valid_receipt_result_values <- function(result, reference, reference_tolerance) {
+  computed <- numeric_reference_value(result$computed_estimate)
+  reference_value <- numeric_reference_value(reference$estimate)
+  tolerance <- numeric_reference_value(reference_tolerance)
+  valid_receipt_result_estimate(result, computed, reference_value) &&
+    valid_receipt_result_interval(result, reference) &&
+    valid_receipt_result_tolerance(result, tolerance) &&
+    valid_receipt_result_comparison(result, computed, reference_value, tolerance)
+}
+
+valid_receipt_result <- function(result, expected, reference_tolerance) {
+  if (!valid_receipt_result_fields(result) || !valid_receipt_result_id(result)) return(FALSE)
+  reference <- expected[[result$estimate_id]]
+  if (is.null(reference)) return(FALSE)
+  valid_receipt_result_values(result, reference, reference_tolerance)
+}
+
+valid_receipt_results <- function(results, expected, reference_tolerance) {
+  valid_receipt_result_ids(results, expected) &&
+    all(vapply(results, valid_receipt_result, logical(1), expected = expected,
+      reference_tolerance = reference_tolerance))
+}
+
 study_verification_ready <- function(path, current_commit, reference_study) {
   if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE) ||
       !valid_reference_study(reference_study)) return(FALSE)
   receipt <- tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE),
     error = function(e) NULL)
-  if (!is.list(receipt) || !identical(receipt$package_commit_hash, current_commit) ||
-      !identical(receipt$study_id, reference_study$id) ||
-      !valid_receipt_time(receipt$verified_at) ||
-      !is.list(receipt$results) || length(receipt$results) != length(reference_study$headline_estimates)) {
-    return(FALSE)
-  }
+  if (!valid_receipt_header(receipt, current_commit, reference_study)) return(FALSE)
   expected <- stats::setNames(reference_study$headline_estimates,
     vapply(reference_study$headline_estimates, `[[`, character(1), "id"))
-  receipt_ids <- vapply(receipt$results, function(result) {
-    if (is.list(result) && is.character(result$estimate_id) && length(result$estimate_id) == 1L) {
-      result$estimate_id
-    } else {
-      ""
-    }
-  }, character(1))
-  if (any(!nzchar(receipt_ids)) || anyDuplicated(receipt_ids) ||
-      !setequal(receipt_ids, names(expected))) return(FALSE)
-  all(vapply(receipt$results, function(result) {
-    if (!is.list(result) || !all(c("estimate_id", "computed_estimate", "reference_value",
-        "reference_ci", "tolerance", "comparison_result") %in% names(result))) return(FALSE)
-    if (!is.character(result$estimate_id) || length(result$estimate_id) != 1L ||
-        is.na(result$estimate_id) || !nzchar(result$estimate_id)) return(FALSE)
-    reference <- expected[[result$estimate_id]]
-    if (is.null(reference)) return(FALSE)
-    computed <- numeric_reference_value(result$computed_estimate)
-    reference_value <- numeric_reference_value(reference$estimate)
-    tolerance <- numeric_reference_value(reference_study$tolerance)
-    comparison <- if (is.finite(computed) && abs(computed - reference_value) <= tolerance) "pass" else "fail"
-    is.finite(computed) && identical(numeric_reference_value(result$reference_value), reference_value) &&
-      identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
-        numeric_reference_value, numeric(1)))) &&
-      identical(numeric_reference_value(result$tolerance), tolerance) &&
-      identical(result$comparison_result, comparison) && identical(comparison, "pass")
-  }, logical(1)))
+  valid_receipt_results(receipt$results, expected, reference_study$tolerance)
 }
 
 parse_open_issue_query <- function(output, status = 0L) {
@@ -258,19 +333,29 @@ capture_quality_step <- function(name, fn) {
     elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
 }
 
-goodpractice_pass <- function(value) {
-  if (!inherits(value, "goodPractice") || !is.list(value$checks) || !length(value$checks)) {
-    return(NA)
-  }
-  prep_values <- value[setdiff(names(value), "checks")]
-  if (any(vapply(prep_values, inherits, logical(1), "try-error"))) return(FALSE)
-  statuses <- lapply(value$checks, function(check) {
+goodpractice_prep_failed <- function(prep_values) {
+  any(vapply(prep_values, inherits, logical(1), "try-error"))
+}
+
+goodpractice_check_status <- function(checks) {
+  statuses <- lapply(checks, function(check) {
     if (is.list(check) && "status" %in% names(check)) check$status else check
   })
   if (any(vapply(statuses, function(status) identical(status, FALSE), logical(1)))) return(FALSE)
   if (any(vapply(statuses, function(status) length(status) != 1L || is.na(status), logical(1)))) {
     return(NA)
   }
+  TRUE
+}
+
+goodpractice_pass <- function(value) {
+  if (!inherits(value, "goodPractice") || !is.list(value$checks) || !length(value$checks)) {
+    return(NA)
+  }
+  prep_values <- value[setdiff(names(value), "checks")]
+  if (goodpractice_prep_failed(prep_values)) return(FALSE)
+  status <- goodpractice_check_status(value$checks)
+  if (!isTRUE(status)) return(status)
   failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
   if (is.null(failed)) return(NA)
   !length(failed)

@@ -24,7 +24,7 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::cyclocomp, any::lintr, any::jsonlite, local::.
+          extra-packages: any::cyclocomp, any::lintr, any::jsonlite, any::goodpractice, local::.
           needs: check
       - name: Check improvement-loop tooling
         run: |

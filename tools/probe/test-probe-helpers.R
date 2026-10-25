@@ -111,11 +111,10 @@ local({
   pkgcheck_condition <- simpleError(nested_pkgcheck_message)
   rcmd_error <- structure(nested_pkgcheck_message, class = "try-error",
     condition = pkgcheck_condition)
+  run_prep_step <- getFromNamespace("run_prep_step", "goodpractice")
 
   prep_result <- capture_quality_step("goodpractice", function() {
-    manual <- try(stop(simpleError(nested_prep_message)), silent = TRUE)
-    warning(nested_prep_message, call. = FALSE)
-    list(manual = manual)
+    run_prep_step(list(), "manual", function() stop(simpleError(nested_prep_message)), silent = TRUE)
   })
   stopifnot(length(prep_result$warning_conditions) == 1L,
     grepl(nested_prep_message, conditionMessage(prep_result$warning_conditions[[1L]]), fixed = TRUE))
