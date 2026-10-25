@@ -2,6 +2,8 @@
 
 - The real-data workflow probe discovers diagnosis and POA fields from the
   lazy query schema before selecting them for the survey design.
+
+- Corrected the procedure-timing help text so manual HTML validates.
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 
