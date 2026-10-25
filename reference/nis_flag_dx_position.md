@@ -55,7 +55,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphFGx8n/duckdb
+#> ℹ /tmp/RtmprWK1oC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -63,7 +63,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphFGx8n/duckdb
+#> ℹ /tmp/RtmprWK1oC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,7 +72,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis_flag_dx_position(nis, "I50", name = "heart_failure")
 #> # A query:  ?? x 111
-#> # Database: DuckDB 1.5.6 [unknown@Linux 6.17.0-1022-azure:R 4.6.1/:memory:]
+#> # Database: DuckDB 2.0.0 [unknown@Linux 6.17.0-1022-azure:R 4.6.1/:memory:]
 #>      AGE AGE_NEONATE AMONTH APRDRG_RISK_MORTALITY APRDRG_SEVERITY AWEEKEND
 #>    <dbl>       <int>  <int>                 <int>           <int>    <int>
 #>  1    28           0      3                     2               3        0
