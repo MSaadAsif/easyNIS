@@ -33,7 +33,8 @@ within_days.}
 assume_same_day uses day 0, and indeterminate returns NA unless a
 determinate match is TRUE.}
 
-\item{system}{Code system: icd10 uses I10_PR\if{html}{\out{<n>}}; icd9 uses PR\if{html}{\out{<n>}}.}
+\item{system}{Code system: icd10 uses I10_PR followed by a slot number;
+icd9 uses PR followed by a slot number.}
 }
 \value{
 .data with the logical column named by name.
