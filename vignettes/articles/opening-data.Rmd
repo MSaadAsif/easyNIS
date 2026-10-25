@@ -27,7 +27,7 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 
 The result reports the number of synthetic rows in each selected year.
 
-The HCUP [Nationwide Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
+easyNIS does not bundle real NIS data. The HCUP [Nationwide Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
 advises avoiding publication of values of 1–10 in text and tables. Separately,
 the [Checklist for Working with the NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp)
 says at least two hospitals must contribute to each cell. `nis_cell_counts()`
