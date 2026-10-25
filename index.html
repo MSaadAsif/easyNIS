@@ -70,12 +70,14 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="easynis">easyNIS<a class="anchor" aria-label="anchor" href="#easynis"></a>
 </h1></div>
+<p><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></p>
 <p><strong>A tidy workflow for opening, defining cohorts in, and analyzing HCUP National Inpatient Sample (NIS) data.</strong> easyNIS opens annual Parquet files, flags codes, prepares survey designs, and helps review outputs. Methods and some year-specific support are experimental; consult the articles and official HCUP documentation before analysis.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"MSaadAsif/easyNIS"</span><span class="op">)</span></span></code></pre></div>
+<p>This installs the development version from GitHub.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -90,7 +92,12 @@
 <span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                 mean_age <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">AGE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>These results demonstrate the workflow and are not NIS population estimates.</p>
-<p><code><a href="reference/nis_open.html">nis_open()</a></code> reads Parquet with DuckDB and returns a lazy dbplyr table. The <code>engine</code> argument has been removed entirely; omit it whatever value you previously passed. Use <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code> and <code><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">dplyr::select()</a></code> before <code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">dplyr::collect()</a></code> to limit the data transferred into R.</p>
+<p><code><a href="reference/nis_open.html">nis_open()</a></code> reads Parquet with DuckDB and returns a lazy dbplyr table. Use <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code> and <code><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">dplyr::select()</a></code> before <code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">dplyr::collect()</a></code> to limit the data transferred into R.</p>
+</div>
+<div class="section level2">
+<h2 id="using-real-nis-data">Using real NIS data<a class="anchor" aria-label="anchor" href="#using-real-nis-data"></a>
+</h2>
+<p>easyNIS does not bundle or download NIS data. HCUP distributes fixed-width ASCII files with SAS, Stata, and SPSS load programs; see the <a href="https://hcup-us.ahrq.gov/team/NationwideDUA.jsp" class="external-link">Data Use Agreement</a> and <a href="https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp" class="external-link">Checklist for Working with the NIS</a>. <code><a href="reference/nis_open.html">nis_open()</a></code> accepts a directory containing <code>NIS_YYYY.parquet</code> files or <code>YEAR=YYYY</code> subdirectories; convert HCUP files to Parquet first. The HCUP Nationwide Data Use Agreement advises avoiding publication of values of 1–10 in text and tables. The checklist says at least two hospitals must contribute to each cell. <code><a href="reference/nis_suppress.html">nis_suppress()</a></code> masks counts at or below <code>threshold</code> (10 by default), applies complementary suppression by default for data frames, and, when given hospital counts from <code><a href="reference/nis_cell_counts.html">nis_cell_counts()</a></code>, masks cells from fewer than two hospitals. Try with invented <code><a href="reference/nis_example.html">nis_example()</a></code> data before using licensed files.</p>
 </div>
 <div class="section level2">
 <h2 id="articles">Articles<a class="anchor" aria-label="anchor" href="#articles"></a>

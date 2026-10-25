@@ -1,5 +1,8 @@
 # easyNIS
 
+[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml)
+
 **A tidy workflow for opening, defining cohorts in, and analyzing HCUP
 National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet
 files, flags codes, prepares survey designs, and helps review outputs.
@@ -12,6 +15,8 @@ articles and official HCUP documentation before analysis.
 
 pak::pak("MSaadAsif/easyNIS")
 ```
+
+This installs the development version from GitHub.
 
 ## Quick start
 
@@ -34,15 +39,35 @@ These results demonstrate the workflow and are not NIS population
 estimates.
 
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-reads Parquet with DuckDB and returns a lazy dbplyr table. The `engine`
-argument has been removed entirely; omit it whatever value you
-previously passed. Use
+reads Parquet with DuckDB and returns a lazy dbplyr table. Use
 [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
 and
 [`dplyr::select()`](https://dplyr.tidyverse.org/reference/select.html)
 before
 [`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
 to limit the data transferred into R.
+
+## Using real NIS data
+
+easyNIS does not bundle or download NIS data. HCUP distributes
+fixed-width ASCII files with SAS, Stata, and SPSS load programs; see the
+[Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
+and [Checklist for Working with the
+NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+accepts a directory containing `NIS_YYYY.parquet` files or `YEAR=YYYY`
+subdirectories; convert HCUP files to Parquet first. The HCUP Nationwide
+Data Use Agreement advises avoiding publication of values of 1–10 in
+text and tables. The checklist says at least two hospitals must
+contribute to each cell.
+[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+masks counts at or below `threshold` (10 by default), applies
+complementary suppression by default for data frames, and, when given
+hospital counts from
+[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md),
+masks cells from fewer than two hospitals. Try with invented
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+data before using licensed files.
 
 ## Articles
 
