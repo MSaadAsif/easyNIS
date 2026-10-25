@@ -1,6 +1,6 @@
 # easyNIS
 
-[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml) [![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml) [![Codecov](https://codecov.io/gh/MSaadAsif/easyNIS/branch/main/graph/badge.svg)](https://codecov.io/gh/MSaadAsif/easyNIS)
+[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml) [![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml)
 
 **A tidy workflow for opening, defining cohorts in, and analyzing HCUP National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet files, flags codes, prepares survey designs, and helps review outputs. Methods and some year-specific support are experimental; consult the articles and official HCUP documentation before analysis.
 
@@ -34,12 +34,11 @@ data transferred into R.
 
 ## Using real NIS data
 
-easyNIS does not bundle or download NIS data. HCUP distributes fixed-width ASCII
-files with SAS, Stata, and SPSS load programs; see the [Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and [NIS purchase checklist](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
-Convert the files to Parquet, one file per year, before calling `nis_open()`;
-the example above instead uses invented files created by `nis_example()`. The
-DUA forbids reporting cells of 10 or fewer; `nis_suppress()` helps suppress
-small cells. Try workflows with `nis_example()` before working with licensed data.
+easyNIS does not bundle or download NIS data. HCUP distributes fixed-width ASCII files with SAS, Stata, and SPSS load programs; see the [Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and [Checklist for Working with the NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
+`nis_open()` accepts a directory containing `NIS_YYYY.parquet` files or `YEAR=YYYY` subdirectories; convert HCUP files to Parquet first.
+The DUA advises avoiding publication of values of 1–10 in text and tables. The checklist says at least two hospitals must contribute to each cell.
+`nis_cell_counts()` reports both discharge and hospital counts, and `nis_suppress()` can suppress cells with fewer than two hospitals.
+Try with invented `nis_example()` data before using licensed files.
 
 ## Articles
 
