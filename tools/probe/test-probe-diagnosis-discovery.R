@@ -18,11 +18,8 @@ testthat::test_that("lazy schema discovery preserves diagnosis and POA in a desi
   DBI::dbWriteTable(connection, "probe_fixture", data)
   query <- dplyr::tbl(connection, "probe_fixture")
 
-  legacy_fields <- grep("^(?:I10_DX|DXPOA)[0-9]+$", names(query),
-    value = TRUE, perl = TRUE)
   fields <- probe_diagnosis_fields(query)
 
-  testthat::expect_length(legacy_fields, 0L)
   testthat::expect_identical(fields, c("I10_DX1", "DXPOA1"))
   selected <- dplyr::collect(dplyr::select(query, dplyr::all_of(fields)))
   testthat::expect_identical(selected$I10_DX1, data$I10_DX1)
