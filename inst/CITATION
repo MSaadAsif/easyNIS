@@ -7,6 +7,6 @@ bibentry(
   ),
   year = "2026",
   note = paste("R package version", meta$Version,
-    "(development; maintained by Muhammad Saad and Ali Salman; annual NIS files from 2012 onward)"),
+    "(maintained by Muhammad Saad and Ali Salman; annual NIS files from 2012 onward)"),
   url = "https://github.com/MSaadAsif/easyNIS"
 )

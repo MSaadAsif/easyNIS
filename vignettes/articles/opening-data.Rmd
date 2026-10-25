@@ -27,6 +27,13 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 
 The result reports the number of synthetic rows in each selected year.
 
+easyNIS does not include real NIS data. HCUP provides NIS files under a Data
+Use Agreement; see the [HCUP Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
+and [NIS checklist](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
+Use `nis_example()` to try the workflow without licensed data. The NIS
+checklist says cells with 10 or fewer discharges must not be reported;
+`nis_suppress()` can mask cells at that threshold.
+
 ## Select years and columns
 
 `years` limits which annual files are opened. Use `dplyr::select()` to narrow

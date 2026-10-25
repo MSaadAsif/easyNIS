@@ -29,7 +29,7 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 
 The counts here describe the synthetic fixture by year. See [Opening NIS
-data](opening-data.html) for column selection, engines, and year coverage.
+data](opening-data.html) for column selection and year coverage.
 
 ## Define a cohort
 
@@ -105,6 +105,7 @@ Data Use Agreement. See [Disclosure and suppression](disclosure.html).
 > - Treating the invented fixture's estimates as national results.
 > - Sharing a masked table without reviewing totals and other derivable cells.
 
-The exported `nis_new_study()` helper can copy a Quarto study skeleton; its
-template workflow is deferred. Start with the articles and function reference
-for a complete analysis workflow.
+The exported `nis_new_study()` helper creates a new folder with a Quarto
+project file and starter analysis. Add your data and revise the example code,
+cohort, and study design for your question; the helper does not choose those
+for you. See its function reference for details.
