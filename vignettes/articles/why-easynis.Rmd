@@ -82,7 +82,7 @@ and weighting](survey-design.html).
 | Treat charges as costs or apply an undocumented conversion | Convert charges using CCR and CPI-U and retain provenance | `nis_cost()` |
 | Recreate comorbidity indicators from diagnosis slots | Compute the supported ICD-10 Elixhauser indicators | `nis_comorbidity()` |
 | Publish small cells or cells from too few hospitals | Count supporting hospitals and suppress small or single-hospital cells | `nis_cell_counts()`; `nis_suppress()` |
-| Rebuild the same project scaffolding for each study | `nis_new_study()` can copy a Quarto skeleton; its template tutorial is deferred | `nis_new_study()` |
+| Rebuild project scaffolding for each study | `nis_new_study()` creates a Quarto project with a starter analysis file; add data and make study-specific code, cohort, and design choices | `nis_new_study()` |
 
 ## Built-in safety checks
 
