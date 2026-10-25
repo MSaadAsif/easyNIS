@@ -1,6 +1,8 @@
 test_that("procedure timing system help renders its slot description as HTML", {
   rd_file <- test_path("..", "..", "man", "nis_flag_pr_timing.Rd")
-  rd <- if (file.exists(rd_file)) tools::parse_Rd(rd_file) else {
+  rd <- if (file.exists(rd_file)) {
+    tools::parse_Rd(rd_file)
+  } else {
     tryCatch(tools::Rd_db("easyNIS")[["nis_flag_pr_timing.Rd"]],
       error = function(error) NULL)
   }
