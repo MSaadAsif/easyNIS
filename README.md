@@ -1,5 +1,7 @@
 # easyNIS
 
+[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml) [![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml) [![Codecov](https://codecov.io/gh/MSaadAsif/easyNIS/branch/main/graph/badge.svg)](https://codecov.io/gh/MSaadAsif/easyNIS)
+
 **A tidy workflow for opening, defining cohorts in, and analyzing HCUP National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet files, flags codes, prepares survey designs, and helps review outputs. Methods and some year-specific support are experimental; consult the articles and official HCUP documentation before analysis.
 
 ## Install
@@ -7,6 +9,8 @@
 ```r
 pak::pak("MSaadAsif/easyNIS")
 ```
+
+This installs the development version from GitHub.
 
 ## Quick start
 
@@ -24,10 +28,19 @@ srvyr::summarise(design, discharges = srvyr::survey_total(),
 
 These results demonstrate the workflow and are not NIS population estimates.
 
-`nis_open()` reads Parquet with DuckDB and returns a lazy dbplyr table. The
-`engine` argument has been removed entirely; omit it whatever value you
-previously passed. Use `dplyr::filter()` and `dplyr::select()` before
-`dplyr::collect()` to limit the data transferred into R.
+`nis_open()` reads Parquet with DuckDB and returns a lazy dbplyr table. Use
+`dplyr::filter()` and `dplyr::select()` before `dplyr::collect()` to limit the
+data transferred into R.
+
+## Using real NIS data
+
+easyNIS does not bundle or download NIS data. Real files are available from
+HCUP after [DUA training](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and a
+signed [Data Use Agreement](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
+For real data, give `nis_open()` the HCUP Parquet file or folder; the example
+above instead uses invented files created by `nis_example()`. The DUA forbids
+reporting cells of 10 or fewer; `nis_suppress()` helps suppress small cells.
+You can try the workflows with `nis_example()` before working with licensed data.
 
 ## Articles
 
