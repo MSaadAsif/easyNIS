@@ -61,7 +61,8 @@ nis_flag_pr_timing(
 
 - system:
 
-  Code system: icd10 uses I10_PR; icd9 uses PR.
+  Code system: icd10 uses I10_PR followed by a slot number; icd9 uses PR
+  followed by a slot number.
 
 ## Value
 
