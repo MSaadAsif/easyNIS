@@ -166,7 +166,8 @@ Count supporting hospitals and suppress disclosure-prone cells.
 
 Create a study skeleton
 
-Start a Quarto study folder (template workflow deferred).
+Create a Quarto project with a starter analysis file. Add your data and
+study-specific definitions and analysis.
 
 - [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
   : Create a new NIS study folder

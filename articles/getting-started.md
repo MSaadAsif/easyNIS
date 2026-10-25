@@ -16,7 +16,7 @@ to inspect records.
 
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmW4Mrx/duckdb
+#> ℹ /tmp/RtmpqFK46d/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -24,7 +24,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmW4Mrx/duckdb
+#> ℹ /tmp/RtmpqFK46d/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -32,7 +32,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmW4Mrx/duckdb
+#> ℹ /tmp/RtmpqFK46d/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -49,7 +49,7 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 
 The counts here describe the synthetic fixture by year. See [Opening NIS
 data](https://msaadasif.github.io/easyNIS/articles/opening-data.md) for
-column selection, engines, and year coverage.
+column selection and year coverage.
 
 ## Define a cohort
 
@@ -156,6 +156,7 @@ suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
 
 The exported
 [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
-helper can copy a Quarto study skeleton; its template workflow is
-deferred. Start with the articles and function reference for a complete
-analysis workflow.
+helper creates a new folder with a Quarto project file and starter
+analysis. Add your data and revise the example code, cohort, and study
+design for your question; the helper does not choose those for you. See
+its function reference for details.

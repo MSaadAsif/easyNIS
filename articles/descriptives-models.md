@@ -12,7 +12,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(death = as.integer(DIED))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp746Lm5/duckdb
+#> ℹ /tmp/RtmpVeu3zp/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp746Lm5/duckdb
+#> ℹ /tmp/RtmpVeu3zp/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -28,7 +28,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp746Lm5/duckdb
+#> ℹ /tmp/RtmpVeu3zp/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -126,7 +126,7 @@ summary(fit)
 #> heart_failureYes -8.726e-01  1.715e+00  -0.509  0.61872    
 #> AGE              -9.999e-02  2.814e-02  -3.553  0.00318 ** 
 #> FEMALEFemale     -1.836e+01  7.455e-01 -24.626  6.3e-13 ***
-#> factor(YEAR)2020  8.200e-17  8.742e-01   0.000  1.00000    
+#> factor(YEAR)2020 -3.784e-16  8.742e-01   0.000  1.00000    
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 

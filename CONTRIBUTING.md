@@ -7,8 +7,8 @@ documented limitations.
 ## Setup
 
 1.  Fork the repository and create a branch for your change.
-2.  Open `easyNIS.Rproj` in RStudio or set the repository as the working
-    directory in R.
+2.  Open the repository root in RStudio or set it as your working
+    directory.
 3.  Install development dependencies with
     `pak::pak(".", dependencies = TRUE)`.
 4.  For documentation changes, install `roxygen2` and `pkgdown`; for
