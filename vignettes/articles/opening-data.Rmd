@@ -27,6 +27,15 @@ nis |> dplyr::count(YEAR) |> dplyr::collect()
 
 The result reports the number of synthetic rows in each selected year.
 
+easyNIS does not bundle real NIS data. The HCUP [Nationwide Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
+advises avoiding publication of values of 1–10 in text and tables. Separately,
+the [Checklist for Working with the NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp)
+says at least two hospitals must contribute to each cell. `nis_suppress()` masks counts at or below `threshold` (10 by default), applies
+complementary suppression by default for data frames, and, when given hospital
+counts from `nis_cell_counts()`, masks cells from fewer than two hospitals. Use
+`nis_example()` to try the workflow without
+licensed data.
+
 ## Select years and columns
 
 `years` limits which annual files are opened. Use `dplyr::select()` to narrow
