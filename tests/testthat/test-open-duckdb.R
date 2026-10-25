@@ -59,16 +59,6 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   expect_match(sql, "read_parquet")
   expect_match(sql, "union_by_name = true")
   expect_match(sql, "hive_partitioning = false")
-  plan <- DBI::dbGetQuery(query$src$con, paste("EXPLAIN", as.character(sql)))
-  plan_lines <- strsplit(plan[[2L]], "\\n", fixed = FALSE)[[1L]]
-  projection_lines <- grep("│\\s+[A-Za-z][A-Za-z0-9_]*\\s+│",
-    plan_lines, value = TRUE)
-  projection_tokens <- sub(
-    "^.*│\\s*([A-Za-z][A-Za-z0-9_]*)\\s*│.*$", "\\1",
-    projection_lines, perl = TRUE
-  )
-  expect_true(all(c("YEAR", "B") %in% projection_tokens))
-  expect_false("A" %in% projection_tokens)
   all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
   expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
   expect_equal(all_years$A, c(1L, 2L, NA_integer_))
@@ -78,6 +68,46 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
     dplyr::select(YEAR, B, drift))
   expect_equal(selected_year$YEAR, 2020L)
   expect_equal(selected_year$drift, 30.5)
+})
+
+test_that("nis_open pushes selected columns down to Parquet", {
+  path <- tempfile("nis-hive-projection-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = c(2019L, 2019L), A = c(1L, 2L),
+      drift = c(10L, 20L)),
+    file.path(path, "YEAR=2019", "part.parquet")
+  )
+  write_duckdb_parquet(
+    dplyr::tibble(YEAR = 2020L, B = 3L, drift = 30.5),
+    file.path(path, "YEAR=2020", "part.parquet")
+  )
+
+  query <- nis_open(path)
+  sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
+  skip_if_not_installed("jsonlite")
+  plan <- DBI::dbGetQuery(query$src$con, paste(
+    "EXPLAIN (FORMAT JSON)", as.character(sql)
+  ))
+  plan_json <- jsonlite::fromJSON(plan[[2L]], simplifyVector = FALSE)
+  parquet_projections <- function(node) {
+    if (!is.list(node)) return(character())
+    projections <- character()
+    if (is.character(node$name) && grepl("PARQUET", node$name,
+      ignore.case = TRUE)) {
+      projections <- unlist(node$extra_info$Projections, use.names = FALSE)
+    }
+    children <- node$children
+    if (is.null(children)) return(projections)
+    c(projections, unlist(lapply(children, parquet_projections),
+      use.names = FALSE))
+  }
+  projection_tokens <- unlist(lapply(plan_json, parquet_projections),
+    use.names = FALSE)
+  expect_gt(length(projection_tokens), 0L)
+  expect_true(all(c("YEAR", "B") %in% projection_tokens))
+  expect_false("A" %in% projection_tokens)
 })
 
 test_that("nis_open combines annual files with Hive partitions", {
