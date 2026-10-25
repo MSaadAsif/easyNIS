@@ -65,6 +65,10 @@ duck |> dplyr::count(YEAR) |> dplyr::collect()
 
 This count is the same synthetic year summary, evaluated through DuckDB.
 
+When converting HCUP ASCII files to Parquet, declare the source encoding so
+string values are written as valid UTF-8. For example, convert Latin-1 text to
+UTF-8 rather than writing bytes under the wrong encoding label.
+
 ## Common pitfalls
 
 > **Common pitfalls**

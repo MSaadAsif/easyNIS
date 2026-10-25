@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
+  string columns.
+
 - Corrected the procedure-timing help text so manual HTML validates.
 
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP

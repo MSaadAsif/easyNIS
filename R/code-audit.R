@@ -187,7 +187,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
   summary <- data |>
     dplyr::group_by(!!rlang::sym(by)) |>
     dplyr::summarise(!!!expressions, .groups = "drop") |>
-    dplyr::collect()
+    nis_collect()
 
   if (nrow(summary) == 0L) {
     return(.nis_audit_empty_output(by, summary))
