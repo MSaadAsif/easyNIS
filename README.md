@@ -34,13 +34,12 @@ data transferred into R.
 
 ## Using real NIS data
 
-easyNIS does not bundle or download NIS data. Real files are available from
-HCUP after [DUA training](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and a
-signed [Data Use Agreement](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
-For real data, give `nis_open()` the HCUP Parquet file or folder; the example
-above instead uses invented files created by `nis_example()`. The DUA forbids
-reporting cells of 10 or fewer; `nis_suppress()` helps suppress small cells.
-You can try the workflows with `nis_example()` before working with licensed data.
+easyNIS does not bundle or download NIS data. HCUP distributes fixed-width ASCII
+files with SAS, Stata, and SPSS load programs; see the [Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and [NIS purchase checklist](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
+Convert the files to Parquet, one file per year, before calling `nis_open()`;
+the example above instead uses invented files created by `nis_example()`. The
+DUA forbids reporting cells of 10 or fewer; `nis_suppress()` helps suppress
+small cells. Try workflows with `nis_example()` before working with licensed data.
 
 ## Articles
 
