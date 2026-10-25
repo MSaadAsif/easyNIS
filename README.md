@@ -36,7 +36,7 @@ data transferred into R.
 
 easyNIS does not bundle or download NIS data. HCUP distributes fixed-width ASCII files with SAS, Stata, and SPSS load programs; see the [Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) and [Checklist for Working with the NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
 `nis_open()` accepts a directory containing `NIS_YYYY.parquet` files or `YEAR=YYYY` subdirectories; convert HCUP files to Parquet first.
-The DUA advises avoiding publication of values of 1–10 in text and tables. The checklist says at least two hospitals must contribute to each cell.
+The HCUP Nationwide Data Use Agreement advises avoiding publication of values of 1–10 in text and tables. The checklist says at least two hospitals must contribute to each cell.
 `nis_cell_counts()` reports both discharge and hospital counts, and `nis_suppress()` can suppress cells with fewer than two hospitals.
 Try with invented `nis_example()` data before using licensed files.
 
