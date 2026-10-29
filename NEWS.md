@@ -1,5 +1,6 @@
 # easyNIS (development version)
 
+- Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.
 - The real-data workflow probe discovers diagnosis and POA fields from lazy
