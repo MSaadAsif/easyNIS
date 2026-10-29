@@ -54,7 +54,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<ul><li><p>The real-data workflow probe discovers diagnosis and POA fields from lazy query schemas with <code><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames()</a></code>, so those fields are retained by <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p></li>
+<ul><li><p>EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet string columns.</p></li>
+<li><p>The real-data workflow probe discovers diagnosis and POA fields from lazy query schemas with <code><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames()</a></code>, so those fields are retained by <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p></li>
 <li><p>The quality probe now saves nested <code>pkgcheck</code> and <code>goodpractice</code> failure results and captured warnings in an ignored local artifact while keeping nested condition text out of its public receipt. Receipts include numeric failed-check, R CMD check error, and captured-warning counts. Prep failures and unknown check statuses are no longer reported as passing.</p></li>
 <li><p>Corrected the procedure-timing help text so manual HTML validates.</p></li>
 <li><p>Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP labeling without changing their results.</p></li>

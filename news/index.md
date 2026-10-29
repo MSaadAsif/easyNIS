@@ -2,6 +2,9 @@
 
 ## easyNIS (development version)
 
+- EasyNIS collection errors now explain how to fix invalid UTF-8 in
+  Parquet string columns.
+
 - The real-data workflow probe discovers diagnosis and POA fields from
   lazy query schemas with
   [`colnames()`](https://rdrr.io/r/base/colnames.html), so those fields
