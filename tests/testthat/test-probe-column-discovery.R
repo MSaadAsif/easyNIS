@@ -25,4 +25,10 @@ test_that("lazy probe column discovery keeps diagnosis and POA fields", {
   expect_true(all(expected_fields %in% names(collected)))
   expect_equal(collected$I10_DX1, "I210")
   expect_equal(collected$DXPOA1, "Y")
+
+  age_only <- query |>
+    nis_design(eligible, keep = AGE)
+  age_only_fields <- names(dplyr::collect(age_only$variables))
+  expect_false(any(expected_fields %in% age_only_fields))
+  expect_true("AGE" %in% age_only_fields)
 })
