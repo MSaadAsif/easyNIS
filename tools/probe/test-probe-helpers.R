@@ -73,6 +73,29 @@ local({
     study_verification_ready(receipt_path, current_commit, reference)
   }
   stopifnot(valid_reference_study(reference), write_receipt())
+  for (field in c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")) {
+    malformed <- reference
+    malformed[[field]] <- NULL
+    stopifnot(!valid_reference_study(malformed))
+  }
+  malformed <- reference
+  malformed$tolerance <- NA_real_
+  stopifnot(!valid_reference_study(malformed))
+  malformed_estimate <- reference
+  malformed_estimate$headline_estimates[[1L]]$ci <- c("bad", "0.6")
+  stopifnot(!valid_reference_study(malformed_estimate))
+  malformed_estimate$headline_estimates[[1L]]$ci <- c("0.4", "0.6")
+  malformed_estimate$headline_estimates[[1L]]$estimate <- NA_character_
+  stopifnot(!valid_reference_study(malformed_estimate))
+  for (field in c("estimate_id", "computed_estimate", "reference_value", "reference_ci",
+      "tolerance", "comparison_result")) {
+    malformed <- receipt
+    malformed$results[[1L]][[field]] <- NULL
+    stopifnot(!write_receipt(malformed))
+  }
+  malformed_id <- receipt
+  malformed_id$results[[1L]]$estimate_id <- NA_character_
+  stopifnot(!write_receipt(malformed_id))
   stopifnot(!study_verification_ready(receipt_path, "different-commit", reference))
   wrong_reference <- receipt
   wrong_reference$results[[1L]]$reference_value <- 0.45
@@ -80,6 +103,30 @@ local({
   outside_tolerance <- receipt
   outside_tolerance$results[[1L]]$computed_estimate <- 0.7
   stopifnot(!write_receipt(outside_tolerance))
+  at_tolerance <- receipt
+  at_tolerance$results[[1L]]$computed_estimate <- 0.5625
+  at_tolerance$results[[1L]]$tolerance <- 0.0625
+  reference$tolerance <- 0.0625
+  stopifnot(write_receipt(at_tolerance))
+  reference$tolerance <- 0.05
+  wrong_ci <- receipt
+  wrong_ci$results[[1L]]$reference_ci <- c(0.41, 0.60)
+  stopifnot(!write_receipt(wrong_ci))
+  wrong_result_type <- receipt
+  wrong_result_type$results <- list("not-an-object")
+  stopifnot(!write_receipt(wrong_result_type))
+  wrong_order <- receipt
+  reference$headline_estimates[[2L]] <- list(id = "second", label = "Synthetic second",
+    estimate_printed = "0.30", estimate = "0.30", ci_printed = "0.20 to 0.40",
+    ci = c("0.20", "0.40"))
+  wrong_order$results <- list(
+    list(estimate_id = "second", computed_estimate = 0.30, reference_value = 0.30,
+      reference_ci = c(0.20, 0.40), tolerance = 0.05, comparison_result = "pass"),
+    receipt$results[[1L]])
+  stopifnot(write_receipt(wrong_order))
+  duplicate_id <- wrong_order
+  duplicate_id$results[[1L]]$estimate_id <- "mortality"
+  stopifnot(!write_receipt(duplicate_id))
   missing_result <- receipt
   missing_result$results <- list()
   stopifnot(!write_receipt(missing_result))
