@@ -74,6 +74,6 @@ reference:
       - nis_cell_counts
       - nis_suppress
   - title: 6. Create a study skeleton
-    desc: Start a Quarto study folder (template workflow deferred).
+    desc: Create a Quarto project with a starter analysis file. Add your data and study-specific definitions and analysis.
     contents:
       - nis_new_study
