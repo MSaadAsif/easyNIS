@@ -2,6 +2,11 @@
 
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.
+- The quality probe now saves nested `pkgcheck` and `goodpractice` failure
+  results and captured warnings in an ignored local artifact while keeping
+  nested condition text out of its public receipt. Receipts include numeric
+  failed-check, R CMD check error, and captured-warning counts. Prep failures
+  and unknown check statuses are no longer reported as passing.
 
 - Corrected the procedure-timing help text so manual HTML validates.
 

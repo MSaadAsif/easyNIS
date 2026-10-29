@@ -19,18 +19,6 @@ if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && file.exists(file.path(quarto_pandoc
   Sys.setenv(RSTUDIO_PANDOC = quarto_pandoc)
 }
 
-safe <- function(name, fn) {
-  started <- proc.time()[["elapsed"]]
-  warnings <- character()
-  value <- tryCatch(withCallingHandlers(fn(),
-    warning = function(w) { warnings <<- c(warnings, conditionMessage(w)); invokeRestart("muffleWarning") }),
-    error = identity)
-  list(name = name, pass = !inherits(value, "error"),
-    error_class = if (inherits(value, "error")) class(value)[[1L]] else "",
-    error = if (inherits(value, "error")) redact_public_diagnostic(conditionMessage(value)) else "",
-    warnings = paste(redact_public_diagnostic(warnings), collapse = " | "),
-    elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
-}
 requested_text <- Sys.getenv("EASYNIS_QUALITY_STEPS", unset = "")
 requested_steps <- if (nzchar(requested_text)) strsplit(requested_text, ",", fixed = TRUE)[[1L]] else character()
 step_keys <- c("as_cran", "lintr", "cyclocomp", "coverage", "goodpractice", "pkgcheck", "pkgdown")
@@ -41,7 +29,7 @@ run_step <- function(key, name, fn) {
     return(list(name = name, pass = NA, error_class = "", error = "",
       warnings = "", elapsed_seconds = 0, value = "skipped_by_selection"))
   }
-  safe(name, fn)
+  capture_quality_step(name, fn)
 }
 
 checks <- list()
@@ -68,12 +56,6 @@ checks[["pkgdown"]] <- run_step("pkgdown", "pkgdown::check_pkgdown", function() 
   pkgdown::check_pkgdown(root)
 })
 
-goodpractice_pass <- function(value) {
-  if (!inherits(value, "goodPractice")) return(NA)
-  failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
-  if (is.null(failed)) return(NA)
-  !length(failed)
-}
 pkgcheck_pass <- function(value) {
   if (!inherits(value, "pkgcheck")) return(NA)
   summary_lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
@@ -82,18 +64,6 @@ pkgcheck_pass <- function(value) {
   if (!is.logical(okay) || length(okay) != 1L || is.na(okay)) return(NA)
   okay
 }
-tool_failures <- function(name, value) {
-  if (inherits(value, "goodPractice")) {
-    return(paste(goodpractice::failed_checks(value), collapse = ", "))
-  }
-  if (inherits(value, "pkgcheck")) {
-    lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
-      error = function(e) character())
-    return(paste(grep("heavy_multiplication_x", lines, value = TRUE), collapse = " | "))
-  }
-  ""
-}
-
 export_docs <- exported_example_status(root)
 exports <- export_docs$exports
 examples <- export_docs$has_examples
@@ -181,10 +151,12 @@ lint_detail <- function(value) {
     ": ", lint_table$message)
   paste(vapply(entries, redact_paths, character(1)), collapse = " | ")
 }
-quality_step_detail <- function(x, counts) {
+quality_step_detail <- function(x, counts, passed) {
   value <- x$value
   if (inherits(value, "error")) return(x$error)
-  if (x$name %in% c("goodpractice", "pkgcheck")) return(tool_failures(x$name, value))
+  if (x$name %in% c("goodpractice", "pkgcheck")) {
+    return(quality_public_detail(x$name, passed))
+  }
   if (!is.null(counts)) return(paste(names(counts), counts, collapse = " | "))
   if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(lint_detail(value))
   ""
@@ -193,12 +165,9 @@ quality_record <- function(x, evidence) {
   value <- x$value
   counts <- check_counts_for(value)
   passed <- quality_step_pass(x, counts)
-  detail <- quality_step_detail(x, counts)
+  detail <- quality_step_detail(x, counts, passed)
   if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
-  list(step = x$name, status = quality_step_status(value, passed), pass = passed,
-    error_class = x$error_class, result_class = paste(class(value), collapse = ","),
-    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
-    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds)
+  quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
 }
 records <- lapply(checks, quality_record, evidence = run_evidence)
 records[[length(records) + 1L]] <- list(step = "export_documentation", status = "completed",
@@ -224,6 +193,7 @@ if (identical(coverage, "skipped_by_selection")) {
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")
 writeLines(lines, output, useBytes = TRUE)
+write_private_quality_diagnostics(run_dir, checks, records)
 failed <- vapply(records, function(record) identical(record$pass, FALSE), logical(1))
 failed_steps <- unique(vapply(records[failed], `[[`, character(1), "step"))
 if (length(failed_steps)) {
