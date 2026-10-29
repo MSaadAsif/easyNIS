@@ -27,6 +27,31 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
   expect_error(nis_open(path, years = 2020L, engine = "duckdb"), "unused argument")
 })
 
+test_that("easyNIS explains invalid UTF-8 during collection", {
+  path <- tempfile("nis-invalid-utf8-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+
+  marker <- "SYNTHMARK"
+  data <- data.frame(YEAR = 2020L, DISCWT = 5, AGE = 60L, FEMALE = "Female",
+    DIED = "No", I10_DX1 = marker)
+  file <- file.path(path, "NIS_2020.parquet")
+  write_duckdb_parquet(data, file)
+  bytes <- readBin(file, "raw", n = file.info(file)$size)
+  needle <- charToRaw(marker)
+  starts <- which(vapply(seq_len(length(bytes) - length(needle) + 1L),
+    function(i) identical(bytes[i:(i + length(needle) - 1L)], needle),
+    logical(1)))
+  expect_gt(length(starts), 0L)
+  bytes[starts[[1L]]] <- as.raw(0xFF)
+  writeBin(bytes, file)
+
+  expect_error(
+    nis_audit_code_transition(nis_open(path), c(marker = marker), type = "dx"),
+    "A string column in the Parquet input is not valid UTF-8"
+  )
+})
+
 test_that("nis_open safely quotes paths containing spaces and apostrophes", {
   path <- file.path(tempdir(), "nis quoted 'path'")
   dir.create(path, showWarnings = FALSE)

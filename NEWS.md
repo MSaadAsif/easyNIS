@@ -1,8 +1,9 @@
 # easyNIS (development version)
 
+- EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
+  string columns.
 - The real-data workflow probe discovers diagnosis and POA fields from lazy
   query schemas with `colnames()`, so those fields are retained by `nis_design()`.
-
 - The quality probe now saves nested `pkgcheck` and `goodpractice` failure
   results and captured warnings in an ignored local artifact while keeping
   nested condition text out of its public receipt. Receipts include numeric
