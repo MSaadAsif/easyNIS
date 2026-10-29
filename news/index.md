@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- The real-data workflow probe discovers diagnosis and POA fields from
+  lazy query schemas with
+  [`colnames()`](https://rdrr.io/r/base/colnames.html), so those fields
+  are retained by
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+
 - The quality probe now saves nested `pkgcheck` and `goodpractice`
   failure results and captured warnings in an ignored local artifact
   while keeping nested condition text out of its public receipt.
