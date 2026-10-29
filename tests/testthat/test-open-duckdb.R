@@ -28,7 +28,6 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
 })
 
 test_that("easyNIS explains invalid UTF-8 during collection", {
-  skip_if_not_installed("arrow")
   path <- tempfile("nis-invalid-utf8-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -37,14 +36,13 @@ test_that("easyNIS explains invalid UTF-8 during collection", {
   data <- data.frame(YEAR = 2020L, DISCWT = 5, AGE = 60L, FEMALE = "Female",
     DIED = "No", I10_DX1 = marker)
   file <- file.path(path, "NIS_2020.parquet")
-  write_parquet <- getExportedValue("arrow", "write_parquet")
-  write_parquet(data, file, compression = "uncompressed",
-    use_dictionary = FALSE)
+  write_duckdb_parquet(data, file)
   bytes <- readBin(file, "raw", n = file.info(file)$size)
   needle <- charToRaw(marker)
   starts <- which(vapply(seq_len(length(bytes) - length(needle) + 1L),
     function(i) identical(bytes[i:(i + length(needle) - 1L)], needle),
     logical(1)))
+  expect_gt(length(starts), 0L)
   bytes[starts[[1L]]] <- as.raw(0xFF)
   writeBin(bytes, file)
 
