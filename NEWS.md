@@ -11,8 +11,8 @@
   failed-check, R CMD check error, and captured-warning counts. Prep failures
   and unknown check statuses are no longer reported as passing.
 
-
 - Corrected the procedure-timing help text so manual HTML validates.
+
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP
   labeling without changing their results.
 
