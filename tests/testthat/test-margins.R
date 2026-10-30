@@ -9,7 +9,7 @@ test_that("nis_rate agrees with survey totals and proportions", {
   expect_equal(result$weighted_n, c(6, 7))
   expect_equal(result$proportion, c(5 / 6, 2 / 7))
   expect_equal(unname(result$n), c(3L, 3L))
-  expect_match(result$label[1], "5/6 (83.33%)")
+  expect_equal(result$label[1], "5/6 (83.33%)")
 })
 
 test_that("nis_margins returns counterfactual margins and contrasts", {
