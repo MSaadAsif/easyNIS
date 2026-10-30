@@ -76,7 +76,7 @@ nis |>
 
 # Include F10 codes except remission codes; require initial encounter
 nis |> nis_flag_dx(substance = "F10", exclude = c("F1011", "F1021"))
-nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.*A$")
+nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.{4}A$")
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.
