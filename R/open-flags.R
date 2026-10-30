@@ -258,6 +258,9 @@ nis_open_warn_2023 <- function(query) {
 #'
 #' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
+#' @param exclude Optional character vector of prefixes that disqualify a
+#'   matching slot.
+#' @param pattern Optional regular expression that the full code must match.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
@@ -279,10 +282,14 @@ nis_open_warn_2023 <- function(query) {
 #'   nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
 #'   dplyr::count(hf_or_diabetes) |>
 #'   dplyr::collect()
+#'
+#' # Include F10 codes except remission codes; require initial encounter
+#' nis |> nis_flag_dx(substance = "F10", exclude = c("F1011", "F1021"))
+#' nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.{4}A$")
 nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"),
-                        system = c("icd10", "icd9")) {
+                        system = c("icd10", "icd9"), exclude = character(), pattern = NULL) {
   nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position),
-    system = match.arg(system))
+    system = match.arg(system), exclude = exclude, pattern = pattern)
 }
 
 #' Add procedure prefix flags
@@ -296,6 +303,9 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
 #' @param position Slots to check: all slots or the principal slot only.
+#' @param exclude Optional character vector of prefixes that disqualify a
+#'   matching slot.
+#' @param pattern Optional regular expression that the full code must match.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #'
@@ -310,12 +320,12 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   dplyr::count(ablation) |>
 #'   dplyr::collect()
 nis_flag_pr <- function(.data, ..., position = c("any", "principal"),
-                        system = c("icd10", "icd9")) {
+                        system = c("icd10", "icd9"), exclude = character(), pattern = NULL) {
   nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position),
-    system = match.arg(system))
+    system = match.arg(system), exclude = exclude, pattern = pattern)
 }
 
-nis_flag_codes <- function(.data, slots, ..., position, system) {
+nis_flag_codes <- function(.data, slots, ..., position, system, exclude, pattern) {
   definitions <- rlang::enquos(..., .named = TRUE)
   if (length(definitions) == 0L || any(names(definitions) == "")) {
     cli::cli_abort("Supply one or more named code-prefix definitions.")
@@ -331,6 +341,10 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   prefixes <- lapply(definitions, function(definition) {
     normalize_prefixes(rlang::eval_tidy(definition))
   })
+  exclude <- if (length(exclude)) normalize_prefixes(exclude, "exclude") else character()
+  if (!is.null(pattern) && (!is.character(pattern) || length(pattern) != 1L || is.na(pattern))) {
+    cli::cli_abort("`pattern` must be one non-missing regular expression.")
+  }
 
   stem <- paste0(if (system == "icd10") "I10_", slots)
   slot_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
@@ -347,23 +361,23 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     ))
   }
 
-  flags <- if (is.data.frame(.data)) {
-    lapply(prefixes, frame_match, slot_names = slot_names)
+  flag_exprs <- if (is.data.frame(.data)) {
+    lapply(prefixes, frame_match, slot_names = slot_names, exclude = exclude, pattern = pattern)
   } else {
     lapply(prefixes, function(prefix) {
       reduce_or(lapply(slot_names, function(column) {
-        nis_sql_match(prefix, column) # nolint: object_usage_linter
+        nis_sql_match(prefix, column, exclude, pattern) # nolint: object_usage_linter
       }))
     })
   }
 
   eligibility <- code_system_filter(.data, data_names, slots, system)
   if (!is.null(eligibility)) {
-    flags <- lapply(flags, function(flag) {
+    flag_exprs <- lapply(flag_exprs, function(flag) {
       nis_and_expr(eligibility, flag) # nolint: object_usage_linter
     })
   }
-  dplyr::mutate(.data, !!!flags)
+  dplyr::mutate(.data, !!!flag_exprs)
 }
 
 normalize_prefixes <- function(value, arg = NULL) {
@@ -416,12 +430,15 @@ code_system_filter <- function(data, columns, slots, system) {
 
 # Data frames use `startsWith()`, which compares bytes and never errors on
 # malformed text; a missing slot value counts as no match.
-frame_match <- function(prefix, slot_names) {
+frame_match <- function(prefix, slot_names, exclude = character(), pattern = NULL) {
   per_slot <- lapply(slot_names, function(column) {
     per_prefix <- lapply(prefix, function(code) {
       rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))
     })
-    reduce_or(per_prefix)
+    matched <- reduce_or(per_prefix)
+    if (length(exclude)) matched <- rlang::expr((!!matched) & !(!!reduce_or(lapply(exclude, function(code) rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))))))
+    if (!is.null(pattern)) matched <- rlang::expr((!!matched) & grepl(!!pattern, as.character(!!rlang::sym(column))))
+    matched
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
 }

@@ -8,7 +8,9 @@ nis_flag_pr(
   .data,
   ...,
   position = c("any", "principal"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9"),
+  exclude = character(),
+  pattern = NULL
 )
 }
 \arguments{
@@ -20,6 +22,11 @@ nis_flag_pr(
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
 \code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
+
+\item{exclude}{Optional character vector of prefixes that disqualify a
+matching slot.}
+
+\item{pattern}{Optional regular expression that the full code must match.}
 }
 \value{
 \code{.data} with one logical column per named definition.

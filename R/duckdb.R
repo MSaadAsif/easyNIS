@@ -184,11 +184,19 @@ nis_duckdb_write_parquet <- function(data, path) {
   invisible(path)
 }
 
-nis_sql_match <- function(prefix, column) {
+nis_sql_match <- function(prefix, column, exclude = character(), pattern = NULL) {
   per_prefix <- lapply(prefix, function(code) {
     rlang::expr(substr(!!rlang::sym(column), 1L, !!nchar(code)) == !!code)
   })
-  rlang::expr(dplyr::coalesce(!!reduce_or(per_prefix), FALSE))
+  matched <- reduce_or(per_prefix)
+  if (length(exclude)) {
+    excluded <- reduce_or(lapply(exclude, function(code) {
+      rlang::expr(substr(!!rlang::sym(column), 1L, !!nchar(code)) == !!code)
+    }))
+    matched <- rlang::expr((!!matched) & !(!!excluded))
+  }
+  if (!is.null(pattern)) matched <- rlang::expr((!!matched) & regexp_matches(!!rlang::sym(column), !!pattern))
+  rlang::expr(dplyr::coalesce(!!matched, FALSE))
 }
 
 nis_and_expr <- function(left, right) {

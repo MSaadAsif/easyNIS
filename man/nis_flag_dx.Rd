@@ -8,7 +8,9 @@ nis_flag_dx(
   .data,
   ...,
   position = c("any", "principal", "secondary"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9"),
+  exclude = character(),
+  pattern = NULL
 )
 }
 \arguments{
@@ -21,6 +23,11 @@ slots only.}
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
 \code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
+
+\item{exclude}{Optional character vector of prefixes that disqualify a
+matching slot.}
+
+\item{pattern}{Optional regular expression that the full code must match.}
 }
 \value{
 \code{.data} with one logical column per named definition.
@@ -66,6 +73,10 @@ nis |>
   nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
   dplyr::count(hf_or_diabetes) |>
   dplyr::collect()
+
+# Include F10 codes except remission codes; require initial encounter
+nis |> nis_flag_dx(substance = "F10", exclude = c("F1011", "F1021"))
+nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.{4}A$")
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.
