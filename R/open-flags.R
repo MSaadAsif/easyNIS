@@ -285,7 +285,7 @@ nis_open_warn_2023 <- function(query) {
 #'
 #' # Include F10 codes except remission codes; require initial encounter
 #' nis |> nis_flag_dx(substance = "F10", exclude = c("F1011", "F1021"))
-#' nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.*A$")
+#' nis |> nis_flag_dx(head_injury = "S06", pattern = "^S06.{4}A$")
 nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"),
                         system = c("icd10", "icd9"), exclude = character(), pattern = NULL) {
   nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position),
