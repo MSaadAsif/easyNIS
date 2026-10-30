@@ -30,4 +30,9 @@ testthat::test_that("lazy schema discovery preserves diagnosis and POA in a desi
   testthat::expect_true(all(fields %in% names(design$variables)))
   testthat::expect_identical(design$variables$I10_DX1, "I210")
   testthat::expect_identical(design$variables$DXPOA1, "Y")
+
+  age_only_design <- easyNIS::nis_flag_dx(query, ami = "I21") |>
+    easyNIS::nis_design(ami, keep = AGE)
+  testthat::expect_true("AGE" %in% names(age_only_design$variables))
+  testthat::expect_false(any(fields %in% names(age_only_design$variables)))
 })
