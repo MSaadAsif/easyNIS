@@ -14,6 +14,26 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
 
+test_that("keep accepts character vectors and tidyselect helpers", {
+  data <- dplyr::tibble(YEAR = 2020, HOSP_NIS = 1, NIS_STRATUM = 1,
+    DISCWT = 1, eligible = TRUE, AGE = 50, FEMALE = 1)
+  cols <- c("AGE", "FEMALE")
+  for (selection in list(cols, tidyselect::all_of(cols), tidyselect::any_of(cols),
+                         c(AGE, FEMALE))) {
+    design <- nis_design(data, eligible, keep = selection)
+    expect_true(all(cols %in% names(design$variables)))
+  }
+})
+
+test_that("dollars automatically keeps charge inputs and reports absent columns", {
+  data <- dplyr::tibble(YEAR = 2020, HOSP_NIS = 1, NIS_STRATUM = 1,
+    DISCWT = 1, eligible = TRUE, TOTCHG = 100, CCR_NIS = 0.5)
+  design <- suppressMessages(nis_design(data, eligible, keep = TOTCHG, dollars = 2022))
+  expect_true(all(c("TOTCHG", "CCR_NIS", "cost_adj") %in% names(design$variables)))
+  expect_error(nis_design(dplyr::select(data, -CCR_NIS), eligible, TOTCHG, dollars = 2022),
+    "CCR_NIS")
+})
+
 test_that("nis_design carries cost provenance through the survey workflow", {
   data <- dplyr::tibble(
     YEAR = rep(2020, 4),
