@@ -88,20 +88,54 @@ nis_rate <- function(design, event, by = NULL) {
   if (!inherits(design, c("survey.design", "survey.design2", "tbl_svy"))) cli::cli_abort("`design` must be a survey design.")
   ev <- rlang::as_name(rlang::ensym(event)); grp <- if (missing(by) || rlang::quo_is_null(rlang::enquo(by))) NULL else rlang::as_name(rlang::ensym(by))
   data <- design$variables
-  if (!ev %in% names(data) || (!is.null(grp) && !grp %in% names(data))) cli::cli_abort("Requested columns must be present in the design.")
-  design$variables$.nis_event <- as.numeric(data[[ev]])
+  if (!ev %in% names(data) || (!is.null(grp) && !grp %in% names(data))) {
+    cli::cli_abort("Requested columns must be present in the design.")
+  }
+  raw_event <- data[[ev]]
+  valid_values <- is.logical(raw_event) || (is.numeric(raw_event) &&
+    all(is.na(raw_event) | raw_event %in% c(0, 1)))
+  if (!valid_values) cli::cli_abort("`event` must be logical or numeric 0/1.")
+  design$variables$.nis_event <- as.numeric(raw_event)
   design$variables$.nis_one <- 1
-  valid <- !is.na(design$variables$.nis_event)
-  design <- design[valid, ]
+  keep <- !is.na(design$variables$.nis_event)
+  design <- design[keep, ]
   data <- design$variables
   groups <- if (is.null(grp)) NULL else stats::as.formula(paste("~", grp))
-  total <- function(formula) if (is.null(groups)) survey::svytotal(formula, design) else survey::svyby(formula, groups, design, survey::svytotal, keep.names = FALSE)
-  mean <- function(formula) if (is.null(groups)) survey::svymean(formula, design) else survey::svyby(formula, groups, design, survey::svymean, vartype = c("se", "ci"), keep.names = FALSE)
-  events <- total(~I(.nis_event != 0)); denom <- total(~.nis_one); prop <- mean(~I(.nis_event != 0))
-  evw <- as.numeric(stats::coef(events)); nw <- as.numeric(stats::coef(denom)); p <- as.numeric(stats::coef(prop))
-  se <- as.numeric(survey::SE(prop))
-  ci <- if (is.null(groups)) as.matrix(stats::confint(survey::svyciprop(~I(.nis_event != 0), design, method = "beta"))) else as.matrix(prop)[, grep("ci", names(as.data.frame(prop)), value = TRUE), drop = FALSE]
-  n <- if (is.null(groups)) nrow(data) else as.integer(table(factor(data[[grp]], levels = unique(as.character(data[[grp]])))))
-  out <- if (is.null(groups)) tibble::tibble(weighted_events = evw, weighted_n = nw, proportion = p, se = se, conf.low = ci[1], conf.high = ci[2], n = n) else tibble::tibble(!!grp := as.character(as.data.frame(prop)[[1]]), weighted_events = evw, weighted_n = nw, proportion = p, se = se, conf.low = as.numeric(ci[, 1]), conf.high = as.numeric(ci[, 2]), n = n)
-  dplyr::mutate(out, label = sprintf("%s/%s (%.2f%%)", format(round(weighted_events), big.mark = ","), format(round(weighted_n), big.mark = ","), 100 * proportion))
+  if (is.null(groups)) {
+    events <- survey::svytotal(~.nis_event, design)
+    denom <- survey::svytotal(~.nis_one, design)
+    prop <- survey::svyciprop(~.nis_event, design, method = "beta")
+    labels <- NULL
+    conf <- stats::confint(prop)
+    event_weight <- as.numeric(stats::coef(events))
+    weighted_n <- as.numeric(stats::coef(denom))
+    proportion <- as.numeric(stats::coef(prop))
+    standard_error <- as.numeric(survey::SE(prop))
+    unweighted_n <- nrow(data)
+  } else {
+    events <- survey::svyby(~.nis_event, groups, design, survey::svytotal)
+    denom <- survey::svyby(~.nis_one, groups, design, survey::svytotal)
+    mean_prop <- survey::svyby(~.nis_event, groups, design, survey::svymean,
+      vartype = "se")
+    prop <- survey::svyby(~.nis_event, groups, design, survey::svyciprop,
+      vartype = "ci", method = "beta")
+    labels <- as.character(as.data.frame(prop)[[1]])
+    prop_frame <- as.data.frame(prop)
+    conf <- as.matrix(prop_frame[, grep("ci", names(prop_frame), ignore.case = TRUE), drop = FALSE])
+    event_weight <- as.numeric(stats::coef(events))
+    weighted_n <- as.numeric(stats::coef(denom))
+    proportion <- as.numeric(stats::coef(prop))
+    standard_error <- as.numeric(survey::SE(mean_prop))
+    unweighted_n <- vapply(labels, function(label) {
+      sum(as.character(data[[grp]]) == label)
+    }, integer(1))
+  }
+  out <- tibble::tibble(weighted_events = event_weight,
+    weighted_n = weighted_n, proportion = proportion, se = standard_error,
+    conf.low = as.numeric(conf[, 1]), conf.high = as.numeric(conf[, 2]),
+    n = unweighted_n)
+  if (!is.null(groups)) out[[grp]] <- labels
+  dplyr::mutate(out, label = sprintf("%s/%s (%.2f%%)",
+    format(round(weighted_events), big.mark = ","),
+    format(round(weighted_n), big.mark = ","), 100 * proportion))
 }

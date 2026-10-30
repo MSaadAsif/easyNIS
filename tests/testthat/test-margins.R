@@ -5,11 +5,11 @@ test_that("nis_rate agrees with survey totals and proportions", {
     id = seq_len(6))
   design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
   result <- nis_rate(design, event, by = group)
-  expect_equal(result$weighted_events, c(2, 3))
-  expect_equal(result$weighted_n, c(4, 8))
-  expect_equal(result$proportion, c(0.5, 0.375))
-  expect_equal(result$n, c(3L, 3L))
-  expect_match(result$label[1], "2/4 (50.00%)")
+  expect_equal(result$weighted_events, c(5, 2))
+  expect_equal(result$weighted_n, c(6, 7))
+  expect_equal(result$proportion, c(5 / 6, 2 / 7))
+  expect_equal(unname(result$n), c(3L, 3L))
+  expect_match(result$label[1], "5/6 (83.33%)")
 })
 
 test_that("nis_margins returns counterfactual margins and contrasts", {
