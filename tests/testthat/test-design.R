@@ -18,11 +18,12 @@ test_that("keep accepts character vectors and tidyselect helpers", {
   data <- dplyr::tibble(YEAR = 2020, HOSP_NIS = 1, NIS_STRATUM = 1,
     DISCWT = 1, eligible = TRUE, AGE = 50, FEMALE = 1)
   cols <- c("AGE", "FEMALE")
-  for (selection in list(cols, tidyselect::all_of(cols), tidyselect::any_of(cols),
-                         c(AGE, FEMALE))) {
+  for (selection in list(cols, tidyselect::all_of(cols), tidyselect::any_of(cols))) {
     design <- nis_design(data, eligible, keep = selection)
     expect_true(all(cols %in% names(design$variables)))
   }
+  inline <- nis_design(data, eligible, keep = c(AGE, FEMALE))
+  expect_true(all(cols %in% names(inline$variables)))
 })
 
 test_that("dollars automatically keeps charge inputs and reports absent columns", {
