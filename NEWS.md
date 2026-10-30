@@ -1,7 +1,16 @@
 # easyNIS (development version)
 
+- Split published-study probe validation into named checks while preserving receipt acceptance behavior.
+- EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
+  string columns.
 - The real-data workflow probe discovers diagnosis and POA fields from the
   lazy query schema before selecting them for the survey design.
+- The quality probe now saves nested `pkgcheck` and `goodpractice` failure
+  results and captured warnings in an ignored local artifact while keeping
+  nested condition text out of its public receipt. Receipts include numeric
+  failed-check, R CMD check error, and captured-warning counts. Prep failures
+  and unknown check statuses are no longer reported as passing.
+
 
 - Corrected the procedure-timing help text so manual HTML validates.
 - Reduce cyclomatic complexity in diagnosis sensitivity summaries and HCUP

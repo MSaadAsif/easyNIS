@@ -128,32 +128,61 @@ numeric_reference_value <- function(value) {
   parsed
 }
 
+valid_named_fields <- function(value, required) {
+  is.list(value) && all(required %in% names(value))
+}
+
+valid_nonempty_string <- function(value) {
+  is.character(value) && length(value) == 1L && nzchar(value)
+}
+
+valid_estimate_interval <- function(value) {
+  if (!is.character(value)) return(FALSE)
+  interval <- vapply(value, numeric_reference_value, numeric(1))
+  length(interval) == 2L && all(is.finite(interval)) && interval[[1L]] <= interval[[2L]]
+}
+
 valid_reference_estimate <- function(estimate) {
   required <- c("id", "label", "estimate_printed", "estimate", "ci_printed", "ci")
-  if (!is.list(estimate) || !all(required %in% names(estimate))) return(FALSE)
-  estimate_value <- numeric_reference_value(estimate$estimate)
-  interval <- vapply(estimate$ci, numeric_reference_value, numeric(1))
-  is.character(estimate$id) && length(estimate$id) == 1L && nzchar(estimate$id) &&
-    is.character(estimate$label) && length(estimate$label) == 1L && nzchar(estimate$label) &&
-    is.character(estimate$estimate_printed) && nzchar(estimate$estimate_printed) &&
-    is.character(estimate$ci_printed) && nzchar(estimate$ci_printed) &&
-    is.finite(estimate_value) && is.character(estimate$ci) && length(interval) == 2L &&
-    all(is.finite(interval)) && interval[[1L]] <= interval[[2L]]
+  if (!valid_named_fields(estimate, required)) return(FALSE)
+  valid_estimate_text_fields(estimate) &&
+    is.finite(numeric_reference_value(estimate$estimate)) &&
+    valid_estimate_interval(estimate$ci)
+}
+
+valid_reference_study_fields <- function(study) {
+  valid_nonempty_string(study$id) && valid_reference_doi(study$doi) &&
+    valid_nonempty_string(study$cohort_definition) && valid_reference_tolerance(study$tolerance)
+}
+
+valid_reference_doi <- function(value) {
+  valid_nonempty_string(value) && grepl("^10[.][0-9]{4,9}/[^[:space:]]+$", value)
+}
+
+valid_reference_tolerance <- function(value) {
+  is.numeric(value) && length(value) == 1L && is.finite(value) && value >= 0
+}
+
+valid_estimate_text_fields <- function(estimate) {
+  valid_nonempty_string(estimate$id) && valid_nonempty_string(estimate$label) &&
+    valid_estimate_printed_text(estimate$estimate_printed) &&
+    valid_estimate_printed_text(estimate$ci_printed)
+}
+
+valid_estimate_printed_text <- function(value) {
+  is.character(value) && nzchar(value)
+}
+
+valid_reference_estimates <- function(estimates) {
+  is.list(estimates) && length(estimates) > 0L &&
+    all(vapply(estimates, valid_reference_estimate, logical(1))) &&
+    !anyDuplicated(vapply(estimates, `[[`, character(1), "id"))
 }
 
 valid_reference_study <- function(study) {
   required <- c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")
-  if (!is.list(study) || !all(required %in% names(study))) return(FALSE)
-  estimates <- study$headline_estimates
-  is.character(study$id) && length(study$id) == 1L && nzchar(study$id) &&
-    is.character(study$doi) && length(study$doi) == 1L &&
-    grepl("^10[.][0-9]{4,9}/[^[:space:]]+$", study$doi) &&
-    is.character(study$cohort_definition) && length(study$cohort_definition) == 1L &&
-    nzchar(study$cohort_definition) && is.numeric(study$tolerance) &&
-    length(study$tolerance) == 1L && is.finite(study$tolerance) && study$tolerance >= 0 &&
-    is.list(estimates) && length(estimates) > 0L &&
-    all(vapply(estimates, valid_reference_estimate, logical(1))) &&
-    !anyDuplicated(vapply(estimates, `[[`, character(1), "id"))
+  valid_named_fields(study, required) && valid_reference_study_fields(study) &&
+    valid_reference_estimates(study$headline_estimates)
 }
 
 valid_reference_studies <- function(studies) {
@@ -170,45 +199,76 @@ load_reference_studies <- function(path) {
   reference$studies
 }
 
+valid_receipt_results <- function(results, reference_study) {
+  if (!is.list(results) || length(results) != length(reference_study$headline_estimates)) return(FALSE)
+  expected <- stats::setNames(reference_study$headline_estimates,
+    vapply(reference_study$headline_estimates, `[[`, character(1), "id"))
+  receipt_ids <- vapply(results, receipt_result_id, character(1))
+  if (!valid_receipt_id_set(receipt_ids, names(expected))) return(FALSE)
+  all(vapply(results, valid_receipt_result, logical(1), expected = expected,
+    reference_study = reference_study))
+}
+
+receipt_result_id <- function(result) {
+  if (is.list(result) && is.character(result$estimate_id) && length(result$estimate_id) == 1L) {
+    result$estimate_id
+  } else {
+    ""
+  }
+}
+
+valid_receipt_id_set <- function(receipt_ids, expected_ids) {
+  !any(!nzchar(receipt_ids)) && !anyDuplicated(receipt_ids) &&
+    setequal(receipt_ids, expected_ids)
+}
+
+valid_receipt_result <- function(result, expected, reference_study) {
+  required <- c("estimate_id", "computed_estimate", "reference_value", "reference_ci",
+    "tolerance", "comparison_result")
+  if (!valid_receipt_result_fields(result, required)) return(FALSE)
+  reference <- expected[[result$estimate_id]]
+  if (is.null(reference)) return(FALSE)
+  computed <- numeric_reference_value(result$computed_estimate)
+  reference_value <- numeric_reference_value(reference$estimate)
+  tolerance <- numeric_reference_value(reference_study$tolerance)
+  comparison <- if (is.finite(computed) && abs(computed - reference_value) <= tolerance) "pass" else "fail"
+  is.finite(computed) && valid_receipt_reference_values(result, reference, reference_value, tolerance) &&
+    valid_receipt_comparison(result, comparison)
+}
+
+valid_receipt_result_fields <- function(result, required) {
+  is.list(result) && all(required %in% names(result)) && valid_receipt_result_id(result)
+}
+
+valid_receipt_result_id <- function(result) {
+  is.character(result$estimate_id) && length(result$estimate_id) == 1L &&
+    !is.na(result$estimate_id) && nzchar(result$estimate_id)
+}
+
+valid_receipt_comparison <- function(result, comparison) {
+  identical(result$comparison_result, comparison) && identical(comparison, "pass")
+}
+
+valid_receipt_reference_values <- function(result, reference, value, tolerance) {
+  identical(numeric_reference_value(result$reference_value), value) &&
+    identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
+      numeric_reference_value, numeric(1)))) &&
+    identical(numeric_reference_value(result$tolerance), tolerance)
+}
+
+valid_study_receipt <- function(receipt, current_commit, reference_study) {
+  is.list(receipt) && identical(receipt$package_commit_hash, current_commit) &&
+    identical(receipt$study_id, reference_study$id) &&
+    valid_receipt_time(receipt$verified_at) &&
+    valid_receipt_results(receipt$results, reference_study)
+}
+
 study_verification_ready <- function(path, current_commit, reference_study) {
   if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE) ||
       !valid_reference_study(reference_study)) return(FALSE)
   receipt <- tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE),
     error = function(e) NULL)
-  if (!is.list(receipt) || !identical(receipt$package_commit_hash, current_commit) ||
-      !identical(receipt$study_id, reference_study$id) ||
-      !valid_receipt_time(receipt$verified_at) ||
-      !is.list(receipt$results) || length(receipt$results) != length(reference_study$headline_estimates)) {
-    return(FALSE)
-  }
-  expected <- stats::setNames(reference_study$headline_estimates,
-    vapply(reference_study$headline_estimates, `[[`, character(1), "id"))
-  receipt_ids <- vapply(receipt$results, function(result) {
-    if (is.list(result) && is.character(result$estimate_id) && length(result$estimate_id) == 1L) {
-      result$estimate_id
-    } else {
-      ""
-    }
-  }, character(1))
-  if (any(!nzchar(receipt_ids)) || anyDuplicated(receipt_ids) ||
-      !setequal(receipt_ids, names(expected))) return(FALSE)
-  all(vapply(receipt$results, function(result) {
-    if (!is.list(result) || !all(c("estimate_id", "computed_estimate", "reference_value",
-        "reference_ci", "tolerance", "comparison_result") %in% names(result))) return(FALSE)
-    if (!is.character(result$estimate_id) || length(result$estimate_id) != 1L ||
-        is.na(result$estimate_id) || !nzchar(result$estimate_id)) return(FALSE)
-    reference <- expected[[result$estimate_id]]
-    if (is.null(reference)) return(FALSE)
-    computed <- numeric_reference_value(result$computed_estimate)
-    reference_value <- numeric_reference_value(reference$estimate)
-    tolerance <- numeric_reference_value(reference_study$tolerance)
-    comparison <- if (is.finite(computed) && abs(computed - reference_value) <= tolerance) "pass" else "fail"
-    is.finite(computed) && identical(numeric_reference_value(result$reference_value), reference_value) &&
-      identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
-        numeric_reference_value, numeric(1)))) &&
-      identical(numeric_reference_value(result$tolerance), tolerance) &&
-      identical(result$comparison_result, comparison) && identical(comparison, "pass")
-  }, logical(1)))
+  valid_study_receipt(receipt, current_commit, reference_study)
 }
 
 parse_open_issue_query <- function(output, status = 0L) {
@@ -232,6 +292,129 @@ check_result_counts <- function(value) {
 quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
   is.list(item) && isTRUE(current_tree_clean) &&
     identical(item$commit, current_commit) && identical(item$working_tree_clean, TRUE)
+}
+
+private_quality_diagnostics <- function(checks, records) {
+  tool_names <- intersect(c("goodpractice", "pkgcheck"), names(checks))
+  failed <- tool_names[vapply(tool_names, function(name) {
+    matching_records <- Filter(function(record) identical(record$step, name), records)
+    length(matching_records) > 0L && any(vapply(matching_records, function(record) {
+      identical(record$pass, FALSE)
+    }, logical(1)))
+  }, logical(1))]
+  stats::setNames(lapply(failed, function(name) {
+    warnings <- checks[[name]]$warning_conditions
+    if (is.null(warnings)) warnings <- list()
+    list(result = checks[[name]]$value,
+      warnings = warnings)
+  }), failed)
+}
+
+capture_quality_step <- function(name, fn) {
+  started <- proc.time()[["elapsed"]]
+  warnings <- list()
+  value <- tryCatch(withCallingHandlers(fn(),
+    warning = function(w) {
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }), error = identity)
+  list(name = name, pass = !inherits(value, "error"),
+    error_class = if (inherits(value, "error")) class(value)[[1L]] else "",
+    error = if (inherits(value, "error")) "diagnostic text redacted" else "",
+    warning_conditions = warnings,
+    warnings = if (length(warnings)) "warning(s) captured" else "",
+    elapsed_seconds = unname(proc.time()[["elapsed"]] - started), value = value)
+}
+
+goodpractice_prep_failed <- function(prep_values) {
+  any(vapply(prep_values, inherits, logical(1), "try-error"))
+}
+
+goodpractice_check_status <- function(checks) {
+  statuses <- lapply(checks, function(check) {
+    if (is.list(check) && "status" %in% names(check)) check$status else check
+  })
+  if (any(vapply(statuses, function(status) identical(status, FALSE), logical(1)))) return(FALSE)
+  if (any(vapply(statuses, function(status) length(status) != 1L || is.na(status), logical(1)))) {
+    return(NA)
+  }
+  TRUE
+}
+
+goodpractice_pass <- function(value) {
+  if (!inherits(value, "goodPractice") || !is.list(value$checks) || !length(value$checks)) {
+    return(NA)
+  }
+  prep_values <- value[setdiff(names(value), "checks")]
+  if (goodpractice_prep_failed(prep_values)) return(FALSE)
+  status <- goodpractice_check_status(value$checks)
+  if (!isTRUE(status)) return(status)
+  failed <- tryCatch(goodpractice::failed_checks(value), error = function(e) NULL)
+  if (is.null(failed)) return(NA)
+  !length(failed)
+}
+
+quality_public_detail <- function(name, passed) {
+  if (name %in% c("goodpractice", "pkgcheck") && identical(passed, FALSE)) {
+    return("check failures present")
+  }
+  ""
+}
+
+quality_public_diagnostic_counts <- function(value, warning_conditions = list()) {
+  goodpractice_result <- if (inherits(value, "pkgcheck")) {
+    value$goodpractice
+  } else if (inherits(value, "goodPractice")) {
+    value
+  } else {
+    NULL
+  }
+  checks <- goodpractice_result$checks
+  failed_checks <- if (is.list(checks)) {
+    sum(vapply(checks, function(check) {
+      is.list(check) && identical(check$status, FALSE)
+    }, logical(1)))
+  } else {
+    0L
+  }
+  rcmdcheck <- goodpractice_result$rcmdcheck
+  rcmdcheck_errors <- if (inherits(rcmdcheck, "try-error")) {
+    1L
+  } else if (is.list(rcmdcheck)) {
+    length(rcmdcheck$errors)
+  } else {
+    0L
+  }
+  list(failed_checks = as.integer(failed_checks),
+    rcmdcheck_errors = as.integer(rcmdcheck_errors),
+    captured_warnings = as.integer(length(warning_conditions)))
+}
+
+quality_receipt_record <- function(x, evidence, status, passed, detail) {
+  diagnostic_counts <- quality_public_diagnostic_counts(x$value, x$warning_conditions)
+  c(list(step = x$name, status = status, pass = passed,
+    error_class = x$error_class, result_class = paste(class(x$value), collapse = ","),
+    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean,
+    detail = detail, warnings = x$warnings, elapsed_seconds = x$elapsed_seconds),
+    diagnostic_counts)
+}
+
+write_private_quality_diagnostics <- function(run_dir, checks, records) {
+  diagnostics <- private_quality_diagnostics(checks, records)
+  if (!length(diagnostics)) return(NULL)
+  private_dir <- file.path(run_dir, "private")
+  tryCatch({
+    if (!dir.exists(private_dir) && !suppressWarnings(dir.create(private_dir, recursive = TRUE))) {
+      stop("directory creation failed", call. = FALSE)
+    }
+    output <- file.path(private_dir, "quality-diagnostics.rds")
+    saveRDS(diagnostics, output)
+    output
+  }, error = function(error) {
+    warning("Could not save private quality diagnostics (", class(error)[[1L]], ").",
+      call. = FALSE)
+    NULL
+  })
 }
 
 coverage_percent_value <- function(item) {
