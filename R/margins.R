@@ -13,7 +13,9 @@
 #'   intervals use a t critical value with `survey::degf(design)` degrees of
 #'   freedom. Contrasts are relative to the first exposure level: differences
 #'   use the delta method; ratios use a log-scale delta interval. This method
-#'   treats the empirical exposure distribution and weights as fixed.
+#'   treats the empirical exposure distribution and weights as fixed. A ratio
+#'   interval is undefined if either margin is zero or negative; its estimate,
+#'   standard error, and limits are returned as `NA` in that case.
 #' @return A tibble with margins and reference contrasts.
 #' @export
 #' @examples
@@ -52,8 +54,11 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   base <- est[1, 1]; base_se <- est[1, 2]
   dif <- est[, 1] - base
   dse <- sqrt(est[, 2]^2 + base_se^2)
-  ratio <- est[, 1] / base
-  rse <- sqrt((est[, 2] / est[, 1])^2 + (base_se / base)^2)
+  ratio <- rep(NA_real_, length(base))
+  rse <- rep(NA_real_, length(base))
+  positive <- est[, 1] > 0 & base > 0
+  ratio[positive] <- est[positive, 1] / base
+  rse[positive] <- sqrt((est[positive, 2] / est[positive, 1])^2 + (base_se / base)^2)
   contrasts <- dplyr::bind_rows(
     tibble::tibble(level = values, margin = dif, se = dse, conf.low = dif - crit*dse, conf.high = dif + crit*dse, contrast = "difference"),
     tibble::tibble(level = values, margin = ratio, se = ratio*rse, conf.low = exp(log(ratio)-crit*rse), conf.high = exp(log(ratio)+crit*rse), contrast = "ratio"))
@@ -84,12 +89,14 @@ nis_rate <- function(design, event, by = NULL) {
   ev <- rlang::as_name(rlang::ensym(event)); grp <- if (missing(by) || rlang::quo_is_null(rlang::enquo(by))) NULL else rlang::as_name(rlang::ensym(by))
   data <- design$variables
   if (!ev %in% names(data) || (!is.null(grp) && !grp %in% names(data))) cli::cli_abort("Requested columns must be present in the design.")
-  groups <- if (is.null(grp)) list(`Overall` = rep(TRUE, nrow(data))) else split(seq_len(nrow(data)), data[[grp]], drop = TRUE)
-  rows <- lapply(names(groups), function(g) {
-    idx <- if (is.null(grp)) groups[[g]] else seq_len(nrow(data)) %in% groups[[g]]
-    dom <- subset(design, idx & !is.na(data[[ev]]))
+  group_values <- if (is.null(grp)) list(Overall = NULL) else split(data[[grp]], droplevels(factor(data[[grp]])), drop = TRUE)
+  rows <- lapply(seq_along(group_values), function(i) {
+    g <- names(group_values)[i]
+    idx <- if (is.null(grp)) rep(TRUE, nrow(data)) else !is.na(data[[grp]]) & data[[grp]] == group_values[[i]][1]
+    dom <- design[idx & !is.na(data[[ev]]), ]
     rate <- survey::svyciprop(stats::as.formula(paste0("~I(", ev, " != 0)")), dom, method = "beta")
-    evw <- sum(stats::weights(dom) * (dom$variables[[ev]] != 0)); nw <- sum(stats::weights(dom))
+    evw <- as.numeric(stats::coef(survey::svytotal(stats::as.formula(paste0("~I(", ev, " != 0)")), dom)))
+    nw <- as.numeric(stats::coef(survey::svytotal(stats::as.formula(paste0("~I(!is.na(", ev, "))")), dom)))
     p <- as.numeric(stats::coef(rate)); ci <- as.numeric(stats::confint(rate))
     tibble::tibble(!!!(if (is.null(grp)) list() else stats::setNames(list(g), grp)), weighted_events = evw, weighted_n = nw, proportion = p,
       se = as.numeric(survey::SE(rate)), conf.low = ci[1], conf.high = ci[2], n = nrow(dom$variables),
