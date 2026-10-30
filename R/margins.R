@@ -45,20 +45,27 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
     mu <- fam$linkinv(eta)
     grad <- mm * (fam$mu.eta(eta))
     g <- colSums(grad * w) / sum(w)
-    c(margin = sum(w * mu) / sum(w), se = sqrt(drop(t(g) %*% v %*% g)))
+    c(margin = sum(w * mu) / sum(w), g)
   }
-  est <- t(vapply(values, predict_one, numeric(2)))
+  est <- t(vapply(values, predict_one, numeric(length(b) + 1L)))
+  gradients <- est[, -1, drop = FALSE]
+  est <- est[, 1]
+  margin_se <- sqrt(rowSums((gradients %*% v) * gradients))
   df <- survey::degf(design); crit <- stats::qt((1 + level) / 2, df)
-  margin <- tibble::tibble(level = values, margin = est[, 1], se = est[, 2],
-    conf.low = est[, 1] - crit * est[, 2], conf.high = est[, 1] + crit * est[, 2], contrast = "margin")
-  base <- est[1, 1]; base_se <- est[1, 2]
-  dif <- est[, 1] - base
-  dse <- sqrt(est[, 2]^2 + base_se^2)
+  margin <- tibble::tibble(level = values, margin = est, se = margin_se,
+    conf.low = est - crit * margin_se, conf.high = est + crit * margin_se, contrast = "margin")
+  base <- est[1]
+  base_g <- gradients[1, ]
+  dif <- est - base
+  dgrad <- gradients - matrix(base_g, nrow(gradients), length(base_g), byrow = TRUE)
+  dse <- sqrt(rowSums((dgrad %*% v) * dgrad))
   ratio <- rep(NA_real_, length(base))
   rse <- rep(NA_real_, length(base))
   positive <- est[, 1] > 0 & base > 0
   ratio[positive] <- est[positive, 1] / base
-  rse[positive] <- sqrt((est[positive, 2] / est[positive, 1])^2 + (base_se / base)^2)
+  rgrad <- gradients[positive, , drop = FALSE] / est[positive]
+  rgrad <- rgrad - matrix(base_g / base, nrow(rgrad), length(base_g), byrow = TRUE)
+  rse[positive] <- sqrt(rowSums((rgrad %*% v) * rgrad))
   contrasts <- dplyr::bind_rows(
     tibble::tibble(level = values, margin = dif, se = dse, conf.low = dif - crit*dse, conf.high = dif + crit*dse, contrast = "difference"),
     tibble::tibble(level = values, margin = ratio, se = ratio*rse, conf.low = exp(log(ratio)-crit*rse), conf.high = exp(log(ratio)+crit*rse), contrast = "ratio"))
