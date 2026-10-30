@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_comorbidity()` can count distinct component conditions with documented exclusions; `nis_comorbidity_map()` exposes the output-to-condition mapping.
+
 - Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.

@@ -74,8 +74,9 @@
 #'   listed since FY2022, which suits NIS years pooled across code-set updates.
 #'   Use `"elixhauser_ahrq2022"` through `"elixhauser_ahrq2026"` to pin one
 #'   AHRQ release.
-#' @param prefix Prefix for the added columns. Existing columns are never
-#'   replaced.
+#' @param prefix Prefix for the added columns. Existing columns are never replaced.
+#' @param count Add `<prefix>condition_count`, counting distinct represented conditions.
+#' @param count_exclude Condition names omitted from that count; see [nis_comorbidity_map()].
 #'
 #' @return `.data` with one logical column per condition (`<prefix>hf`, ...),
 #'   `<prefix>n` (conditions flagged), `<prefix>any`, and the integer
@@ -92,17 +93,75 @@
 #' comorbid <- nis_comorbidity(discharges)
 #' comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
 nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
-                            prefix = "cmrb_") {
+                            prefix = "cmrb_", count = FALSE,
+                            count_exclude = character()) {
   rlang::check_installed("medicalcoder", version = "0.10.0",
                          reason = "to compute AHRQ Elixhauser comorbidities.")
   nis_comorbidity_options(method, prefix)
   if (inherits(.data, "tbl_svy")) {
-    .data$variables <- nis_comorbidity(.data$variables, method, prefix)
+    .data$variables <- nis_comorbidity(.data$variables, method, prefix, count, count_exclude)
     return(.data)
   }
   columns <- nis_comorbidity_validate_data(.data)
-  nis_comorbidity_score(.data, method, prefix, columns$slots,
-                        columns$slot_number)
+  result <- nis_comorbidity_score(.data, method, prefix, columns$slots, columns$slot_number)
+  if (count) nis_comorbidity_add_count(result, prefix, method, count_exclude) else result
+}
+
+#' Map AHRQ output columns to component conditions
+#'
+#' Based on the output definitions in medicalcoder 0.10.0's `get_elixhauser_codes()`
+#' and its `comorbidities()` output names/documentation. The map describes output
+#' columns only; ICD coding remains delegated to medicalcoder.
+#' @param method Elixhauser method name.
+#' @return A tibble with `column` and `condition` columns.
+#' @family comorbidity
+#' @export
+#' @examples
+#' nis_comorbidity_map() |> dplyr::filter(column == "HTN_CXRENLFL_SEV")
+nis_comorbidity_map <- function(method = "elixhauser_ahrq_icd10") {
+  nis_comorbidity_method(method)
+  dplyr::as_tibble(nis_comorbidity_condition_map()[, c("column", "condition")])
+}
+
+nis_comorbidity_condition_map <- function() {
+  definitions <- c(AIDS="AIDS", ALCOHOL="ALCOHOL", ALCOHOLLIVER_MLD="ALCOHOL|LIVER_MLD",
+    ANEMDEF="ANEMDEF", AUTOIMMUNE="AUTOIMMUNE", BLDLOSS="BLDLOSS",
+    CANCER_LEUK="CANCER_LEUK", CANCER_LYMPH="CANCER_LYMPH", CANCER_METS="CANCER_METS",
+    CANCER_NSITU="CANCER_NSITU", CANCER_SOLID="CANCER_SOLID", CBVD_POA="CBVD",
+    CBVD_SQLA="CBVD|PARALYSIS", CBVD_SQLAPARALYSIS="CBVD|PARALYSIS", COAG="COAG",
+    DEMENTIA="DEMENTIA", DEPRESS="DEPRESS", DIAB_CX="DIAB_CX", DIAB_UNCX="DIAB_UNCX",
+    DRUG_ABUSE="DRUG_ABUSE", DRUG_ABUSEPSYCHOSES="DRUG_ABUSE|PSYCHOSES", HF="HF",
+    HFHTN_CX="HF|HTN_CX", HFHTN_CXRENLFL_SEV="HF|HTN_CX|RENLFL_SEV",
+    HTN_CX="HTN_CX", HTN_CXRENLFL_SEV="HTN_CX|RENLFL_SEV", HTN_UNCX="HTN_UNCX",
+    LIVER_MLD="LIVER_MLD", LIVER_MLD_NEURO="LIVER_MLD|NEURO_OTH",
+    LIVER_MLD_PULMCIRC="LIVER_MLD|PULMCIRC", LIVER_SEV="LIVER_SEV",
+    LUNG_CHRONIC="LUNG_CHRONIC", NEURO_MOVT="NEURO_MOVT", NEURO_OTH="NEURO_OTH",
+    NEURO_OTH_SEIZ="NEURO_OTH|NEURO_SEIZ", NEURO_SEIZ="NEURO_SEIZ", OBESE="OBESE",
+    PARALYSIS="PARALYSIS", PERIVASC="PERIVASC", PSYCHOSES="PSYCHOSES", PULMCIRC="PULMCIRC",
+    RENLFL_MOD="RENLFL_MOD", RENLFL_SEV="RENLFL_SEV", THYROID_HYPO="THYROID_HYPO",
+    THYROID_OTH="THYROID_OTH", ULCER_PEPTIC="ULCER_PEPTIC", VALVE="VALVE",
+    VALVE_AUTOIMMUNE="VALVE|AUTOIMMUNE", WGHTLOSS="WGHTLOSS", CBVD="CBVD")
+  do.call(rbind, lapply(names(definitions), function(column) data.frame(
+    column=column, condition=strsplit(definitions[[column]], "|", fixed=TRUE)[[1L]])))
+}
+
+nis_comorbidity_add_count <- function(.data, prefix, method, count_exclude) {
+  if (!is.character(count_exclude) || anyNA(count_exclude)) cli::cli_abort("`count_exclude` must contain condition names.")
+  map <- nis_comorbidity_map(method)
+  unknown <- setdiff(count_exclude, unique(map$condition))
+  if (length(unknown)) cli::cli_abort("Unknown condition{?s}: {.val {unknown}}.")
+  cols <- names(.data)[startsWith(names(.data), prefix)]
+  flags <- toupper(sub(prefix, "", cols, fixed=TRUE))
+  condition_indexes <- which(flags %in% map$column)
+  mapped_flags <- flags[condition_indexes]
+  cols <- cols[condition_indexes]
+  conditions <- setdiff(unique(map$condition), count_exclude)
+  present <- lapply(conditions, function(condition) {
+    indexes <- which(vapply(mapped_flags, function(flag) condition %in% map$condition[map$column == flag], logical(1)))
+    Reduce(`|`, lapply(indexes, function(i) !is.na(.data[[cols[[i]]]]) & .data[[cols[[i]]]]))
+  })
+  .data[[paste0(prefix, "condition_count")]] <- if (length(present)) as.integer(Reduce(`+`, lapply(present, as.integer))) else 0L
+  .data
 }
 
 nis_comorbidity_options <- function(method, prefix) {
@@ -150,6 +209,9 @@ nis_comorbidity_score <- function(.data, method, prefix, slots, slot_number) {
     long, icd.codes = "code", id.vars = ".row", method = method,
     icdv = 10L, dx = 1L, poa.var = "poa", primarydx.var = "primary"
   )
+  condition_columns <- setdiff(names(result), c(".row", "num_cmrb", "cmrb_flag", "mortality_index", "readmission_index"))
+  missing_map <- setdiff(condition_columns, nis_comorbidity_condition_map()$column)
+  if (length(missing_map)) cli::cli_abort("medicalcoder returned unmapped condition column{?s}: {.val {missing_map}}.")
   added <- nis_comorbidity_columns(result, n, long$.row, prefix)
   clash <- intersect(names(added), names(.data))
   if (length(clash) > 0L) {
