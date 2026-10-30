@@ -146,11 +146,11 @@ test_that("exclusions and full-code patterns agree on frames and DuckDB", {
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
   query <- open_duckdb_dataset(path)
-  flags <- function(.data) .data |>
+  add_rule_flags <- function(.data) .data |>
     nis_flag_dx(remission = "F10", exclude = c("F1011", "F1021")) |>
     nis_flag_dx(initial = "S06", pattern = "^S06.*A$")
-  expected <- flags(data)
-  actual <- flags(query) |> dplyr::collect()
+  expected <- add_rule_flags(data)
+  actual <- add_rule_flags(query) |> dplyr::collect()
   expect_identical(actual, expected)
   expect_identical(actual$remission, c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE))
   expect_identical(actual$initial, c(FALSE, FALSE, TRUE, FALSE, TRUE, FALSE))

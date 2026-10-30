@@ -361,7 +361,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system, exclude, pattern
     ))
   }
 
-  flags <- if (is.data.frame(.data)) {
+  flag_exprs <- if (is.data.frame(.data)) {
     lapply(prefixes, frame_match, slot_names = slot_names, exclude = exclude, pattern = pattern)
   } else {
     lapply(prefixes, function(prefix) {
@@ -373,11 +373,11 @@ nis_flag_codes <- function(.data, slots, ..., position, system, exclude, pattern
 
   eligibility <- code_system_filter(.data, data_names, slots, system)
   if (!is.null(eligibility)) {
-    flags <- lapply(flags, function(flag) {
+    flag_exprs <- lapply(flag_exprs, function(flag) {
       nis_and_expr(eligibility, flag) # nolint: object_usage_linter
     })
   }
-  dplyr::mutate(.data, !!!flags)
+  dplyr::mutate(.data, !!!flag_exprs)
 }
 
 normalize_prefixes <- function(value, arg = NULL) {
