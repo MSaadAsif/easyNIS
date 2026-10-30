@@ -40,10 +40,21 @@ nis_design_fields <- function(.data, keep_quo, call) {
   list(
     design_fields = design_fields,
     data_names = data_names,
-    keep_names = keep_names,
     selected = selected,
     collected_fields = unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
   )
+}
+
+nis_design_keep_fields <- function(.data, keep_quo, dollars, charges, call) {
+  if (!is.null(dollars)) {
+    required_costs <- unique(c(charges, "CCR_NIS"))
+    missing_costs <- setdiff(required_costs, nis_names(.data))
+    if (length(missing_costs)) {
+      cli::cli_abort("`dollars` requires missing column{?s} {.val {missing_costs}}.", call = call)
+    }
+    keep_quo <- rlang::quo(c(!!keep_quo, tidyselect::all_of(!!required_costs)))
+  }
+  nis_design_fields(.data, keep_quo, call)
 }
 
 nis_design_groups <- function(prepared, design_fields, call) {
@@ -295,19 +306,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
                        charges = "TOTCHG") {
   call <- rlang::current_call()
   nis_design_validate(.data, charges, annualize, call)
-  keep_quo <- rlang::enquo(keep)
-  if (!is.null(dollars)) {
-    required_costs <- unique(c(charges, "CCR_NIS"))
-    missing_costs <- setdiff(required_costs, nis_names(.data))
-    if (length(missing_costs)) {
-      cli::cli_abort("`dollars` requires missing column{?s} {.val {missing_costs}}.", call = call)
-    }
-    keep_quo <- rlang::quo(c(!!keep_quo, tidyselect::all_of(!!required_costs)))
-  }
-  fields <- nis_design_fields(.data, keep_quo, call)
+  fields <- nis_design_keep_fields(.data, rlang::enquo(keep), dollars,
+    charges, call)
   design_fields <- fields$design_fields
   data_names <- fields$data_names
-  keep_names <- fields$keep_names
   selected <- fields$selected
   collected_fields <- fields$collected_fields
 
