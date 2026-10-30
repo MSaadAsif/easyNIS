@@ -31,7 +31,9 @@ prediction gradient with respect to the fitted coefficients. Confidence
 intervals use a t critical value with \code{survey::degf(design)} degrees of
 freedom. Contrasts are relative to the first exposure level: differences
 use the delta method; ratios use a log-scale delta interval. This method
-treats the empirical exposure distribution and weights as fixed.
+treats the empirical exposure distribution and weights as fixed. A ratio
+interval is undefined if either margin is zero or negative; its estimate,
+standard error, and limits are returned as \code{NA} in that case.
 }
 \examples{
 d <- survey::svydesign(ids = ~1, weights = ~w,
