@@ -84,6 +84,17 @@ fit <- survey::svyglm(
 summary(fit)
 ```
 
+Use `nis_margins()` to report counterfactual adjusted probabilities by exposure
+level and contrasts against the first observed level. `nis_rate()` reports the
+weighted event total, denominator, proportion, uncertainty, and unweighted
+count. Pass its output through `nis_suppress()` before reporting cells where
+disclosure rules apply.
+
+```{r margins-rate, eval=rlang::is_installed("survey")}
+nis_margins(fit, heart_failure)
+nis_rate(design, DIED, by = heart_failure)
+```
+
 Coefficients describe model associations under the survey design; they do not
 establish causality. The synthetic data are too small and artificial for
 substantive conclusions.
