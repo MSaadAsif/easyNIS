@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- Add design-based predictive margins and weighted event-rate summaries.
+
 - Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.
