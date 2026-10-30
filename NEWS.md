@@ -204,3 +204,7 @@
   `NA` and a warning rather than zeros.
 - HCUP CCSR file layouts are UNVERIFIED; no CCSR content is bundled.
   Malformed single-quoted CSV rows and non-ICD-10 codes are rejected.
+# easyNIS (development version)
+
+* Add `nis_disclosure_check()` to scan publication files for restricted identifiers and small counts.
+
