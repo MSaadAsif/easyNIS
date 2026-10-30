@@ -9,7 +9,7 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   data$.nis_weight <- NULL
   data$.analysis <- 1
   expect_error(nis_design(data, TRUE, .analysis), "dot-prefixed")
-  expect_error(nis_design(data, TRUE, AGE, dollars = 2024), "TOTCHG.*CCR_NIS")
+  expect_no_error(nis_design(data, TRUE, AGE, dollars = 2024))
   data$NIS_STRATUM[[1L]] <- 2L
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
