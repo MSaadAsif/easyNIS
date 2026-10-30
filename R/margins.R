@@ -89,18 +89,19 @@ nis_rate <- function(design, event, by = NULL) {
   ev <- rlang::as_name(rlang::ensym(event)); grp <- if (missing(by) || rlang::quo_is_null(rlang::enquo(by))) NULL else rlang::as_name(rlang::ensym(by))
   data <- design$variables
   if (!ev %in% names(data) || (!is.null(grp) && !grp %in% names(data))) cli::cli_abort("Requested columns must be present in the design.")
-  group_values <- if (is.null(grp)) list(Overall = NULL) else split(data[[grp]], droplevels(factor(data[[grp]])), drop = TRUE)
-  rows <- lapply(seq_along(group_values), function(i) {
-    g <- names(group_values)[i]
-    idx <- if (is.null(grp)) rep(TRUE, nrow(data)) else !is.na(data[[grp]]) & data[[grp]] == group_values[[i]][1]
-    dom <- design[idx & !is.na(data[[ev]]), ]
-    rate <- survey::svyciprop(stats::as.formula(paste0("~I(", ev, " != 0)")), dom, method = "beta")
-    evw <- as.numeric(stats::coef(survey::svytotal(stats::as.formula(paste0("~I(", ev, " != 0)")), dom)))
-    nw <- as.numeric(stats::coef(survey::svytotal(stats::as.formula(paste0("~I(!is.na(", ev, "))")), dom)))
-    p <- as.numeric(stats::coef(rate)); ci <- as.numeric(stats::confint(rate))
-    tibble::tibble(!!!(if (is.null(grp)) list() else stats::setNames(list(g), grp)), weighted_events = evw, weighted_n = nw, proportion = p,
-      se = as.numeric(survey::SE(rate)), conf.low = ci[1], conf.high = ci[2], n = nrow(dom$variables),
-      label = sprintf("%s/%s (%.2f%%)", format(round(evw), big.mark=","), format(round(nw), big.mark=","), 100*p))
-  })
-  dplyr::bind_rows(rows)
+  design$variables$.nis_event <- as.numeric(data[[ev]])
+  design$variables$.nis_one <- 1
+  valid <- !is.na(design$variables$.nis_event)
+  design <- design[valid, ]
+  data <- design$variables
+  groups <- if (is.null(grp)) NULL else stats::as.formula(paste("~", grp))
+  total <- function(formula) if (is.null(groups)) survey::svytotal(formula, design) else survey::svyby(formula, groups, design, survey::svytotal, keep.names = FALSE)
+  mean <- function(formula) if (is.null(groups)) survey::svymean(formula, design) else survey::svyby(formula, groups, design, survey::svymean, vartype = c("se", "ci"), keep.names = FALSE)
+  events <- total(~I(.nis_event != 0)); denom <- total(~.nis_one); prop <- mean(~I(.nis_event != 0))
+  evw <- as.numeric(stats::coef(events)); nw <- as.numeric(stats::coef(denom)); p <- as.numeric(stats::coef(prop))
+  se <- as.numeric(survey::SE(prop))
+  ci <- if (is.null(groups)) as.matrix(stats::confint(survey::svyciprop(~I(.nis_event != 0), design, method = "beta"))) else as.matrix(prop)[, grep("ci", names(as.data.frame(prop)), value = TRUE), drop = FALSE]
+  n <- if (is.null(groups)) nrow(data) else as.integer(table(factor(data[[grp]], levels = unique(as.character(data[[grp]])))))
+  out <- if (is.null(groups)) tibble::tibble(weighted_events = evw, weighted_n = nw, proportion = p, se = se, conf.low = ci[1], conf.high = ci[2], n = n) else tibble::tibble(!!grp := as.character(as.data.frame(prop)[[1]]), weighted_events = evw, weighted_n = nw, proportion = p, se = se, conf.low = as.numeric(ci[, 1]), conf.high = as.numeric(ci[, 2]), n = n)
+  dplyr::mutate(out, label = sprintf("%s/%s (%.2f%%)", format(round(weighted_events), big.mark = ","), format(round(weighted_n), big.mark = ","), 100 * proportion))
 }
