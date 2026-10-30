@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- `nis_design()` accepts character vectors and tidyselect helpers in `keep`,
+  and automatically retains requested charge inputs when `dollars` is set.
+- `nis_comorbidity()` explains how to retain diagnosis columns with `keep`.
+
 - Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.

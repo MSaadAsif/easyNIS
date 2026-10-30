@@ -22,6 +22,15 @@ nis_design_fields <- function(.data, keep_quo, call) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
   }
   select_data <- stats::setNames(as.list(seq_along(data_names)), data_names)
+  keep_expr <- rlang::quo_get_expr(keep_quo)
+  keep_value <- if (rlang::is_symbol(keep_expr)) {
+    tryCatch(rlang::eval_tidy(keep_quo), error = function(error) NULL)
+  } else {
+    NULL
+  }
+  if (is.character(keep_value) && !inherits(keep_value, "quosure")) {
+    keep_quo <- rlang::quo(tidyselect::all_of(!!keep_value))
+  }
   keep_names <- names(tidyselect::eval_select(keep_quo,
     data = select_data))
   if (any(startsWith(keep_names, "."))) {
@@ -31,10 +40,21 @@ nis_design_fields <- function(.data, keep_quo, call) {
   list(
     design_fields = design_fields,
     data_names = data_names,
-    keep_names = keep_names,
     selected = selected,
     collected_fields = unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
   )
+}
+
+nis_design_keep_fields <- function(.data, keep_quo, dollars, charges, call) {
+  if (!is.null(dollars)) {
+    required_costs <- unique(c(charges, "CCR_NIS"))
+    missing_costs <- setdiff(required_costs, nis_names(.data))
+    if (length(missing_costs)) {
+      cli::cli_abort("`dollars` requires missing column{?s} {.val {missing_costs}}.", call = call)
+    }
+    keep_quo <- rlang::quo(c(!!keep_quo, tidyselect::all_of(!!required_costs)))
+  }
+  nis_design_fields(.data, keep_quo, call)
 }
 
 nis_design_groups <- function(prepared, design_fields, call) {
@@ -286,10 +306,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
                        charges = "TOTCHG") {
   call <- rlang::current_call()
   nis_design_validate(.data, charges, annualize, call)
-  fields <- nis_design_fields(.data, rlang::enquo(keep), call)
+  fields <- nis_design_keep_fields(.data, rlang::enquo(keep), dollars,
+    charges, call)
   design_fields <- fields$design_fields
   data_names <- fields$data_names
-  keep_names <- fields$keep_names
   selected <- fields$selected
   collected_fields <- fields$collected_fields
 
@@ -344,7 +364,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   year_count <- length(unique(hospital_rows$YEAR))
   combined$.nis_weight <- combined$DISCWT / if (annualize) year_count else 1
 
-  has_cost_inputs <- all(c(charges, "CCR_NIS") %in% keep_names)
+  has_cost_inputs <- all(c(charges, "CCR_NIS") %in% selected)
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
