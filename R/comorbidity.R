@@ -120,7 +120,7 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
 #' nis_comorbidity_map() |> dplyr::filter(column == "HTN_CXRENLFL_SEV")
 nis_comorbidity_map <- function(method = "elixhauser_ahrq_icd10") {
   nis_comorbidity_method(method)
-  tibble::as_tibble(nis_comorbidity_condition_map()[, c("column", "condition")])
+  dplyr::as_tibble(nis_comorbidity_condition_map()[, c("column", "condition")])
 }
 
 nis_comorbidity_condition_map <- function() {
