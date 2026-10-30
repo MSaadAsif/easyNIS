@@ -9,7 +9,7 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   data$.nis_weight <- NULL
   data$.analysis <- 1
   expect_error(nis_design(data, TRUE, .analysis), "dot-prefixed")
-  expect_error(nis_design(data, TRUE, AGE, dollars = 2024), "Keep both")
+  expect_error(nis_design(data, TRUE, AGE, dollars = 2024), "TOTCHG.*CCR_NIS")
   data$NIS_STRATUM[[1L]] <- 2L
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
@@ -18,10 +18,12 @@ test_that("keep accepts character vectors and tidyselect helpers", {
   data <- dplyr::tibble(YEAR = 2020, HOSP_NIS = 1, NIS_STRATUM = 1,
     DISCWT = 1, eligible = TRUE, AGE = 50, FEMALE = 1)
   cols <- c("AGE", "FEMALE")
-  for (selection in list(cols, tidyselect::all_of(cols), tidyselect::any_of(cols))) {
-    design <- nis_design(data, eligible, keep = selection)
-    expect_true(all(cols %in% names(design$variables)))
-  }
+  character_selection <- nis_design(data, eligible, keep = cols)
+  all_selection <- nis_design(data, eligible, keep = tidyselect::all_of(cols))
+  any_selection <- nis_design(data, eligible, keep = tidyselect::any_of(cols))
+  expect_true(all(cols %in% names(character_selection$variables)))
+  expect_true(all(cols %in% names(all_selection$variables)))
+  expect_true(all(cols %in% names(any_selection$variables)))
   inline <- nis_design(data, eligible, keep = c(AGE, FEMALE))
   expect_true(all(cols %in% names(inline$variables)))
 })

@@ -22,7 +22,12 @@ nis_design_fields <- function(.data, keep_quo, call) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
   }
   select_data <- stats::setNames(as.list(seq_along(data_names)), data_names)
-  keep_value <- tryCatch(rlang::eval_tidy(keep_quo), error = function(error) NULL)
+  keep_expr <- rlang::quo_get_expr(keep_quo)
+  keep_value <- if (rlang::is_symbol(keep_expr)) {
+    tryCatch(rlang::eval_tidy(keep_quo), error = function(error) NULL)
+  } else {
+    NULL
+  }
   if (is.character(keep_value) && !inherits(keep_value, "quosure")) {
     keep_quo <- rlang::quo(tidyselect::all_of(!!keep_value))
   }
