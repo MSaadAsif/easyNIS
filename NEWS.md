@@ -204,3 +204,4 @@
   `NA` and a warning rather than zeros.
 - HCUP CCSR file layouts are UNVERIFIED; no CCSR content is bundled.
   Malformed single-quoted CSV rows and non-ICD-10 codes are rejected.
+`nis_flag_dx()` and `nis_flag_pr()` now accept slot-level `exclude` prefixes and full-code `pattern` regular expressions.
