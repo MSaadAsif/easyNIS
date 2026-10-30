@@ -21,13 +21,7 @@ test_that("disclosure check scans CSV headers and DOCX text", {
   dir <- tempfile(); dir.create(dir)
   write.csv(data.frame(HOSP_NIS = 1, n_count = 2),
     file.path(dir, "table.csv"), row.names = FALSE)
-  skip_if_not_installed("zip")
-  doc <- tempfile(fileext = ".docx")
-  source <- tempfile(); dir.create(file.path(source, "word"), recursive = TRUE)
-  writeLines("<w:document><w:t>KEY_NIS</w:t></w:document>",
-    file.path(source, "word", "document.xml"))
-  withr::with_dir(source, zip::zipr(doc, files = "word/document.xml"))
-  file.copy(doc, file.path(dir, "report.docx"))
+  file.copy(test_path("fixtures", "disclosure.docx"), file.path(dir, "report.docx"))
   out <- nis_disclosure_check(dir, error = FALSE)
   expect_true(any(out$file == file.path(dir, "table.csv") & out$value == "HOSP_NIS"))
   expect_true(any(out$file == file.path(dir, "report.docx") & out$value == "KEY_NIS"))

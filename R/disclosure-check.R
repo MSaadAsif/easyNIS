@@ -60,9 +60,13 @@ nis_disclosure_check <- function(path,
       scan_text(file, paste(readLines(file, warn = FALSE, encoding = "UTF-8"), collapse = "\n"))
     } else if (ext == "docx") {
       dest <- tempfile(); dir.create(dest)
-      utils::unzip(file, files = "word/document.xml", exdir = dest)
-      xml <- file.path(dest, "word", "document.xml")
-      if (file.exists(xml)) scan_text(file, paste(readLines(xml, warn = FALSE), collapse = "\n"))
+      members <- utils::unzip(file, list = TRUE)$Name
+      member <- members[grepl("(^|/)word/document\\.xml$", members)][1L]
+      if (!is.na(member)) {
+        utils::unzip(file, files = member, exdir = dest)
+        xml <- do.call(file.path, as.list(c(dest, strsplit(member, "/", fixed = TRUE)[[1L]])))
+        if (file.exists(xml)) scan_text(file, paste(readLines(xml, warn = FALSE), collapse = "\n"))
+      }
     }
   }
   out <- if (length(rows)) dplyr::bind_rows(rows) else tibble::tibble(
