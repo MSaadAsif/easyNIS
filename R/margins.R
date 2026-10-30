@@ -61,8 +61,8 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   dse <- sqrt(rowSums((dgrad %*% v) * dgrad))
   ratio <- rep(NA_real_, length(base))
   rse <- rep(NA_real_, length(base))
-  positive <- est[, 1] > 0 & base > 0
-  ratio[positive] <- est[positive, 1] / base
+  positive <- est > 0 & base > 0
+  ratio[positive] <- est[positive] / base
   rgrad <- gradients[positive, , drop = FALSE] / est[positive]
   rgrad <- rgrad - matrix(base_g / base, nrow(rgrad), length(base_g), byrow = TRUE)
   rse[positive] <- sqrt(rowSums((rgrad %*% v) * rgrad))
