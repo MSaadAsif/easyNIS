@@ -4,7 +4,13 @@
 \alias{nis_comorbidity}
 \title{Add AHRQ Elixhauser comorbidity columns (experimental)}
 \usage{
-nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
+nis_comorbidity(
+  .data,
+  method = "elixhauser_ahrq_icd10",
+  prefix = "cmrb_",
+  count = FALSE,
+  count_exclude = character()
+)
 }
 \arguments{
 \item{.data}{A collected data frame with \code{I10_DX1}, \code{I10_DX2}, ... columns,
@@ -17,8 +23,11 @@ listed since FY2022, which suits NIS years pooled across code-set updates.
 Use \code{"elixhauser_ahrq2022"} through \code{"elixhauser_ahrq2026"} to pin one
 AHRQ release.}
 
-\item{prefix}{Prefix for the added columns. Existing columns are never
-replaced.}
+\item{prefix}{Prefix for the added columns. Existing columns are never replaced.}
+
+\item{count}{Add \verb{<prefix>condition_count}, counting distinct represented conditions.}
+
+\item{count_exclude}{Condition names omitted from that count; see \code{\link[=nis_comorbidity_map]{nis_comorbidity_map()}}.}
 }
 \value{
 \code{.data} with one logical column per condition (\verb{<prefix>hf}, ...),
@@ -113,5 +122,8 @@ comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
 }
 \seealso{
 \href{articles/comorbidity.html}{Comorbidity indicators}.
+
+Other comorbidity:
+\code{\link[=nis_comorbidity_map]{nis_comorbidity_map()}}
 }
 \concept{comorbidity}
