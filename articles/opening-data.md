@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpJXYNvi/duckdb
+#> ℹ /tmp/RtmpkXVvDZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +19,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpJXYNvi/duckdb
+#> ℹ /tmp/RtmpkXVvDZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -28,7 +28,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpJXYNvi/duckdb
+#> ℹ /tmp/RtmpkXVvDZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -74,7 +74,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpJXYNvi/duckdb
+#> ℹ /tmp/RtmpkXVvDZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -99,16 +99,17 @@ lower-case names remain unchanged.
 ## Filter and project before collecting
 
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-uses DuckDB’s native Parquet reader and returns a lazy dbplyr table.
-`duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter and
-select before collecting when later analysis needs an in-memory data
-frame.
+uses DuckDB’s native Parquet reader by default and returns a lazy dbplyr
+table. `duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter
+and select before collecting when later analysis needs an in-memory data
+frame. The default reader is unchanged; `reader = "arrow"` opts in to
+the optional `arrow` package for reading Parquet files individually.
 
 ``` r
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpJXYNvi/duckdb
+#> ℹ /tmp/RtmpkXVvDZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -123,6 +124,12 @@ duck |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 
 This count is the same synthetic year summary, evaluated through DuckDB.
+
+Arrow preserves source bytes in string columns, including malformed
+UTF-8 bytes. It does not repair or automatically detect every invalid
+string, and malformed values may still fail in downstream string
+operations. Validate or repair text before analysis when those
+operations are needed.
 
 When converting HCUP ASCII files to Parquet, declare the source encoding
 so string values are written as valid UTF-8. For example, convert
