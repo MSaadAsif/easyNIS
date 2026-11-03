@@ -35,17 +35,19 @@ nis_numeric_value_expr <- function(column) {
   rlang::expr(as.double(!!value))
 }
 
-nis_validate_hive_years <- function(con, sources) {
-  for (source in sources) {
+nis_validate_hive_years <- function(con, sources, scans = NULL) {
+  for (index in seq_along(sources)) {
+    source <- sources[[index]]
     normalized <- normalizePath(source, winslash = "/", mustWork = TRUE)
     components <- strsplit(normalized, "/", fixed = TRUE)[[1L]]
     partitions <- grep("^YEAR=[0-9]{4}$", components, value = TRUE)
     if (length(partitions) == 0L) next
     partition <- partitions[[length(partitions)]]
     partition_year <- as.integer(sub("^YEAR=", "", partition))
-    quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
-    physical_scan <- paste0("read_parquet(", quoted_path,
-      ", hive_partitioning = false)")
+    physical_scan <- if (is.null(scans)) {
+      quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
+      paste0("read_parquet(", quoted_path, ", hive_partitioning = false)")
+    } else scans[[index]]
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", physical_scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (length(year_rows) == 0L) next
@@ -97,13 +99,14 @@ nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
     if (hive_partitioning) "true" else "false", ")")
 }
 
-nis_duckdb_query_from_parquet <- function(con, sources) {
+nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
   normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
   is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
   scans <- vapply(seq_along(sources), function(index) {
     source <- sources[[index]]
-    scan <- nis_duckdb_parquet_sql(con, source,
-      hive_partitioning = FALSE)
+    scan <- if (!is.null(scans)) scans[[index]] else {
+      nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
+    }
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (!is_hive[[index]] && length(year_rows) == 0L) {
@@ -137,13 +140,15 @@ nis_duckdb_query_from_parquet <- function(con, sources) {
   dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
 }
 
-nis_validate_year_values <- function(con, sources) {
+nis_validate_year_values <- function(con, sources, scans = NULL) {
   invalid <- character()
-  for (source in sources) {
+  for (index in seq_along(sources)) {
+    source <- sources[[index]]
     normalized <- normalizePath(source, winslash = "/", mustWork = TRUE)
-    quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
-    scan <- paste0("read_parquet(", quoted_path,
-      ", hive_partitioning = false)")
+    scan <- if (is.null(scans)) {
+      quoted_path <- as.character(DBI::dbQuoteString(con, normalized))
+      paste0("read_parquet(", quoted_path, ", hive_partitioning = false)")
+    } else scans[[index]]
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (length(year_rows) == 0L) next

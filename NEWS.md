@@ -1,5 +1,10 @@
 # easyNIS (development version)
 
+- `nis_open()` has an opt-in `reader = "arrow"` mode using the optional
+  `arrow` package; the default DuckDB reader is unchanged. Arrow preserves
+  source bytes in strings rather than repairing malformed UTF-8. Such values
+  may still fail in downstream string operations, and the reader does not
+  automatically detect every invalid byte sequence.
 - Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.

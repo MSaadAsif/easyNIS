@@ -54,9 +54,11 @@ names remain unchanged.
 
 ## Filter and project before collecting
 
-`nis_open()` uses DuckDB's native Parquet reader and returns a lazy dbplyr
-table. `duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter and
-select before collecting when later analysis needs an in-memory data frame.
+`nis_open()` uses DuckDB's native Parquet reader by default and returns a lazy
+dbplyr table. `duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter
+and select before collecting when later analysis needs an in-memory data
+frame. The default reader is unchanged; `reader = "arrow"` opts in to the
+optional `arrow` package for reading Parquet files individually.
 
 ```{r duckdb}
 duck <- nis_open(path, years = 2020)
@@ -64,6 +66,11 @@ duck |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 
 This count is the same synthetic year summary, evaluated through DuckDB.
+
+Arrow preserves source bytes in string columns, including malformed UTF-8
+bytes. It does not repair or automatically detect every invalid string, and
+malformed values may still fail in downstream string operations. Validate or
+repair text before analysis when those operations are needed.
 
 When converting HCUP ASCII files to Parquet, declare the source encoding so
 string values are written as valid UTF-8. For example, convert Latin-1 text to
