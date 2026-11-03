@@ -46,6 +46,8 @@ test_that("suppression uses unweighted boundary and missing counts", {
     value = c(seq_len(10L), NA, NA, seq_len(11L), NA),
     binary = c(rep(1L, 10L), 0L, 0L, rep(1L, 11L), 0L),
     PSU = seq_len(24L),
+    YEAR = 2020L,
+    HOSP_NIS = rep(seq_len(3L), length.out = 24L),
     weight = 100
   )
   design <- survey::svydesign(ids = ~PSU, weights = ~weight, data = data)
@@ -57,9 +59,7 @@ test_that("suppression uses unweighted boundary and missing counts", {
     value = list(binary ~ 1L),
     missing = "ifany"
   )
-  expect_message(
-    suppressed <- nis_suppress(table), "two-hospital rule"
-  )
+  suppressed <- nis_suppress(table)
   labels <- suppressed$table_body$row_type == "label"
   expect_identical(enc2utf8(suppressed$table_body$stat_1[labels]),
     rep("\u226410", 2L))
@@ -212,6 +212,44 @@ test_that("nis_cell_counts uses year-scoped hospital identities", {
   expect_identical(masked$hospitals, c("3", "\u226410"))
 })
 
+test_that("survey cell hospital mapping uses raw levels, groups, and cohort records", {
+  data <- data.frame(
+    YEAR = c(2020, 2020, 2021, 2020, 2020),
+    HOSP_NIS = c(1, 2, 1, 3, 4),
+    group = factor(c("A", "A", "B", "B", "B")),
+    category = factor(c("raw", "raw", "raw", "other", "raw")),
+    value = c(1, NA, 3, 4, 5), .in_cohort = c(TRUE, TRUE, TRUE, TRUE, FALSE)
+  )
+  data$weight <- 1
+  x <- gtsummary::tbl_svysummary(
+    survey::svydesign(ids = ~1, weights = ~weight, data = data), by = group,
+    include = c(category, value), label = list(category ~ "Pretty label")
+  )
+  level_spec <- list(variable = "category", context = "categorical",
+    stat_name = "n_unweighted", level_value = "raw")
+  cards <- easyNIS:::survey_suppress_cards(x)
+  card_levels <- easyNIS:::survey_variable_levels(cards)
+  matches <- which(cards$variable == "category" &
+    cards$context == "categorical" & cards$stat_name == "n_unweighted" &
+    card_levels == "raw")
+  a <- easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1", level_spec)
+  overall <- easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_0", level_spec)
+  expect_equal(nrow(a), 2L)
+  expect_equal(nrow(overall), 3L) # ID 1 in two years is two hospitals.
+  missing_spec <- list(variable = "value", context = "missing", stat_name = "N_miss_unweighted")
+  expect_equal(nrow(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1", missing_spec)), 1L)
+  continuous_spec <- list(variable = "value", context = "missing", stat_name = "N_nonmiss_unweighted")
+  expect_equal(nrow(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_2", continuous_spec)), 2L)
+  expect_error(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1",
+    list(variable = "category", context = "categorical", stat_name = "n_unweighted")), "raw card level")
+  bad <- x
+  bad$inputs$data$variables$HOSP_NIS[[1L]] <- NA_real_
+  expect_error(easyNIS:::survey_cell_hospitals(bad, cards, matches, "stat_1", level_spec), "finite positive")
+  empty <- x
+  empty$inputs$data$variables$.in_cohort[] <- FALSE
+  expect_equal(nrow(easyNIS:::survey_cell_hospitals(empty, cards, matches, "stat_1", level_spec)), 0L)
+})
+
 test_that("nis_cell_counts excludes zero-domain placeholder rows", {
   data <- dplyr::tibble(
     YEAR = c(2017, 2017, 2017),
@@ -335,6 +373,8 @@ test_that("nis_suppress masks overall cells with add_p and keeps no-by support",
   data$group <- factor(data$group, levels = c("A", "B"))
   data$category <- factor(data$category, levels = c("common", "tiny"))
   data$PSU <- seq_len(nrow(data))
+  data$YEAR <- 2020L
+  data$HOSP_NIS <- data$PSU
   data$STRATUM <- factor((data$PSU - 1L) %% 3L + 1L)
   data$weight <- 1
   design <- survey::svydesign(
@@ -380,6 +420,8 @@ test_that("continuous2 statistics use their column nonmissing counts", {
     group = factor(c(rep("small", 4L), rep("large", 12L)),
       levels = c("small", "large")),
     PSU = 1:16,
+    YEAR = 2020L,
+    HOSP_NIS = 1:16,
     STRATUM = rep(1:2, each = 8L),
     weight = 1
   )
@@ -401,7 +443,8 @@ test_that("continuous2 statistics use their column nonmissing counts", {
 })
 
 test_that("continuous2 suppression errors when displayed counts cannot be verified", {
-  data <- data.frame(age = 31:38, PSU = 1:8, weight = 1)
+  data <- data.frame(age = 31:38, PSU = 1:8, YEAR = 2020L,
+    HOSP_NIS = rep(1:2, each = 4L), weight = 1)
   design <- survey::svydesign(ids = ~PSU, weights = ~weight, data = data)
   table <- gtsummary::tbl_svysummary(
     design, include = age, type = list(age ~ "continuous2"),
@@ -435,6 +478,8 @@ test_that("continuous2 suppression errors when displayed counts cannot be verifi
 })
 
 suppress_fixture <- function(data) {
+  if (!"YEAR" %in% names(data)) data$YEAR <- 2020L
+  if (!"HOSP_NIS" %in% names(data)) data$HOSP_NIS <- seq_len(nrow(data))
   data$PSU <- seq_len(nrow(data))
   data$STRATUM <- factor((data$PSU - 1L) %% 3L + 1L)
   data$weight <- 1
@@ -638,7 +683,7 @@ test_that("data-frame complementary suppression leaves safe strata unchanged", {
   expect_identical(result$estimate, c("20.5", "30.5"))
 })
 
-test_that("survey suppression preserves unmatched and unclassified rows", {
+test_that("survey suppression fails closed for unverifiable displayed rows", {
   data <- data.frame(category = factor(rep(c("small", "large"), c(4L, 12L))))
   table <- gtsummary::tbl_svysummary(
     suppress_fixture(data), include = category, missing = "no"
@@ -646,14 +691,61 @@ test_that("survey suppression preserves unmatched and unclassified rows", {
   original <- table$table_body
   cards_without_levels <- table
   cards_without_levels$cards$tbl_svysummary$variable_level <- NULL
-  without_levels <- nis_suppress(cards_without_levels)
-  expect_identical(without_levels$table_body$stat_0, original$stat_0)
+  expect_error(nis_suppress(cards_without_levels), "Cannot verify")
+  renamed <- table
+  row <- which(renamed$table_body$row_type == "level")[[1L]]
+  renamed$table_body$label[[row]] <- "renamed level"
+  expect_error(nis_suppress(renamed), "Cannot verify the raw level")
+
+  missing_card <- table
+  cards <- missing_card$cards$tbl_svysummary
+  card_levels <- vapply(cards$variable_level, function(level) {
+    identical(as.character(unlist(level)), "small")
+  }, logical(1))
+  target <- cards$variable == "category" &
+    cards$context == "categorical" &
+    card_levels &
+    cards$stat_name == "n_unweighted" &
+    cards$gts_column == "stat_0"
+  target_rows <- which(!is.na(target) & target)
+  expect_length(target_rows, 1L)
+  expect_identical(cards$variable[[target_rows]], "category")
+  expect_identical(cards$context[[target_rows]], "categorical")
+  expect_identical(as.character(cards$variable_level[[target_rows]]), "small")
+  expect_identical(cards$stat_name[[target_rows]], "n_unweighted")
+  expect_identical(cards$gts_column[[target_rows]], "stat_0")
+  missing_card$cards$tbl_svysummary <-
+    cards[-target_rows, ]
+  expect_error(nis_suppress(missing_card), "Cannot verify")
 
   unclassified <- table
   row <- which(unclassified$table_body$row_type == "level")[[1L]]
   unclassified$table_body$row_type[[row]] <- "unclassified"
-  unchanged <- nis_suppress(unclassified)
-  expect_identical(unchanged$table_body$stat_0[[row]], original$stat_0[[row]])
+  expect_error(nis_suppress(unclassified), "Cannot verify")
+})
+
+test_that("survey suppression rejects displayed statistics without row specs", {
+  data <- data.frame(category = factor(c(rep("4", 4L), rep("other", 12L))))
+  table <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), include = category, missing = "no"
+  )
+  row <- which(table$table_body$row_type == "level")[[1L]]
+  table$table_body$row_type[[row]] <- NA_character_
+  expect_error(nis_suppress(table, threshold = 10), "Cannot verify.*displayed row")
+  expect_identical(table$table_body$stat_0[[row]], "4 (25%)")
+
+  for (field in c("variable", "var_type")) {
+    damaged <- gtsummary::tbl_svysummary(
+      suppress_fixture(data), include = category, missing = "no"
+    )
+    damaged$table_body[[field]][[row]] <- NA_character_
+    expect_error(nis_suppress(damaged), "Cannot verify.*displayed row")
+  }
+  unsupported <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), include = category, missing = "no"
+  )
+  unsupported$table_body$row_type[[row]] <- "other"
+  expect_error(nis_suppress(unsupported), "Cannot verify.*displayed row")
 })
 
 test_that("survey suppression masks an overall cell when its own count is small", {
@@ -668,6 +760,40 @@ test_that("survey suppression masks an overall cell when its own count is small"
   suppressed <- nis_suppress(table)
   small <- dplyr::filter(suppressed$table_body, label == "small")
   expect_identical(enc2utf8(small$stat_0), "\u226410")
+})
+
+test_that("survey suppression counts hospitals by year and group encounter order", {
+  # For `rare`, A contributes 12 discharges from one hospital; B contributes
+  # 12 from exactly two hospitals. Overall there are 24 discharges from three.
+  # `tiny` has 8 discharges at A's one hospital, triggering both rules.
+  data <- data.frame(
+    group = factor(c(rep("B", 20L), rep("A", 20L)), levels = c("A", "B")),
+    category = factor(c(
+      rep(c("rare", "common"), c(12L, 8L)),
+      rep(c("rare", "tiny"), c(12L, 8L))
+    ), levels = c("rare", "tiny", "common")),
+    YEAR = 2020L,
+    HOSP_NIS = c(rep(c(201L, 202L), each = 10L), rep(101L, 20L))
+  )
+  data$PSU <- seq_len(nrow(data))
+  data$STRATUM <- factor((data$PSU - 1L) %% 3L + 1L)
+  data$weight <- 1
+  design <- survey::svydesign(
+    ids = ~PSU, strata = ~STRATUM, weights = ~weight, data = data, nest = TRUE
+  )
+  table <- gtsummary::tbl_svysummary(
+    design, by = group, include = category, missing = "no"
+  ) |>
+    gtsummary::add_overall()
+  expect_identical(names(table$table_body)[grepl("^stat_", names(table$table_body))],
+    c("stat_0", "stat_1", "stat_2"))
+  suppressed <- nis_suppress(table)
+  rare <- suppress_row(suppressed, "category", "rare")
+  tiny <- suppress_row(suppressed, "category", "tiny")
+  expect_identical(enc2utf8(rare$stat_1), "<2 hospitals")
+  expect_false(grepl("Masked|<2 hospitals|≤10", rare$stat_2))
+  expect_identical(rare$stat_0, "Masked")
+  expect_identical(enc2utf8(tiny$stat_1), "≤10")
 })
 
 test_that("nis_suppress validation errors retain the public call", {

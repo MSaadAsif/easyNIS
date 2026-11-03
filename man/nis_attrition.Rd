@@ -23,7 +23,8 @@ criterion. When \code{by_year = TRUE}, \code{YEAR} is the first column.
 }
 \description{
 Applies logical criteria cumulatively and reports remaining and dropped
-discharge counts at each step. Criteria are evaluated in order; \code{NA} values
+discharge counts at each step. The initial row has no preceding step, so its
+dropped counts are \code{NA}. Criteria are evaluated in order; \code{NA} values
 are treated as excluded, matching \code{\link[dplyr:filter]{dplyr::filter()}}. The summary is
 aggregated lazily for DuckDB queries and returned as a collected tibble.
 Missing weights contribute zero to weighted totals.

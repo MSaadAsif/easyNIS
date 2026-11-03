@@ -202,10 +202,12 @@ survey_suppress_cards <- function(x) {
 }
 
 survey_row_spec <- function(body, row, cards, card_variable_level) {
+  if (!all(c("variable", "row_type", "var_type") %in% names(body))) return(NULL)
   variable <- body$variable[[row]]
   row_type <- body$row_type[[row]]
   var_type <- body$var_type[[row]]
-  if (is.na(variable) || is.na(row_type)) return(NULL)
+  if (is.na(variable) || !nzchar(trimws(variable)) || is.na(row_type) ||
+      is.na(var_type) || !nzchar(trimws(var_type))) return(NULL)
   if (identical(row_type, "level")) {
     return(survey_level_row_spec(
       body, row, variable, var_type, cards, card_variable_level
@@ -230,11 +232,28 @@ survey_level_row_spec <- function(
     ))
   }
   context <- if (identical(var_type, "dichotomous")) "dichotomous" else "categorical"
+  level_value <- survey_card_level_value(cards, variable, context,
+    card_variable_level, body$label[[row]])
+  if (is.null(level_value)) {
+    cli::cli_abort(paste0(
+      "Cannot verify the raw level for displayed `", variable,
+      "` statistic labeled `", body$label[[row]],
+      "`. Restore the original gtsummary level label."
+    ))
+  }
   list(
     variable = variable, context = context, stat_name = "n_unweighted",
     level_index = survey_level_index(card_variable_level, body$label[[row]]),
+    level_value = level_value,
     continuous2 = FALSE
   )
+}
+
+survey_card_level_value <- function(cards, variable, context, levels, label) {
+  idx <- which(cards$variable == variable & cards$context == context &
+    cards$stat_name == "n_unweighted" & levels == as.character(label))
+  values <- unique(levels[idx])
+  if (length(values) == 1L) values[[1L]] else NULL
 }
 
 survey_missing_row_spec <- function(variable, cards) {
@@ -316,21 +335,36 @@ survey_card_count <- function(cards, matches, spec, variable, column, error_call
   if (spec$continuous2) {
     return(survey_continuous2_count(cards, matches, variable, column, error_call))
   }
-  if (length(matches) == 0L) return(NULL)
+  if (length(matches) != 1L) return(NA_real_)
   counts <- vapply(matches, function(i) {
     as.numeric(unlist(cards$stat[[i]]))[1L]
   }, numeric(1))
-  if (length(counts) == 1L) counts else sum(counts, na.rm = TRUE)
+  counts
 }
 
-survey_cell_suppression <- function(body, cards, row, column, spec, threshold, error_call) {
+survey_cell_suppression <- function(x, body, cards, row, column, spec, threshold, error_call) {
   cell <- body[[column]][[row]]
   if (spec$continuous2 && survey_continuous2_blank(cell)) {
     return(list(body = body, group_masked = FALSE, overall_masked = FALSE))
   }
   matches <- survey_card_matches(cards, spec, column)
   count <- survey_card_count(cards, matches, spec, spec$variable, column, error_call)
-  if (is.null(count) || !is.finite(count) || count > threshold) {
+  if (length(count) != 1L || is.na(count) || !is.finite(count)) {
+    cli::cli_abort(paste0(
+      "Cannot verify the unweighted count for `", spec$variable,
+      "` in `", column, "`."
+    ), call = error_call)
+  }
+  hospitals <- survey_cell_hospitals( # nolint: object_usage_linter. Package helper.
+    x = x, cards = cards, matches = matches,
+    column = column, spec = spec, error_call = error_call
+  )
+  if (nrow(hospitals) < 2L && count > threshold) {
+    body[[column]][[row]] <- "<2 hospitals"
+    if (identical(column, "stat_0")) return(list(body = body, group_masked = FALSE, overall_masked = TRUE))
+    return(list(body = body, group_masked = TRUE, overall_masked = FALSE))
+  }
+  if (count > threshold) {
     return(list(body = body, group_masked = FALSE, overall_masked = FALSE))
   }
   body[[column]][[row]] <- paste0("\u2264", threshold)
@@ -342,12 +376,12 @@ survey_cell_suppression <- function(body, cards, row, column, spec, threshold, e
 }
 
 suppress_survey_row <- function(
-    body, cards, row, spec, stat_columns, threshold, error_call) {
+    x, body, cards, row, spec, stat_columns, threshold, error_call) {
   group_masked <- FALSE
   overall_primary_masked <- FALSE
   for (column in stat_columns) {
     result <- survey_cell_suppression(
-      body, cards, row, column, spec, threshold, error_call
+      x, body, cards, row, column, spec, threshold, error_call
     )
     body <- result$body
     group_masked <- group_masked || result$group_masked
@@ -365,10 +399,24 @@ suppress_survey_table <- function(x, threshold, error_call) {
   card_variable_level <- survey_variable_levels(cards)
   stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
   for (row in seq_len(nrow(body))) {
+    displayed_stat <- any(vapply(stat_columns, function(column) {
+      value <- body[[column]][[row]]
+      length(value) > 0L && !all(is.na(value)) &&
+        !(is.character(value) && all(!nzchar(trimws(value))))
+    }, logical(1)))
+    row_type <- if ("row_type" %in% names(body)) body$row_type[[row]] else NA_character_
     spec <- survey_row_spec(body, row, cards, card_variable_level)
+    if (displayed_stat && is.null(spec)) {
+      variable <- if ("variable" %in% names(body)) body$variable[[row]] else NA_character_
+      row_description <- if (length(row_type) == 1L && !is.na(row_type)) row_type else "missing or unsupported"
+      cli::cli_abort(paste0(
+        "Cannot verify the statistic mapping for displayed row `",
+        row_description, "` in `", variable, "`."
+      ), call = error_call)
+    }
     if (is.null(spec)) next
     body <- suppress_survey_row(
-      body, cards, row, spec, stat_columns, threshold, error_call
+      x, body, cards, row, spec, stat_columns, threshold, error_call
     )
   }
   x <- gtsummary::modify_table_body(x, function(table_body) body)
@@ -376,11 +424,16 @@ suppress_survey_table <- function(x, threshold, error_call) {
     x,
     footnote = paste0(
       "Statistics based on unweighted n \u2264", threshold,
-      " are marked \u2264", threshold, ".",
+      " are marked \u2264", threshold,
+      "; cells contributed by fewer than two distinct year-scoped hospitals ",
+      "are marked '<2 hospitals', regardless of count. The discharge-count ",
+      "mask takes precedence when both rules apply.",
       if ("stat_0" %in% stat_columns) {
         paste0(
           " Overall cells in rows with a masked by-group cell are marked ",
-          "'Masked' unless their own count is at or below the threshold."
+          "'Masked' unless their own count is at or below the threshold; ",
+          "overall cells with a primary mask show their applicable primary ",
+          "mask."
         )
       },
       " Other derivable cells are not masked; review tables for other ",
@@ -404,9 +457,13 @@ suppress_survey_table <- function(x, threshold, error_call) {
 #' errors; blank statistic cells do not require a count. When a by-group cell
 #' is masked, the overall cell (`stat_0`) in the same row is marked `Masked`,
 #' unless its own count is at or below the threshold. Other derivable cells
-#' still need analyst review before sharing. This route checks discharge counts
-#' only; it cannot apply the two-hospital rule. Use `nis_cell_counts()` with the
-#' data-frame route to apply both disclosure rules.
+#' still need analyst review before sharing. For survey summaries, hospital
+#' support is counted from retained records using year-scoped `YEAR` and
+#' `HOSP_NIS` identities, within the cohort, non-missing/category, and by-group
+#' cells represented by the table. The rule is applied only when the survey
+#' records and summary cards provide an unambiguous mapping; otherwise the
+#' function errors. Data-frame behavior uses the supplied `count_col` and
+#' optional `hospital_col` as described below.
 #'
 #' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
 #'   or `add_overall()`, or a data frame/tibble.
@@ -461,9 +518,6 @@ nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL
   validate_survey_suppress_args(
     count_col, weighted_cols, by, hospital_col, secondary, missing(count_col),
     error_call
-  )
-  cli::cli_inform(
-    "`nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does not apply the two-hospital rule."
   )
   suppress_survey_table(x, threshold, error_call)
 }
