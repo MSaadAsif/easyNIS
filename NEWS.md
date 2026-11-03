@@ -66,6 +66,11 @@
 - `nis_suppress()` accepts `hospital_col` to mask cells based on fewer than two
   contributing hospitals; `nis_cell_counts()` computes unweighted discharge
   and year-scoped hospital counts from record-level data or an `nis_design()`.
+- Survey-table suppression also applies the two-hospital rule from retained
+  `YEAR`/`HOSP_NIS` records, mapped to each cohort, non-missing/category, and
+  by-group cell; it errors when that mapping is unavailable or ambiguous.
+- `nis_attrition()` reports `NA` dropped counts for the initial row, which has
+  no preceding step.
 - `nis_suppress()` now suppresses zero discharge counts at or below the
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.

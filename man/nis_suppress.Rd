@@ -59,9 +59,13 @@ absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (\code{stat_0}) in the same row is marked \code{Masked},
 unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing. This route checks discharge counts
-only; it cannot apply the two-hospital rule. Use \code{nis_cell_counts()} with the
-data-frame route to apply both disclosure rules.
+still need analyst review before sharing. For survey summaries, hospital
+support is counted from retained records using year-scoped \code{YEAR} and
+\code{HOSP_NIS} identities, within the cohort, non-missing/category, and by-group
+cells represented by the table. The rule is applied only when the survey
+records and summary cards provide an unambiguous mapping; otherwise the
+function errors. Data-frame behavior uses the supplied \code{count_col} and
+optional \code{hospital_col} as described below.
 }
 \examples{
 \dontshow{if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) withAutoprint(\{ # examplesIf}
