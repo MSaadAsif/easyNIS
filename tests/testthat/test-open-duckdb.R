@@ -52,6 +52,60 @@ test_that("easyNIS explains invalid UTF-8 during collection", {
   )
 })
 
+test_that("Arrow reader preserves invalid UTF-8 bytes and integer years", {
+  skip_if_not_installed("arrow")
+  path <- tempfile("nis-arrow-invalid-utf8-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  marker <- "SYNTHMARK"
+  file <- file.path(path, "NIS_2020.parquet")
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2020L, id = 7L, value = marker), file)
+  bytes <- readBin(file, "raw", n = file.info(file)$size)
+  needle <- charToRaw(marker)
+  starts <- which(vapply(seq_len(length(bytes) - length(needle) + 1L),
+    function(i) identical(bytes[i:(i + length(needle) - 1L)], needle), logical(1)))
+  expect_gt(length(starts), 0L)
+  bytes[starts[[1L]]] <- as.raw(0xFF)
+  writeBin(bytes, file)
+
+  result <- dplyr::collect(nis_open(path, years = 2020L, reader = "arrow") |>
+    dplyr::select(YEAR, id, value))
+  expect_type(result$YEAR, "integer")
+  expect_identical(result$YEAR, 2020L)
+  expect_identical(result$id, 7L)
+  expect_identical(charToRaw(result$value[[1L]]),
+    c(as.raw(0xFF), as.raw(0x59), as.raw(0x4E), as.raw(0x54), as.raw(0x48),
+      as.raw(0x4D), as.raw(0x41), as.raw(0x52), as.raw(0x4B)))
+})
+
+test_that("Arrow reader unions mixed annual and Hive schemas", {
+  skip_if_not_installed("arrow")
+  path <- tempfile("nis-arrow-hive-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2019L, id = 1L, annual = "a"),
+    file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(dplyr::tibble(YEAR = c(NA_integer_, 2020L), id = 2:3,
+    hive = c("b", "c")), file.path(path, "YEAR=2020", "part.parquet"))
+  result <- dplyr::collect(nis_open(path, reader = "arrow") |>
+    dplyr::select(YEAR, id, annual, hive))
+  expect_type(result$YEAR, "integer")
+  expect_setequal(result$YEAR, c(2019L, 2020L, 2020L))
+  expect_setequal(result$id, 1:3)
+  expect_identical(result$annual[!is.na(result$annual)], "a")
+  expect_setequal(result$hive[!is.na(result$hive)], c("b", "c"))
+})
+
+test_that("Arrow reader rejects physical years that conflict with Hive partitions", {
+  skip_if_not_installed("arrow")
+  path <- tempfile("nis-arrow-year-conflict-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(YEAR = 2019L, id = 1L),
+    file.path(path, "YEAR=2020", "part.parquet"))
+  expect_error(nis_open(path, reader = "arrow"), "physical `YEAR`.*Hive")
+})
+
 test_that("nis_open safely quotes paths containing spaces and apostrophes", {
   path <- file.path(tempdir(), "nis quoted 'path'")
   dir.create(path, showWarnings = FALSE)

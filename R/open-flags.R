@@ -25,6 +25,9 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'   matching year. Years before 2016 are experimental: they hold ICD-9-CM
 #'   codes in `DX*`/`PR*` slots, and 2015 holds both systems (see
 #'   [nis_flag_dx()]).
+#' @param reader Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is
+#'   an optional dependency. Its reader preserves source bytes in strings,
+#'   including malformed UTF-8; downstream string operations may still fail.
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
 #'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
@@ -41,8 +44,11 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'   data to R. Years before 2016 emit an experimental ICD-9 layout notice once
 #'   per R session. The `engine` argument was removed entirely; omit it regardless
 #'   of the value used in older code.
-#'   String columns with malformed UTF-8 may fail during a native Parquet scan;
-#'   validate or repair those values before writing Parquet files.
+#'   The default DuckDB reader may fail when scanning malformed UTF-8 in string
+#'   columns. Set `reader = "arrow"` to opt in to scanning individual files
+#'   through the optional `arrow` package. Arrow preserves the bytes; it does
+#'   not detect or repair all invalid text, and downstream string operations
+#'   may still fail on malformed values.
 #'
 #' @return A lazy DuckDB-backed dbplyr table with case-normalized columns.
 #'   Experimental 2023
@@ -70,7 +76,11 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #' nis_open(path, years = 2020) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
-nis_open <- function(path, years = NULL) {
+nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow")) {
+  reader <- match.arg(reader)
+  if (reader == "arrow" && !requireNamespace("arrow", quietly = TRUE)) {
+    cli::cli_abort("The {.val arrow} reader requires the optional {.pkg arrow} package.")
+  }
   error_call <- rlang::current_call()
   selected <- nis_open_select(path, years, error_call)
   nis_open_notice(selected$years)
@@ -79,13 +89,28 @@ nis_open <- function(path, years = NULL) {
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE),
     add = TRUE)
-  nis_validate_hive_years(con, sources) # nolint: object_usage_linter
-  nis_validate_year_values(con, sources) # nolint: object_usage_linter
-  query <- nis_duckdb_query_from_parquet(con, sources) # nolint: object_usage_linter
+  arrow_refs <- NULL
+  scans <- NULL
+  if (reader == "arrow") {
+    arrow_refs <- lapply(seq_along(sources), function(i) {
+      dataset <- arrow::open_dataset(sources[[i]], partitioning = character())
+      name <- paste0("easyNIS_arrow_", i)
+      duckdb::duckdb_register_arrow(con, name, dataset)
+      dataset
+    })
+    scans <- vapply(seq_along(arrow_refs), function(i) {
+      as.character(DBI::dbQuoteIdentifier(con, paste0("easyNIS_arrow_", i)))
+    }, character(1))
+  }
+  nis_validate_hive_years(con, sources, scans) # nolint: object_usage_linter
+  nis_validate_year_values(con, sources, scans) # nolint: object_usage_linter
+  query <- nis_duckdb_query_from_parquet(con, sources, scans) # nolint: object_usage_linter
   query <- nis_open_normalize_names(query)
   query <- nis_open_warn_2023(query)
   on.exit(NULL, add = FALSE)
-  nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
+  result <- nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
+  if (!is.null(arrow_refs)) result$src$.easyNIS_arrow_refs <- arrow_refs
+  result
 }
 
 nis_open_select <- function(path, years, error_call) {
