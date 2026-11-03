@@ -79,7 +79,7 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow")) {
   reader <- match.arg(reader)
   if (reader == "arrow" && !requireNamespace("arrow", quietly = TRUE)) {
-    cli::cli_abort('The {.val arrow} reader requires the optional {.pkg arrow} package.')
+    cli::cli_abort("The {.val arrow} reader requires the optional {.pkg arrow} package.")
   }
   error_call <- rlang::current_call()
   selected <- nis_open_select(path, years, error_call)
