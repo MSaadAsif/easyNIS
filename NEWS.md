@@ -104,6 +104,8 @@
   another branch at the same commit are recognized while all existing success
   requirements remain in place.
 - Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
+- Split survey suppression row mapping and cell mask decisions into smaller
+  helpers without changing fail-closed behavior.
 
 # easyNIS 0.2.0
 
