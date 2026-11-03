@@ -73,17 +73,21 @@ For a
 [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
 object,
 [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-reads unweighted counts from the table’s cards, masks displayed
-statistics at or below the threshold, and marks the overall statistic in
-the same row. This route checks discharge counts only; it cannot check
-the two-hospital rule.
+reads unweighted counts from the table’s cards and counts distinct
+year-scoped `YEAR` and `HOSP_NIS` identities in the retained survey
+records. Hospital support is checked within the cohort and the displayed
+non-missing, category, and by-group cell. Cells at or below the
+discharge threshold or supported by fewer than two hospitals are marked;
+overall cells follow the same complementary masking behavior described
+above. If the records or cards cannot unambiguously map a displayed
+cell, the function errors.
 
 ``` r
 
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNPHWF4/duckdb
+#> ℹ /tmp/Rtmp2pdmf1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -91,7 +95,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNPHWF4/duckdb
+#> ℹ /tmp/Rtmp2pdmf1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -109,16 +113,12 @@ table_one <- gtsummary::tbl_svysummary(
   include = c(AGE, FEMALE)
 )
 nis_suppress(table_one, threshold = 10)
-#> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does
-#> not apply the two-hospital rule.
 ```
 
 [TABLE]
 
-The masked table is a starting point for review. Use the data-frame
-route with
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
-when both the discharge threshold and hospital count must be checked.
+The masked table is a starting point for review. Data-frame inputs
+continue to use the supplied count and optional hospital-count columns.
 
 ## Common pitfalls
 

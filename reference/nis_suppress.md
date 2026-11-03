@@ -12,10 +12,13 @@ non-finite for a displayed statistic, the function errors; blank
 statistic cells do not require a count. When a by-group cell is masked,
 the overall cell (`stat_0`) in the same row is marked `Masked`, unless
 its own count is at or below the threshold. Other derivable cells still
-need analyst review before sharing. This route checks discharge counts
-only; it cannot apply the two-hospital rule. Use
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
-with the data-frame route to apply both disclosure rules.
+need analyst review before sharing. For survey summaries, hospital
+support is counted from retained records using year-scoped `YEAR` and
+`HOSP_NIS` identities, within the cohort, non-missing/category, and
+by-group cells represented by the table. The rule is applied only when
+the survey records and summary cards provide an unambiguous mapping;
+otherwise the function errors. Data-frame behavior uses the supplied
+`count_col` and optional `hospital_col` as described below.
 
 ## Usage
 
@@ -101,7 +104,7 @@ Other disclosure:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQpR4Bp/duckdb
+#> ℹ /tmp/RtmpM1BlpZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -109,7 +112,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQpR4Bp/duckdb
+#> ℹ /tmp/RtmpM1BlpZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -117,7 +120,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQpR4Bp/duckdb
+#> ℹ /tmp/RtmpM1BlpZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -132,8 +135,6 @@ table <- gtsummary::tbl_svysummary(
   include = c(AGE, FEMALE)
 )
 nis_suppress(table, threshold = 10)
-#> `nis_suppress()` on a `tbl_svysummary` checks discharge counts only; it does
-#> not apply the two-hospital rule.
 
 
   

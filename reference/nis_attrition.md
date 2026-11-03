@@ -1,7 +1,8 @@
 # Summarize sequential cohort attrition
 
 Applies logical criteria cumulatively and reports remaining and dropped
-discharge counts at each step. Criteria are evaluated in order; `NA`
+discharge counts at each step. The initial row has no preceding step, so
+its dropped counts are `NA`. Criteria are evaluated in order; `NA`
 values are treated as excluded, matching
 [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html).
 The summary is aggregated lazily for DuckDB queries and returned as a
@@ -65,7 +66,7 @@ nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
 #> # A tibble: 3 × 7
 #>    step criterion      n_unweighted n_dropped_unweighted n_weighted
 #>   <int> <chr>                 <int>                <int>      <dbl>
-#> 1     0 All discharges            5                    0       25.1
+#> 1     0 All discharges            5                   NA       25.1
 #> 2     1 adult                     4                    1       20.1
 #> 3     2 elective                  3                    1       15.3
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>

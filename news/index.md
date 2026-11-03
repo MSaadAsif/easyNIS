@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+  now errors when a displayed survey statistic cannot be mapped to a
+  verifiable source count.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   has an opt-in `reader = "arrow"` mode using the optional `arrow`
   package; the default DuckDB reader is unchanged. Arrow preserves
@@ -130,6 +134,15 @@
   computes unweighted discharge and year-scoped hospital counts from
   record-level data or an
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+
+- Survey-table suppression also applies the two-hospital rule from
+  retained `YEAR`/`HOSP_NIS` records, mapped to each cohort,
+  non-missing/category, and by-group cell; it errors when that mapping
+  is unavailable or ambiguous.
+
+- [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
+  reports `NA` dropped counts for the initial row, which has no
+  preceding step.
 
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   now suppresses zero discharge counts at or below the threshold and
