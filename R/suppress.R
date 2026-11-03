@@ -232,6 +232,13 @@ survey_level_row_spec <- function(
   context <- if (identical(var_type, "dichotomous")) "dichotomous" else "categorical"
   level_value <- survey_card_level_value(cards, variable, context,
     card_variable_level, body$label[[row]])
+  if (is.null(level_value)) {
+    cli::cli_abort(paste0(
+      "Cannot verify the raw level for displayed `", variable,
+      "` statistic labeled `", body$label[[row]],
+      "`. Restore the original gtsummary level label."
+    ))
+  }
   list(
     variable = variable, context = context, stat_name = "n_unweighted",
     level_index = survey_level_index(card_variable_level, body$label[[row]]),
@@ -326,11 +333,11 @@ survey_card_count <- function(cards, matches, spec, variable, column, error_call
   if (spec$continuous2) {
     return(survey_continuous2_count(cards, matches, variable, column, error_call))
   }
-  if (length(matches) == 0L) return(NULL)
+  if (length(matches) != 1L) return(NA_real_)
   counts <- vapply(matches, function(i) {
     as.numeric(unlist(cards$stat[[i]]))[1L]
   }, numeric(1))
-  if (length(counts) == 1L) counts else sum(counts, na.rm = TRUE)
+  counts
 }
 
 survey_cell_suppression <- function(x, body, cards, row, column, spec, threshold, error_call) {
@@ -340,9 +347,13 @@ survey_cell_suppression <- function(x, body, cards, row, column, spec, threshold
   }
   matches <- survey_card_matches(cards, spec, column)
   count <- survey_card_count(cards, matches, spec, spec$variable, column, error_call)
-  if (is.null(count)) return(list(body = body, group_masked = FALSE, overall_masked = FALSE))
-  if (!is.finite(count)) cli::cli_abort("Cannot verify the unweighted count for `{}` in `{}`.", spec$variable, column, call = error_call)
-  hospitals <- survey_cell_hospitals(
+  if (length(count) != 1L || is.na(count) || !is.finite(count)) {
+    cli::cli_abort(paste0(
+      "Cannot verify the unweighted count for `", spec$variable,
+      "` in `", column, "`."
+    ), call = error_call)
+  }
+  hospitals <- easyNIS:::survey_cell_hospitals(
     x = x, cards = cards, matches = matches,
     column = column, spec = spec, error_call = error_call
   )
@@ -386,6 +397,18 @@ suppress_survey_table <- function(x, threshold, error_call) {
   card_variable_level <- survey_variable_levels(cards)
   stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
   for (row in seq_len(nrow(body))) {
+    row_type <- body$row_type[[row]]
+    if (!is.na(row_type) && !row_type %in% c("label", "level", "missing") &&
+        any(vapply(stat_columns, function(column) {
+          value <- body[[column]][[row]]
+          length(value) > 0L && !all(is.na(value)) &&
+            !(is.character(value) && all(!nzchar(trimws(value))))
+        }, logical(1)))) {
+      cli::cli_abort(paste0(
+        "Cannot verify the statistic mapping for displayed row `",
+        row_type, "` in `", body$variable[[row]], "`."
+      ), call = rlang::current_call())
+    }
     spec <- survey_row_spec(body, row, cards, card_variable_level)
     if (is.null(spec)) next
     body <- suppress_survey_row(
@@ -397,11 +420,16 @@ suppress_survey_table <- function(x, threshold, error_call) {
     x,
     footnote = paste0(
       "Statistics based on unweighted n \u2264", threshold,
-      " are marked \u2264", threshold, ".",
+      " are marked \u2264", threshold,
+      "; cells contributed by fewer than two distinct year-scoped hospitals ",
+      "are marked '<2 hospitals', regardless of count. The discharge-count ",
+      "mask takes precedence when both rules apply.",
       if ("stat_0" %in% stat_columns) {
         paste0(
           " Overall cells in rows with a masked by-group cell are marked ",
-          "'Masked' unless their own count is at or below the threshold."
+          "'Masked' unless their own count is at or below the threshold; ",
+          "overall cells with a primary mask show their applicable primary ",
+          "mask."
         )
       },
       " Other derivable cells are not masked; review tables for other ",

@@ -683,7 +683,7 @@ test_that("data-frame complementary suppression leaves safe strata unchanged", {
   expect_identical(result$estimate, c("20.5", "30.5"))
 })
 
-test_that("survey suppression preserves unmatched and unclassified rows", {
+test_that("survey suppression fails closed for unverifiable displayed rows", {
   data <- data.frame(category = factor(rep(c("small", "large"), c(4L, 12L))))
   table <- gtsummary::tbl_svysummary(
     suppress_fixture(data), include = category, missing = "no"
@@ -691,14 +691,37 @@ test_that("survey suppression preserves unmatched and unclassified rows", {
   original <- table$table_body
   cards_without_levels <- table
   cards_without_levels$cards$tbl_svysummary$variable_level <- NULL
-  without_levels <- nis_suppress(cards_without_levels)
-  expect_identical(without_levels$table_body$stat_0, original$stat_0)
+  expect_error(nis_suppress(cards_without_levels), "Cannot verify")
+  renamed <- table
+  row <- which(renamed$table_body$row_type == "level")[[1L]]
+  renamed$table_body$label[[row]] <- "renamed level"
+  expect_error(nis_suppress(renamed), "Cannot verify the raw level")
+
+  missing_card <- table
+  cards <- missing_card$cards$tbl_svysummary
+  card_levels <- vapply(cards$variable_level, function(level) {
+    identical(as.character(unlist(level)), "small")
+  }, logical(1))
+  target <- cards$variable == "category" &
+    cards$context == "categorical" &
+    card_levels &
+    cards$stat_name == "n_unweighted" &
+    cards$gts_column == "stat_0"
+  target_rows <- which(!is.na(target) & target)
+  expect_length(target_rows, 1L)
+  expect_identical(cards$variable[[target_rows]], "category")
+  expect_identical(cards$context[[target_rows]], "categorical")
+  expect_identical(as.character(cards$variable_level[[target_rows]]), "small")
+  expect_identical(cards$stat_name[[target_rows]], "n_unweighted")
+  expect_identical(cards$gts_column[[target_rows]], "stat_0")
+  missing_card$cards$tbl_svysummary <-
+    cards[-target_rows, ]
+  expect_error(nis_suppress(missing_card), "Cannot verify")
 
   unclassified <- table
   row <- which(unclassified$table_body$row_type == "level")[[1L]]
   unclassified$table_body$row_type[[row]] <- "unclassified"
-  unchanged <- nis_suppress(unclassified)
-  expect_identical(unchanged$table_body$stat_0[[row]], original$stat_0[[row]])
+  expect_error(nis_suppress(unclassified), "Cannot verify")
 })
 
 test_that("survey suppression masks an overall cell when its own count is small", {
