@@ -353,7 +353,7 @@ survey_cell_suppression <- function(x, body, cards, row, column, spec, threshold
       "` in `", column, "`."
     ), call = error_call)
   }
-  hospitals <- easyNIS:::survey_cell_hospitals(
+  hospitals <- survey_cell_hospitals( # nolint: object_usage_linter. Package helper.
     x = x, cards = cards, matches = matches,
     column = column, spec = spec, error_call = error_call
   )

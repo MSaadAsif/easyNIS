@@ -24,7 +24,7 @@ survey_hospital_cohort_records <- function(x, error_call) {
   if (!is.data.frame(data)) {
     cli::cli_abort("Survey design records are unavailable for hospital counting.", call = error_call)
   }
-  easyNIS:::.nis_cell_count_validate_cols(data, character())
+  .nis_cell_count_validate_cols(data, character()) # nolint: object_usage_linter. Package helper.
   if (".in_cohort" %in% names(data)) data <- dplyr::filter(data, .in_cohort)
   data
 }
@@ -90,6 +90,6 @@ survey_cell_hospitals <- function(x, cards, matches, column, spec, error_call = 
   keep <- survey_hospital_var_records(data, x, cards, matches, spec, error_call)
   keep <- survey_hospital_group_records(data, x, cards, column, keep, error_call)
   selected <- data[keep, , drop = FALSE]
-  if (nrow(selected)) easyNIS:::.nis_cell_count_validate_ids(selected)
+  if (nrow(selected)) .nis_cell_count_validate_ids(selected) # nolint: object_usage_linter. Package helper.
   selected[, c("YEAR", "HOSP_NIS"), drop = FALSE] |> unique()
 }
