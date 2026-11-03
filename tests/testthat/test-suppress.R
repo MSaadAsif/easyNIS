@@ -724,6 +724,30 @@ test_that("survey suppression fails closed for unverifiable displayed rows", {
   expect_error(nis_suppress(unclassified), "Cannot verify")
 })
 
+test_that("survey suppression rejects displayed statistics without row specs", {
+  data <- data.frame(category = factor(c(rep("4", 4L), rep("other", 12L))))
+  table <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), include = category, missing = "no"
+  )
+  row <- which(table$table_body$row_type == "level")[[1L]]
+  table$table_body$row_type[[row]] <- NA_character_
+  expect_error(nis_suppress(table, threshold = 10), "Cannot verify.*displayed row")
+  expect_identical(table$table_body$stat_0[[row]], "4 (25%)")
+
+  for (field in c("variable", "var_type")) {
+    damaged <- gtsummary::tbl_svysummary(
+      suppress_fixture(data), include = category, missing = "no"
+    )
+    damaged$table_body[[field]][[row]] <- NA_character_
+    expect_error(nis_suppress(damaged), "Cannot verify.*displayed row")
+  }
+  unsupported <- gtsummary::tbl_svysummary(
+    suppress_fixture(data), include = category, missing = "no"
+  )
+  unsupported$table_body$row_type[[row]] <- "other"
+  expect_error(nis_suppress(unsupported), "Cannot verify.*displayed row")
+})
+
 test_that("survey suppression masks an overall cell when its own count is small", {
   data <- data.frame(
     group = factor(rep(c("A", "B"), each = 4L)),

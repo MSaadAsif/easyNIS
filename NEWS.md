@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_suppress()` now errors when a displayed survey statistic cannot be
+  mapped to a verifiable source count.
 - `nis_open()` has an opt-in `reader = "arrow"` mode using the optional
   `arrow` package; the default DuckDB reader is unchanged. Arrow preserves
   source bytes in strings rather than repairing malformed UTF-8. Such values

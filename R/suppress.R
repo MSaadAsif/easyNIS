@@ -202,10 +202,12 @@ survey_suppress_cards <- function(x) {
 }
 
 survey_row_spec <- function(body, row, cards, card_variable_level) {
+  if (!all(c("variable", "row_type", "var_type") %in% names(body))) return(NULL)
   variable <- body$variable[[row]]
   row_type <- body$row_type[[row]]
   var_type <- body$var_type[[row]]
-  if (is.na(variable) || is.na(row_type)) return(NULL)
+  if (is.na(variable) || !nzchar(trimws(variable)) || is.na(row_type) ||
+      is.na(var_type) || !nzchar(trimws(var_type))) return(NULL)
   if (identical(row_type, "level")) {
     return(survey_level_row_spec(
       body, row, variable, var_type, cards, card_variable_level
@@ -397,19 +399,21 @@ suppress_survey_table <- function(x, threshold, error_call) {
   card_variable_level <- survey_variable_levels(cards)
   stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
   for (row in seq_len(nrow(body))) {
-    row_type <- body$row_type[[row]]
-    if (!is.na(row_type) && !row_type %in% c("label", "level", "missing") &&
-        any(vapply(stat_columns, function(column) {
-          value <- body[[column]][[row]]
-          length(value) > 0L && !all(is.na(value)) &&
-            !(is.character(value) && all(!nzchar(trimws(value))))
-        }, logical(1)))) {
+    displayed_stat <- any(vapply(stat_columns, function(column) {
+      value <- body[[column]][[row]]
+      length(value) > 0L && !all(is.na(value)) &&
+        !(is.character(value) && all(!nzchar(trimws(value))))
+    }, logical(1)))
+    row_type <- if ("row_type" %in% names(body)) body$row_type[[row]] else NA_character_
+    spec <- survey_row_spec(body, row, cards, card_variable_level)
+    if (displayed_stat && is.null(spec)) {
+      variable <- if ("variable" %in% names(body)) body$variable[[row]] else NA_character_
+      row_description <- if (length(row_type) == 1L && !is.na(row_type)) row_type else "missing or unsupported"
       cli::cli_abort(paste0(
         "Cannot verify the statistic mapping for displayed row `",
-        row_type, "` in `", body$variable[[row]], "`."
-      ), call = rlang::current_call())
+        row_description, "` in `", variable, "`."
+      ), call = error_call)
     }
-    spec <- survey_row_spec(body, row, cards, card_variable_level)
     if (is.null(spec)) next
     body <- suppress_survey_row(
       x, body, cards, row, spec, stat_columns, threshold, error_call
