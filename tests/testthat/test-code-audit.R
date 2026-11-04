@@ -128,6 +128,43 @@ test_that("code transition audit returns the empty grid for an empty cohort", {
   expect_identical(from_duckdb, result)
 })
 
+test_that("code transition audit validates weights only in the selected cohort", {
+  data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = c("A", "B"),
+    DISCWT = c(NA_real_, 2), KEEP = c(FALSE, TRUE))
+  expect_error(nis_audit_code_transition(data, c(a = "A")), "finite, non-missing")
+  expect_equal(nis_audit_code_transition(data, c(a = "A"), cohort = KEEP)$n_weighted, 0)
+  expect_equal(nis_audit_code_transition(dplyr::mutate(data, DISCWT = c(0, -2)),
+    c(a = "A"), cohort = !KEEP)$n_weighted, 0)
+  for (bad in c(NA_real_, NaN, Inf, -Inf)) {
+    expect_error(nis_audit_code_transition(dplyr::mutate(data, DISCWT = c(bad, 2)),
+      c(a = "A")), "finite, non-missing")
+  }
+  for (bad in list(c("bad", "2"), c(TRUE, FALSE), factor(c("1", "2")))) {
+    expect_error(nis_audit_code_transition(dplyr::mutate(data, DISCWT = bad),
+      c(a = "A")), "numeric column")
+  }
+  expect_equal(nis_audit_code_transition(data, c(a = "A"), cohort = KEEP)$n_weighted, 0)
+  expect_equal(nis_audit_code_transition(data, c(a = "B"), cohort = KEEP)$n_weighted, 2)
+  expect_equal(nrow(nis_audit_code_transition(data, c(a = "A"), cohort = FALSE)), 0L)
+
+  path <- tempfile("nis-audit-weights-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+  expect_equal(nis_audit_code_transition(query, c(a = "A"), cohort = KEEP)$n_weighted, 0)
+  expect_error(nis_audit_code_transition(query, c(a = "A")), "finite, non-missing")
+
+  grouped <- dplyr::group_by(data, YEAR)
+  expect_error(nis_audit_code_transition(grouped, c(a = "A")), "finite, non-missing")
+  expect_equal(nis_audit_code_transition(grouped, c(a = "B"), cohort = KEEP)$n_weighted, 2)
+  expect_equal(nis_audit_code_transition(grouped, c(a = "A"), cohort = FALSE),
+    nis_audit_code_transition(data, c(a = "A"), cohort = FALSE))
+  grouped_query <- dplyr::group_by(query, YEAR)
+  expect_error(nis_audit_code_transition(grouped_query, c(a = "A")), "finite, non-missing")
+  expect_equal(nis_audit_code_transition(grouped_query, c(a = "B"), cohort = KEEP)$n_weighted, 2)
+})
+
 test_that("missing periods have no year-over-year percentage change", {
   data <- dplyr::tibble(
     YEAR = c(2019L, 2020L, NA_integer_),

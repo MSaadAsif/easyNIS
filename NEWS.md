@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_audit_code_transition()` validates selected survey weights as numeric,
+  finite, and non-missing before calculating weighted counts.
+
 - `nis_suppress()` now errors when a displayed survey statistic cannot be
   mapped to a verifiable source count.
 - `nis_open()` has an opt-in `reader = "arrow"` mode using the optional

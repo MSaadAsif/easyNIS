@@ -32,7 +32,8 @@ slots.}
 \item{system}{Code system of the slots: \code{"icd10"} (default) or \code{"icd9"}.}
 
 \item{weight_var}{Name of the survey weight column, defaulting to
-\code{"DISCWT"}.}
+\code{"DISCWT"}.
+Values in the selected cohort must be finite, non-missing numeric values.}
 }
 \value{
 A collected tibble with the period column, \code{code_group},
