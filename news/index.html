@@ -54,7 +54,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<ul><li><p><code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now errors when a displayed survey statistic cannot be mapped to a verifiable source count.</p></li>
+<ul><li><p><code><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> validates selected survey weights as numeric, finite, and non-missing before calculating weighted counts.</p></li>
+<li><p><code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> now errors when a displayed survey statistic cannot be mapped to a verifiable source count.</p></li>
 <li><p><code><a href="../reference/nis_open.html">nis_open()</a></code> has an opt-in <code>reader = "arrow"</code> mode using the optional <code>arrow</code> package; the default DuckDB reader is unchanged. Arrow preserves source bytes in strings rather than repairing malformed UTF-8. Such values may still fail in downstream string operations, and the reader does not automatically detect every invalid byte sequence.</p></li>
 <li><p>Split published-study probe validation into named checks while preserving receipt acceptance behavior.</p></li>
 <li><p>EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet string columns.</p></li>

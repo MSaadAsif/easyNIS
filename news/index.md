@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
+  validates selected survey weights as numeric, finite, and non-missing
+  before calculating weighted counts.
+
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   now errors when a displayed survey statistic cannot be mapped to a
   verifiable source count.

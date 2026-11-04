@@ -58,7 +58,8 @@ nis_audit_code_transition(
 
 - weight_var:
 
-  Name of the survey weight column, defaulting to `"DISCWT"`.
+  Name of the survey weight column, defaulting to `"DISCWT"`. Values in
+  the selected cohort must be finite, non-missing numeric values.
 
 ## Value
 
