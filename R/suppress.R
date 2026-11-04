@@ -206,8 +206,18 @@ survey_row_spec <- function(body, row, cards, card_variable_level) {
   variable <- body$variable[[row]]
   row_type <- body$row_type[[row]]
   var_type <- body$var_type[[row]]
-  if (is.na(variable) || !nzchar(trimws(variable)) || is.na(row_type) ||
-      is.na(var_type) || !nzchar(trimws(var_type))) return(NULL)
+  if (!survey_row_metadata_valid(variable, row_type, var_type)) return(NULL)
+  survey_row_spec_by_type(body, row, variable, row_type, var_type,
+                          cards, card_variable_level)
+}
+
+survey_row_metadata_valid <- function(variable, row_type, var_type) {
+  !is.na(variable) && nzchar(trimws(variable)) && !is.na(row_type) &&
+    !is.na(var_type) && nzchar(trimws(var_type))
+}
+
+survey_row_spec_by_type <- function(body, row, variable, row_type, var_type,
+                                    cards, card_variable_level) {
   if (identical(row_type, "level")) {
     return(survey_level_row_spec(
       body, row, variable, var_type, cards, card_variable_level
@@ -220,6 +230,32 @@ survey_row_spec <- function(body, row, cards, card_variable_level) {
     return(survey_label_row_spec(variable, var_type, cards))
   }
   NULL
+}
+
+survey_cell_masks <- function(count, hospitals, threshold) {
+  list(
+    count = count <= threshold,
+    hospitals = count > threshold && nrow(hospitals) < 2L
+  )
+}
+
+survey_mask_cell <- function(body, row, column, masks, threshold) {
+  if (masks$count) return(list(body = body, type = "count"))
+  if (masks$hospitals) {
+    body[[column]][[row]] <- "<2 hospitals"
+    return(list(body = body, type = "hospital"))
+  }
+  list(body = body, type = "none")
+}
+
+survey_cell_mask_result <- function(body, column, row, masks, threshold) {
+  result <- survey_mask_cell(body, row, column, masks, threshold)
+  if (identical(result$type, "count")) {
+    result$body[[column]][[row]] <- paste0("\u2264", threshold)
+  }
+  overall <- identical(column, "stat_0") && result$type != "none"
+  list(body = result$body, group_masked = !identical(column, "stat_0") &&
+         result$type != "none", overall_masked = overall)
 }
 
 survey_level_row_spec <- function(
@@ -359,20 +395,29 @@ survey_cell_suppression <- function(x, body, cards, row, column, spec, threshold
     x = x, cards = cards, matches = matches,
     column = column, spec = spec, error_call = error_call
   )
-  if (nrow(hospitals) < 2L && count > threshold) {
-    body[[column]][[row]] <- "<2 hospitals"
-    if (identical(column, "stat_0")) return(list(body = body, group_masked = FALSE, overall_masked = TRUE))
-    return(list(body = body, group_masked = TRUE, overall_masked = FALSE))
-  }
-  if (count > threshold) {
-    return(list(body = body, group_masked = FALSE, overall_masked = FALSE))
-  }
-  body[[column]][[row]] <- paste0("\u2264", threshold)
-  if (identical(column, "stat_0")) {
-    list(body = body, group_masked = FALSE, overall_masked = TRUE)
+  masks <- survey_cell_masks(count, hospitals, threshold)
+  survey_cell_mask_result(body, column, row, masks, threshold)
+}
+
+survey_stat_displayed <- function(body, row, stat_columns) {
+  any(vapply(stat_columns, function(column) {
+    value <- body[[column]][[row]]
+    length(value) > 0L && !all(is.na(value)) &&
+      !(is.character(value) && all(!nzchar(trimws(value))))
+  }, logical(1)))
+}
+
+survey_row_mapping_error <- function(body, row, row_type, error_call) {
+  variable <- if ("variable" %in% names(body)) body$variable[[row]] else NA_character_
+  description <- if (length(row_type) == 1L && !is.na(row_type)) {
+    row_type
   } else {
-    list(body = body, group_masked = TRUE, overall_masked = FALSE)
+    "missing or unsupported"
   }
+  cli::cli_abort(paste0(
+    "Cannot verify the statistic mapping for displayed row `",
+    description, "` in `", variable, "`."
+  ), call = error_call)
 }
 
 suppress_survey_row <- function(
@@ -399,20 +444,11 @@ suppress_survey_table <- function(x, threshold, error_call) {
   card_variable_level <- survey_variable_levels(cards)
   stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
   for (row in seq_len(nrow(body))) {
-    displayed_stat <- any(vapply(stat_columns, function(column) {
-      value <- body[[column]][[row]]
-      length(value) > 0L && !all(is.na(value)) &&
-        !(is.character(value) && all(!nzchar(trimws(value))))
-    }, logical(1)))
+    displayed_stat <- survey_stat_displayed(body, row, stat_columns)
     row_type <- if ("row_type" %in% names(body)) body$row_type[[row]] else NA_character_
     spec <- survey_row_spec(body, row, cards, card_variable_level)
     if (displayed_stat && is.null(spec)) {
-      variable <- if ("variable" %in% names(body)) body$variable[[row]] else NA_character_
-      row_description <- if (length(row_type) == 1L && !is.na(row_type)) row_type else "missing or unsupported"
-      cli::cli_abort(paste0(
-        "Cannot verify the statistic mapping for displayed row `",
-        row_description, "` in `", variable, "`."
-      ), call = error_call)
+      survey_row_mapping_error(body, row, row_type, error_call)
     }
     if (is.null(spec)) next
     body <- suppress_survey_row(
