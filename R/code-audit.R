@@ -1,3 +1,5 @@
+utils::globalVariables(".nis_invalid_weight")
+
 .nis_audit_is_column_name <- function(value) {
   is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
 }
@@ -13,6 +15,23 @@
   if (!.nis_audit_is_column_name(weight_var) ||
       !weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
     cli::cli_abort("`weight_var` must be the name of one existing column.")
+  }
+}
+
+.nis_audit_check_weight_values <- function(.data, weight_var) {
+  weight <- rlang::sym(weight_var)
+  weight_column <- dplyr::collect(dplyr::filter(
+    dplyr::select(.data, !!weight), !!weight != !!weight
+  ))[[weight_var]]
+  if (!is.numeric(weight_column)) {
+    cli::cli_abort("`weight_var` must be a numeric column.")
+  }
+  invalid <- dplyr::summarise(dplyr::ungroup(.data), .nis_invalid_weight = dplyr::coalesce(sum(
+    as.integer(is.na(!!weight) | !is.finite(!!weight)), na.rm = TRUE
+  ), 0L))
+  invalid_count <- dplyr::pull(nis_collect(invalid), ".nis_invalid_weight")
+  if (invalid_count > 0) {
+    cli::cli_abort("`weight_var` must contain only finite, non-missing numeric values in the selected cohort.")
   }
 }
 
@@ -129,6 +148,7 @@
 #' @param system Code system of the slots: `"icd10"` (default) or `"icd9"`.
 #' @param weight_var Name of the survey weight column, defaulting to
 #'   `"DISCWT"`.
+#'   Values in the selected cohort must be finite, non-missing numeric values.
 #'
 #' @return A collected tibble with the period column, `code_group`,
 #'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, `pct_within_year`,
@@ -167,6 +187,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo, by)
+  .nis_audit_check_weight_values(data, weight_var)
 
   data_names <- nis_names(.data) # nolint: object_usage_linter
   temp_names <- .nis_audit_temporary_names(data_names, length(codes))
