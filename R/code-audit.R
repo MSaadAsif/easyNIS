@@ -18,7 +18,7 @@ utils::globalVariables(".nis_invalid_weight")
   }
 }
 
-.nis_audit_validate_weight_values <- function(.data, weight_var) {
+.nis_audit_check_weight_values <- function(.data, weight_var) {
   weight <- rlang::sym(weight_var)
   weight_column <- dplyr::collect(dplyr::filter(
     dplyr::select(.data, !!weight), !!weight != !!weight
@@ -187,7 +187,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo, by)
-  .nis_audit_validate_weight_values(data, weight_var)
+  .nis_audit_check_weight_values(data, weight_var)
 
   data_names <- nis_names(.data) # nolint: object_usage_linter
   temp_names <- .nis_audit_temporary_names(data_names, length(codes))
