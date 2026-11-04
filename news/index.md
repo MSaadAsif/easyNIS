@@ -184,6 +184,8 @@
 - Refactored
   [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   into internal helpers; behavior is unchanged.
+- Split survey suppression row mapping and cell mask decisions into
+  smaller helpers without changing fail-closed behavior.
 
 ## easyNIS 0.2.0
 
