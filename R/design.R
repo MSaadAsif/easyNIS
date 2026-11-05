@@ -22,8 +22,22 @@ nis_design_fields <- function(.data, keep_quo, call) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
   }
   select_data <- stats::setNames(as.list(seq_along(data_names)), data_names)
-  keep_names <- names(tidyselect::eval_select(keep_quo,
-    data = select_data))
+  keep_expr <- rlang::get_expr(keep_quo)
+  keep_value <- if (rlang::is_symbol(keep_expr) &&
+    rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)) {
+    rlang::env_get(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
+  } else {
+    keep_expr
+  }
+  keep_names <- if (is.character(keep_value)) {
+    absent_keep <- setdiff(keep_value, data_names)
+    if (length(absent_keep)) {
+      cli::cli_abort("`keep` references missing column{?s} {.val {absent_keep}}.", call = call)
+    }
+    unique(keep_value)
+  } else {
+    names(tidyselect::eval_select(keep_quo, data = select_data))
+  }
   if (any(startsWith(keep_names, "."))) {
     cli::cli_abort("`keep` cannot select internal or dot-prefixed columns.", call = call)
   }
