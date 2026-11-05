@@ -360,9 +360,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system, match, exclude) 
     cli::cli_abort("Flag names must not replace existing columns.")
   }
 
-  codes <- lapply(definitions, function(definition) {
-    normalize_flag_codes(rlang::eval_tidy(definition), match)
-  })
+  codes <- normalize_flag_definitions(definitions, match)
   if (match == "regex") {
     if (!is.data.frame(.data) && !nis_is_duckdb_query(.data)) {
       cli::cli_abort("Regex matching is supported for data frames and DuckDB lazy queries only.")
@@ -386,27 +384,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system, match, exclude) 
     ))
   }
 
-  flags <- if (is.data.frame(.data)) {
-    lapply(codes, frame_match, slot_names = slot_names, match = match,
-      exclude = exclude)
-  } else {
-    lapply(codes, function(code) {
-      matched <- reduce_or(lapply(slot_names, function(column) {
-        if (match == "regex") nis_sql_regex_match(code, column) else
-          nis_sql_match(code, column) # nolint: object_usage_linter
-      }))
-      if (length(exclude)) {
-        excluded <- reduce_or(lapply(slot_names, function(column) {
-          reduce_or(lapply(exclude, function(code) {
-            rlang::expr(as.character(!!rlang::sym(column)) == !!code)
-          }))
-        }))
-        matched <- nis_and_expr(matched,
-          rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
-      }
-      matched
-    })
-  }
+  flags <- flag_matches(.data, codes, slot_names, match, exclude)
 
   eligibility <- code_system_filter(.data, data_names, slots, system)
   if (!is.null(eligibility)) {
@@ -417,14 +395,53 @@ nis_flag_codes <- function(.data, slots, ..., position, system, match, exclude) 
   dplyr::mutate(.data, !!!flags)
 }
 
-normalize_flag_codes <- function(value, match) {
-  if (match == "exact" && is.character(value) && length(value) == 0L) return(value)
-  if (!is.character(value) || !length(value) || anyNA(value)) {
-    cli::cli_abort("Codes and exclusions must be non-missing character vectors.")
+normalize_flag_definitions <- function(definitions, match) {
+  lapply(definitions, function(definition) {
+    normalize_flag_codes(rlang::eval_tidy(definition), match)
+  })
+}
+
+flag_matches <- function(data, codes, slot_names, match, exclude) {
+  if (is.data.frame(data)) {
+    return(lapply(codes, frame_match, slot_names = slot_names, match = match,
+      exclude = exclude))
   }
+  lapply(codes, sql_flag_match, slot_names = slot_names, match = match,
+    exclude = exclude)
+}
+
+sql_flag_match <- function(code, slot_names, match, exclude) {
+  matched <- reduce_or(lapply(slot_names, function(column) {
+    if (match == "regex") nis_sql_regex_match(code, column) else # nolint: object_usage_linter
+      nis_sql_match(code, column) # nolint: object_usage_linter
+  }))
+  if (!length(exclude)) return(matched)
+  excluded <- reduce_or(lapply(slot_names, function(column) {
+    reduce_or(lapply(exclude, function(value) {
+      rlang::expr(as.character(!!rlang::sym(column)) == !!value)
+    }))
+  }))
+  nis_and_expr(matched, # nolint: object_usage_linter
+    rlang::expr(!dplyr::coalesce(!!excluded, FALSE))) # nolint: object_usage_linter
+}
+
+normalize_flag_codes <- function(value, match) {
+  if (is_empty_exact_codes(value, match)) return(value)
+  validate_flag_code_input(value)
   if (match == "prefix") return(normalize_prefixes(value))
   if (match == "exact") return(value)
   unique(value)
+}
+
+is_empty_exact_codes <- function(value, match) {
+  match == "exact" && is.character(value) && length(value) == 0L
+}
+
+validate_flag_code_input <- function(value) {
+  if (!is.character(value) || !length(value) || anyNA(value)) {
+    cli::cli_abort("Codes and exclusions must be non-missing character vectors.")
+  }
+  invisible(value)
 }
 
 validate_flag_regex <- function(pattern) {
@@ -494,11 +511,17 @@ code_system_filter <- function(data, columns, slots, system) {
 
 # Data frames use `startsWith()`, which compares bytes and never errors on
 # malformed text; a missing slot value counts as no match.
-frame_match <- function(prefix, slot_names, match = "prefix", exclude = character()) {
+frame_match <- function(prefix, slot_names, match = "prefix",
+                        exclude = character()) {
   per_slot <- lapply(slot_names, function(column) {
     per_prefix <- lapply(prefix, function(code) {
-      if (match == "regex") rlang::expr(grepl(!!paste0("^(", code, ")$"), as.character(!!rlang::sym(column)), perl = TRUE)) else
+    if (match == "regex") {
+      pattern <- paste0("^(", code, ")$")
+      rlang::expr(grepl(!!pattern,
+        as.character(!!rlang::sym(column)), perl = TRUE))
+    } else {
         rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))
+    }
     })
     reduce_or(per_prefix)
   })
@@ -507,8 +530,8 @@ frame_match <- function(prefix, slot_names, match = "prefix", exclude = characte
     excluded <- reduce_or(lapply(slot_names, function(column) {
       rlang::expr(as.character(!!rlang::sym(column)) %in% !!exclude)
     }))
-    result <- nis_and_expr(result,
-      rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
+    result <- nis_and_expr(result, # nolint: object_usage_linter
+      rlang::expr(!dplyr::coalesce(!!excluded, FALSE))) # nolint: object_usage_linter
   }
   result
 }
