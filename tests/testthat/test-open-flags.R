@@ -137,6 +137,25 @@ test_that("ICD flags match prefixes by slot and behave the same on DuckDB", {
   expect_error(do.call(nis_flag_dx, c(list(data), duplicate_args)), "unique")
 })
 
+test_that("exclusions and full-code patterns agree on frames and DuckDB", {
+  data <- dplyr::tibble(
+    I10_DX1 = c("F1010", "F1011", "S0600AA", "S0600AD", "S0600A", NA_character_),
+    I10_DX2 = c(NA_character_, NA_character_, NA_character_, NA_character_, NA_character_, "F1021")
+  )
+  path <- tempfile("nis-flag-rules-"); dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+  add_rule_flags <- function(.data) .data |>
+    nis_flag_dx(remission = "F10", exclude = c("F1011", "F1021")) |>
+    nis_flag_dx(initial = "S06", pattern = "^S06.*A$")
+  expected <- add_rule_flags(data)
+  actual <- add_rule_flags(query) |> dplyr::collect()
+  expect_identical(actual, expected)
+  expect_identical(actual$remission, c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE))
+  expect_identical(actual$initial, c(FALSE, FALSE, TRUE, FALSE, TRUE, FALSE))
+})
+
 test_that("ICD flags match prefixes against stored code strings", {
   malformed <- "I50"
   data <- dplyr::tibble(
