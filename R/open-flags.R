@@ -251,7 +251,7 @@ nis_open_warn_2023 <- function(query) {
   query
 }
 
-#' Add diagnosis prefix flags
+#' Add diagnosis code flags
 #'
 #' Each diagnosis slot is checked separately. Supplied prefixes are
 #' case-insensitive, and periods and spaces in them are ignored. Slot values are
@@ -283,6 +283,14 @@ nis_open_warn_2023 <- function(query) {
 #'
 #' @param .data A data frame or lazy DuckDB query.
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
+#' @param match Match definitions as code prefixes (default) or full-code regular
+#'   expressions. Regexes use the common R and DuckDB subset: alternation,
+#'   grouping, character classes, anchors, and ordinary quantifiers. Look-around
+#'   and backreferences are not supported. Regex matching is case-sensitive and
+#'   does not normalize slot values or patterns.
+#' @param exclude Exact codes to exclude from every selected slot after matching.
+#'   Exclusion values are compared as stored, case-sensitively; missing slot
+#'   values do not match exclusions. The default empty vector excludes nothing.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
@@ -305,12 +313,13 @@ nis_open_warn_2023 <- function(query) {
 #'   dplyr::count(hf_or_diabetes) |>
 #'   dplyr::collect()
 nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"),
-                        system = c("icd10", "icd9")) {
+                        system = c("icd10", "icd9"), match = c("prefix", "regex"),
+                        exclude = character()) {
   nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position),
-    system = match.arg(system))
+    system = match.arg(system), match = match.arg(match), exclude = exclude)
 }
 
-#' Add procedure prefix flags
+#' Add procedure code flags
 #'
 #' Each procedure slot is checked separately, with the same prefix rules, byte
 #' for byte comparison, and `system` semantics as [nis_flag_dx()]. `"icd10"`
@@ -318,11 +327,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' match slots of the chosen system, so a flag over a mixed 2015 query is
 #' `FALSE` on discharges coded in the other system.
 #'
-#' @param .data A data frame or lazy DuckDB query.
-#' @param ... Named flag definitions, such as `ablation = "02L"`.
-#' @param position Slots to check: all slots or the principal slot only.
-#' @param system Code system of the slots to check: `"icd10"` (default) or
-#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
+#' @inheritParams nis_flag_dx
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
@@ -335,12 +340,13 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   dplyr::count(ablation) |>
 #'   dplyr::collect()
 nis_flag_pr <- function(.data, ..., position = c("any", "principal"),
-                        system = c("icd10", "icd9")) {
+                        system = c("icd10", "icd9"), match = c("prefix", "regex"),
+                        exclude = character()) {
   nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position),
-    system = match.arg(system))
+    system = match.arg(system), match = match.arg(match), exclude = exclude)
 }
 
-nis_flag_codes <- function(.data, slots, ..., position, system) {
+nis_flag_codes <- function(.data, slots, ..., position, system, match, exclude) {
   definitions <- rlang::enquos(..., .named = TRUE)
   if (length(definitions) == 0L || any(names(definitions) == "")) {
     cli::cli_abort("Supply one or more named code-prefix definitions.")
@@ -353,9 +359,16 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     cli::cli_abort("Flag names must not replace existing columns.")
   }
 
-  prefixes <- lapply(definitions, function(definition) {
-    normalize_prefixes(rlang::eval_tidy(definition))
+  codes <- lapply(definitions, function(definition) {
+    normalize_flag_codes(rlang::eval_tidy(definition), match)
   })
+  if (match == "regex") {
+    if (!is.data.frame(.data) && !nis_is_duckdb_query(.data)) {
+      cli::cli_abort("Regex matching is supported for data frames and DuckDB lazy queries only.")
+    }
+    lapply(codes, validate_flag_regex)
+  }
+  exclude <- normalize_flag_codes(exclude, "exact")
 
   stem <- paste0(if (system == "icd10") "I10_", slots)
   slot_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
@@ -373,12 +386,24 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   }
 
   flags <- if (is.data.frame(.data)) {
-    lapply(prefixes, frame_match, slot_names = slot_names)
+    lapply(codes, frame_match, slot_names = slot_names, match = match,
+      exclude = exclude)
   } else {
-    lapply(prefixes, function(prefix) {
-      reduce_or(lapply(slot_names, function(column) {
-        nis_sql_match(prefix, column) # nolint: object_usage_linter
+    lapply(codes, function(code) {
+      matched <- reduce_or(lapply(slot_names, function(column) {
+        if (match == "regex") nis_sql_regex_match(code, column) else
+          nis_sql_match(code, column) # nolint: object_usage_linter
       }))
+      if (length(exclude)) {
+        excluded <- reduce_or(lapply(slot_names, function(column) {
+          reduce_or(lapply(exclude, function(code) {
+            rlang::expr(as.character(!!rlang::sym(column)) == !!code)
+          }))
+        }))
+        matched <- nis_and_expr(matched,
+          rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
+      }
+      matched
     })
   }
 
@@ -389,6 +414,34 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     })
   }
   dplyr::mutate(.data, !!!flags)
+}
+
+normalize_flag_codes <- function(value, match) {
+  if (match == "exact" && is.character(value) && length(value) == 0L) return(value)
+  if (!is.character(value) || !length(value) || anyNA(value)) {
+    cli::cli_abort("Codes and exclusions must be non-missing character vectors.")
+  }
+  if (match == "prefix") return(normalize_prefixes(value))
+  if (match == "exact") return(value)
+  unique(value)
+}
+
+validate_flag_regex <- function(pattern) {
+  # RE2 (DuckDB) and TRE (base R) share these constructs; reject constructs
+  # that RE2 cannot execute before a lazy query is sent to the database.
+  for (item in pattern) {
+    if (grepl("\\\\[1-9]|\\(\\?[=!<]|\\(\\?>|\\(\\?P", item)) {
+      cli::cli_abort("Regex patterns cannot use backreferences, look-around, or atomic/named groups.")
+    }
+    tryCatch(grepl(item, "", perl = TRUE), error = function(error) {
+      cli::cli_abort("Invalid regular expression {.val {item}}.")
+    })
+  }
+  invisible(pattern)
+}
+
+nis_is_duckdb_query <- function(data) {
+  inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")
 }
 
 normalize_prefixes <- function(value, arg = NULL) {
@@ -441,14 +494,23 @@ code_system_filter <- function(data, columns, slots, system) {
 
 # Data frames use `startsWith()`, which compares bytes and never errors on
 # malformed text; a missing slot value counts as no match.
-frame_match <- function(prefix, slot_names) {
+frame_match <- function(prefix, slot_names, match = "prefix", exclude = character()) {
   per_slot <- lapply(slot_names, function(column) {
     per_prefix <- lapply(prefix, function(code) {
-      rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))
+      if (match == "regex") rlang::expr(grepl(!!paste0("^(", code, ")$"), as.character(!!rlang::sym(column)), perl = TRUE)) else
+        rlang::expr(startsWith(as.character(!!rlang::sym(column)), !!code))
     })
     reduce_or(per_prefix)
   })
-  rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
+  result <- rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
+  if (length(exclude)) {
+    excluded <- reduce_or(lapply(slot_names, function(column) {
+      rlang::expr(as.character(!!rlang::sym(column)) %in% !!exclude)
+    }))
+    result <- nis_and_expr(result,
+      rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
+  }
+  result
 }
 
 reduce_or <- function(terms) {

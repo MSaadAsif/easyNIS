@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- Diagnosis code exclusions now apply across every selected slot in lazy
+  DuckDB queries, including regex matches.
+
 - `nis_audit_code_transition()` validates selected survey weights as numeric,
   finite, and non-missing before calculating weighted counts.
 

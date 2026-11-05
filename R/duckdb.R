@@ -202,6 +202,11 @@ nis_sql_match <- function(prefix, column) {
   rlang::expr(dplyr::coalesce(!!reduce_or(per_prefix), FALSE))
 }
 
+nis_sql_regex_match <- function(pattern, column) {
+  pattern <- paste0("^(", paste(pattern, collapse = "|"), ")$")
+  rlang::expr(dplyr::coalesce(grepl(!!pattern, as.character(!!rlang::sym(column))), FALSE))
+}
+
 nis_and_expr <- function(left, right) {
   rlang::expr(dplyr::if_else(!!left, !!right, FALSE))
 }

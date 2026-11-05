@@ -389,3 +389,27 @@ test_that("nis_open source errors retain the full public call", {
   expect_identical(conditionCall(condition),
     quote(nis_open(path, years = 2012L)))
 })
+test_that("flag regex matching and exclusions agree on frames and DuckDB", {
+  data <- dplyr::tibble(
+    I10_DX1 = c("I501", "I502", "I509", "J189", NA_character_, "I50'\\1", "I502", "J189"),
+    I10_DX2 = c(NA_character_, NA_character_, "I502", NA_character_, NA_character_, NA_character_, "I501", "I502")
+  )
+  add <- function(x) nis_flag_dx(x, heart = "I50(1|2)", match = "regex", exclude = "I502")
+  expected <- add(data)
+  actual <- add(duckdb_query_fixture(data)) |> dplyr::collect()
+  expect_identical(actual, expected)
+  expect_identical(expected$heart, c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE))
+  expect_identical(
+    nis_flag_dx(data, exact = "^I50(1|2)$", match = "regex")$exact,
+    c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, TRUE, TRUE)
+  )
+  expect_identical(
+    nis_flag_dx(data, all = "I50", exclude = character())$all,
+    c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE)
+  )
+  expect_identical(
+    nis_flag_dx(data, all = "I50", exclude = "I502")$all,
+    c(TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
+  )
+  expect_error(nis_flag_dx(data, bad = "(x)\\1", match = "regex"), "backreferences")
+})
