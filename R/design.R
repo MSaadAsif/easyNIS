@@ -23,7 +23,9 @@ nis_design_fields <- function(.data, keep_quo, call) {
   }
   select_data <- stats::setNames(as.list(seq_along(data_names)), data_names)
   keep_expr <- rlang::get_expr(keep_quo)
-  keep_value <- if (rlang::is_symbol(keep_expr) &&
+  keep_symbol <- rlang::is_symbol(keep_expr)
+  keep_symbol_name <- if (keep_symbol) rlang::as_string(keep_expr) else NULL
+  keep_value <- if (keep_symbol && !(keep_symbol_name %in% data_names) &&
     rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)) {
     rlang::env_get(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
   } else {

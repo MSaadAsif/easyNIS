@@ -29,6 +29,26 @@ test_that("nis_design supports character and helper selections on lazy inputs", 
   expect_equal(names(character_design$variables), names(any_of_design$variables))
 })
 
+test_that("data columns take precedence over colliding caller vectors", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(nis_open(path))
+  AGE <- "FEMALE"
+
+  frame_design <- nis_design(data, TRUE, keep = AGE)
+  expect_true("AGE" %in% names(frame_design$variables))
+  expect_false("FEMALE" %in% names(frame_design$variables))
+
+  lazy_design <- nis_design(nis_open(path), TRUE, keep = AGE)
+  expect_true("AGE" %in% names(lazy_design$variables))
+  expect_false("FEMALE" %in% names(lazy_design$variables))
+
+  selected <- "FEMALE"
+  external_design <- nis_design(data, TRUE, keep = selected)
+  expect_true("FEMALE" %in% names(external_design$variables))
+  expect_false("AGE" %in% names(external_design$variables))
+})
+
 test_that("nis_design carries cost provenance through the survey workflow", {
   data <- dplyr::tibble(
     YEAR = rep(2020, 4),
