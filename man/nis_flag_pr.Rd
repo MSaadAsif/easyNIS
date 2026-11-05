@@ -18,8 +18,7 @@ nis_flag_pr(
 
 \item{...}{Named flag definitions, such as \code{heart_failure = "I50"}.}
 
-\item{position}{Slots to check: all slots, the principal slot, or secondary
-slots only.}
+\item{position}{Slots to check: all slots or the principal slot.}
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
 \code{"icd9"} (experimental, NIS 2012 to Q3 2015).}

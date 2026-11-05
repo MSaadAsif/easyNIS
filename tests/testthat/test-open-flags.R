@@ -411,5 +411,12 @@ test_that("flag regex matching and exclusions agree on frames and DuckDB", {
     nis_flag_dx(data, all = "I50", exclude = "I502")$all,
     c(TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
   )
-  expect_error(nis_flag_dx(data, bad = "(x)\\1", match = "regex"), "backreferences")
+  expect_error(nis_flag_dx(data, bad = "(x)\\1", match = "regex"),
+    "Invalid or unsupported DuckDB regular expression")
+  expect_error(nis_flag_dx(data, bad = "I50\\K1", match = "regex"),
+    "Invalid or unsupported DuckDB regular expression")
+  expect_identical(
+    nis_flag_dx(data, quoted = "^I50'.*$", match = "regex")$quoted,
+    c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
+  )
 })

@@ -328,6 +328,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' `FALSE` on discharges coded in the other system.
 #'
 #' @inheritParams nis_flag_dx
+#' @param position Slots to check: all slots or the principal slot.
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
@@ -427,15 +428,14 @@ normalize_flag_codes <- function(value, match) {
 }
 
 validate_flag_regex <- function(pattern) {
-  # RE2 (DuckDB) and TRE (base R) share these constructs; reject constructs
-  # that RE2 cannot execute before a lazy query is sent to the database.
+  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   for (item in pattern) {
-    if (grepl("\\\\[1-9]|\\(\\?[=!<]|\\(\\?>|\\(\\?P", item)) {
-      cli::cli_abort("Regex patterns cannot use backreferences, look-around, or atomic/named groups.")
-    }
-    tryCatch(grepl(item, "", perl = TRUE), error = function(error) {
-      cli::cli_abort("Invalid regular expression {.val {item}}.")
-    })
+    tryCatch(DBI::dbGetQuery(con,
+      "SELECT regexp_matches('', ?) AS valid", params = list(item)), # nolint: object_usage_linter
+      error = function(error) {
+        cli::cli_abort("Invalid or unsupported DuckDB regular expression {.val {item}}.")
+      })
   }
   invisible(pattern)
 }
