@@ -2,6 +2,15 @@
 
 ## easyNIS (development version)
 
+- [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
+  now explains how to retain diagnosis columns with
+  `nis_design(keep = ...)` when required ICD-10 fields are missing.
+
+- [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  selection regressions cover character vectors, `all_of()`, and
+  `any_of()` on lazy inputs; dollar adjustment requires both charge and
+  cost-to-charge-ratio fields in `keep`.
+
 - [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
   validates selected survey weights as numeric, finite, and non-missing
   before calculating weighted counts.
