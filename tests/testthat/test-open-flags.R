@@ -420,3 +420,16 @@ test_that("flag regex matching and exclusions agree on frames and DuckDB", {
     c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
   )
 })
+
+test_that("flag regex matching uses absolute boundaries across backends", {
+  data <- dplyr::tibble(
+    I10_DX1 = c("I50", "I50\n", "J189", "J189\n", "I501")
+  )
+  add <- function(x) nis_flag_dx(x, absolute = "^I50$", alternatives = c("^I50$", "^J189$"), match = "regex")
+
+  expected <- add(data)
+  actual <- add(duckdb_query_fixture(data)) |> dplyr::collect()
+  expect_identical(actual, expected)
+  expect_identical(expected$absolute, c(TRUE, FALSE, FALSE, FALSE, FALSE))
+  expect_identical(expected$alternatives, c(TRUE, FALSE, TRUE, FALSE, FALSE))
+})

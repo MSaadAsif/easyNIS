@@ -203,7 +203,7 @@ nis_sql_match <- function(prefix, column) {
 }
 
 nis_sql_regex_match <- function(pattern, column) {
-  pattern <- paste0("^(", paste(pattern, collapse = "|"), ")$")
+  pattern <- paste0("\\A(?:", paste(pattern, collapse = "|"), ")\\z")
   rlang::expr(dplyr::coalesce(grepl(!!pattern, as.character(!!rlang::sym(column))), FALSE))
 }
 

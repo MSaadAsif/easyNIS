@@ -516,7 +516,7 @@ frame_match <- function(prefix, slot_names, match = "prefix",
   per_slot <- lapply(slot_names, function(column) {
     per_prefix <- lapply(prefix, function(code) {
     if (match == "regex") {
-      pattern <- paste0("^(", code, ")$")
+      pattern <- paste0("\\A(?:", code, ")\\z")
       rlang::expr(grepl(!!pattern,
         as.character(!!rlang::sym(column)), perl = TRUE))
     } else {
