@@ -1,5 +1,10 @@
 # easyNIS (development version)
 
+- `nis_flag_dx()` and `nis_flag_pr()` support full-code regular expression
+  matching with common syntax shared by R and DuckDB.
+
+- Diagnosis code exclusions now apply across every selected slot in lazy
+  DuckDB queries, including regex matches.
 - `nis_comorbidity()` now explains how to retain diagnosis columns with
   `nis_design(keep = ...)` when required ICD-10 fields are missing.
 - `nis_design()` selection regressions cover character vectors, `all_of()`,

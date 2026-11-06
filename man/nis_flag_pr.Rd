@@ -2,24 +2,36 @@
 % Please edit documentation in R/open-flags.R
 \name{nis_flag_pr}
 \alias{nis_flag_pr}
-\title{Add procedure prefix flags}
+\title{Add procedure code flags}
 \usage{
 nis_flag_pr(
   .data,
   ...,
   position = c("any", "principal"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9"),
+  match = c("prefix", "regex"),
+  exclude = character()
 )
 }
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query.}
 
-\item{...}{Named flag definitions, such as \code{ablation = "02L"}.}
+\item{...}{Named flag definitions, such as \code{heart_failure = "I50"}.}
 
-\item{position}{Slots to check: all slots or the principal slot only.}
+\item{position}{Slots to check: all slots or the principal slot.}
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
 \code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
+
+\item{match}{Match definitions as code prefixes (default) or full-code regular
+expressions. Regexes use the common R and DuckDB subset: alternation,
+grouping, character classes, anchors, and ordinary quantifiers. Look-around
+and backreferences are not supported. Regex matching is case-sensitive and
+does not normalize slot values or patterns.}
+
+\item{exclude}{Exact codes to exclude from every selected slot after matching.
+Exclusion values are compared as stored, case-sensitively; missing slot
+values do not match exclusions. The default empty vector excludes nothing.}
 }
 \value{
 \code{.data} with one logical column per named definition.
