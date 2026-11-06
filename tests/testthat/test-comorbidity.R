@@ -249,6 +249,7 @@ test_that("method and prefix options and input errors are explicit", {
   expect_error(nis_comorbidity(data, prefix = NA_character_), "prefix")
   expect_error(suppressWarnings(nis_comorbidity(suppressWarnings(nis_comorbidity(data)))), "replace existing")
   expect_error(nis_comorbidity(dplyr::tibble(AGE = 1)), "diagnosis columns")
+  expect_error(nis_comorbidity(dplyr::tibble(AGE = 1)), "retain them with.*keep")
   expect_error(nis_comorbidity(dplyr::tibble(I10_DX2 = "ZZZ99")), "I10_DX1")
   expect_error(nis_comorbidity(list(I10_DX1 = "ZZZ99")), "collected")
 
