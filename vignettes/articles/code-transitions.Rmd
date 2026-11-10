@@ -37,6 +37,43 @@ of all discharges within the period. A year-over-year percentage change is
 relative to the prior observed period; it is descriptive and does not explain
 why coding prevalence changed.
 
+## Group by several period columns
+
+`by` accepts more than one column. A period is then an observed combination,
+such as year and quarter, sorted in the order given. A period with a missing
+component is kept as its own row after the complete periods. No unambiguous
+year comparison exists for several columns, so `yoy_pct_change` is `NA` in
+every row; compare `pct_within_year` across the periods you choose.
+
+```{r audit-by}
+toy$DQTR <- rep(c(1L, 2L), times = 3)
+toy$DQTR[6] <- NA
+nis_audit_code_transition(
+  toy,
+  codes = c(heart_failure = "I50"),
+  type = "dx",
+  by = c("YEAR", "DQTR")
+)
+```
+
+## Inventory observed codes
+
+`output = "inventory"` lists the full codes that matched each prefix group,
+with counts for every period. `status` marks a code `absent` when a period has
+no matches and `sparse` when its unweighted count is at most `sparse_n`
+(default 10). A group that matches no observed code appears once per period
+with a missing `code`. The counts are aggregate, so apply your disclosure
+rules before sharing them.
+
+```{r inventory}
+nis_audit_code_transition(
+  toy,
+  codes = c(heart_failure = "I50", diabetes = "E11"),
+  type = "dx",
+  output = "inventory"
+)
+```
+
 ## Compare diagnosis positions
 
 Principal and secondary diagnoses can capture different presentations.
@@ -68,6 +105,8 @@ and code-system boundary checks are experimental.
 >   as a true change in prevalence.
 > - A zero in an audit means no match in the selected system, not absence in a
 >   different code system.
+> - An `absent` or `sparse` inventory status describes this dataset and cohort;
+>   it does not show that a code is unused.
 > - Principal and any-position summaries are nested definitions, not
 >   independent groups.
 
