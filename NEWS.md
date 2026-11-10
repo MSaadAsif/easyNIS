@@ -18,6 +18,9 @@
   grow with the number of matching codes.
 - `nis_audit_code_transition()` validates selected survey weights as numeric,
   finite, and non-missing before calculating weighted counts.
+- `nis_audit_code_transition()` now accepts named `by` vectors without
+  treating their names as period columns, and inventory output preserves a
+  period column when it is also the selected weight column.
 
 - `nis_suppress()` now errors when a displayed survey statistic cannot be
   mapped to a verifiable source count.

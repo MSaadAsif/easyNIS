@@ -246,6 +246,70 @@ test_that("multi-column periods agree between data frames and lazy DuckDB", {
   }
 })
 
+test_that("inventory preserves a period column that is also the weight", {
+  data <- data.frame(
+    YEAR = 2020:2021,
+    I10_PR1 = c("A1", "A2"),
+    DISCWT = c(2, 3)
+  )
+  path <- tempfile("nis-audit-weight-period-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+
+  for (output in c("summary", "inventory")) {
+    from_frame <- nis_audit_code_transition(data, c(a = "A"),
+      by = "DISCWT", output = output)
+    from_duckdb <- nis_audit_code_transition(query, c(a = "A"),
+      by = "DISCWT", output = output)
+    expect_identical(from_duckdb, from_frame)
+    if (output == "summary") {
+      expect_equal(from_frame$DISCWT, c(2, 3))
+      expect_equal(from_frame$n_weighted, c(2, 3))
+    } else {
+      expect_equal(sort(unique(from_frame$DISCWT)), c(2, 3))
+      expect_equal(sum(from_frame$n_weighted), 5)
+    }
+  }
+})
+
+test_that("named period inputs retain original names across audit paths", {
+  data <- data.frame(
+    `calendar year` = c(2020L, 2020L, 2021L),
+    `quarter label` = c(1L, 2L, 1L),
+    I10_PR1 = c("A1", "B1", "A2"),
+    `survey weight` = c(2, 3, 4),
+    .nis_audit_code = "existing code temp",
+    .nis_audit_weight = 10:12,
+    .nis_audit_cohort = 13:15,
+    .nis_audit_n = 16:18,
+    .nis_audit_w = 19:21,
+    check.names = FALSE
+  )
+  path <- tempfile("nis-audit-named-period-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+  period_args <- list(
+    c(period = "calendar year"),
+    c(period = "calendar year", quarter = "quarter label")
+  )
+
+  for (by in period_args) {
+    for (output in c("summary", "inventory")) {
+      from_frame <- nis_audit_code_transition(data, c(a = "A"),
+        by = by, weight_var = "survey weight", output = output)
+      from_duckdb <- nis_audit_code_transition(query, c(a = "A"),
+        by = by, weight_var = "survey weight", output = output)
+      expect_identical(from_duckdb, from_frame)
+      expect_true(all(c(unname(by), "n_weighted") %in% names(from_frame)))
+      expect_equal(sum(from_frame$n_weighted), 6)
+    }
+  }
+})
+
 test_that("code transition audit validates multi-column periods", {
   data <- dplyr::tibble(YEAR = 2020L, DQTR = 1L, I10_PR1 = "A1", DISCWT = 1)
   codes <- c(a = "A")

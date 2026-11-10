@@ -252,15 +252,17 @@ utils::globalVariables(".nis_invalid_weight")
   slots <- paste0("CAST(", DBI::dbQuoteIdentifier(con, slot_names), " AS VARCHAR)", collapse = ", ")
   codes <- dbplyr::sql(paste0("UNNEST(list_distinct([", slots, "]))"))
   data |>
+    dplyr::mutate(!!temp$weight := !!rlang::sym(weight_var)) |>
     dplyr::mutate(!!temp$code := !!codes) |>
-    dplyr::select(dplyr::all_of(c(by, stats::setNames(weight_var, temp$weight), temp$code)))
+    dplyr::select(dplyr::all_of(c(by, temp$weight, temp$code)))
 }
 
 .nis_audit_frame_codes <- function(data, slot_names, temp, weight_var, by) {
   slots <- lapply(slot_names, function(column) as.character(data[[column]]))
   long <- dplyr::tibble(row = rep(seq_len(nrow(data)), times = length(slots)), code = unlist(slots))
   long <- dplyr::distinct(long[!is.na(long$code), ])
-  rows <- dplyr::select(data, dplyr::all_of(c(by, stats::setNames(weight_var, temp$weight))))
+  data[[temp$weight]] <- data[[weight_var]]
+  rows <- dplyr::select(data, dplyr::all_of(c(by, temp$weight)))
   rows <- dplyr::slice(rows, long$row)
   rows[[temp$code]] <- long$code
   rows
@@ -409,6 +411,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
   system <- match.arg(system)
   output <- match.arg(output)
 
+  by <- unname(by)
   .nis_audit_validate_by(.data, by, output)
   .nis_audit_validate_weight(.data, weight_var)
   .nis_audit_validate_sparse_n(sparse_n)
