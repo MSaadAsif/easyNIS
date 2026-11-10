@@ -30,7 +30,7 @@ codes, then creates diagnosis and procedure flags:
 
 example_path <- nis_example(years = 2018:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphRkrji/duckdb
+#> ℹ /tmp/RtmpmB2S8H/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -38,7 +38,7 @@ example_path <- nis_example(years = 2018:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphRkrji/duckdb
+#> ℹ /tmp/RtmpmB2S8H/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -46,7 +46,7 @@ example_path <- nis_example(years = 2018:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphRkrji/duckdb
+#> ℹ /tmp/RtmpmB2S8H/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -64,7 +64,7 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphRkrji/duckdb
+#> ℹ /tmp/RtmpmB2S8H/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -140,9 +140,6 @@ study_design <- nis_flagged |>
       "Under 65"
     )
   )
-#> Warning: Missing values are always removed in SQL aggregation functions.
-#> Use `na.rm = TRUE` to silence this warning
-#> This warning is displayed once every 8 hours.
 #> Cohort: 201 discharges; weighted N 239.7; 36 hospitals across 3 years.
 ```
 

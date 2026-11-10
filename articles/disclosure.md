@@ -87,7 +87,7 @@ cell, the function errors.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpGdt0Ii/duckdb
+#> ℹ /tmp/RtmpVC3gtd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -95,7 +95,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpGdt0Ii/duckdb
+#> ℹ /tmp/RtmpVC3gtd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -103,9 +103,6 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
-#> Warning: Missing values are always removed in SQL aggregation functions.
-#> Use `na.rm = TRUE` to silence this warning
-#> This warning is displayed once every 8 hours.
 #> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
 table_one <- gtsummary::tbl_svysummary(
   design,

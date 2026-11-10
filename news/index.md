@@ -2,6 +2,14 @@
 
 ## easyNIS (development version)
 
+- [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
+  [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+  and
+  [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
+  no longer trigger dbplyr’s “Missing values are always removed in SQL
+  aggregation functions” warning on lazy DuckDB inputs. Results are
+  unchanged.
+
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   now explains how to retain diagnosis columns with
   `nis_design(keep = ...)` when required ICD-10 fields are missing.
