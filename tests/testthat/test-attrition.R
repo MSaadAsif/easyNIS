@@ -90,11 +90,14 @@ test_that("nis_attrition lazily aggregates DuckDB datasets without collecting ro
     )
   }
 
-  actual <- criteria(query)
+  local_sql_na_warnings()
+  expect_no_warning(actual <- criteria(query))
   expect_s3_class(actual, "tbl_df")
   expect_identical(actual, criteria(data))
 
-  annual <- nis_attrition(query, adult = AGE >= 18, by_year = TRUE)
+  expect_no_warning(
+    annual <- nis_attrition(query, adult = AGE >= 18, by_year = TRUE)
+  )
   expect_identical(annual, nis_attrition(data, adult = AGE >= 18, by_year = TRUE))
 })
 

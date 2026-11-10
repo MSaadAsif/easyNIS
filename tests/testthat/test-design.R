@@ -29,6 +29,19 @@ test_that("nis_design supports character and helper selections on lazy inputs", 
   expect_equal(names(character_design$variables), names(any_of_design$variables))
 })
 
+test_that("nis_design on lazy inputs emits no SQL missing-value warning", {
+  local_sql_na_warnings()
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  frame_design <- nis_design(dplyr::collect(nis_open(path)), AGE > 50, keep = AGE)
+
+  expect_no_warning(
+    lazy_design <- nis_design(nis_open(path), AGE > 50, keep = AGE)
+  )
+  expect_equal(sort(as.numeric(stats::weights(lazy_design))),
+    sort(as.numeric(stats::weights(frame_design))))
+})
+
 test_that("data columns take precedence over colliding caller vectors", {
   path <- nis_example(2019)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
