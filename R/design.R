@@ -64,7 +64,7 @@ nis_design_groups <- function(prepared, design_fields, call) {
       "NIS_STRATUM"
     )))) |>
     dplyr::summarise(
-      DISCWT = min(dplyr::if_else(.nis_valid, DISCWT, Inf)),
+      DISCWT = min(dplyr::if_else(.nis_valid, DISCWT, Inf), na.rm = TRUE),
       n = dplyr::n(),
       .groups = "drop"
     ) |>
