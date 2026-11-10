@@ -125,7 +125,7 @@ dx_summary_exprs <- function(flags, outcomes, weight_var) {
 
 dx_flag_exprs <- function(flag, outcomes, weight_var) {
   expressions <- list(
-    rlang::expr(sum(dplyr::coalesce(!!rlang::sym(flag), FALSE))),
+    rlang::expr(sum(dplyr::coalesce(!!rlang::sym(flag), FALSE), na.rm = TRUE)),
     rlang::expr(sum(dplyr::if_else(!!rlang::sym(flag),
       !!rlang::sym(weight_var), 0), na.rm = TRUE))
   )
@@ -142,8 +142,8 @@ dx_outcome_exprs <- function(flag, outcome, weight_var) {
   weight <- rlang::sym(weight_var)
   selected <- rlang::sym(flag)
   expressions <- list(
-    rlang::expr(sum(!!selected & !is.na(!!value))),
-    rlang::expr(sum(!!selected & !is.na(!!value) & !!value == 1)),
+    rlang::expr(sum(!!selected & !is.na(!!value), na.rm = TRUE)),
+    rlang::expr(sum(!!selected & !is.na(!!value) & !!value == 1, na.rm = TRUE)),
     rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value),
       !!weight, 0), na.rm = TRUE)),
     rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value) &

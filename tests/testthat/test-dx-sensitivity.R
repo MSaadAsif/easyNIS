@@ -64,7 +64,7 @@ test_that("diagnosis sensitivity validation conditions keep public calls", {
 })
 
 test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
-
+  local_sql_na_warnings()
   data <- dx_sensitivity_fixture()
   path <- tempfile("nis-dx-sensitivity-")
   dir.create(path)

@@ -50,16 +50,18 @@
   summary_exprs <- list()
   summary_exprs[[".nis_attrition_n_0"]] <- rlang::expr(dplyr::n())
   summary_exprs[[".nis_attrition_w_0"]] <- rlang::expr(sum(
-    dplyr::coalesce(!!rlang::sym(weight_var), 0)
+    dplyr::coalesce(!!rlang::sym(weight_var), 0), na.rm = TRUE
   ))
   for (i in seq_len(criteria_count)) {
     keep <- rlang::sym(keep_names[[i]])
     count_name <- paste0(".nis_attrition_n_", i)
     weight_name <- paste0(".nis_attrition_w_", i)
-    summary_exprs[[count_name]] <- rlang::expr(sum(dplyr::if_else(!!keep, 1L, 0L)))
+    summary_exprs[[count_name]] <- rlang::expr(sum(
+      dplyr::if_else(!!keep, 1L, 0L), na.rm = TRUE
+    ))
     summary_exprs[[weight_name]] <- rlang::expr(sum(dplyr::if_else(
       !!keep, dplyr::coalesce(!!rlang::sym(weight_var), 0), 0
-    )))
+    ), na.rm = TRUE))
   }
   summary_exprs
 }

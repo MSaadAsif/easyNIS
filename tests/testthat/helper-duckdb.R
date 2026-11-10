@@ -12,6 +12,13 @@ open_duckdb_dataset <- function(path) {
   nis_duckdb_attach_finalizer(query, con) # nolint: object_usage_linter
 }
 
+# dbplyr skips its missing-value aggregation warning while TESTTHAT is "true"
+# and otherwise shows it once per session.
+local_sql_na_warnings <- function(.env = parent.frame()) {
+  withr::local_envvar(TESTTHAT = "false", .local_envir = .env)
+  withr::local_options(rlib_warning_verbosity = "verbose", .local_envir = .env)
+}
+
 duckdb_query_fixture <- function(data) {
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)

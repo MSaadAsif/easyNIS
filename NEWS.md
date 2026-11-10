@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_design()`, `nis_attrition()`, and `nis_dx_sensitivity()` no longer
+  trigger dbplyr's "Missing values are always removed in SQL aggregation
+  functions" warning on lazy DuckDB inputs. Results are unchanged.
 - `nis_comorbidity()` now explains how to retain diagnosis columns with
   `nis_design(keep = ...)` when required ICD-10 fields are missing.
 - `nis_design()` selection regressions cover character vectors, `all_of()`,
