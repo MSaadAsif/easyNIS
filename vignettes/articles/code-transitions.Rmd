@@ -41,8 +41,9 @@ why coding prevalence changed.
 
 `by` accepts more than one column. A period is then an observed combination,
 such as year and quarter, sorted in the order given. A period with a missing
-component is kept as its own row after the complete periods, and it has no
-year-over-year change.
+component is kept as its own row after the complete periods. No unambiguous
+year comparison exists for several columns, so `yoy_pct_change` is `NA` in
+every row; compare `pct_within_year` across the periods you choose.
 
 ```{r audit-by}
 toy$DQTR <- rep(c(1L, 2L), times = 3)

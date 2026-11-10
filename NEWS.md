@@ -7,9 +7,12 @@
   cost-to-charge-ratio fields in `keep`.
 
 - `nis_audit_code_transition()` accepts several period columns in `by`,
-  keeps periods with a missing component as explicit rows without a
-  year-over-year change, and gains `output = "inventory"` to list observed
-  full codes by period with `absent` and `sparse` flags (`sparse_n`).
+  keeps periods with a missing component as explicit rows, and gains
+  `output = "inventory"` to list observed full codes by period with `absent`
+  and `sparse` flags (`sparse_n`). With several `by` columns no unambiguous
+  year comparison exists, so `yoy_pct_change` is `NA` in every row. The
+  inventory aggregates long slot rows in the database, so query width does not
+  grow with the number of matching codes.
 - `nis_audit_code_transition()` validates selected survey weights as numeric,
   finite, and non-missing before calculating weighted counts.
 

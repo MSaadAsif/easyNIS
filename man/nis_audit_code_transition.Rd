@@ -51,7 +51,8 @@ from \code{by}, \code{code_group}, \code{n_cohort_unweighted}, \code{n_unweighte
 \code{n_weighted}, \code{pct_within_year}, and \code{yoy_pct_change}. The change is the
 relative percent change in \code{pct_within_year} versus the previous observed
 period in sorted order. It is \code{NA} for the first period, a period with a
-missing component, or when the previous period's percentage is zero.
+missing value, when the previous period's percentage is zero, and in every
+row when \code{by} names more than one column.
 For \code{output = "inventory"}, the period columns, \code{code_group}, \code{code},
 \code{n_cohort_unweighted}, \code{n_unweighted}, \code{n_weighted}, and \code{status}.
 }
@@ -70,12 +71,12 @@ observed period in sorted order.
 \code{by} may name several columns, such as \code{c("YEAR", "DQTR")}. A period is
 then one observed combination of their values, sorted by the columns in the
 order given. A period with a missing value in any component is kept as its
-own row, sorted after every complete period, and has no year-over-year
-change; it is never the previous period of a complete one. Combinations
-that do not occur in the data are not added. For a multi-column \code{by}, the
-change compares consecutive rows in sorted order, so it is a time-trend
-measure only when the last column in \code{by} is the finest time unit and no
-other component varies within it.
+own row, sorted after every complete period. Combinations that do not occur
+in the data are not added. With several columns, no unambiguous year
+comparison can be inferred, because adjacent combinations may be quarters
+of one year or the boundary between two other components. \code{yoy_pct_change}
+is therefore \code{NA} in every row; compare \code{pct_within_year} across the
+periods you care about instead.
 
 With \code{output = "inventory"}, the function instead lists the full codes
 observed in the selected slots that start with each group's prefixes, with
@@ -86,8 +87,10 @@ periods or missing from them is visible. \code{status} is \code{"absent"} when t
 code has no matches in the period, \code{"sparse"} when its unweighted count is
 at least one and at most \code{sparse_n}, and \code{"observed"} otherwise. A group
 that matches no observed code is returned with \code{code} missing and status
-\code{"absent"} in every period. Only aggregate counts are returned, so apply
-your disclosure rules (see \code{\link[=nis_suppress]{nis_suppress()}}) before sharing them.
+\code{"absent"} in every period. Counts are aggregated in the database for lazy
+inputs, so only period-by-code counts are collected, however many codes a
+prefix matches. The counts are exact, so apply your disclosure rules (see
+\code{\link[=nis_suppress]{nis_suppress()}}) before sharing them.
 }
 \examples{
 toy_data <- dplyr::tibble(
