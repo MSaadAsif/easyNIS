@@ -4,10 +4,29 @@ utils::globalVariables(".nis_invalid_weight")
   is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
 }
 
-.nis_audit_validate_by <- function(.data, by) {
-  if (!.nis_audit_is_column_name(by) ||
-      !by %in% nis_names(.data)) { # nolint: object_usage_linter
-    cli::cli_abort("`by` must be the name of one existing column.")
+.nis_audit_summary_names <- c("code_group", "n_cohort_unweighted", "n_unweighted",
+  "n_weighted", "pct_within_year", "yoy_pct_change")
+.nis_audit_inventory_names <- c("code_group", "code", "n_cohort_unweighted",
+  "n_unweighted", "n_weighted", "status")
+
+.nis_audit_valid_by <- function(by) {
+  is.character(by) && length(by) > 0L && !anyNA(by) && all(nzchar(by)) &&
+    !anyDuplicated(by)
+}
+
+.nis_audit_validate_by <- function(.data, by, output) {
+  if (!.nis_audit_valid_by(by) || !all(by %in% nis_names(.data))) { # nolint: object_usage_linter
+    cli::cli_abort("`by` must name one or more unique existing columns.")
+  }
+  reserved <- if (output == "inventory") .nis_audit_inventory_names else .nis_audit_summary_names
+  if (any(by %in% reserved)) {
+    cli::cli_abort("`by` must not have the same name as a summary column.")
+  }
+}
+
+.nis_audit_validate_sparse_n <- function(sparse_n) {
+  if (!is_valid_suppress_threshold(sparse_n)) {
+    cli::cli_abort("`sparse_n` must be one non-negative whole number.")
   }
 }
 
@@ -63,7 +82,7 @@ utils::globalVariables(".nis_invalid_weight")
   literal_empty <- is.logical(cohort_expression) && length(cohort_expression) == 1L &&
     (is.na(cohort_expression) || identical(cohort_expression, FALSE))
   if (literal_empty) {
-    period <- rlang::sym(by)
+    period <- rlang::sym(by[[1L]])
     # DuckDB requires a column expression; it rejects literal FALSE/NA filters.
     return(dplyr::filter(data, !is.na(!!period) & !!period != !!period))
   }
@@ -94,26 +113,64 @@ utils::globalVariables(".nis_invalid_weight")
   expressions
 }
 
-.nis_audit_empty_output <- function(by, summary) {
-  output <- dplyr::tibble(
-    code_group = character(), n_cohort_unweighted = integer(),
-    n_unweighted = integer(), n_weighted = double(),
-    pct_within_year = double(), yoy_pct_change = double()
+.nis_audit_names <- function(input_names, code_count) {
+  temp <- .nis_audit_temporary_names(input_names, code_count)
+  index <- seq_len(code_count)
+  list(
+    flag = temp[index],
+    cohort = temp[[code_count + 1L]],
+    count = temp[code_count + 1L + index],
+    weight = temp[2L * code_count + 1L + index]
   )
-  output[[by]] <- summary[[by]]
-  dplyr::select(output, !!rlang::sym(by), dplyr::everything())
 }
 
-.nis_audit_group_piece <- function(i, summary, code_groups, cohort_count_name,
-                                   count_names, weight_names, by) {
-  n_cohort <- summary[[cohort_count_name]]
-  n <- summary[[count_names[[i]]]]
-  weighted <- summary[[weight_names[[i]]]]
+.nis_audit_empty_output <- function(by, summary, output) {
+  columns <- if (output == "inventory") {
+    dplyr::tibble(
+      code_group = character(), code = character(),
+      n_cohort_unweighted = integer(), n_unweighted = integer(),
+      n_weighted = double(), status = character()
+    )
+  } else {
+    dplyr::tibble(
+      code_group = character(), n_cohort_unweighted = integer(),
+      n_unweighted = integer(), n_weighted = double(),
+      pct_within_year = double(), yoy_pct_change = double()
+    )
+  }
+  columns[by] <- summary[by]
+  dplyr::select(columns, dplyr::all_of(by), dplyr::everything())
+}
+
+# Periods with a missing component sort after every complete period so they
+# never become the "previous" period of a complete one.
+.nis_audit_order_periods <- function(summary, by) {
+  complete <- stats::complete.cases(summary[by])
+  keys <- c(list(!complete), unname(as.list(summary[by])))
+  summary[do.call(order, keys), , drop = FALSE]
+}
+
+.nis_audit_period_summary <- function(data, temp, weight_var, by) {
+  expressions <- .nis_audit_summary_expressions(
+    temp$flag, temp$count, temp$weight, weight_var, temp$cohort)
+  summary <- data |>
+    dplyr::ungroup() |>
+    dplyr::group_by(!!!rlang::syms(by)) |>
+    dplyr::summarise(!!!expressions, .groups = "drop") |>
+    nis_collect()
+  if (nrow(summary) == 0L) return(summary)
+  .nis_audit_order_periods(summary, by)
+}
+
+.nis_audit_group_piece <- function(i, summary, code_groups, temp, by) {
+  n_cohort <- summary[[temp$cohort]]
+  n <- summary[[temp$count[[i]]]]
+  weighted <- summary[[temp$weight[[i]]]]
   pct <- ifelse(n_cohort == 0, NA_real_, 100 * n / n_cohort)
   previous <- c(NA_real_, pct[-length(pct)])
   change <- ifelse(is.na(previous) | previous == 0, NA_real_,
     100 * (pct - previous) / previous)
-  change[is.na(summary[[by]])] <- NA_real_
+  change[!stats::complete.cases(summary[by])] <- NA_real_
   dplyr::tibble(
     code_group = code_groups[[i]],
     n_cohort_unweighted = as.integer(n_cohort),
@@ -122,6 +179,108 @@ utils::globalVariables(".nis_invalid_weight")
     pct_within_year = as.numeric(pct),
     yoy_pct_change = as.numeric(change)
   )
+}
+
+.nis_audit_bind_periods <- function(pieces, summary, by) {
+  periods <- dplyr::as_tibble(summary[by])
+  periods <- periods[rep(seq_len(nrow(periods)), times = length(pieces)), , drop = FALSE]
+  dplyr::bind_cols(periods, dplyr::bind_rows(pieces))
+}
+
+.nis_audit_flag_summary <- function(data, codes, type, system, weight_var, by) {
+  temp <- .nis_audit_names(nis_names(data), length(codes)) # nolint: object_usage_linter
+  code_groups <- names(codes)
+  names(codes) <- temp$flag
+  flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
+  data <- do.call(flag_function, c(list(.data = data), codes, list(system = system)))
+  summary <- .nis_audit_period_summary(data, temp, weight_var, by)
+  if (nrow(summary) == 0L) return(.nis_audit_empty_output(by, summary, "summary"))
+  pieces <- lapply(seq_along(codes), .nis_audit_group_piece,
+    summary = summary, code_groups = code_groups, temp = temp, by = by)
+  .nis_audit_bind_periods(pieces, summary, by)
+}
+
+.nis_audit_slot_names <- function(data_names, slots, system) {
+  stem <- paste0(if (system == "icd10") "I10_", slots)
+  slot_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
+  if (length(slot_names) == 0L) {
+    cli::cli_abort(paste(
+      "No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} {slots} columns",
+      "({stem}<n>) were found."
+    ))
+  }
+  slot_names
+}
+
+.nis_audit_observed_values <- function(data, slot_names, eligibility) {
+  if (!is.null(eligibility)) data <- dplyr::filter(data, !!eligibility)
+  values <- lapply(slot_names, function(column) {
+    distinct <- dplyr::distinct(dplyr::select(data, dplyr::all_of(column)))
+    as.character(nis_collect(distinct)[[column]])
+  })
+  sort(unique(stats::na.omit(unlist(values))))
+}
+
+.nis_audit_observed_pairs <- function(values, codes) {
+  pairs <- lapply(names(codes), function(group) {
+    prefixes <- normalize_prefixes(codes[[group]])
+    starts <- lapply(prefixes, function(prefix) startsWith(values, prefix))
+    matched <- values[Reduce(`|`, starts)]
+    dplyr::tibble(
+      code_group = rep(group, max(length(matched), 1L)),
+      code = if (length(matched) > 0L) matched else NA_character_
+    )
+  })
+  dplyr::bind_rows(pairs)
+}
+
+.nis_audit_code_flag <- function(code, slot_names, eligibility) {
+  matches <- lapply(slot_names, function(column) {
+    rlang::expr(!!rlang::sym(column) == !!code)
+  })
+  flag <- rlang::expr(dplyr::coalesce(!!reduce_or(matches), FALSE))
+  if (is.null(eligibility)) flag else nis_and_expr(eligibility, flag) # nolint: object_usage_linter
+}
+
+.nis_audit_status <- function(n, sparse_n) {
+  dplyr::case_when(n == 0 ~ "absent", n <= sparse_n ~ "sparse", .default = "observed")
+}
+
+.nis_audit_inventory_piece <- function(row, pairs, unique_codes, summary, temp, sparse_n) {
+  index <- match(pairs$code[[row]], unique_codes)
+  n <- if (is.na(index)) rep(0L, nrow(summary)) else summary[[temp$count[[index]]]]
+  weighted <- if (is.na(index)) rep(0, nrow(summary)) else summary[[temp$weight[[index]]]]
+  dplyr::tibble(
+    code_group = pairs$code_group[[row]],
+    code = pairs$code[[row]],
+    n_cohort_unweighted = as.integer(summary[[temp$cohort]]),
+    n_unweighted = as.integer(n),
+    n_weighted = as.numeric(weighted),
+    status = .nis_audit_status(n, sparse_n)
+  )
+}
+
+.nis_audit_inventory <- function(data, codes, type, system, weight_var, by, sparse_n) {
+  data <- dplyr::ungroup(data)
+  data_names <- nis_names(data) # nolint: object_usage_linter
+  slots <- if (type == "pr") "PR" else "DX"
+  slot_names <- .nis_audit_slot_names(data_names, slots, system)
+  eligibility <- code_system_filter(data, data_names, slots, system)
+  values <- .nis_audit_observed_values(data, slot_names, eligibility)
+  pairs <- .nis_audit_observed_pairs(values, codes)
+  unique_codes <- unique(stats::na.omit(pairs$code))
+
+  temp <- .nis_audit_names(data_names, length(unique_codes))
+  flags <- lapply(unique_codes, .nis_audit_code_flag, slot_names = slot_names,
+    eligibility = eligibility)
+  names(flags) <- temp$flag
+  data <- dplyr::mutate(data, !!!flags)
+  summary <- .nis_audit_period_summary(data, temp, weight_var, by)
+  if (nrow(summary) == 0L) return(.nis_audit_empty_output(by, summary, "inventory"))
+
+  pieces <- lapply(seq_len(nrow(pairs)), .nis_audit_inventory_piece, pairs = pairs,
+    unique_codes = unique_codes, summary = summary, temp = temp, sparse_n = sparse_n)
+  .nis_audit_bind_periods(pieces, summary, by)
 }
 
 #' Audit code-group frequencies across periods
@@ -136,26 +295,56 @@ utils::globalVariables(".nis_invalid_weight")
 #' separate calls for each system. The change compares with the previous
 #' observed period in sorted order.
 #'
+#' `by` may name several columns, such as `c("YEAR", "DQTR")`. A period is
+#' then one observed combination of their values, sorted by the columns in the
+#' order given. A period with a missing value in any component is kept as its
+#' own row, sorted after every complete period, and has no year-over-year
+#' change; it is never the previous period of a complete one. Combinations
+#' that do not occur in the data are not added. For a multi-column `by`, the
+#' change compares consecutive rows in sorted order, so it is a time-trend
+#' measure only when the last column in `by` is the finest time unit and no
+#' other component varies within it.
+#'
+#' With `output = "inventory"`, the function instead lists the full codes
+#' observed in the selected slots that start with each group's prefixes, with
+#' unweighted and weighted discharge counts for every period. A discharge is
+#' counted once per code, even when the code occupies several slots. Each
+#' observed code is listed for every period, so a code that is rare in some
+#' periods or missing from them is visible. `status` is `"absent"` when the
+#' code has no matches in the period, `"sparse"` when its unweighted count is
+#' at least one and at most `sparse_n`, and `"observed"` otherwise. A group
+#' that matches no observed code is returned with `code` missing and status
+#' `"absent"` in every period. Only aggregate counts are returned, so apply
+#' your disclosure rules (see [nis_suppress()]) before sharing them.
+#'
 #' @param .data A data frame or lazy DuckDB query.
 #' @param codes A named character vector or named list of character vectors.
 #'   Each name is a `code_group`; each value contains prefixes. Names must be
 #'   non-empty and unique.
 #' @param cohort Optional tidy-evaluation logical expression defining the
 #'   cohort. Rows where it evaluates to `NA` are excluded.
-#' @param by Name of the column defining periods. Must be one existing column.
+#' @param by Names of one or more existing columns defining periods, with no
+#'   duplicates.
 #' @param type Whether to match diagnosis (`"dx"`) or procedure (`"pr"`)
 #'   slots.
 #' @param system Code system of the slots: `"icd10"` (default) or `"icd9"`.
 #' @param weight_var Name of the survey weight column, defaulting to
 #'   `"DISCWT"`.
 #'   Values in the selected cohort must be finite, non-missing numeric values.
+#' @param output `"summary"` (default) for code-group frequencies or
+#'   `"inventory"` for observed code matches by period.
+#' @param sparse_n Largest unweighted count flagged `"sparse"` in the
+#'   inventory. Defaults to 10, matching [nis_suppress()]. Used only when
+#'   `output = "inventory"`.
 #'
-#' @return A collected tibble with the period column, `code_group`,
-#'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, `pct_within_year`,
-#'   and `yoy_pct_change`. The change is the relative percent change in
-#'   `pct_within_year` versus the previous observed period in sorted order. It
-#'   is `NA` for the first period, a missing period, or when the previous
-#'   period's percentage is zero.
+#' @return A collected tibble. For `output = "summary"`, the period columns
+#'   from `by`, `code_group`, `n_cohort_unweighted`, `n_unweighted`,
+#'   `n_weighted`, `pct_within_year`, and `yoy_pct_change`. The change is the
+#'   relative percent change in `pct_within_year` versus the previous observed
+#'   period in sorted order. It is `NA` for the first period, a period with a
+#'   missing component, or when the previous period's percentage is zero.
+#'   For `output = "inventory"`, the period columns, `code_group`, `code`,
+#'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, and `status`.
 #' @family cohort-definition
 #' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
 #' @export
@@ -168,59 +357,35 @@ utils::globalVariables(".nis_invalid_weight")
 #' nis_audit_code_transition(toy_data,
 #'   codes = c(myectomy = "02UG0JZ", ablation = "02803ZZ"))
 #'
+#' # Observed full codes by period, with absent and sparse periods flagged
+#' nis_audit_code_transition(toy_data,
+#'   codes = c(myectomy = "02UG", ablation = "0280"), output = "inventory")
+#'
+#' # Periods defined by several columns
+#' toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
+#' nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
+#'   by = c("YEAR", "DQTR"))
 nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
                                       type = c("pr", "dx"),
                                       system = c("icd10", "icd9"),
-                                      weight_var = "DISCWT") {
+                                      weight_var = "DISCWT",
+                                      output = c("summary", "inventory"),
+                                      sparse_n = 10L) {
   type <- match.arg(type)
   system <- match.arg(system)
+  output <- match.arg(output)
 
-  .nis_audit_validate_by(.data, by)
-  output_names <- c("code_group", "n_cohort_unweighted", "n_unweighted",
-    "n_weighted", "pct_within_year", "yoy_pct_change")
-  if (by %in% output_names) {
-    cli::cli_abort("`by` must not have the same name as a summary column.")
-  }
+  .nis_audit_validate_by(.data, by, output)
   .nis_audit_validate_weight(.data, weight_var)
+  .nis_audit_validate_sparse_n(sparse_n)
   codes <- .nis_audit_validate_codes(codes)
-  code_groups <- names(codes)
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo, by)
   .nis_audit_check_weight_values(data, weight_var)
 
-  data_names <- nis_names(.data) # nolint: object_usage_linter
-  temp_names <- .nis_audit_temporary_names(data_names, length(codes))
-  flag_names <- temp_names[seq_along(codes)]
-  names(codes) <- flag_names
-  flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
-  data <- do.call(flag_function, c(list(.data = data), codes,
-    list(system = system)))
-
-  cohort_count_name <- temp_names[[length(codes) + 1L]]
-  count_start <- length(codes) + 2L
-  count_names <- temp_names[count_start:(count_start + length(codes) - 1L)]
-  weight_start <- count_start + length(codes)
-  weight_names <- temp_names[weight_start:(weight_start + length(codes) - 1L)]
-
-  expressions <- .nis_audit_summary_expressions(
-    flag_names, count_names, weight_names, weight_var, cohort_count_name)
-  summary <- data |>
-    dplyr::group_by(!!rlang::sym(by)) |>
-    dplyr::summarise(!!!expressions, .groups = "drop") |>
-    nis_collect()
-
-  if (nrow(summary) == 0L) {
-    return(.nis_audit_empty_output(by, summary))
+  if (output == "inventory") {
+    return(.nis_audit_inventory(data, codes, type, system, weight_var, by, sparse_n))
   }
-
-  summary <- summary[order(summary[[by]]), , drop = FALSE]
-  pieces <- lapply(seq_along(codes), .nis_audit_group_piece,
-    summary = summary, code_groups = code_groups,
-    cohort_count_name = cohort_count_name, count_names = count_names,
-    weight_names = weight_names, by = by)
-  output <- dplyr::bind_rows(pieces)
-  output[[by]] <- rep(summary[[by]], times = length(codes))
-  output <- dplyr::select(output, !!rlang::sym(by), dplyr::everything())
-  output[order(match(output$code_group, code_groups), output[[by]]), , drop = FALSE]
+  .nis_audit_flag_summary(data, codes, type, system, weight_var, by)
 }

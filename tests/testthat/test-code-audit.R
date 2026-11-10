@@ -175,3 +175,165 @@ test_that("missing periods have no year-over-year percentage change", {
 
   expect_true(is.na(result$yoy_pct_change[[3L]]))
 })
+
+test_that("multi-column periods are sorted and compare consecutive periods", {
+  data <- dplyr::tibble(
+    YEAR = c(2019L, 2019L, 2020L, 2020L, 2020L, 2020L),
+    DQTR = c(2L, 1L, 1L, 1L, 2L, 2L),
+    I10_PR1 = c("A1", "A1", "A1", "B1", "A1", "A1"),
+    DISCWT = rep(2, 6)
+  )
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"))
+
+  expect_named(result, c("YEAR", "DQTR", "code_group", "n_cohort_unweighted",
+    "n_unweighted", "n_weighted", "pct_within_year", "yoy_pct_change"))
+  expect_equal(result$YEAR, c(2019L, 2019L, 2020L, 2020L))
+  expect_equal(result$DQTR, c(1L, 2L, 1L, 2L))
+  expect_equal(result$n_cohort_unweighted, c(1L, 1L, 2L, 2L))
+  expect_equal(result$pct_within_year, c(100, 100, 50, 100))
+  expect_equal(result$yoy_pct_change, c(NA, 0, -50, 100))
+})
+
+test_that("periods with a missing component stay explicit and never anchor a change", {
+  data <- dplyr::tibble(
+    YEAR = c(2019L, 2019L, 2020L, 2020L),
+    DQTR = c(1L, NA, 1L, NA),
+    I10_PR1 = c("A1", "A1", NA, "A1"),
+    DISCWT = rep(1, 4)
+  )
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"))
+
+  expect_equal(result$YEAR, c(2019L, 2020L, 2019L, 2020L))
+  expect_equal(result$DQTR, c(1L, 1L, NA, NA))
+  expect_equal(result$yoy_pct_change, c(NA, -100, NA, NA))
+})
+
+test_that("multi-column periods agree between data frames and lazy DuckDB", {
+  data <- dplyr::tibble(
+    YEAR = c(2019L, 2019L, 2020L, 2020L, 2020L),
+    DQTR = c(1L, NA, 1L, 2L, 2L),
+    I10_PR1 = c("A1", "A2", "A1", NA, "B1"),
+    DISCWT = c(1, 2, 3, 4, 5)
+  )
+  path <- tempfile("nis-audit-by-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
+  query <- open_duckdb_dataset(path)
+
+  for (output in c("summary", "inventory")) {
+    expect_identical(
+      nis_audit_code_transition(query, c(a = "A"), by = c("YEAR", "DQTR"), output = output),
+      nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"), output = output)
+    )
+  }
+})
+
+test_that("code transition audit validates multi-column periods", {
+  data <- dplyr::tibble(YEAR = 2020L, DQTR = 1L, I10_PR1 = "A1", DISCWT = 1)
+  codes <- c(a = "A")
+
+  expect_error(nis_audit_code_transition(data, codes, by = character()), "`by`")
+  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "YEAR")), "`by`")
+  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "MISSING")), "`by`")
+  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", NA_character_)), "`by`")
+  expect_error(nis_audit_code_transition(data, codes, by = 2020L), "`by`")
+  data$status <- 1L
+  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "status"),
+    output = "inventory"), "summary column")
+  expect_no_error(nis_audit_code_transition(data, codes, by = c("YEAR", "status")))
+})
+
+test_that("code inventory lists observed codes with absent and sparse periods", {
+  data <- dplyr::tibble(
+    YEAR = c(rep(2018L, 3), rep(2019L, 2), rep(2020L, 12)),
+    I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0ZZ", "02803ZZ", "02UG0JZ", rep("02UG0JZ", 12)),
+    I10_PR2 = c(rep(NA_character_, 3), "02UG0JZ", rep(NA_character_, 13)),
+    DISCWT = rep(2, 17)
+  )
+  result <- nis_audit_code_transition(data,
+    c(myectomy = "02UG", ablation = "0280", missing = "ZZZ"),
+    output = "inventory", sparse_n = 2L)
+
+  expect_named(result, c("YEAR", "code_group", "code", "n_cohort_unweighted",
+    "n_unweighted", "n_weighted", "status"))
+  expect_equal(result$code_group, rep(c("myectomy", "myectomy", "ablation", "missing"),
+    each = 3L))
+  expect_equal(result$code[c(1L, 4L, 7L, 10L)],
+    c("02UG0JZ", "02UG0ZZ", "02803ZZ", NA_character_))
+  jz <- result[result$code %in% "02UG0JZ", ]
+  expect_equal(jz$n_unweighted, c(2L, 2L, 12L))
+  expect_equal(jz$n_weighted, c(4, 4, 24))
+  expect_equal(jz$status, c("sparse", "sparse", "observed"))
+  zz <- result[result$code %in% "02UG0ZZ", ]
+  expect_equal(zz$status, c("sparse", "absent", "absent"))
+  ablation <- result[result$code_group == "ablation", ]
+  expect_equal(ablation$n_unweighted, c(0L, 1L, 0L))
+  none <- result[result$code_group == "missing", ]
+  expect_true(all(is.na(none$code)))
+  expect_equal(none$n_unweighted, rep(0L, 3))
+  expect_equal(none$status, rep("absent", 3))
+  expect_equal(result$n_cohort_unweighted[1:3], c(3L, 2L, 12L))
+})
+
+test_that("code inventory counts a discharge once per code and honors the cohort", {
+  data <- dplyr::tibble(
+    YEAR = c(2020L, 2020L, 2020L),
+    I10_DX1 = c("I501", "I509", "I501"),
+    I10_DX2 = c("I501", "I501", "I509"),
+    DISCWT = c(1, 2, 4),
+    AGE = c(50L, 60L, 10L)
+  )
+  all_rows <- nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
+    output = "inventory")
+  expect_equal(all_rows$code, c("I501", "I509"))
+  expect_equal(all_rows$n_unweighted, c(3L, 2L))
+
+  adults <- nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
+    cohort = AGE >= 18, output = "inventory")
+  expect_equal(adults$n_cohort_unweighted, c(2L, 2L))
+  expect_equal(adults$n_unweighted, c(2L, 1L))
+  expect_equal(adults$n_weighted, c(3, 2))
+})
+
+test_that("code inventory tracks multi-column periods and missing components", {
+  data <- dplyr::tibble(
+    YEAR = c(2019L, 2019L, 2020L),
+    DQTR = c(1L, NA, 1L),
+    I10_PR1 = c("A1", "A1", "A2"),
+    DISCWT = rep(1, 3)
+  )
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"),
+    output = "inventory")
+
+  expect_equal(result$code, rep(c("A1", "A2"), each = 3L))
+  expect_equal(result$YEAR, rep(c(2019L, 2020L, 2019L), 2L))
+  expect_equal(result$DQTR, rep(c(1L, 1L, NA), 2L))
+  expect_equal(result$status, c("sparse", "absent", "sparse", "absent", "sparse", "absent"))
+})
+
+test_that("code inventory respects the code system and validates arguments", {
+  data <- dplyr::tibble(
+    YEAR = c(2014L, 2016L),
+    DX1 = c("4280", NA_character_),
+    I10_DX1 = c(NA_character_, "I509"),
+    DISCWT = c(1, 1)
+  )
+  icd9 <- nis_audit_code_transition(data, c(hf = "428"), type = "dx", system = "icd9",
+    output = "inventory")
+  expect_equal(icd9$code, c("4280", "4280"))
+  expect_equal(icd9$n_unweighted, c(1L, 0L))
+  icd10 <- nis_audit_code_transition(data, c(hf = "I50"), type = "dx", output = "inventory")
+  expect_equal(icd10$code, c("I509", "I509"))
+  expect_equal(icd10$n_unweighted, c(0L, 1L))
+
+  expect_error(nis_audit_code_transition(data, c(hf = "I50"), type = "pr", output = "inventory"),
+    "columns")
+  expect_error(nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
+    output = "inventory", sparse_n = -1), "sparse_n")
+  expect_error(nis_audit_code_transition(data, c(hf = "I50"), output = "bogus"), "should be one of")
+  expect_error(nis_audit_code_transition(data, c(hf = "I.50"), type = "dx",
+    output = "inventory"), NA)
+  expect_equal(nrow(nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
+    cohort = FALSE, output = "inventory")), 0L)
+})
