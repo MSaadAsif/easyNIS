@@ -116,16 +116,76 @@ percentage change is relative to the prior observed period; it is
 descriptive and does not explain why coding prevalence changed.</p>
 </div>
 <div class="section level2">
+<h2 id="group-by-several-period-columns">Group by several period columns<a class="anchor" aria-label="anchor" href="#group-by-several-period-columns"></a>
+</h2>
+<p><code>by</code> accepts more than one column. A period is then an
+observed combination, such as year and quarter, sorted in the order
+given. A period with a missing component is kept as its own row after
+the complete periods. No unambiguous year comparison exists for several
+columns, so <code>yoy_pct_change</code> is <code>NA</code> in every row;
+compare <code>pct_within_year</code> across the periods you choose.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">toy</span><span class="op">$</span><span class="va">DQTR</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span>, times <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">toy</span><span class="op">$</span><span class="va">DQTR</span><span class="op">[</span><span class="fl">6</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span></span>
+<span><span class="fu"><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition</a></span><span class="op">(</span></span>
+<span>  <span class="va">toy</span>,</span>
+<span>  codes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"dx"</span>,</span>
+<span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"DQTR"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
+<span><span class="co">#&gt;    YEAR  DQTR code_group    n_cohort_unweighted n_unweighted n_weighted</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018     1 heart_failure                   1            1          1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>018     2 heart_failure                   1            0          0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>019     1 heart_failure                   1            1          1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>019     2 heart_failure                   1            0          0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>020     1 heart_failure                   1            1          1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020    <span style="color: #BB0000;">NA</span> heart_failure                   1            0          0</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: pct_within_year &lt;dbl&gt;, yoy_pct_change &lt;dbl&gt;</span></span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="inventory-observed-codes">Inventory observed codes<a class="anchor" aria-label="anchor" href="#inventory-observed-codes"></a>
+</h2>
+<p><code>output = "inventory"</code> lists the full codes that matched
+each prefix group, with counts for every period. <code>status</code>
+marks a code <code>absent</code> when a period has no matches and
+<code>sparse</code> when its unweighted count is at most
+<code>sparse_n</code> (default 10). A group that matches no observed
+code appears once per period with a missing <code>code</code>. The
+counts are aggregate, so apply your disclosure rules before sharing
+them.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition</a></span><span class="op">(</span></span>
+<span>  <span class="va">toy</span>,</span>
+<span>  codes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span>, diabetes <span class="op">=</span> <span class="st">"E11"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"dx"</span>,</span>
+<span>  output <span class="op">=</span> <span class="st">"inventory"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 9 × 7</span></span></span>
+<span><span class="co">#&gt;    YEAR code_group    code  n_cohort_unweighted n_unweighted n_weighted status</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018 heart_failure I5022                   2            1          1 sparse</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019 heart_failure I5022                   2            0          0 absent</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020 heart_failure I5022                   2            1          1 sparse</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>018 heart_failure I509                    2            0          0 absent</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>019 heart_failure I509                    2            1          1 sparse</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020 heart_failure I509                    2            0          0 absent</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>  <span style="text-decoration: underline;">2</span>018 diabetes      E119                    2            1          1 sparse</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span>  <span style="text-decoration: underline;">2</span>019 diabetes      E119                    2            1          1 sparse</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">9</span>  <span style="text-decoration: underline;">2</span>020 diabetes      E119                    2            1          1 sparse</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="compare-diagnosis-positions">Compare diagnosis positions<a class="anchor" aria-label="anchor" href="#compare-diagnosis-positions"></a>
 </h2>
 <p>Principal and secondary diagnoses can capture different
 presentations. <code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> compares counts and
 selected outcome rates across principal, secondary-only, and
 any-position definitions.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpVqXHXs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp84kyAF/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -133,7 +193,7 @@ any-position definitions.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpVqXHXs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp84kyAF/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -174,6 +234,9 @@ experimental.</p>
 well as a true change in prevalence.</li>
 <li>A zero in an audit means no match in the selected system, not
 absence in a different code system.</li>
+<li>An <code>absent</code> or <code>sparse</code> inventory status
+describes this dataset and cohort; it does not show that a code is
+unused.</li>
 <li>Principal and any-position summaries are nested definitions, not
 independent groups.</li>
 </ul>

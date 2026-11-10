@@ -36,6 +36,68 @@ share of all discharges within the period. A year-over-year percentage
 change is relative to the prior observed period; it is descriptive and
 does not explain why coding prevalence changed.
 
+## Group by several period columns
+
+`by` accepts more than one column. A period is then an observed
+combination, such as year and quarter, sorted in the order given. A
+period with a missing component is kept as its own row after the
+complete periods. No unambiguous year comparison exists for several
+columns, so `yoy_pct_change` is `NA` in every row; compare
+`pct_within_year` across the periods you choose.
+
+``` r
+
+toy$DQTR <- rep(c(1L, 2L), times = 3)
+toy$DQTR[6] <- NA
+nis_audit_code_transition(
+  toy,
+  codes = c(heart_failure = "I50"),
+  type = "dx",
+  by = c("YEAR", "DQTR")
+)
+#> # A tibble: 6 × 8
+#>    YEAR  DQTR code_group    n_cohort_unweighted n_unweighted n_weighted
+#>   <int> <int> <chr>                       <int>        <int>      <dbl>
+#> 1  2018     1 heart_failure                   1            1          1
+#> 2  2018     2 heart_failure                   1            0          0
+#> 3  2019     1 heart_failure                   1            1          1
+#> 4  2019     2 heart_failure                   1            0          0
+#> 5  2020     1 heart_failure                   1            1          1
+#> 6  2020    NA heart_failure                   1            0          0
+#> # ℹ 2 more variables: pct_within_year <dbl>, yoy_pct_change <dbl>
+```
+
+## Inventory observed codes
+
+`output = "inventory"` lists the full codes that matched each prefix
+group, with counts for every period. `status` marks a code `absent` when
+a period has no matches and `sparse` when its unweighted count is at
+most `sparse_n` (default 10). A group that matches no observed code
+appears once per period with a missing `code`. The counts are aggregate,
+so apply your disclosure rules before sharing them.
+
+``` r
+
+nis_audit_code_transition(
+  toy,
+  codes = c(heart_failure = "I50", diabetes = "E11"),
+  type = "dx",
+  output = "inventory"
+)
+#> # A tibble: 9 × 7
+#>    YEAR code_group    code  n_cohort_unweighted n_unweighted n_weighted status
+#>   <int> <chr>         <chr>               <int>        <int>      <dbl> <chr> 
+#> 1  2018 heart_failure I5022                   2            1          1 sparse
+#> 2  2019 heart_failure I5022                   2            0          0 absent
+#> 3  2020 heart_failure I5022                   2            1          1 sparse
+#> 4  2018 heart_failure I509                    2            0          0 absent
+#> 5  2019 heart_failure I509                    2            1          1 sparse
+#> 6  2020 heart_failure I509                    2            0          0 absent
+#> 7  2018 diabetes      E119                    2            1          1 sparse
+#> 8  2019 diabetes      E119                    2            1          1 sparse
+#> 9  2020 diabetes      E119                    2            1          1 sparse
+```
+
 ## Compare diagnosis positions
 
 Principal and secondary diagnoses can capture different presentations.
@@ -47,7 +109,7 @@ secondary-only, and any-position definitions.
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpVqXHXs/duckdb
+#> ℹ /tmp/Rtmp84kyAF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -55,7 +117,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpVqXHXs/duckdb
+#> ℹ /tmp/Rtmp84kyAF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -94,6 +156,8 @@ experimental.
 >   well as a true change in prevalence.
 > - A zero in an audit means no match in the selected system, not
 >   absence in a different code system.
+> - An `absent` or `sparse` inventory status describes this dataset and
+>   cohort; it does not show that a code is unused.
 > - Principal and any-position summaries are nested definitions, not
 >   independent groups.
 

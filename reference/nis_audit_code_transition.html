@@ -90,7 +90,9 @@ observed period in sorted order.</p>
 <span>  by <span class="op">=</span> <span class="st">"YEAR"</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pr"</span>, <span class="st">"dx"</span><span class="op">)</span>,</span>
 <span>  system <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"icd10"</span>, <span class="st">"icd9"</span><span class="op">)</span>,</span>
-<span>  weight_var <span class="op">=</span> <span class="st">"DISCWT"</span></span>
+<span>  weight_var <span class="op">=</span> <span class="st">"DISCWT"</span>,</span>
+<span>  output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"summary"</span>, <span class="st">"inventory"</span><span class="op">)</span>,</span>
+<span>  sparse_n <span class="op">=</span> <span class="fl">10L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -114,7 +116,8 @@ cohort. Rows where it evaluates to <code>NA</code> are excluded.</p></dd>
 
 
 <dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>
-<dd><p>Name of the column defining periods. Must be one existing column.</p></dd>
+<dd><p>Names of one or more existing columns defining periods, with no
+duplicates.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
@@ -131,15 +134,54 @@ slots.</p></dd>
 <code>"DISCWT"</code>.
 Values in the selected cohort must be finite, non-missing numeric values.</p></dd>
 
+
+<dt id="arg-output">output<a class="anchor" aria-label="anchor" href="#arg-output"></a></dt>
+<dd><p><code>"summary"</code> (default) for code-group frequencies or
+<code>"inventory"</code> for observed code matches by period.</p></dd>
+
+
+<dt id="arg-sparse-n">sparse_n<a class="anchor" aria-label="anchor" href="#arg-sparse-n"></a></dt>
+<dd><p>Largest unweighted count flagged <code>"sparse"</code> in the
+inventory. Defaults to 10, matching <code><a href="nis_suppress.html">nis_suppress()</a></code>. Used only when
+<code>output = "inventory"</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A collected tibble with the period column, <code>code_group</code>,
-<code>n_cohort_unweighted</code>, <code>n_unweighted</code>, <code>n_weighted</code>, <code>pct_within_year</code>,
-and <code>yoy_pct_change</code>. The change is the relative percent change in
-<code>pct_within_year</code> versus the previous observed period in sorted order. It
-is <code>NA</code> for the first period, a missing period, or when the previous
-period's percentage is zero.</p>
+    <p>A collected tibble. For <code>output = "summary"</code>, the period columns
+from <code>by</code>, <code>code_group</code>, <code>n_cohort_unweighted</code>, <code>n_unweighted</code>,
+<code>n_weighted</code>, <code>pct_within_year</code>, and <code>yoy_pct_change</code>. The change is the
+relative percent change in <code>pct_within_year</code> versus the previous observed
+period in sorted order. It is <code>NA</code> for the first period, a period with a
+missing value, when the previous period's percentage is zero, and in every
+row when <code>by</code> names more than one column.
+For <code>output = "inventory"</code>, the period columns, <code>code_group</code>, <code>code</code>,
+<code>n_cohort_unweighted</code>, <code>n_unweighted</code>, <code>n_weighted</code>, and <code>status</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p><code>by</code> may name several columns, such as <code>c("YEAR", "DQTR")</code>. A period is
+then one observed combination of their values, sorted by the columns in the
+order given. A period with a missing value in any component is kept as its
+own row, sorted after every complete period. Combinations that do not occur
+in the data are not added. With several columns, no unambiguous year
+comparison can be inferred, because adjacent combinations may be quarters
+of one year or the boundary between two other components. <code>yoy_pct_change</code>
+is therefore <code>NA</code> in every row; compare <code>pct_within_year</code> across the
+periods you care about instead.</p>
+<p>With <code>output = "inventory"</code>, the function instead lists the full codes
+observed in the selected slots that start with each group's prefixes, with
+unweighted and weighted discharge counts for every period. A discharge is
+counted once per code, even when the code occupies several slots. Each
+observed code is listed for every period, so a code that is rare in some
+periods or missing from them is visible. <code>status</code> is <code>"absent"</code> when the
+code has no matches in the period, <code>"sparse"</code> when its unweighted count is
+at least one and at most <code>sparse_n</code>, and <code>"observed"</code> otherwise. A group
+that matches no observed code is returned with <code>code</code> missing and status
+<code>"absent"</code> in every period. Counts are aggregated in the database for lazy
+inputs, so only period-by-code counts are collected, however many codes a
+prefix matches. The counts are exact, so apply your disclosure rules (see
+<code><a href="nis_suppress.html">nis_suppress()</a></code>) before sharing them.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -175,6 +217,33 @@ period's percentage is zero.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020 ablation                     2            2         10             100</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 1 more variable: yoy_pct_change &lt;dbl&gt;</span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Observed full codes by period, with absent and sparse periods flagged</span></span></span>
+<span class="r-in"><span><span class="fu">nis_audit_code_transition</span><span class="op">(</span><span class="va">toy_data</span>,</span></span>
+<span class="r-in"><span>  codes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>myectomy <span class="op">=</span> <span class="st">"02UG"</span>, ablation <span class="op">=</span> <span class="st">"0280"</span><span class="op">)</span>, output <span class="op">=</span> <span class="st">"inventory"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    YEAR code_group code    n_cohort_unweighted n_unweighted n_weighted status</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018 myectomy   02UG0JZ                   2            2         10 sparse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019 myectomy   02UG0JZ                   2            1          5 sparse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020 myectomy   02UG0JZ                   2            0          0 absent</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>018 ablation   02803ZZ                   2            0          0 absent</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>019 ablation   02803ZZ                   2            1          5 sparse</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020 ablation   02803ZZ                   2            2         10 sparse</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Periods defined by several columns</span></span></span>
+<span class="r-in"><span><span class="va">toy_data</span><span class="op">$</span><span class="va">DQTR</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">nis_audit_code_transition</span><span class="op">(</span><span class="va">toy_data</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>myectomy <span class="op">=</span> <span class="st">"02UG0JZ"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"DQTR"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    YEAR  DQTR code_group n_cohort_unweighted n_unweighted n_weighted</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018     1 myectomy                     1            1          5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>018     2 myectomy                     1            1          5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>019     1 myectomy                     1            1          5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>019     2 myectomy                     1            0          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>020     1 myectomy                     1            0          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>020     2 myectomy                     1            0          0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 2 more variables: pct_within_year &lt;dbl&gt;, yoy_pct_change &lt;dbl&gt;</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
