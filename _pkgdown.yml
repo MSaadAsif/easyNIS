@@ -62,6 +62,8 @@ reference:
     contents:
       - nis_design
       - nis_reweight
+      - nis_margins
+      - nis_rate
   - title: 4. Add analysis variables
     desc: Compute comorbidity indicators and inflation-adjusted costs.
     contents:

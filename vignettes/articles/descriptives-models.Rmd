@@ -20,14 +20,14 @@ summary and model.
 
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(death = as.integer(DIED))
+  nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, death, heart_failure),
+  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
   annualize = TRUE
-)
+) |>
+  dplyr::mutate(death = as.integer(DIED == "Yes"))
 ```
 
 The design contains adult cohort rows. For hospital-years with no cohort rows,
@@ -74,6 +74,13 @@ disclosure-cleared.
 ## Fit a survey-weighted model
 
 `survey::svyglm()` fits generalized linear models using the design.
+Include a design-column offset in the formula, such as
+`offset(log(person_time))`, so the offset is evaluated for each design row.
+For an offset vector supplied separately to `svyglm()`, `nis_margins()` maps
+values by row names when you request a subset or reordering of the fitted
+design; unmappable offsets produce an error. A separately supplied offset
+expression cannot combine design columns with external variables. Put the full
+offset in design columns or pass the full offset as one external vector.
 
 ```{r model, eval=rlang::is_installed("survey")}
 fit <- survey::svyglm(
@@ -82,6 +89,17 @@ fit <- survey::svyglm(
   family = quasibinomial()
 )
 summary(fit)
+```
+
+Use `nis_margins()` to report counterfactual adjusted probabilities by exposure
+level and contrasts against the first observed level. `nis_rate()` reports the
+weighted event total, denominator, proportion, uncertainty, and unweighted
+count. Pass its output through `nis_suppress()` before reporting cells where
+disclosure rules apply.
+
+```{r margins-rate, eval=rlang::is_installed("survey")}
+nis_margins(fit, heart_failure)
+nis_rate(design, death, by = heart_failure)
 ```
 
 Coefficients describe model associations under the survey design; they do not
