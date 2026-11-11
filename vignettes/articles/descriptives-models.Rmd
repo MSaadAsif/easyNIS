@@ -74,6 +74,11 @@ disclosure-cleared.
 ## Fit a survey-weighted model
 
 `survey::svyglm()` fits generalized linear models using the design.
+Include a design-column offset in the formula, such as
+`offset(log(person_time))`, so the offset is evaluated for each design row.
+For an offset vector supplied separately to `svyglm()`, `nis_margins()` maps
+values by row names when you request a subset or reordering of the fitted
+design; unmappable offsets produce an error.
 
 ```{r model, eval=rlang::is_installed("survey")}
 fit <- survey::svyglm(

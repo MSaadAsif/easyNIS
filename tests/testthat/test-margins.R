@@ -98,6 +98,28 @@ test_that("nis_margins retains offsets in point predictions and gradients", {
     tolerance = 1e-8)
 })
 
+test_that("nis_margins keeps design-column offsets in supplied row order", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    y = c(1, 2, 3, 4, 2, 6),
+    x = factor(rep(c("a", "b"), 3)),
+    off = log(c(1, 2, 3, 1, 4, 2)),
+    w = 1:6
+  )
+  design <- survey::svydesign(ids = ~1, weights = ~w, data = data)
+  external_fit <- survey::svyglm(y ~ x, design, offset = off,
+    family = stats::quasipoisson())
+  formula_fit <- survey::svyglm(y ~ x + offset(off), design,
+    family = stats::quasipoisson())
+  reordered <- design[6:1, ]
+
+  result <- nis_margins(external_fit, x, design = reordered)
+  reference <- nis_margins(formula_fit, x, design = reordered)
+
+  expect_equal(result$margin, reference$margin, tolerance = 1e-10)
+  expect_equal(result$se, reference$se, tolerance = 1e-10)
+})
+
 test_that("nis_margins aligns weights after excluding missing predictors", {
   skip_if_not_installed("survey")
   data <- data.frame(
@@ -135,6 +157,7 @@ test_that("nis_margins aligns external offsets after missing predictors", {
     w = c(1, 100, 2, 3, 4, 200, 2, 1),
     id = seq_len(8)
   )
+  rownames(data) <- paste0("case-", seq_len(nrow(data)))
   external_offset <- data$offset_value
   design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
   external_fit <- survey::svyglm(y ~ x + z, design,
@@ -167,6 +190,18 @@ test_that("nis_margins aligns external offsets after missing predictors", {
   expect_equal(reordered_result$margin, reordered_reference$margin,
     tolerance = 1e-10)
   expect_equal(reordered_result$se, reordered_reference$se,
+    tolerance = 1e-10)
+  excluded_fit <- survey::svyglm(y ~ x + z, design,
+    family = stats::quasibinomial(), offset = external_offset,
+    na.action = stats::na.exclude)
+  excluded_reference <- survey::svyglm(y ~ x + z + offset(offset_value),
+    design, family = stats::quasibinomial(), na.action = stats::na.exclude)
+  excluded_result <- nis_margins(excluded_fit, x, design = reordered_design)
+  excluded_expected <- nis_margins(excluded_reference, x,
+    design = reordered_design)
+  expect_equal(excluded_result$margin, excluded_expected$margin,
+    tolerance = 1e-10)
+  expect_equal(excluded_result$se, excluded_expected$se,
     tolerance = 1e-10)
   expect_error(nis_margins(external_fit, x, design = unmapped_design),
     "Cannot map the external model offset to design rows by row identity")

@@ -53,7 +53,8 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
     if (!is.null(call_offset)) {
       formula_env <- environment(stats::formula(fit))
       extra_offset <- eval(call_offset, envir = nd, enclos = formula_env)
-      extra_offset <- .nis_margin_align_offset(fit, extra_offset, nd)
+      extra_offset <- .nis_margin_align_offset(fit, extra_offset, nd,
+        call_offset)
       offset <- offset + extra_offset
     }
     keep <- stats::complete.cases(mm) & is.finite(offset) &
@@ -104,9 +105,15 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   out
 }
 
-.nis_margin_align_offset <- function(fit, offset, data) {
+.nis_margin_align_offset <- function(fit, offset, data, expression = NULL) {
   if (!is.numeric(offset) || !is.null(dim(offset))) {
     cli::cli_abort("The external model offset must be a numeric vector.")
+  }
+  # Expressions that refer to design columns were just evaluated against this
+  # design's data, so their values are already in the requested row order.
+  if (!is.null(expression) &&
+      any(all.vars(expression) %in% names(data))) {
+    return(as.numeric(offset))
   }
   data_rows <- .nis_margin_row_names(data)
   aligned <- .nis_margin_map_offset(offset, data_rows, names(offset))
