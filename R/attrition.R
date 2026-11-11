@@ -132,7 +132,7 @@
 #' aggregated lazily for DuckDB queries and returned as a collected tibble.
 #' Missing weights contribute zero to weighted totals.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named logical expressions applied cumulatively. Unnamed
 #'   expressions use their deparsed text as the criterion label.
 #' @param by_year If `TRUE`, calculate each step within `YEAR`.

@@ -17,6 +17,7 @@
 ^vignettes/articles($|[/\\])
 ^local-data($|[/\\])
 ^local$
+^man-roxygen($|[/\\])
 ^private($|[/\\])
 ^worktrees($|[/\\])
 ^easyNIS\.Rcheck($|[/\\])
