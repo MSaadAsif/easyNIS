@@ -20,14 +20,14 @@ summary and model.
 
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(death = as.integer(DIED == "Yes"))
+  nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, death, heart_failure),
+  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
   annualize = TRUE
-)
+) |>
+  dplyr::mutate(death = as.integer(DIED == "Yes"))
 ```
 
 The design contains adult cohort rows. For hospital-years with no cohort rows,

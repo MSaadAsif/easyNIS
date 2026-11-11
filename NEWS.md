@@ -1,6 +1,10 @@
 # easyNIS (development version)
 
 - Add design-based predictive margins and weighted event-rate summaries.
+- Predictive margins retain model offsets and align their averaging weights to
+  rows with complete model predictors. Grouped event rates now return survey
+  confidence intervals, valid unweighted group counts, and support non-syntactic
+  grouping names without overwriting result statistics.
 - `nis_design()`, `nis_attrition()`, and `nis_dx_sensitivity()` no longer
   trigger dbplyr's "Missing values are always removed in SQL aggregation
   functions" warning on lazy DuckDB inputs. Results are unchanged.

@@ -25,7 +25,10 @@ Predictive margins for a survey regression
 \details{
 For each exposure level, this function predicts every design row
 after setting the exposure to that level, then averages predictions using
-normalized survey weights. The standard error is the square root of
+normalized survey weights among rows with complete model predictors and
+finite positive sampling weights; this same standardization sample is used
+for every exposure level. Rows missing a predictor or offset are excluded.
+Model offsets are retained. The standard error is the square root of
 \verb{g' V g}, where \code{V} is \code{vcov(fit)} and \code{g} is the weighted mean of the
 prediction gradient with respect to the fitted coefficients. Confidence
 intervals use a t critical value with \code{survey::degf(design)} degrees of

@@ -25,6 +25,23 @@ test_that("nis_rate accepts synthetic indicators derived from labeled outcomes",
   expect_equal(result$proportion, c(2 / 3, 4 / 7))
 })
 
+test_that("the descriptives article derives death after nis_design labels DIED", {
+  nis <- nis_open(nis_example(years = 2019:2020)) |>
+    nis_flag_dx(heart_failure = "I50")
+  design <- nis_design(
+    nis,
+    cohort = AGE >= 18,
+    keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
+    annualize = TRUE
+  ) |>
+    dplyr::mutate(death = as.integer(DIED == "Yes"))
+
+  expect_true(is.factor(design$variables$DIED))
+  expect_equal(design$variables$death,
+    as.integer(design$variables$DIED == "Yes"))
+  expect_true(any(!is.na(design$variables$death)))
+})
+
 test_that("nis_margins returns counterfactual margins and contrasts", {
   skip_if_not_installed("survey")
   set.seed(42)
@@ -37,4 +54,130 @@ test_that("nis_margins returns counterfactual margins and contrasts", {
     c(mean(predict(fit, newdata = transform(data, x = "a"))),
       mean(predict(fit, newdata = transform(data, x = "b")))), tolerance = 0.05)
   expect_true(all(c("difference", "ratio") %in% result$contrast))
+})
+
+test_that("nis_margins retains offsets in point predictions and gradients", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    y = c(2, 2, 3, 3, 2, 2, 3, 3),
+    x = factor(c("a", "a", "b", "b", "a", "a", "b", "b")),
+    t = rep(2, 8),
+    w = c(1, 2, 1, 2, 2, 1, 2, 1),
+    id = seq_len(8)
+  )
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+  fit <- survey::svyglm(y ~ x + offset(log(t)), design,
+    family = stats::poisson())
+  result <- nis_margins(fit, x)
+  estimates <- result$margin[result$contrast == "margin"]
+  expected <- vapply(levels(data$x), function(value) {
+    counterfactual <- data
+    counterfactual$x <- value
+    terms <- stats::delete.response(stats::terms(fit))
+    model_matrix <- stats::model.matrix(terms, counterfactual,
+      contrasts.arg = fit$contrasts, xlev = fit$xlevels)
+    model_matrix <- model_matrix[, names(stats::coef(fit)), drop = FALSE]
+    eta <- drop(model_matrix %*% stats::coef(fit)) + log(counterfactual$t)
+    weighted.mean(fit$family$linkinv(eta), counterfactual$w)
+  }, numeric(1))
+
+  expect_equal(unname(estimates), unname(expected), tolerance = 1e-8)
+  expect_equal(estimates, c(2, 3), tolerance = 1e-8)
+  first <- data
+  first$x <- levels(data$x)[[1]]
+  terms <- stats::delete.response(stats::terms(fit))
+  model_matrix <- stats::model.matrix(terms, first,
+    contrasts.arg = fit$contrasts, xlev = fit$xlevels)
+  model_matrix <- model_matrix[, names(stats::coef(fit)), drop = FALSE]
+  eta <- drop(model_matrix %*% stats::coef(fit)) + log(first$t)
+  gradient <- model_matrix * fit$family$mu.eta(eta)
+  average_gradient <- colSums(gradient * first$w) / sum(first$w)
+  expected_se <- sqrt(drop(average_gradient %*% stats::vcov(fit) %*%
+    average_gradient))
+  expect_equal(result$se[result$contrast == "margin"][[1]], expected_se,
+    tolerance = 1e-8)
+})
+
+test_that("nis_margins aligns weights after excluding missing predictors", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    y = c(0, 1, 1, 0, 0, 1),
+    x = factor(c("a", "a", "b", "b", "a", "b")),
+    z = c(1, NA, 0, 1, 2, NA),
+    w = c(1, 100, 2, 3, 4, 200),
+    id = seq_len(6)
+  )
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+  fit <- survey::svyglm(y ~ x + z, design, family = stats::quasibinomial())
+  result <- nis_margins(fit, x)
+  keep <- stats::complete.cases(data[c("x", "z")])
+  complete <- data[keep, ]
+  expected <- vapply(levels(data$x), function(value) {
+    counterfactual <- complete
+    counterfactual$x <- value
+    prediction <- stats::predict(fit, newdata = counterfactual,
+      type = "response")
+    weighted.mean(prediction, complete$w)
+  }, numeric(1))
+
+  expect_equal(unname(result$margin[result$contrast == "margin"]),
+    unname(expected), tolerance = 1e-8)
+  expect_true(all(is.finite(result$se[result$contrast == "margin"])))
+})
+
+test_that("nis_rate uses survey interval columns rather than grouping names", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    event = c(0, 1, 1, 0, 1, 0, 1, 0),
+    city = factor(rep(c("north", "south"), each = 4)),
+    w = c(1, 2, 3, 2, 2, 1, 1, 3),
+    id = seq_len(8)
+  )
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+  result <- nis_rate(design, event, by = city)
+  reference <- survey::svyby(~event, ~city, design, survey::svyciprop,
+    vartype = "ci", method = "beta")
+
+  reference <- as.data.frame(reference)
+  expect_equal(result$conf.low, reference$ci_l)
+  expect_equal(result$conf.high, reference$ci_u)
+})
+
+test_that("nis_rate counts valid non-missing groups and accepts string names", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    event = c(0, 1, 1, 0, 1, 1),
+    check.names = FALSE,
+    "risk group" = c("low", "low", "high", "high", NA, NA),
+    w = c(1, 2, 3, 1, 50, 60),
+    id = seq_len(6)
+  )
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+  result <- nis_rate(design, event, by = "risk group")
+
+  expect_identical(result[["risk group"]], c("high", "low"))
+  expect_equal(result$n, c(2L, 2L))
+  expect_equal(result$weighted_n, c(4, 3))
+})
+
+test_that("nis_rate preserves numeric outputs when a group name is reserved", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    event = c(0, 1, 1, 0, 1, 0),
+    proportion = factor(c("low", "low", "high", "high", "low", "high"),
+      levels = c("low", "high")),
+    label = factor(c("first", "first", "second", "second", "first", "second")),
+    w = c(1, 2, 3, 4, 2, 1),
+    id = seq_len(6)
+  )
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+  proportion_result <- nis_rate(design, event, by = proportion)
+  label_result <- nis_rate(design, event, by = label)
+
+  expect_identical(proportion_result$.group, c("low", "high"))
+  expect_true(is.numeric(proportion_result$proportion))
+  expect_equal(proportion_result$proportion, c(4 / 5, 3 / 8))
+  expect_identical(label_result$.group, c("first", "second"))
+  expect_true(all(grepl("/", label_result$label, fixed = TRUE)))
+  expect_true(all(is.finite(label_result$weighted_n)))
 })

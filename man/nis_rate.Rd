@@ -25,6 +25,8 @@ The proportion is the weighted event total divided by the weighted
 non-missing denominator. Its standard error and confidence interval are
 estimated with \code{survey::svyciprop(method = "beta")} on each group domain.
 Use \code{\link[=nis_suppress]{nis_suppress()}} on the returned table before reporting where required.
+The grouping column keeps its input name unless that name conflicts with a
+result column; in that case it is returned as \code{.group} (or \code{.group1}, etc.).
 }
 \examples{
 d <- survey::svydesign(ids = ~1, weights = ~w,
