@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- Reuse a shared roxygen template for repeated `.data` parameter
+  documentation.
 - `nis_design()`, `nis_attrition()`, and `nis_dx_sensitivity()` no longer
   trigger dbplyr's "Missing values are always removed in SQL aggregation
   functions" warning on lazy DuckDB inputs. Results are unchanged.

@@ -281,7 +281,7 @@ nis_open_warn_2023 <- function(query) {
 #' ICD-10 crosswalk, and even with both code sets, counts of a condition can
 #' break at the transition.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
@@ -318,7 +318,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' match slots of the chosen system, so a flag over a mixed 2015 query is
 #' `FALSE` on discharges coded in the other system.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `ablation = "02L"`.
 #' @param position Slots to check: all slots or the principal slot only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
