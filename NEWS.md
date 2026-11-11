@@ -123,6 +123,8 @@
 
 ## Maintenance
 
+- Readiness keeps the no-open-P0/P1-issues gate unmet when either issue query
+  fails or returns invalid JSON.
 - Readiness finds CI runs by the current commit SHA, so successful checks on
   another branch at the same commit are recognized while all existing success
   requirements remain in place.

@@ -275,7 +275,9 @@ parse_open_issue_query <- function(output, status = 0L) {
   if (length(status) && status != 0L || !length(output)) {
     return(list(ok = FALSE, count = NA_integer_))
   }
-  issues <- tryCatch(jsonlite::fromJSON(paste(output, collapse = "\n"),
+  json <- paste(output, collapse = "\n")
+  if (!startsWith(trimws(json), "[")) return(list(ok = FALSE, count = NA_integer_))
+  issues <- tryCatch(jsonlite::fromJSON(json,
     simplifyVector = FALSE), error = function(e) NULL)
   if (!is.list(issues)) return(list(ok = FALSE, count = NA_integer_))
   list(ok = TRUE, count = length(issues))

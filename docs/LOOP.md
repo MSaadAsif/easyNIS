@@ -22,7 +22,9 @@
 2. Run `& $env:EASYNIS_RSCRIPT tools/probe/test-probe-helpers.R`, then
    `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --self-test`. Run
    `& $env:EASYNIS_RSCRIPT tools/probe/readiness.R` and inspect its cyclocomp
-   gate and the violation report from `probe-quality.R`. Keep
+   gate and the violation report from `probe-quality.R`. The no-open-P0/P1
+   issues gate stays unmet if either GitHub issue query fails or returns
+   invalid JSON. Keep
    `cyclocomp_linter(15)` out of `.lintr` until the final violation is cleared;
    add it in the PR that clears that violation.
 3. Turn actionable findings into GitHub issues using
