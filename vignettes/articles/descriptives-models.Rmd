@@ -21,7 +21,7 @@ summary and model.
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(death = as.integer(DIED))
+  dplyr::mutate(death = as.integer(DIED == "Yes"))
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
@@ -92,7 +92,7 @@ disclosure rules apply.
 
 ```{r margins-rate, eval=rlang::is_installed("survey")}
 nis_margins(fit, heart_failure)
-nis_rate(design, DIED, by = heart_failure)
+nis_rate(design, death, by = heart_failure)
 ```
 
 Coefficients describe model associations under the survey design; they do not

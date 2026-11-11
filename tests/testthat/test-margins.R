@@ -12,6 +12,19 @@ test_that("nis_rate agrees with survey totals and proportions", {
   expect_equal(result$label[1], "5/6 (83.33%)")
 })
 
+test_that("nis_rate accepts synthetic indicators derived from labeled outcomes", {
+  skip_if_not_installed("survey")
+  data <- data.frame(DIED = factor(c("No", "Yes", "No", "Yes")),
+    group = rep(c("a", "b"), each = 2), w = c(1, 2, 3, 4), id = 1:4)
+  data$death <- as.integer(data$DIED == "Yes")
+  design <- survey::svydesign(ids = ~id, weights = ~w, data = data)
+
+  result <- nis_rate(design, death, by = group)
+
+  expect_equal(result$weighted_events, c(2, 4))
+  expect_equal(result$proportion, c(2 / 3, 4 / 7))
+})
+
 test_that("nis_margins returns counterfactual margins and contrasts", {
   skip_if_not_installed("survey")
   set.seed(42)

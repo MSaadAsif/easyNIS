@@ -24,19 +24,19 @@
 #' fit <- survey::svyglm(y ~ x, d, family = quasibinomial())
 #' nis_margins(fit, x)
 nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
-  if (!inherits(fit, "svyglm")) cli::cli_abort("`fit` must be a survey::svyglm() fit.")
-  if (length(level) != 1L || is.na(level) || level <= 0 || level >= 1) cli::cli_abort("`level` must be between 0 and 1.")
   exp_name <- rlang::as_name(rlang::ensym(exposure))
-  design <- if (is.null(design)) fit$survey.design else design
-  if (!inherits(design, "survey.design") && !inherits(design, "survey.design2")) cli::cli_abort("`design` must be a survey design.")
-  data <- design$variables
-  if (!exp_name %in% names(data)) cli::cli_abort("`exposure` must be present in the design.")
-  values <- unique(data[[exp_name]][!is.na(data[[exp_name]])])
-  if (length(values) < 2L) cli::cli_abort("`exposure` must have at least two observed levels.")
-  b <- stats::coef(fit); v <- stats::vcov(fit)
-  w <- as.numeric(stats::weights(design, type = "sampling")); w[!is.finite(w)] <- 0
+  inputs <- .nis_margin_inputs(fit, exp_name, design, level)
+  design <- inputs$design
+  exp_name <- inputs$exp_name
+  data <- inputs$data
+  values <- inputs$values
+  b <- stats::coef(fit)
+  v <- stats::vcov(fit)
+  w <- as.numeric(stats::weights(design, type = "sampling"))
+  w[!is.finite(w)] <- 0
   predict_one <- function(value) {
-    nd <- data; nd[[exp_name]] <- value
+    nd <- data
+    nd[[exp_name]] <- value
     mm <- stats::model.matrix(stats::delete.response(stats::terms(fit)), nd,
       contrasts.arg = fit$contrasts, xlev = fit$xlevels)
     mm <- mm[, names(b), drop = FALSE]
@@ -51,8 +51,9 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   gradients <- est[, -1, drop = FALSE]
   est <- est[, 1]
   margin_se <- sqrt(rowSums((gradients %*% v) * gradients))
-  df <- survey::degf(design); crit <- stats::qt((1 + level) / 2, df)
-  margin <- tibble::tibble(level = values, margin = est, se = margin_se,
+  df <- survey::degf(design)
+  crit <- stats::qt((1 + level) / 2, df)
+  margin <- dplyr::tibble(level = values, margin = est, se = margin_se,
     conf.low = est - crit * margin_se, conf.high = est + crit * margin_se, contrast = "margin")
   base <- est[1]
   base_g <- gradients[1, ]
@@ -67,12 +68,42 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   rgrad <- rgrad - matrix(base_g / base, nrow(rgrad), length(base_g), byrow = TRUE)
   rse[positive] <- sqrt(rowSums((rgrad %*% v) * rgrad))
   contrasts <- dplyr::bind_rows(
-    tibble::tibble(level = values, margin = dif, se = dse, conf.low = dif - crit*dse, conf.high = dif + crit*dse, contrast = "difference"),
-    tibble::tibble(level = values, margin = ratio, se = ratio*rse, conf.low = exp(log(ratio)-crit*rse), conf.high = exp(log(ratio)+crit*rse), contrast = "ratio"))
+    dplyr::tibble(level = values, margin = dif, se = dse,
+      conf.low = dif - crit * dse, conf.high = dif + crit * dse,
+      contrast = "difference"),
+    dplyr::tibble(level = values, margin = ratio, se = ratio * rse,
+      conf.low = exp(log(ratio) - crit * rse),
+      conf.high = exp(log(ratio) + crit * rse), contrast = "ratio"))
   out <- dplyr::bind_rows(margin, contrasts)
   attr(out, "model_n") <- stats::nobs(fit)
   attr(out, "events") <- if (is.matrix(fit$y)) sum(fit$y[, 1]) else sum(fit$y, na.rm = TRUE)
   out
+}
+
+.nis_margin_inputs <- function(fit, exp_name, design, level) {
+  .nis_margin_validate_fit(fit, level)
+  design <- if (is.null(design)) fit$survey.design else design
+  if (!inherits(design, c("survey.design", "survey.design2"))) {
+    cli::cli_abort("`design` must be a survey design.")
+  }
+  data <- design$variables
+  if (!exp_name %in% names(data)) {
+    cli::cli_abort("`exposure` must be present in the design.")
+  }
+  values <- unique(data[[exp_name]][!is.na(data[[exp_name]])])
+  if (length(values) < 2L) {
+    cli::cli_abort("`exposure` must have at least two observed levels.")
+  }
+  list(design = design, exp_name = exp_name, data = data, values = values)
+}
+
+.nis_margin_validate_fit <- function(fit, level) {
+  if (!inherits(fit, "svyglm")) {
+    cli::cli_abort("`fit` must be a survey::svyglm() fit.")
+  }
+  if (length(level) != 1L || is.na(level) || level <= 0 || level >= 1) {
+    cli::cli_abort("`level` must be between 0 and 1.")
+  }
 }
 
 #' Estimate weighted event rates
@@ -92,15 +123,21 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
 #'   data = data.frame(event = c(0, 1, 1), w = c(1, 2, 3)))
 #' nis_rate(d, event)
 nis_rate <- function(design, event, by = NULL) {
-  if (!inherits(design, c("survey.design", "survey.design2", "tbl_svy"))) cli::cli_abort("`design` must be a survey design.")
-  ev <- rlang::as_name(rlang::ensym(event)); grp <- if (missing(by) || rlang::quo_is_null(rlang::enquo(by))) NULL else rlang::as_name(rlang::ensym(by))
+  if (!inherits(design, c("survey.design", "survey.design2", "tbl_svy"))) {
+    cli::cli_abort("`design` must be a survey design.")
+  }
+  ev <- rlang::as_name(rlang::ensym(event))
+  grp <- if (missing(by) || rlang::quo_is_null(rlang::enquo(by))) {
+    NULL
+  } else {
+    rlang::as_name(rlang::ensym(by))
+  }
   data <- design$variables
   if (!ev %in% names(data) || (!is.null(grp) && !grp %in% names(data))) {
     cli::cli_abort("Requested columns must be present in the design.")
   }
   raw_event <- data[[ev]]
-  valid_values <- is.logical(raw_event) || (is.numeric(raw_event) &&
-    all(is.na(raw_event) | raw_event %in% c(0, 1)))
+  valid_values <- .nis_rate_event_valid(raw_event)
   if (!valid_values) cli::cli_abort("`event` must be logical or numeric 0/1.")
   design$variables$.nis_event <- as.numeric(raw_event)
   design$variables$.nis_one <- 1
@@ -137,12 +174,18 @@ nis_rate <- function(design, event, by = NULL) {
       sum(as.character(data[[grp]]) == label)
     }, integer(1))
   }
-  out <- tibble::tibble(weighted_events = event_weight,
+  out <- dplyr::tibble(weighted_events = event_weight,
     weighted_n = weighted_n, proportion = proportion, se = standard_error,
     conf.low = as.numeric(conf[, 1]), conf.high = as.numeric(conf[, 2]),
     n = unweighted_n)
   if (!is.null(groups)) out[[grp]] <- labels
-  dplyr::mutate(out, label = sprintf("%s/%s (%.2f%%)",
-    format(round(weighted_events), big.mark = ","),
-    format(round(weighted_n), big.mark = ","), 100 * proportion))
+  out$label <- sprintf("%s/%s (%.2f%%)",
+    format(round(out$weighted_events), big.mark = ","),
+    format(round(out$weighted_n), big.mark = ","), 100 * out$proportion)
+  out
+}
+
+.nis_rate_event_valid <- function(event) {
+  is.logical(event) || (is.numeric(event) &&
+    all(is.na(event) | event %in% c(0, 1)))
 }
