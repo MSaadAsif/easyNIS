@@ -28,7 +28,8 @@ jobs:
           needs: check
       - name: Check improvement-loop tooling
         run: |
-          for (script in c("tools/check-public-text.R", "tools/probe/test-probe-helpers.R")) {
+          for (script in c("tools/check-public-text.R", "tools/probe/test-probe-helpers.R",
+                           "tools/probe/test-probe-diagnosis-discovery.R")) {
             args <- if (grepl("check-public-text", script)) c(script, "--self-test") else script
             status <- system2("Rscript", args)
             if (status != 0L) quit(status = status)
