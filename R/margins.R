@@ -51,7 +51,8 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
     if (!is.null(call_offset)) {
       formula_env <- environment(stats::formula(fit))
       extra_offset <- eval(call_offset, envir = nd, enclos = formula_env)
-      offset <- offset + rep_len(extra_offset, nrow(mm))
+      extra_offset <- .nis_margin_align_offset(fit, extra_offset, nd)
+      offset <- offset + extra_offset
     }
     keep <- stats::complete.cases(mm) & is.finite(offset) &
       is.finite(w) & w > 0
@@ -99,6 +100,32 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   attr(out, "model_n") <- stats::nobs(fit)
   attr(out, "events") <- if (is.matrix(fit$y)) sum(fit$y[, 1]) else sum(fit$y, na.rm = TRUE)
   out
+}
+
+.nis_margin_align_offset <- function(fit, offset, data) {
+  if (!is.numeric(offset) || !is.null(dim(offset))) {
+    cli::cli_abort("The external model offset must be a numeric vector.")
+  }
+  if (length(offset) == nrow(data)) return(as.numeric(offset))
+
+  aligned <- .nis_margin_offset_omitted(fit, offset, nrow(data))
+  if (!is.null(aligned)) return(aligned)
+
+  cli::cli_abort(paste0(
+    "The external model offset must have one value per design row, or ",
+    "match the fitted rows identified by `fit$na.action`."
+  ))
+}
+
+.nis_margin_offset_omitted <- function(fit, offset, n) {
+  omitted <- fit$na.action
+  if (is.null(omitted) || !length(omitted)) return(NULL)
+  omitted <- as.integer(omitted)
+  valid <- !anyNA(omitted) && !anyDuplicated(omitted) &&
+    all(omitted %in% seq_along(offset)) &&
+    length(offset) - length(omitted) == n
+  if (!valid) return(NULL)
+  as.numeric(offset[-omitted])
 }
 
 .nis_margin_inputs <- function(fit, exp_name, design, level) {
@@ -162,15 +189,24 @@ nis_rate <- function(design, event, by = NULL) {
   raw_event <- data[[ev]]
   valid_values <- .nis_rate_event_valid(raw_event)
   if (!valid_values) cli::cli_abort("`event` must be logical or numeric 0/1.")
-  design$variables$.nis_event <- as.numeric(raw_event)
-  design$variables$.nis_one <- 1
-  keep <- !is.na(design$variables$.nis_event)
+  event_var <- .nis_rate_temp_name(names(data), ".nis_internal_event")
+  one_var <- .nis_rate_temp_name(c(names(data), event_var), ".nis_internal_one")
+  data[[event_var]] <- as.numeric(raw_event)
+  data[[one_var]] <- 1
+  group_var <- NULL
+  if (!is.null(grp)) {
+    group_var <- .nis_rate_temp_name(c(names(data), event_var, one_var),
+      ".nis_internal_group")
+    data[[group_var]] <- data[[grp]]
+  }
+  design$variables <- data
+  keep <- !is.na(data[[event_var]])
   design <- design[keep, ]
   data <- design$variables
   if (is.null(grp)) {
-    stats <- .nis_rate_overall(design, data)
+    stats <- .nis_rate_overall(design, data, event_var, one_var)
   } else {
-    stats <- .nis_rate_grouped(design, data, grp)
+    stats <- .nis_rate_grouped(design, data, group_var, event_var, one_var)
   }
   out <- dplyr::tibble(weighted_events = stats$weighted_events,
     weighted_n = stats$weighted_n, proportion = stats$proportion,
@@ -185,10 +221,11 @@ nis_rate <- function(design, event, by = NULL) {
   out
 }
 
-.nis_rate_overall <- function(design, data) {
-  events <- survey::svytotal(~.nis_event, design)
-  denom <- survey::svytotal(~.nis_one, design)
-  prop <- survey::svyciprop(~.nis_event, design, method = "beta")
+.nis_rate_overall <- function(design, data, event_var, one_var) {
+  events <- survey::svytotal(rlang::new_formula(NULL, rlang::sym(event_var)), design)
+  denom <- survey::svytotal(rlang::new_formula(NULL, rlang::sym(one_var)), design)
+  prop <- survey::svyciprop(rlang::new_formula(NULL, rlang::sym(event_var)),
+    design, method = "beta")
   conf <- stats::confint(prop)
   list(
     weighted_events = as.numeric(stats::coef(events)),
@@ -201,19 +238,21 @@ nis_rate <- function(design, event, by = NULL) {
   )
 }
 
-.nis_rate_grouped <- function(design, data, grp) {
-  groups <- rlang::new_formula(NULL, rlang::sym(grp))
-  events <- survey::svyby(~.nis_event, groups, design, survey::svytotal)
-  denom <- survey::svyby(~.nis_one, groups, design, survey::svytotal)
-  mean_prop <- survey::svyby(~.nis_event, groups, design, survey::svymean,
+.nis_rate_grouped <- function(design, data, group_var, event_var, one_var) {
+  groups <- rlang::new_formula(NULL, rlang::sym(group_var))
+  event_formula <- rlang::new_formula(NULL, rlang::sym(event_var))
+  one_formula <- rlang::new_formula(NULL, rlang::sym(one_var))
+  events <- survey::svyby(event_formula, groups, design, survey::svytotal)
+  denom <- survey::svyby(one_formula, groups, design, survey::svytotal)
+  mean_prop <- survey::svyby(event_formula, groups, design, survey::svymean,
     vartype = "se")
-  prop <- survey::svyby(~.nis_event, groups, design, survey::svyciprop,
+  prop <- survey::svyby(event_formula, groups, design, survey::svyciprop,
     vartype = "ci", method = "beta")
   prop_frame <- as.data.frame(prop)
-  labels <- as.character(prop_frame[[1]])
+  labels <- as.character(prop_frame[[group_var]])
   conf <- as.matrix(prop_frame[, c("ci_l", "ci_u"), drop = FALSE])
   unweighted_n <- unname(vapply(labels, function(label) {
-    sum(!is.na(data[[grp]]) & as.character(data[[grp]]) == label)
+    sum(!is.na(data[[group_var]]) & as.character(data[[group_var]]) == label)
   }, integer(1)))
   list(
     weighted_events = as.numeric(stats::coef(events)),
@@ -225,6 +264,16 @@ nis_rate <- function(design, event, by = NULL) {
     n = unweighted_n,
     group = labels
   )
+}
+
+.nis_rate_temp_name <- function(existing, prefix) {
+  candidate <- prefix
+  suffix <- 1L
+  while (candidate %in% existing) {
+    candidate <- paste0(prefix, suffix)
+    suffix <- suffix + 1L
+  }
+  candidate
 }
 
 .nis_rate_group_output_name <- function(grp) {
