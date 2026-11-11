@@ -144,14 +144,32 @@ test_that("nis_margins aligns external offsets after missing predictors", {
 
   external_result <- nis_margins(external_fit, x)
   formula_result <- nis_margins(formula_fit, x)
+  full_result <- nis_margins(external_fit, x, design = design)
+  subset_design <- design[1:6, ]
+  subset_result <- nis_margins(external_fit, x, design = subset_design)
+  subset_reference <- nis_margins(formula_fit, x, design = subset_design)
+  reordered_design <- design[c(8, 7, 5, 4, 3, 1), ]
+  reordered_result <- nis_margins(external_fit, x, design = reordered_design)
+  reordered_reference <- nis_margins(formula_fit, x, design = reordered_design)
+  unmapped_design <- subset_design
+  rownames(unmapped_design$variables) <- paste0("other", seq_len(6))
 
   expect_equal(stats::coef(external_fit), stats::coef(formula_fit),
     tolerance = 1e-10)
   expect_equal(external_result$margin, formula_result$margin,
     tolerance = 1e-10)
   expect_equal(external_result$se, formula_result$se, tolerance = 1e-10)
-  expect_error(nis_margins(external_fit, x, design = design[1:5, ]),
-    "external model offset must have one value per design row")
+  expect_equal(full_result$margin, formula_result$margin, tolerance = 1e-10)
+  expect_equal(full_result$se, formula_result$se, tolerance = 1e-10)
+  expect_equal(subset_result$margin, subset_reference$margin,
+    tolerance = 1e-10)
+  expect_equal(subset_result$se, subset_reference$se, tolerance = 1e-10)
+  expect_equal(reordered_result$margin, reordered_reference$margin,
+    tolerance = 1e-10)
+  expect_equal(reordered_result$se, reordered_reference$se,
+    tolerance = 1e-10)
+  expect_error(nis_margins(external_fit, x, design = unmapped_design),
+    "Cannot map the external model offset to design rows by row identity")
 })
 
 test_that("nis_rate uses survey interval columns rather than grouping names", {

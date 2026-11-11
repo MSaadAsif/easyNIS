@@ -14,8 +14,10 @@
 #'   `g' V g`, where `V` is `vcov(fit)` and `g` is the weighted mean of the
 #'   prediction gradient with respect to the fitted coefficients. Confidence
 #'   intervals use a t critical value with `survey::degf(design)` degrees of
-#'   freedom. Contrasts are relative to the first exposure level: differences
-#'   use the delta method; ratios use a log-scale delta interval. This method
+#'   freedom. External offsets are aligned by design row names; rows that cannot
+#'   be mapped to the supplied offset are rejected. Contrasts are relative to
+#'   the first exposure level: differences use the delta method; ratios use a
+#'   log-scale delta interval. This method
 #'   treats the empirical exposure distribution and weights as fixed. A ratio
 #'   interval is undefined if either margin is zero or negative; its estimate,
 #'   standard error, and limits are returned as `NA` in that case.
@@ -106,26 +108,74 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   if (!is.numeric(offset) || !is.null(dim(offset))) {
     cli::cli_abort("The external model offset must be a numeric vector.")
   }
-  if (length(offset) == nrow(data)) return(as.numeric(offset))
+  data_rows <- .nis_margin_row_names(data)
+  aligned <- .nis_margin_map_offset(offset, data_rows, names(offset))
+  if (!is.null(aligned)) return(aligned)
 
-  aligned <- .nis_margin_offset_omitted(fit, offset, nrow(data))
+  source_rows <- .nis_margin_offset_source_rows(fit, length(offset))
+  aligned <- .nis_margin_map_offset(offset, data_rows, source_rows)
   if (!is.null(aligned)) return(aligned)
 
   cli::cli_abort(paste0(
-    "The external model offset must have one value per design row, or ",
-    "match the fitted rows identified by `fit$na.action`."
+    "Cannot map the external model offset to design rows by row identity. ",
+    "Use rows from the fitted design with their original row names, or ",
+    "provide an offset named by those row names."
   ))
 }
 
-.nis_margin_offset_omitted <- function(fit, offset, n) {
+.nis_margin_row_names <- function(data) {
+  rows <- rownames(data)
+  if (is.null(rows)) {
+    cli::cli_abort("Cannot align the external model offset without design row names.")
+  }
+  if (anyNA(rows)) {
+    cli::cli_abort("Cannot align the external model offset with missing design row names.")
+  }
+  if (anyDuplicated(rows)) {
+    cli::cli_abort("Cannot align the external model offset without unique design row names.")
+  }
+  rows
+}
+
+.nis_margin_map_offset <- function(offset, data_rows, source_rows) {
+  if (!.nis_margin_unique_rows(source_rows)) return(NULL)
+  if (!all(data_rows %in% source_rows)) return(NULL)
+  as.numeric(offset[match(data_rows, source_rows)])
+}
+
+.nis_margin_unique_rows <- function(rows) {
+  if (is.null(rows)) return(FALSE)
+  if (anyNA(rows)) return(FALSE)
+  if (anyDuplicated(rows)) return(FALSE)
+  TRUE
+}
+
+.nis_margin_offset_source_rows <- function(fit, offset_length) {
+  fitted_rows <- .nis_margin_row_names(fit$survey.design$variables)
+  if (offset_length == length(fitted_rows)) return(fitted_rows)
+  full_rows <- .nis_margin_full_rows(fit, fitted_rows)
+  if (is.null(full_rows)) return(NULL)
+  if (offset_length != length(full_rows)) return(NULL)
+  full_rows
+}
+
+.nis_margin_full_rows <- function(fit, fitted_rows) {
   omitted <- fit$na.action
-  if (is.null(omitted) || !length(omitted)) return(NULL)
   omitted <- as.integer(omitted)
-  valid <- !anyNA(omitted) && !anyDuplicated(omitted) &&
-    all(omitted %in% seq_along(offset)) &&
-    length(offset) - length(omitted) == n
-  if (!valid) return(NULL)
-  as.numeric(offset[-omitted])
+  if (!length(omitted)) return(fitted_rows)
+  full_n <- length(fitted_rows) + length(omitted)
+  if (anyNA(omitted)) return(NULL)
+  if (anyDuplicated(omitted)) return(NULL)
+  if (any(omitted < 1L | omitted > full_n)) return(NULL)
+  omitted_rows <- names(fit$na.action)
+  if (length(omitted_rows) != length(omitted)) return(NULL)
+  if (!.nis_margin_unique_rows(omitted_rows)) return(NULL)
+
+  full_rows <- character(full_n)
+  full_rows[-omitted] <- fitted_rows
+  full_rows[omitted] <- omitted_rows
+  if (!.nis_margin_unique_rows(full_rows)) return(NULL)
+  full_rows
 }
 
 .nis_margin_inputs <- function(fit, exp_name, design, level) {

@@ -3,7 +3,9 @@
 - Add design-based predictive margins and weighted event-rate summaries.
 - Predictive margins retain model offsets and align their averaging weights to
   rows with complete model predictors, including external offsets after missing
-  predictors are omitted. Grouped event rates now return survey confidence
+  predictors are omitted. External offsets map to supplied designs by row
+  identity and order, including reordered and subset designs. Grouped event
+  rates now return survey confidence
   intervals and valid unweighted group counts, preserve grouping fields that
   share names with survey columns or internal calculation fields, and support
   non-syntactic grouping names without overwriting result statistics.

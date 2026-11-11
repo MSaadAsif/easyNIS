@@ -32,8 +32,10 @@ Model offsets are retained. The standard error is the square root of
 \verb{g' V g}, where \code{V} is \code{vcov(fit)} and \code{g} is the weighted mean of the
 prediction gradient with respect to the fitted coefficients. Confidence
 intervals use a t critical value with \code{survey::degf(design)} degrees of
-freedom. Contrasts are relative to the first exposure level: differences
-use the delta method; ratios use a log-scale delta interval. This method
+freedom. External offsets are aligned by design row names; rows that cannot
+be mapped to the supplied offset are rejected. Contrasts are relative to
+the first exposure level: differences use the delta method; ratios use a
+log-scale delta interval. This method
 treats the empirical exposure distribution and weights as fixed. A ratio
 interval is undefined if either margin is zero or negative; its estimate,
 standard error, and limits are returned as \code{NA} in that case.
