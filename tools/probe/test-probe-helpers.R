@@ -143,9 +143,14 @@ local({
 
   empty_issues <- parse_open_issue_query("[]")
   one_issue <- parse_open_issue_query('[{"number":42}]')
+  malformed_object <- parse_open_issue_query("{}")
+  malformed_single_issue <- parse_open_issue_query('{"number":42}')
   failed_query <- parse_open_issue_query(character(), status = 1L)
   stopifnot(empty_issues$ok, identical(empty_issues$count, 0L),
-    one_issue$ok, identical(one_issue$count, 1L), !failed_query$ok)
+    one_issue$ok, identical(one_issue$count, 1L),
+    !malformed_object$ok, is.na(malformed_object$count),
+    !malformed_single_issue$ok, is.na(malformed_single_issue$count),
+    !failed_query$ok)
 
   clean_check <- check_result_counts(list(errors = character(), warnings = character(), notes = character()))
   noted_check <- check_result_counts(list(errors = character(), warnings = character(), notes = c("one", "two")))
