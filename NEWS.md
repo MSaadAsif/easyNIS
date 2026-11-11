@@ -5,7 +5,9 @@
   rows with complete model predictors, including external offsets after missing
   predictors are omitted. Offsets evaluated from design columns keep the
   supplied design's row order; external offsets map to supplied designs by row
-  identity, including reordered and subset designs. Grouped event
+  identity, including reordered and subset designs. Mixed offset expressions
+  combining design columns and external variables produce an explicit error.
+  Grouped event
   rates now return survey confidence
   intervals and valid unweighted group counts, preserve grouping fields that
   share names with survey columns or internal calculation fields, and support

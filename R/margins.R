@@ -15,7 +15,10 @@
 #'   prediction gradient with respect to the fitted coefficients. Confidence
 #'   intervals use a t critical value with `survey::degf(design)` degrees of
 #'   freedom. External offsets are aligned by design row names; rows that cannot
-#'   be mapped to the supplied offset are rejected. Contrasts are relative to
+#'   be mapped to the supplied offset are rejected. An offset expression passed
+#'   separately to `svyglm()` cannot mix design columns and external variables;
+#'   put the complete offset in design columns or supply it as one external
+#'   vector. Contrasts are relative to
 #'   the first exposure level: differences use the delta method; ratios use a
 #'   log-scale delta interval. This method
 #'   treats the empirical exposure distribution and weights as fixed. A ratio
@@ -51,6 +54,7 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
     if (is.null(offset)) offset <- rep(0, nrow(mm))
     call_offset <- fit$call$offset
     if (!is.null(call_offset)) {
+      .nis_margin_check_offset_expr(call_offset, nd)
       formula_env <- environment(stats::formula(fit))
       extra_offset <- eval(call_offset, envir = nd, enclos = formula_env)
       extra_offset <- .nis_margin_align_offset(fit, extra_offset, nd,
@@ -103,6 +107,19 @@ nis_margins <- function(fit, exposure, design = NULL, level = 0.95) {
   attr(out, "model_n") <- stats::nobs(fit)
   attr(out, "events") <- if (is.matrix(fit$y)) sum(fit$y[, 1]) else sum(fit$y, na.rm = TRUE)
   out
+}
+
+.nis_margin_check_offset_expr <- function(expression, data) {
+  variables <- all.vars(expression)
+  has_data_variable <- any(variables %in% names(data))
+  has_external_variable <- any(!variables %in% names(data))
+  if (has_data_variable && has_external_variable) {
+    cli::cli_abort(paste0(
+      "An offset expression passed separately to `svyglm()` cannot mix ",
+      "design columns and external variables in `nis_margins()`. Put the ",
+      "complete offset in design columns or supply it as one external vector."
+    ))
+  }
 }
 
 .nis_margin_align_offset <- function(fit, offset, data, expression = NULL) {

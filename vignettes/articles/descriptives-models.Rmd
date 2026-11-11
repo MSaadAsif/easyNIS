@@ -78,7 +78,9 @@ Include a design-column offset in the formula, such as
 `offset(log(person_time))`, so the offset is evaluated for each design row.
 For an offset vector supplied separately to `svyglm()`, `nis_margins()` maps
 values by row names when you request a subset or reordering of the fitted
-design; unmappable offsets produce an error.
+design; unmappable offsets produce an error. A separately supplied offset
+expression cannot combine design columns with external variables. Put the full
+offset in design columns or pass the full offset as one external vector.
 
 ```{r model, eval=rlang::is_installed("survey")}
 fit <- survey::svyglm(

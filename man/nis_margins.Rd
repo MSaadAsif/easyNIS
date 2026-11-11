@@ -33,7 +33,10 @@ Model offsets are retained. The standard error is the square root of
 prediction gradient with respect to the fitted coefficients. Confidence
 intervals use a t critical value with \code{survey::degf(design)} degrees of
 freedom. External offsets are aligned by design row names; rows that cannot
-be mapped to the supplied offset are rejected. Contrasts are relative to
+be mapped to the supplied offset are rejected. An offset expression passed
+separately to \code{svyglm()} cannot mix design columns and external variables;
+put the complete offset in design columns or supply it as one external
+vector. Contrasts are relative to
 the first exposure level: differences use the delta method; ratios use a
 log-scale delta interval. This method
 treats the empirical exposure distribution and weights as fixed. A ratio

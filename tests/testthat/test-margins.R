@@ -120,6 +120,27 @@ test_that("nis_margins keeps design-column offsets in supplied row order", {
   expect_equal(result$se, reference$se, tolerance = 1e-10)
 })
 
+test_that("nis_margins rejects mixed design and external offset expressions", {
+  skip_if_not_installed("survey")
+  data <- data.frame(
+    y = c(1, 2, 3, 4, 2, 6),
+    x = factor(rep(c("a", "b"), 3)),
+    off = log(c(1, 2, 3, 1, 4, 2)),
+    w = 1:6
+  )
+  external_offset <- log(c(2, 1, 4, 3, 1, 5))
+  design <- survey::svydesign(ids = ~1, weights = ~w, data = data)
+  fit <- survey::svyglm(y ~ x, design, offset = off + external_offset,
+    family = stats::quasipoisson())
+
+  expect_error(nis_margins(fit, x, design = design),
+    "cannot mix design columns and external variables")
+  expect_error(nis_margins(fit, x, design = design[6:1, ]),
+    "cannot mix design columns and external variables")
+  expect_error(nis_margins(fit, x, design = design[c(6, 5, 4), ]),
+    "cannot mix design columns and external variables")
+})
+
 test_that("nis_margins aligns weights after excluding missing predictors", {
   skip_if_not_installed("survey")
   data <- data.frame(
