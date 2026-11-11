@@ -1,7 +1,35 @@
 # easyNIS (development version)
 
 - Add design-based predictive margins and weighted event-rate summaries.
+- `nis_design()`, `nis_attrition()`, and `nis_dx_sensitivity()` no longer
+  trigger dbplyr's "Missing values are always removed in SQL aggregation
+  functions" warning on lazy DuckDB inputs. Results are unchanged.
+- `nis_comorbidity()` now explains how to retain diagnosis columns with
+  `nis_design(keep = ...)` when required ICD-10 fields are missing.
+- `nis_design()` selection regressions cover character vectors, `all_of()`,
+  and `any_of()` on lazy inputs; dollar adjustment requires both charge and
+  cost-to-charge-ratio fields in `keep`.
 
+- `nis_audit_code_transition()` accepts several period columns in `by`,
+  keeps periods with a missing component as explicit rows, and gains
+  `output = "inventory"` to list observed full codes by period with `absent`
+  and `sparse` flags (`sparse_n`). With several `by` columns no unambiguous
+  year comparison exists, so `yoy_pct_change` is `NA` in every row. The
+  inventory aggregates long slot rows in the database, so query width does not
+  grow with the number of matching codes.
+- `nis_audit_code_transition()` validates selected survey weights as numeric,
+  finite, and non-missing before calculating weighted counts.
+- `nis_audit_code_transition()` now accepts named `by` vectors without
+  treating their names as period columns, and inventory output preserves a
+  period column when it is also the selected weight column.
+
+- `nis_suppress()` now errors when a displayed survey statistic cannot be
+  mapped to a verifiable source count.
+- `nis_open()` has an opt-in `reader = "arrow"` mode using the optional
+  `arrow` package; the default DuckDB reader is unchanged. Arrow preserves
+  source bytes in strings rather than repairing malformed UTF-8. Such values
+  may still fail in downstream string operations, and the reader does not
+  automatically detect every invalid byte sequence.
 - Split published-study probe validation into named checks while preserving receipt acceptance behavior.
 - EasyNIS collection errors now explain how to fix invalid UTF-8 in Parquet
   string columns.
@@ -68,6 +96,11 @@
 - `nis_suppress()` accepts `hospital_col` to mask cells based on fewer than two
   contributing hospitals; `nis_cell_counts()` computes unweighted discharge
   and year-scoped hospital counts from record-level data or an `nis_design()`.
+- Survey-table suppression also applies the two-hospital rule from retained
+  `YEAR`/`HOSP_NIS` records, mapped to each cohort, non-missing/category, and
+  by-group cell; it errors when that mapping is unavailable or ambiguous.
+- `nis_attrition()` reports `NA` dropped counts for the initial row, which has
+  no preceding step.
 - `nis_suppress()` now suppresses zero discharge counts at or below the
   threshold and rejects missing, non-finite, negative, or fractional
   data-frame count values.
@@ -94,6 +127,8 @@
   another branch at the same commit are recognized while all existing success
   requirements remain in place.
 - Refactored `nis_suppress()` into internal helpers; behavior is unchanged.
+- Split survey suppression row mapping and cell mask decisions into smaller
+  helpers without changing fail-closed behavior.
 
 # easyNIS 0.2.0
 

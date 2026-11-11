@@ -93,7 +93,7 @@ and weighting](survey-design.html).
 
 ## One workflow
 
-The same design can feed descriptive summaries and models. The `tbl_svysummary()` suppression route checks discharge counts only. To apply both discharge and two-hospital rules before sharing cell counts, use `nis_cell_counts()` with data-frame suppression.
+The same design can feed descriptive summaries and models. The `tbl_svysummary()` suppression route checks discharge counts and counts year-scoped contributing hospitals from retained `YEAR` and `HOSP_NIS` records for each represented cohort, category, non-missing, and group cell. It errors when the table cards cannot map a cell to those records.
 
 ```{r workflow, results='hide'}
 path <- nis_example(years = 2019:2020)

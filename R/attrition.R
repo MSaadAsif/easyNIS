@@ -50,16 +50,18 @@
   summary_exprs <- list()
   summary_exprs[[".nis_attrition_n_0"]] <- rlang::expr(dplyr::n())
   summary_exprs[[".nis_attrition_w_0"]] <- rlang::expr(sum(
-    dplyr::coalesce(!!rlang::sym(weight_var), 0)
+    dplyr::coalesce(!!rlang::sym(weight_var), 0), na.rm = TRUE
   ))
   for (i in seq_len(criteria_count)) {
     keep <- rlang::sym(keep_names[[i]])
     count_name <- paste0(".nis_attrition_n_", i)
     weight_name <- paste0(".nis_attrition_w_", i)
-    summary_exprs[[count_name]] <- rlang::expr(sum(dplyr::if_else(!!keep, 1L, 0L)))
+    summary_exprs[[count_name]] <- rlang::expr(sum(
+      dplyr::if_else(!!keep, 1L, 0L), na.rm = TRUE
+    ))
     summary_exprs[[weight_name]] <- rlang::expr(sum(dplyr::if_else(
       !!keep, dplyr::coalesce(!!rlang::sym(weight_var), 0), 0
-    )))
+    ), na.rm = TRUE))
   }
   summary_exprs
 }
@@ -97,8 +99,9 @@
   }, numeric(1))
   n <- c(group_counts[[".nis_attrition_n_0"]][[1L]], n)
   weighted <- c(group_counts[[".nis_attrition_w_0"]][[1L]], weighted)
-  dropped <- c(0, n[-length(n)] - n[-1L])
-  dropped_weighted <- c(0, weighted[-length(weighted)] - weighted[-1L])
+  # Step zero is the starting cohort; there is no preceding selection.
+  dropped <- c(NA_real_, n[-length(n)] - n[-1L])
+  dropped_weighted <- c(NA_real_, weighted[-length(weighted)] - weighted[-1L])
   denominator <- n[[1L]]
   dplyr::tibble(
     step = seq.int(0L, length(labels)),
@@ -123,7 +126,8 @@
 #' Summarize sequential cohort attrition
 #'
 #' Applies logical criteria cumulatively and reports remaining and dropped
-#' discharge counts at each step. Criteria are evaluated in order; `NA` values
+#' discharge counts at each step. The initial row has no preceding step, so its
+#' dropped counts are `NA`. Criteria are evaluated in order; `NA` values
 #' are treated as excluded, matching [dplyr::filter()]. The summary is
 #' aggregated lazily for DuckDB queries and returned as a collected tibble.
 #' Missing weights contribute zero to weighted totals.

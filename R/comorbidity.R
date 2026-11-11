@@ -132,11 +132,17 @@ nis_comorbidity_validate_data <- function(.data) {
 
   slots <- grep("^I10_DX[0-9]+$", nis_names(.data), value = TRUE) # nolint: object_usage_linter
   if (length(slots) == 0L) {
-    cli::cli_abort("`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).")
+    cli::cli_abort(c(
+      "`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).",
+      i = "When using `nis_design()`, retain them with `keep = dplyr::starts_with('I10_DX')`."
+    ))
   }
   slot_number <- as.integer(sub("^I10_DX", "", slots))
   if (!1L %in% slot_number) {
-    cli::cli_abort("`I10_DX1` is required because it identifies the principal diagnosis.")
+    cli::cli_abort(c(
+      "`I10_DX1` is required because it identifies the principal diagnosis.",
+      i = "When using `nis_design()`, retain it with `keep = dplyr::starts_with('I10_DX')`."
+    ))
   }
   list(slots = slots, slot_number = slot_number)
 }

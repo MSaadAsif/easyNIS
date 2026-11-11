@@ -4,7 +4,7 @@
 \alias{nis_open}
 \title{Open annual NIS Parquet files lazily}
 \usage{
-nis_open(path, years = NULL)
+nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
 }
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
@@ -13,6 +13,10 @@ nis_open(path, years = NULL)
 matching year. Years before 2016 are experimental: they hold ICD-9-CM
 codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
+
+\item{reader}{Parquet reader: \code{"duckdb"} (default) or \code{"arrow"}. Arrow is
+an optional dependency. Its reader preserves source bytes in strings,
+including malformed UTF-8; downstream string operations may still fail.}
 }
 \value{
 A lazy DuckDB-backed dbplyr table with case-normalized columns.
@@ -47,8 +51,11 @@ Use \code{dplyr::collect()} to return
 data to R. Years before 2016 emit an experimental ICD-9 layout notice once
 per R session. The \code{engine} argument was removed entirely; omit it regardless
 of the value used in older code.
-String columns with malformed UTF-8 may fail during a native Parquet scan;
-validate or repair those values before writing Parquet files.
+The default DuckDB reader may fail when scanning malformed UTF-8 in string
+columns. Set \code{reader = "arrow"} to opt in to scanning individual files
+through the optional \code{arrow} package. Arrow preserves the bytes; it does
+not detect or repair all invalid text, and downstream string operations
+may still fail on malformed values.
 }
 \examples{
 path <- nis_example(years = 2019:2020)

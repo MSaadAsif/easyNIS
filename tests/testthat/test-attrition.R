@@ -14,9 +14,9 @@ test_that("nis_attrition reports ordered cumulative counts and drops", {
   expect_identical(result$step, 0:2)
   expect_identical(result$criterion, c("All discharges", "adult", "elective"))
   expect_identical(result$n_unweighted, c(5L, 4L, 3L))
-  expect_identical(result$n_dropped_unweighted, c(0L, 1L, 1L))
+  expect_equal(result$n_dropped_unweighted, c(NA_integer_, 1L, 1L))
   expect_equal(result$n_weighted, c(25.1, 20.1, 15.3))
-  expect_equal(result$n_dropped_weighted, c(0, 5, 4.8))
+  expect_equal(result$n_dropped_weighted, c(NA_real_, 5, 4.8))
   expect_equal(result$pct_retained, c(100, 80, 60))
   expect_equal(result$n_unweighted[-1L] + result$n_dropped_unweighted[-1L],
     result$n_unweighted[-length(result$n_unweighted)])
@@ -36,9 +36,9 @@ test_that("nis_attrition excludes missing criteria and handles zero cohorts", {
   result <- nis_attrition(data, include, none = FALSE, weight_var = "weight")
 
   expect_identical(result$n_unweighted, c(3L, 1L, 0L))
-  expect_identical(result$n_dropped_unweighted, c(0L, 2L, 1L))
+  expect_equal(result$n_dropped_unweighted, c(NA_integer_, 2L, 1L))
   expect_equal(result$n_weighted, c(7, 2, 0))
-  expect_equal(result$n_dropped_weighted, c(0, 5, 2))
+  expect_equal(result$n_dropped_weighted, c(NA_real_, 5, 2))
   expect_identical(result$criterion, c("All discharges", "include", "none"))
 
   empty <- nis_attrition(data, none = FALSE, after = FALSE, weight_var = "weight")
@@ -90,11 +90,14 @@ test_that("nis_attrition lazily aggregates DuckDB datasets without collecting ro
     )
   }
 
-  actual <- criteria(query)
+  local_sql_na_warnings()
+  expect_no_warning(actual <- criteria(query))
   expect_s3_class(actual, "tbl_df")
   expect_identical(actual, criteria(data))
 
-  annual <- nis_attrition(query, adult = AGE >= 18, by_year = TRUE)
+  expect_no_warning(
+    annual <- nis_attrition(query, adult = AGE >= 18, by_year = TRUE)
+  )
   expect_identical(annual, nis_attrition(data, adult = AGE >= 18, by_year = TRUE))
 })
 

@@ -14,6 +14,54 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
 
+test_that("nis_design supports character and helper selections on lazy inputs", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- nis_open(path)
+  selected <- c("AGE", "FEMALE")
+
+  character_design <- nis_design(data, AGE > 50, keep = selected)
+  all_of_design <- nis_design(data, AGE > 50, keep = tidyselect::all_of(selected))
+  any_of_design <- nis_design(data, AGE > 50,
+    keep = tidyselect::any_of(c(selected, "OPTIONAL_COLUMN")))
+  expect_true(all(selected %in% names(character_design$variables)))
+  expect_equal(names(character_design$variables), names(all_of_design$variables))
+  expect_equal(names(character_design$variables), names(any_of_design$variables))
+})
+
+test_that("nis_design on lazy inputs emits no SQL missing-value warning", {
+  local_sql_na_warnings()
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  frame_design <- nis_design(dplyr::collect(nis_open(path)), AGE > 50, keep = AGE)
+
+  expect_no_warning(
+    lazy_design <- nis_design(nis_open(path), AGE > 50, keep = AGE)
+  )
+  expect_equal(sort(as.numeric(stats::weights(lazy_design))),
+    sort(as.numeric(stats::weights(frame_design))))
+})
+
+test_that("data columns take precedence over colliding caller vectors", {
+  path <- nis_example(2019)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- dplyr::collect(nis_open(path))
+  AGE <- "FEMALE" # nolint: object_name_linter
+
+  frame_design <- nis_design(data, TRUE, keep = AGE)
+  expect_true("AGE" %in% names(frame_design$variables))
+  expect_false("FEMALE" %in% names(frame_design$variables))
+
+  lazy_design <- nis_design(nis_open(path), TRUE, keep = AGE)
+  expect_true("AGE" %in% names(lazy_design$variables))
+  expect_false("FEMALE" %in% names(lazy_design$variables))
+
+  selected <- "FEMALE"
+  external_design <- nis_design(data, TRUE, keep = selected)
+  expect_true("FEMALE" %in% names(external_design$variables))
+  expect_false("AGE" %in% names(external_design$variables))
+})
+
 test_that("nis_design carries cost provenance through the survey workflow", {
   data <- dplyr::tibble(
     YEAR = rep(2020, 4),
@@ -47,6 +95,17 @@ test_that("nis_design carries cost provenance through the survey workflow", {
 
   reweighted <- nis_reweight(design, rep(1, nrow(design$variables)))
   expect_identical(nis_cost_provenance(reweighted), provenance)
+})
+
+test_that("nis_design names missing dollar adjustment inputs", {
+  data <- dplyr::tibble(
+    YEAR = rep(2020, 4), HOSP_NIS = rep(1:2, each = 2),
+    NIS_STRATUM = 1, DISCWT = 1, eligible = TRUE, TOTCHG = 100
+  )
+  expect_error(nis_design(data, eligible, keep = TOTCHG, dollars = 2022),
+    "Keep both.*TOTCHG.*CCR_NIS")
+  expect_error(nis_design(data, eligible, keep = tidyselect::any_of("CCR_NIS"), dollars = 2022),
+    "Keep both.*TOTCHG.*CCR_NIS")
 })
 
 test_that("reweighting rejects a design narrowed after cohort definition", {
