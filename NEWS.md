@@ -1,5 +1,10 @@
 # easyNIS (development version)
 
+- `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
+  per-slot exact exclusions and whole-code regular expressions. Existing
+  character-vector prefix definitions are unchanged; prefix and regex matches
+  can be combined in one definition.
+
 - `nis_design()`, `nis_attrition()`, and `nis_dx_sensitivity()` no longer
   trigger dbplyr's "Missing values are always removed in SQL aggregation
   functions" warning on lazy DuckDB inputs. Results are unchanged.

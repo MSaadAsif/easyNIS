@@ -137,6 +137,35 @@ test_that("ICD flags match prefixes by slot and behave the same on DuckDB", {
   expect_error(do.call(nis_flag_dx, c(list(data), duplicate_args)), "unique")
 })
 
+test_that("flag rules support per-slot exclusions and whole-code regexes", {
+  data <- dplyr::tibble(
+    I10_DX1 = c("I501", "I502", "I509", "J189", NA_character_, "I502"),
+    I10_DX2 = c(NA_character_, NA_character_, NA_character_, NA_character_, "I501", "I501"),
+    I10_PR1 = c("02L73DK", "02L73DX", "0JH60DZ", NA_character_, NA_character_, NA_character_),
+    I10_PR2 = c("02L73DX", "02L73DK", NA_character_, NA_character_, NA_character_, NA_character_)
+  )
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(excluded = list(prefix = "I50", exclude = "I502")) |>
+      nis_flag_dx(full = list(regex = "I50(1|2)", exclude = "I502")) |>
+      nis_flag_pr(procedure = list(prefix = "02L", exclude = "02L73DX"))
+  }
+
+  expected <- add_flags(data)
+  actual <- add_flags(duckdb_query_fixture(data)) |> dplyr::collect()
+
+  expect_identical(actual, expected)
+  expect_identical(expected$excluded, c(TRUE, FALSE, TRUE, FALSE, TRUE, TRUE))
+  expect_identical(expected$full, c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE))
+  expect_identical(expected$procedure, c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE))
+  expect_identical(nis_flag_dx(data, match = "I50")$match,
+    c(TRUE, TRUE, TRUE, FALSE, TRUE, TRUE))
+  expect_error(nis_flag_dx(data, invalid = list(regex = "I50[")),
+    "Invalid or unsupported DuckDB regular expression")
+  expect_error(nis_flag_dx(data, invalid = list(exclude = "I502")),
+    "must include `prefix` or `regex`")
+})
+
 test_that("ICD flags match prefixes against stored code strings", {
   malformed <- "I50"
   data <- dplyr::tibble(

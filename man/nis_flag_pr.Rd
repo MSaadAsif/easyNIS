@@ -2,7 +2,7 @@
 % Please edit documentation in R/open-flags.R
 \name{nis_flag_pr}
 \alias{nis_flag_pr}
-\title{Add procedure prefix flags}
+\title{Add procedure code flags}
 \usage{
 nis_flag_pr(
   .data,
@@ -14,7 +14,8 @@ nis_flag_pr(
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query.}
 
-\item{...}{Named flag definitions, such as \code{ablation = "02L"}.}
+\item{...}{Named flag definitions, such as \code{ablation = "02L"}; see
+\code{\link[=nis_flag_dx]{nis_flag_dx()}} for list definitions with exclusions or regexes.}
 
 \item{position}{Slots to check: all slots or the principal slot only.}
 
@@ -25,11 +26,9 @@ nis_flag_pr(
 \code{.data} with one logical column per named definition.
 }
 \description{
-Each procedure slot is checked separately, with the same prefix rules, byte
-for byte comparison, and \code{system} semantics as \code{\link[=nis_flag_dx]{nis_flag_dx()}}. \code{"icd10"}
-reads \code{I10_PR1}, ...; \code{"icd9"} (experimental) reads \code{PR1}, ... Prefixes only
-match slots of the chosen system, so a flag over a mixed 2015 query is
-\code{FALSE} on discharges coded in the other system.
+Each procedure slot is checked separately, with the same prefix, regular
+expression, exclusion, and \code{system} semantics as \code{\link[=nis_flag_dx]{nis_flag_dx()}}. \code{"icd10"}
+reads \code{I10_PR1}, ...; \code{"icd9"} (experimental) reads \code{PR1}, ...
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))
