@@ -166,6 +166,30 @@ test_that("flag rules support per-slot exclusions and whole-code regexes", {
     "must include `prefix` or `regex`")
 })
 
+test_that("regex flags use DuckDB full-match semantics for frames and lazy queries", {
+  data <- dplyr::tibble(
+    I10_DX1 = c("I501", "I502", "I50\n", "I50\v", "I5010", NA_character_, "I502"),
+    I10_DX2 = c(NA_character_, NA_character_, NA_character_, NA_character_,
+      NA_character_, "I501", "I501")
+  )
+  add_flags <- function(.data) {
+    .data |>
+      nis_flag_dx(named = list(regex = "(?P<c>I501)|(?P<c>I502)")) |>
+      nis_flag_dx(vertical = list(regex = "I50\\v")) |>
+      nis_flag_dx(quoted = list(regex = "\\QI501")) |>
+      nis_flag_dx(excluded = list(regex = "(?P<c>I501)|(?P<c>I502)", exclude = "I502"))
+  }
+
+  expected <- add_flags(data)
+  actual <- add_flags(duckdb_query_fixture(data)) |> dplyr::collect()
+
+  expect_identical(actual, expected)
+  expect_identical(expected$named, c(TRUE, TRUE, FALSE, FALSE, FALSE, TRUE, TRUE))
+  expect_identical(expected$vertical, c(FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE))
+  expect_identical(expected$quoted, c(TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE))
+  expect_identical(expected$excluded, c(TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE))
+})
+
 test_that("ICD flags match prefixes against stored code strings", {
   malformed <- "I50"
   data <- dplyr::tibble(

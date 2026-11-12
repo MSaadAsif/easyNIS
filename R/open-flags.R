@@ -473,7 +473,7 @@ validate_flag_regex <- function(patterns) {
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   for (pattern in patterns) {
     tryCatch(DBI::dbGetQuery(con,
-      "SELECT regexp_matches('', ?) AS valid", params = list(pattern)), # nolint: object_usage_linter
+      "SELECT regexp_full_match('', ?) AS valid", params = list(pattern)), # nolint: object_usage_linter
       error = function(error) {
         cli::cli_abort("Invalid or unsupported DuckDB regular expression {.val {pattern}}.")
       })
@@ -483,8 +483,7 @@ validate_flag_regex <- function(patterns) {
 
 nis_sql_regex_match <- function(patterns, column) {
   per_pattern <- lapply(patterns, function(pattern) {
-    whole_code <- paste0("\\A(?:", pattern, ")\\z")
-    rlang::expr(regexp_matches(as.character(!!rlang::sym(column)), !!whole_code)) # nolint: object_usage_linter
+    rlang::expr(regexp_full_match(as.character(!!rlang::sym(column)), !!pattern)) # nolint: object_usage_linter
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_pattern), FALSE))
 }
@@ -556,8 +555,8 @@ code_system_filter <- function(data, columns, slots, system) {
 }
 
 # Data-frame prefix checks use `startsWith()`, which compares bytes and never
-# errors on malformed text. Regex definitions use whole-code matching after
-# validation with DuckDB's RE2 engine.
+# errors on malformed text. Regex definitions use DuckDB's RE2 engine for the
+# same whole-code matching semantics as lazy queries.
 frame_match <- function(prefix, slot_names) {
   rule <- prefix
   if (is.character(prefix)) {
@@ -571,11 +570,9 @@ frame_match <- function(prefix, slot_names) {
       }))))
     }
     if (length(rule$regex)) {
-      included <- c(included, list(reduce_or(lapply(rule$regex, function(pattern) {
-        whole_code <- paste0("\\A(?:", pattern, ")\\z")
-        rlang::expr(grepl(!!whole_code,
-          as.character(!!rlang::sym(column)), perl = TRUE))
-      }))))
+      included <- c(included, list(rlang::expr(nis_frame_regex_match(
+        as.character(!!rlang::sym(column)), !!rule$regex
+      ))))
     }
     matched <- reduce_or(included)
     if (length(rule$exclude)) {
@@ -586,6 +583,24 @@ frame_match <- function(prefix, slot_names) {
     matched
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
+}
+
+nis_frame_regex_match <- function(values, patterns) {
+  if (length(values) == 0L) return(logical())
+  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  DBI::dbWriteTable(con, "regex_values", data.frame(
+    row_id = seq_along(values), code = values, stringsAsFactors = FALSE
+  ), temporary = TRUE)
+
+  code <- as.character(DBI::dbQuoteIdentifier(con, "code"))
+  row_id <- as.character(DBI::dbQuoteIdentifier(con, "row_id"))
+  matches <- paste0("COALESCE(regexp_full_match(", code, ", ?), FALSE)")
+  match_expression <- paste(rep(matches, length(patterns)), collapse = " OR ")
+  sql <- paste0("SELECT ", row_id, ", (", match_expression,
+    ") AS matched FROM regex_values ORDER BY ", row_id)
+  result <- DBI::dbGetQuery(con, sql, params = as.list(patterns))
+  result$matched
 }
 
 reduce_or <- function(terms) {

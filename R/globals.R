@@ -3,6 +3,6 @@ utils::globalVariables(c(
   ".nis_valid", ".nis_weight", "DISCWT", "HOSP_NIS", "NIS_STRATUM",
   "DQTR", "YEAR", "absent_prday_column", "known_day", "matched_slots",
   "missing_day", "pct_known", "sentinel_invalid_day", "slot",
-  "starts_with", "isfinite", "isnan", "regexp_matches",
+  "starts_with", "isfinite", "isnan", "regexp_full_match",
   "survey_cell_hospitals"
 ))
