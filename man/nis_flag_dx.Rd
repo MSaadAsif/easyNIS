@@ -2,7 +2,7 @@
 % Please edit documentation in R/open-flags.R
 \name{nis_flag_dx}
 \alias{nis_flag_dx}
-\title{Add diagnosis prefix flags}
+\title{Add diagnosis code flags}
 \usage{
 nis_flag_dx(
   .data,
@@ -14,7 +14,12 @@ nis_flag_dx(
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query.}
 
-\item{...}{Named flag definitions, such as \code{heart_failure = "I50"}.}
+\item{...}{Named flag definitions, such as \code{heart_failure = "I50"}. For
+exclusions or full-code patterns, use a list such as
+\code{heart_failure = list(prefix = "I50", exclude = "I502")} or
+\code{heart_failure = list(regex = "I50(1|2)")}. Within a list, \code{prefix},
+\code{regex}, and \code{exclude} can each be character vectors. Prefix and regex
+matches are combined; exclusions are exact and apply within each slot.}
 
 \item{position}{Slots to check: all slots, the principal slot, or secondary
 slots only.}
@@ -30,7 +35,13 @@ Each diagnosis slot is checked separately. Supplied prefixes are
 case-insensitive, and periods and spaces in them are ignored. Slot values are
 compared as stored, case sensitively, because NIS stores upper-case codes
 without periods. Matching stays lazy in DuckDB and avoids per-row text
-normalization.
+normalization. A flag definition can also be a list with \code{prefix}, \code{regex},
+and \code{exclude} character vectors. Prefixes and full-code regular expressions
+are combined as alternatives; exclusions remove exact codes within each
+slot, so a matching code in another slot can still set the flag. Regexes use
+RE2-compatible syntax, are case-sensitive by default, and must match the
+whole stored code. Character-vector definitions retain the original prefix
+behavior.
 }
 \details{
 \code{system} picks which slots are tested. \code{"icd10"} reads \code{I10_DX1}, \code{I10_DX2},
@@ -65,6 +76,16 @@ nis |>
 nis |>
   nis_flag_dx(hf_or_diabetes = c("I50", "E11"), position = "principal") |>
   dplyr::count(hf_or_diabetes) |>
+  dplyr::collect()
+
+# Exclude one exact subcode or match full codes with a regular expression
+nis |>
+  nis_flag_dx(hf_other = list(prefix = "I50", exclude = "I501")) |>
+  dplyr::count(hf_other) |>
+  dplyr::collect()
+nis |>
+  nis_flag_dx(hf_full = list(regex = "I50[0-9]{2}")) |>
+  dplyr::count(hf_full) |>
   dplyr::collect()
 }
 \seealso{
