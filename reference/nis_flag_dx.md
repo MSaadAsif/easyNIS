@@ -1,10 +1,16 @@
-# Add diagnosis prefix flags
+# Add diagnosis code flags
 
 Each diagnosis slot is checked separately. Supplied prefixes are
 case-insensitive, and periods and spaces in them are ignored. Slot
 values are compared as stored, case sensitively, because NIS stores
 upper-case codes without periods. Matching stays lazy in DuckDB and
-avoids per-row text normalization.
+avoids per-row text normalization. A flag definition can also be a list
+with `prefix`, `regex`, and `exclude` character vectors. Prefixes and
+full-code regular expressions are combined as alternatives; exclusions
+remove exact codes within each slot, so a matching code in another slot
+can still set the flag. Regexes use RE2-compatible syntax, are
+case-sensitive by default, and must match the whole stored code.
+Character-vector definitions retain the original prefix behavior.
 
 ## Usage
 
@@ -25,7 +31,12 @@ nis_flag_dx(
 
 - ...:
 
-  Named flag definitions, such as `heart_failure = "I50"`.
+  Named flag definitions, such as `heart_failure = "I50"`. For
+  exclusions or full-code patterns, use a list such as
+  `heart_failure = list(prefix = "I50", exclude = "I502")` or
+  `heart_failure = list(regex = "I50(1|2)")`. Within a list, `prefix`,
+  `regex`, and `exclude` can each be character vectors. Prefix and regex
+  matches are combined; exclusions are exact and apply within each slot.
 
 - position:
 
@@ -85,7 +96,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -93,7 +104,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -101,7 +112,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -128,4 +139,32 @@ nis |>
 #>   <lgl>          <dbl>
 #> 1 FALSE             84
 #> 2 TRUE             108
+
+# Exclude one exact subcode or match full codes with a regular expression
+nis |>
+  nis_flag_dx(hf_other = list(prefix = "I50", exclude = "I501")) |>
+  dplyr::count(hf_other) |>
+  dplyr::collect()
+#> # A tibble: 2 × 2
+#>   hf_other     n
+#>   <lgl>    <dbl>
+#> 1 FALSE       84
+#> 2 TRUE       108
+nis |>
+  nis_flag_dx(hf_full = list(regex = "I50[0-9]{2}")) |>
+  dplyr::count(hf_full) |>
+  dplyr::collect()
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpPiTsSl/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> # A tibble: 2 × 2
+#>   hf_full     n
+#>   <lgl>   <dbl>
+#> 1 FALSE      84
+#> 2 TRUE      108
 ```

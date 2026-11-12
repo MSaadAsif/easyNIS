@@ -1,11 +1,9 @@
-# Add procedure prefix flags
+# Add procedure code flags
 
-Each procedure slot is checked separately, with the same prefix rules,
-byte for byte comparison, and `system` semantics as
+Each procedure slot is checked separately, with the same prefix, regular
+expression, exclusion, and `system` semantics as
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md).
 `"icd10"` reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
-Prefixes only match slots of the chosen system, so a flag over a mixed
-2015 query is `FALSE` on discharges coded in the other system.
 
 ## Usage
 
@@ -26,7 +24,9 @@ nis_flag_pr(
 
 - ...:
 
-  Named flag definitions, such as `ablation = "02L"`.
+  Named flag definitions, such as `ablation = "02L"`; see
+  [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+  for list definitions with exclusions or regexes.
 
 - position:
 
@@ -61,7 +61,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -69,7 +69,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -77,7 +77,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSSZLwk/duckdb
+#> ℹ /tmp/RtmpPiTsSl/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

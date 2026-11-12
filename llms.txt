@@ -134,11 +134,11 @@ Define cohorts
 Flag codes, timing, and eligibility; audit cohort definitions.
 
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
-  : Add diagnosis prefix flags
+  : Add diagnosis code flags
 - [`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md)
   : Add diagnosis position flags
 - [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
-  : Add procedure prefix flags
+  : Add procedure code flags
 - [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
   : Flag procedure timing relative to an index procedure
 - [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)

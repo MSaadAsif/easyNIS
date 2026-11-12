@@ -2,6 +2,18 @@
 
 ## easyNIS (development version)
 
+- [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+  and
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
+  accept named-list code definitions with per-slot exact exclusions and
+  whole-code regular expressions. Existing character-vector prefix
+  definitions are unchanged; prefix and regex matches can be combined in
+  one definition.
+
+- Regex flag definitions now use DuckDB’s RE2 full-match behavior for
+  both data frames and lazy queries, preserving the supplied pattern
+  unchanged.
+
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
   [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
   and
