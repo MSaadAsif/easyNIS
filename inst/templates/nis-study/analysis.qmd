@@ -28,6 +28,10 @@ input_path <- if (is_example) {
 nis_data <- nis_open(input_path, years = params$years)
 ```
 
+Before publishing files from `docs/`, run `easyNIS::nis_disclosure_check("docs")`
+to scan the public output folder for restricted identifiers and unmasked small
+counts.
+
 ## Study definitions
 
 ```{r}

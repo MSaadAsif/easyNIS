@@ -35,6 +35,9 @@ Follow the applicable HCUP Data Use Agreement when producing tables and
 sharing results. `nis_suppress()` masks small cells and the overall cell in the
 same row, but does not mask column totals. Analysts must review derived outputs
 for disclosure risk.
+Before publishing, run `nis_disclosure_check()` on the public output folder to
+scan CSV, HTML, Markdown, Quarto Markdown, and DOCX files for restricted
+identifiers and unmasked small counts.
 Use only invented public fixtures in package examples and tests. Never commit
 licensed inputs, private paths, local validation receipts, or record-derived
 output.
