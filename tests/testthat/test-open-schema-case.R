@@ -13,6 +13,20 @@ schema_case_fixture <- function(spellings) {
   path
 }
 
+test_that("normalization collisions retain coalesced names and values", {
+  path <- tempfile("nis-unicode-case-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- data.frame(YEAR = 2019L, first = NA_integer_, second = 7L)
+  names(data)[2:3] <- c("A\u00e9", "A\u00c9")
+  write_duckdb_parquet(data, file.path(path, "NIS_2019.parquet"))
+  for (reader in c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")) {
+    actual <- dplyr::collect(nis_open(path, reader = reader))
+    expect_setequal(names(actual), c("YEAR", "A\u00c9"))
+    expect_identical(actual[["A\u00c9"]], 7L)
+  }
+})
+
 test_that("single sources retain the established case normalization", {
   spellings <- c("aprdrg_risk_mortality", "APRDRG_Risk_Mortality",
     "APRDRG_RISK_MORTALITY")

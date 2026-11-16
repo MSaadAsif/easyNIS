@@ -115,7 +115,9 @@ nis_duckdb_normalize_scans <- function(con, sources, scans = NULL) {
   # Recognize casing before DuckDB's case-insensitive union discards it.
   vapply(seq_along(scans), function(index) {
     old <- schemas[[index]]
-    rename <- old != toupper(old) & toupper(old) %in% canonical
+    collisions <- toupper(old)[duplicated(toupper(old))]
+    rename <- old != toupper(old) & toupper(old) %in% canonical &
+      !toupper(old) %in% collisions
     if (!any(rename)) return(scans[[index]])
     identifiers <- as.character(DBI::dbQuoteIdentifier(con, old[rename]))
     aliases <- as.character(DBI::dbQuoteIdentifier(con, toupper(old[rename])))
