@@ -119,7 +119,43 @@ nis_design_exclusions <- function(.data) {
   excluded
 }
 
+nis_design_cohort_expr <- function(cohort_quo, call) {
+  cohort_expr <- rlang::get_expr(cohort_quo)
+  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr)) {
+    cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
+  }
+  cohort_quo
+}
+
+nis_design_cohort_type <- function(prepared, call) {
+  if (inherits(prepared, "tbl_sql") &&
+    inherits(dbplyr::remote_con(prepared), "duckdb_connection")) {
+    # LIMIT 0 inspects the expression's bound SQL type without reading rows.
+    # Collection alone loses the distinction between SQL NULL and typed NA.
+    query <- paste0(
+      "SELECT typeof((SELECT \".nis_cohort\" FROM (",
+      dbplyr::sql_render(prepared),
+      ") AS cohort_type LIMIT 0)) AS cohort_type"
+    )
+    type <- DBI::dbGetQuery(dbplyr::remote_con(prepared), query)$cohort_type
+    if (identical(type, "\"NULL\"")) {
+      return(dplyr::mutate(prepared,
+        .nis_cohort = as.logical(!!rlang::sym(".nis_cohort"))))
+    }
+    logical_cohort <- identical(type, "BOOLEAN")
+  } else if (is.data.frame(prepared)) {
+    logical_cohort <- is.logical(prepared$.nis_cohort)
+  } else {
+    return(prepared)
+  }
+  if (!logical_cohort) {
+    cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
+  }
+  prepared
+}
+
 nis_design_collect_cohort <- function(prepared, collected_fields, call) {
+  prepared <- nis_design_cohort_type(prepared, call)
   # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
   # the cohort expression runs once per discharge. Missing values are counted
   # here and dropped.
@@ -260,7 +296,9 @@ nis_design_2015_warning <- function(design_years, collected) {
 #' @param .data Lazy DuckDB query or data frame.
 #' @param cohort Logical data-masked cohort expression. Missing values are
 #'   counted and treated as outside the cohort. Only valid-design discharges
-#'   are counted.
+#'   are counted. Untyped SQL `NULL` values are accepted as missing logical
+#'   values. Lazy columns are validated using their SQL type; numeric and
+#'   character columns are rejected even when all missing.
 #' @param keep Tidyselect expression naming analysis columns to collect.
 #' @param annualize Divide discharge weights by the number of distinct `YEAR`
 #'   values among valid-design discharges. A year counts as one whole year
@@ -309,7 +347,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   selected <- fields$selected
   collected_fields <- fields$collected_fields
 
-  cohort_quo <- rlang::enquo(cohort)
+  cohort_quo <- nis_design_cohort_expr(rlang::enquo(cohort), call)
   # nolint start: object_usage_linter. Data-masked dplyr expressions.
   prepared <- dplyr::mutate(
     .data,

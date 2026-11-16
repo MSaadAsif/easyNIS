@@ -18,7 +18,9 @@ nis_design(
 
 \item{cohort}{Logical data-masked cohort expression. Missing values are
 counted and treated as outside the cohort. Only valid-design discharges
-are counted.}
+are counted. Untyped SQL \code{NULL} values are accepted as missing logical
+values. Lazy columns are validated using their SQL type; numeric and
+character columns are rejected even when all missing.}
 
 \item{keep}{Tidyselect expression naming analysis columns to collect.}
 
