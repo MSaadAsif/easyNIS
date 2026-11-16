@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_open()` now rejects selected years present in both an annual Parquet
+  directory and a Hive partition, preventing duplicate rows.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
