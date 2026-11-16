@@ -7,7 +7,10 @@
 nis_reweight(design, weights)
 }
 \arguments{
-\item{design}{A result of \code{\link[=nis_design]{nis_design()}}.}
+\item{design}{A result of \code{\link[=nis_design]{nis_design()}}.
+Column selection, renaming, and mutation are supported when cohort rows
+are unchanged. Required internal design fields are restored from survey
+metadata; removed analysis columns are not restored.}
 
 \item{weights}{Numeric weights aligned with the cohort rows of \code{design}, or
 an unquoted numeric column name in the design data. They are matched to
