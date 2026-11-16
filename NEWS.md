@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_cell_counts()` now rejects grouping keys named `n` or `hospitals`
+  to prevent cell identities from being overwritten.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
