@@ -26,10 +26,10 @@ expect_reweight_estimates <- function(actual, reference, formula) {
   for (estimator in list(survey::svymean, survey::svytotal)) {
     observed <- estimator(formula, actual)
     expected <- estimator(formula, reference)
-    expect_equal(coef(observed), coef(expected), tolerance = 1e-10)
-    expect_equal(survey::SE(observed), survey::SE(expected), tolerance = 1e-10)
+    testthat::expect_equal(coef(observed), coef(expected), tolerance = 1e-10)
+    testthat::expect_equal(survey::SE(observed), survey::SE(expected), tolerance = 1e-10)
   }
-  expect_equal(survey::degf(actual), survey::degf(reference))
+  testthat::expect_equal(survey::degf(actual), survey::degf(reference))
 }
 
 test_that("reweight restores selected design fields from intact survey metadata", {
