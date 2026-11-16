@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
+  empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
