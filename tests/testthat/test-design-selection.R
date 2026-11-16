@@ -91,3 +91,22 @@ test_that("lazy type selection does not materialize unselected row expressions",
   expect_equal(unname(coef(survey::svymean(~LOS, design))),
     weighted.mean(data$LOS[data$eligible], data$DISCWT[data$eligible]))
 })
+
+test_that("aliases preserve adjusted-cost sources before costs are recomputed", {
+  data <- selection_fixture()
+  data$cost_adj <- 901:906
+  data$charges_adj <- 801:806
+  reference <- nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022)
+  for (input in list(data, duckdb_query_fixture(data))) {
+    design <- nis_design(input, eligible,
+      keep = c(TOTCHG, CCR_NIS, cost_adj, charges_adj,
+        original_cost = cost_adj, original_charge = charges_adj), dollars = 2022)
+    expect_equal(as.numeric(design$variables$original_cost), data$cost_adj[data$eligible])
+    expect_equal(as.numeric(design$variables$original_charge), data$charges_adj[data$eligible])
+    expect_equal(design$variables$cost_adj, reference$variables$cost_adj)
+    expect_equal(design$variables$charges_adj, reference$variables$charges_adj)
+    expect_identical(attr(design$variables$original_cost, "label"),
+      attr(nis_label(data)$cost_adj, "label"))
+    expect_identical(nis_cost_provenance(design), nis_cost_provenance(reference))
+  }
+})

@@ -62,7 +62,7 @@ nis_design_fields <- function(.data, keep_quo, call) {
   )
 }
 
-nis_design_aliases <- function(combined, fields, cost_fields, call) {
+nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, call) {
   keep_map <- fields$keep_map
   retained <- unique(c(fields$design_fields, cost_fields))
   renamed <- names(keep_map) != unname(keep_map)
@@ -73,6 +73,7 @@ nis_design_aliases <- function(combined, fields, cost_fields, call) {
   # Copy simultaneously so swaps and multiple aliases use the original values
   # and labels, including aliases whose names are other HCUP field names.
   aliases <- combined[unname(keep_map)]
+  aliases[renamed] <- alias_sources[unname(keep_map[renamed])]
   names(aliases) <- names(keep_map)
   combined <- combined[setdiff(names(combined), setdiff(fields$keep_names, retained))]
   combined[names(aliases)] <- aliases
@@ -398,6 +399,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   }
   # nolint next: object_usage_linter. Function is defined in this package.
   combined <- nis_label(combined)
+  alias_sources <- combined[unique(fields$keep_names)]
   if (has_cost_inputs) {
     cost_fields <- c(charges, "CCR_NIS", "charges_adj", "cost_adj")
     charge_years <- unique(cohort_rows$YEAR)
@@ -451,7 +453,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
   ))
-  combined <- nis_design_aliases(combined, fields, cost_fields, call)
+  combined <- nis_design_aliases(combined, fields, cost_fields, alias_sources, call)
   design <- nis_cohort_design(combined)
   attr(design, "nis_excluded") <- excluded
   if (!is.null(cost_provenance)) {
