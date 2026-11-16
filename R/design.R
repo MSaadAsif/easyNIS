@@ -121,7 +121,8 @@ nis_design_exclusions <- function(.data) {
 
 nis_design_cohort_expr <- function(cohort_quo, call) {
   cohort_expr <- rlang::get_expr(cohort_quo)
-  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr)) {
+  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr) &&
+    !inherits(cohort_expr, "sql")) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }
   cohort_quo

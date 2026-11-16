@@ -7,6 +7,20 @@ missing_cohort_fixture <- function() {
   )
 }
 
+test_that("injected SQL cohorts are validated by their bound type", {
+  frame <- missing_cohort_fixture()
+  query <- duckdb_query_fixture(frame)
+  predicate <- dbplyr::sql("AGE > 45")
+  design <- nis_design(query, !!predicate, keep = AGE)
+  reference <- nis_design(frame, AGE > 45, keep = AGE)
+  expect_equal(design$variables, reference$variables)
+  expect_equal(unname(coef(survey::svymean(~AGE, design))),
+    unname(coef(survey::svymean(~AGE, reference))))
+  for (invalid in list(dbplyr::sql("AGE"), dbplyr::sql("'invalid'"))) {
+    expect_error(nis_design(query, !!invalid, keep = AGE), "logical vector")
+  }
+})
+
 test_that("untyped and typed missing logical cohorts agree across backends", {
   frame <- missing_cohort_fixture()
   query <- duckdb_query_fixture(frame)
