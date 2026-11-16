@@ -4,6 +4,8 @@
 #' The earliest valid index day is used when the index procedure occurs in
 #' multiple slots. A slot matching both prefix sets counts as both procedures.
 #' Prefixes follow the normalization and matching rules of [nis_flag_pr()].
+#' Factor and ordered-factor PRDAY columns are interpreted by their labels,
+#' not their internal level numbers. Input columns are preserved.
 #' Negative days (including HCUP sentinel values) and missing days are unknown.
 #' If either procedure is absent, the result is FALSE. Otherwise, any outcome
 #' with a known day satisfying the relation returns TRUE. If none does and a
@@ -169,8 +171,11 @@ timing_matches <- function(data, procedure_names, index_pr, outcome_pr,
 timing_days <- function(data, slots, day_by_slot) {
   lapply(slots, function(slot) {
     day_name <- unname(day_by_slot[as.character(slot)])
-    if (length(day_name) == 0L || is.na(day_name)) rlang::expr(NA_real_) else
-      nis_numeric_value_expr(day_name) # nolint: object_usage_linter
+    if (length(day_name) == 0L || is.na(day_name)) return(rlang::expr(NA_real_))
+    if (is.data.frame(data) && is.factor(data[[day_name]])) {
+      return(rlang::expr(as.double(as.character(!!rlang::sym(day_name)))))
+    }
+    nis_numeric_value_expr(day_name) # nolint: object_usage_linter
   })
 }
 
