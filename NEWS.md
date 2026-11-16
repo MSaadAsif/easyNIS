@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- `nis_design(keep = ...)` now uses selected source values for aliases and
+  actual column types for predicates on local and lazy DuckDB inputs. Aliases
+  preserve source labels and cannot overwrite retained design or cost fields.
+
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches

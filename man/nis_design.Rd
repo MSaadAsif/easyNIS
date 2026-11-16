@@ -20,7 +20,13 @@ nis_design(
 counted and treated as outside the cohort. Only valid-design discharges
 are counted.}
 
-\item{keep}{Tidyselect expression naming analysis columns to collect.}
+\item{keep}{Tidyselect expression naming analysis columns to collect.
+Renaming uses the selected source values and labels. Required design
+fields remain under their original names, as do selected cost inputs when
+costs are computed. Aliases cannot overwrite these retained fields or
+computed cost columns. Type predicates inspect actual columns locally and
+a zero-row schema for lazy queries; predicates depending on row values
+are therefore not portable across backends.}
 
 \item{annualize}{Divide discharge weights by the number of distinct \code{YEAR}
 values among valid-design discharges. A year counts as one whole year
