@@ -1,5 +1,5 @@
 nis_validate_layout_years <- function(entries, found, years, error_call) {
-  annual <- !dir.exists(entries)
+  annual <- grepl("^NIS_[0-9]{4}[.]parquet$", basename(entries))
   annual_years <- found[annual]
   hive_years <- found[!annual]
   conflicting_years <- intersect(years, intersect(annual_years, hive_years))
@@ -31,7 +31,9 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
 #'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
-#'   and Hive directories named `YEAR=YYYY` containing Parquet parts. If a part file
+#'   or directories and Hive directories named `YEAR=YYYY` containing Parquet
+#'   parts. A selected year must not appear in both annual and Hive layouts.
+#'   If a part file
 #'   has a physical `YEAR` column, its non-missing values must agree with the
 #'   directory year; missing or absent physical values use the partition year.
 #'   Schemas are combined by column name, including when annual files and Hive
