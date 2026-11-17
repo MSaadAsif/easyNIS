@@ -199,10 +199,11 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
   values <- if (binary_comorbidity) c("No", "Yes") else
     definition$value_label[value_rows]
   raw <- as.character(x)
+  raw[is.na(x)] <- NA_character_
   already_labelled <- !is.na(raw) &
-    (raw %in% values | grepl("^Code .+", raw))
+    (raw %in% values | startsWith(raw, "Code "))
   if (is.factor(x) && all(is.na(raw) | already_labelled)) {
-    return(factor(raw, levels = levels(x), ordered = is.ordered(x)))
+    return(x)
   }
   label_raw_codes(raw, codes, values, variable, call)
 }
