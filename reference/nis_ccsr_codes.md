@@ -54,10 +54,9 @@ Procedure reference files have no default assignment.
 
 UNVERIFIED: the file layouts above are assumed from secondhand
 descriptions of HCUP downloads, not checked against a current release.
-The single-quoted CSV reader checks row field counts; all supported
-formats check that codes look like ICD-10 codes (3 to 7 letters or
-digits). Check the returned codes against your reference file before you
-rely on them.
+Both CSV readers check record field counts; all supported formats check
+that codes look like ICD-10 codes (3 to 7 letters or digits). Check the
+returned codes against your reference file before you rely on them.
 
 This function is experimental.
 
@@ -97,7 +96,7 @@ nis_open(nis_example(years = 2019)) |>
   dplyr::count(heart_failure) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpnUaBAC/duckdb
+#> ℹ /tmp/RtmpmkLuGb/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -105,7 +104,7 @@ nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpnUaBAC/duckdb
+#> ℹ /tmp/RtmpmkLuGb/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
