@@ -51,8 +51,9 @@ for testing.
 
 `nis_open()` reads Parquet directly with DuckDB and returns a
 DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
-and Hive directories named `YEAR=YYYY` containing Parquet parts. If a
-part file has a physical `YEAR` column, its non-missing values must
+or directories and Hive directories named `YEAR=YYYY` containing Parquet
+parts. A selected year must not appear in both annual and Hive layouts.
+If a part file has a physical `YEAR` column, its non-missing values must
 agree with the directory year; missing or absent physical values use the
 partition year. Schemas are combined by column name, including when
 annual files and Hive partitions are mixed. When annual types differ,
@@ -85,7 +86,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUie4Dr/duckdb
+#> ℹ /tmp/RtmporhCT4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -93,7 +94,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUie4Dr/duckdb
+#> ℹ /tmp/RtmporhCT4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -102,7 +103,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUie4Dr/duckdb
+#> ℹ /tmp/RtmporhCT4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -123,7 +124,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUie4Dr/duckdb
+#> ℹ /tmp/RtmporhCT4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

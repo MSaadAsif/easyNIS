@@ -2,6 +2,11 @@
 
 ## easyNIS (development version)
 
+- [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  now rejects selected years present in both an annual Parquet directory
+  and a separate Hive partition, preventing duplicate rows. Hive parts
+  within one annual dataset remain supported.
+
 - Quality probes verify a disposable source installation and its
   effective namespace before measuring installed complexity. Nested
   packaging and coverage evidence remains unverified unless it reports a

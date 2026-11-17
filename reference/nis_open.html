@@ -101,7 +101,9 @@ HCUP 2023 documentation and real 2023 data; none were available for testing.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code>nis_open()</code> reads Parquet directly with DuckDB and returns a
 DuckDB-backed dbplyr table. It accepts annual <code>NIS_&lt;year&gt;.parquet</code> files
-and Hive directories named <code>YEAR=YYYY</code> containing Parquet parts. If a part file
+or directories and Hive directories named <code>YEAR=YYYY</code> containing Parquet
+parts. A selected year must not appear in both annual and Hive layouts.
+If a part file
 has a physical <code>YEAR</code> column, its non-missing values must agree with the
 directory year; missing or absent physical values use the partition year.
 Schemas are combined by column name, including when annual files and Hive
@@ -132,7 +134,7 @@ may still fail on malformed values.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUie4Dr/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmporhCT4/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -140,7 +142,7 @@ may still fail on malformed values.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUie4Dr/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmporhCT4/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -149,7 +151,7 @@ may still fail on malformed values.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu">nis_open</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUie4Dr/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmporhCT4/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -170,7 +172,7 @@ may still fail on malformed values.</p>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUie4Dr/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmporhCT4/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
