@@ -63,7 +63,11 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
 #' @return A collected tibble with one row per presentation and unweighted and
 #'   weighted counts, shares of all prefix-positive presentations, and rates
 #'   for requested outcomes. The principal presentation is a strict subset of
-#'   any-position cases, so Cohen's kappa is not meaningful here.
+#'   any-position cases, so Cohen's kappa is not meaningful here. Existing input
+#'   groups are ignored: summaries describe the full input. Empty inputs return
+#'   zero counts and missing shares and rates. Missing weights are omitted from
+#'   weighted sums; missing outcomes are excluded from that outcome's denominator.
+#'   Rates with zero denominators are missing.
 #' @family cohort-definition
 #' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
 #' @export
@@ -87,12 +91,13 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
   add_position_flags <- function(data) {
     nis_flag_dx_position(data, code, name = ".nis_dx", system = system)
   }
-  data <- add_position_flags(.data)
+  data <- add_position_flags(dplyr::ungroup(.data))
 
-  summary_exprs <- dx_summary_exprs(flags, outcomes, weight_var)
+  summary_flags <- dx_summary_names(nis_names(data), flags) # nolint: object_usage_linter
+  summary_exprs <- dx_summary_exprs(flags, outcomes, weight_var, summary_flags)
   summary <- dplyr::summarise(data, !!!summary_exprs) |>
     dplyr::collect()
-  dx_summary_result(summary, flags, outcomes)
+  dx_summary_result(summary, summary_flags, outcomes)
 }
 
 dx_validate_weight <- function(weight_var) {
@@ -117,27 +122,40 @@ dx_validate_outcomes <- function(outcomes, data, supplied) {
   outcomes
 }
 
-dx_summary_exprs <- function(flags, outcomes, weight_var) {
-  Reduce(c, lapply(names(flags), function(presentation) {
-    dx_flag_exprs(flags[[presentation]], outcomes, weight_var)
-  }))
+dx_summary_names <- function(columns, flags) {
+  prefix <- ".nis_dx_summary_"
+  while (any(startsWith(tolower(columns), tolower(prefix)))) {
+    prefix <- paste0(prefix, "_")
+  }
+  stats::setNames(paste0(prefix, seq_along(flags)), names(flags))
 }
 
-dx_flag_exprs <- function(flag, outcomes, weight_var) {
+dx_summary_exprs <- function(flags, outcomes, weight_var, summary_flags) {
+  expressions <- Reduce(c, lapply(names(flags), function(presentation) {
+    dx_flag_exprs(flags[[presentation]], outcomes, weight_var,
+      summary_flags[[presentation]])
+  }))
+  lapply(expressions, function(expression) {
+    rlang::expr(dplyr::coalesce(!!expression, 0))
+  })
+}
+
+dx_flag_exprs <- function(flag, outcomes, weight_var, summary_flag) {
   expressions <- list(
     rlang::expr(sum(dplyr::coalesce(!!rlang::sym(flag), FALSE), na.rm = TRUE)),
     rlang::expr(sum(dplyr::if_else(!!rlang::sym(flag),
       !!rlang::sym(weight_var), 0), na.rm = TRUE))
   )
-  names(expressions) <- paste0(flag, c("_n", "_weighted"))
-  for (outcome in outcomes) {
+  names(expressions) <- paste0(summary_flag, c("_n", "_weighted"))
+  for (index in seq_along(outcomes)) {
     expressions <- c(expressions,
-      dx_outcome_exprs(flag, outcome, weight_var))
+      dx_outcome_exprs(flag, outcomes[[index]], weight_var,
+        paste0(summary_flag, "_", index)))
   }
   expressions
 }
 
-dx_outcome_exprs <- function(flag, outcome, weight_var) {
+dx_outcome_exprs <- function(flag, outcome, weight_var, summary_name) {
   value <- rlang::sym(outcome)
   weight <- rlang::sym(weight_var)
   selected <- rlang::sym(flag)
@@ -149,7 +167,7 @@ dx_outcome_exprs <- function(flag, outcome, weight_var) {
     rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value) &
       !!value == 1, !!weight, 0), na.rm = TRUE))
   )
-  names(expressions) <- paste0(flag, "_", outcome,
+  names(expressions) <- paste0(summary_name,
     c("_n", "_events", "_weighted_n", "_weighted_events"))
   expressions
 }
@@ -176,17 +194,17 @@ dx_summary_result <- function(summary, flags, outcomes) {
   } else {
     NA_real_
   }
-  for (outcome in outcomes) {
-    result <- dx_append_rates(result, summary, flags, outcome)
+  for (index in seq_along(outcomes)) {
+    result <- dx_append_rates(result, summary, flags, outcomes[[index]], index)
   }
   result
 }
 
-dx_append_rates <- function(result, summary, flags, outcome) {
+dx_append_rates <- function(result, summary, flags, outcome, index) {
   result[[paste0(outcome, "_rate_unweighted")]] <- dx_rate_vector(
-    summary, flags, outcome, FALSE)
+    summary, flags, index, FALSE)
   result[[paste0(outcome, "_rate_weighted")]] <- dx_rate_vector(
-    summary, flags, outcome, TRUE)
+    summary, flags, index, TRUE)
   result
 }
 
