@@ -54,7 +54,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<ul><li><p><code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> now summarizes grouped inputs completely, handles empty DuckDB cohorts, and avoids aggregate collisions between outcome names.</p></li>
+<ul><li><p>Reuse a shared roxygen template for repeated <code>.data</code> parameter documentation.</p></li>
+<li><p><code><a href="../reference/nis_dx_sensitivity.html">nis_dx_sensitivity()</a></code> now summarizes grouped inputs completely, handles empty DuckDB cohorts, and avoids aggregate collisions between outcome names.</p></li>
 <li><p><code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> rejects standard CSV records with extra or missing fields before parsing, preventing shifted code/category mappings. Quoted commas and multiline descriptions remain supported.</p></li>
 <li><p><code><a href="../reference/nis_design.html">nis_design()</a></code> accepts grouped DuckDB inputs and removes input groups, including rowwise grouping, before evaluating the cohort over the full input.</p></li>
 <li><p><code>nis_design(keep = ...)</code> now uses selected source values for aliases and actual column types for predicates on local and lazy DuckDB inputs. Aliases preserve source labels and cannot overwrite retained design or cost fields.</p></li>

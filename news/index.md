@@ -2,6 +2,9 @@
 
 ## easyNIS (development version)
 
+- Reuse a shared roxygen template for repeated `.data` parameter
+  documentation.
+
 - [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
   now summarizes grouped inputs completely, handles empty DuckDB
   cohorts, and avoids aggregate collisions between outcome names.
