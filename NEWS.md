@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_attrition()` ignores input groups consistently and returns matching
+  local and DuckDB totals for empty inputs and missing weights, including `NaN`.
+
 - `nis_open()` now rejects selected years present in both an annual Parquet
   directory and a separate Hive partition, preventing duplicate rows. Hive
   parts within one annual dataset remain supported.
