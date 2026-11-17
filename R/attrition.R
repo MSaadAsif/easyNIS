@@ -46,11 +46,11 @@
   unlist(keep_exprs, recursive = FALSE)
 }
 
-.nis_attrition_summary_exprs <- function(criteria_count, keep_names, weight_var) {
+.nis_attrition_summary_exprs <- function(criteria_count, keep_names, weight) {
   summary_exprs <- list()
   summary_exprs[[".nis_attrition_n_0"]] <- rlang::expr(dplyr::n())
   summary_exprs[[".nis_attrition_w_0"]] <- rlang::expr(sum(
-    dplyr::coalesce(!!rlang::sym(weight_var), 0), na.rm = TRUE
+    !!weight, na.rm = TRUE
   ))
   for (i in seq_len(criteria_count)) {
     keep <- rlang::sym(keep_names[[i]])
@@ -60,7 +60,7 @@
       dplyr::if_else(!!keep, 1L, 0L), na.rm = TRUE
     ))
     summary_exprs[[weight_name]] <- rlang::expr(sum(dplyr::if_else(
-      !!keep, dplyr::coalesce(!!rlang::sym(weight_var), 0), 0
+      !!keep, !!weight, 0
     ), na.rm = TRUE))
   }
   summary_exprs
@@ -68,8 +68,12 @@
 
 .nis_attrition_summarise <- function(.data, summary_exprs, by_year) {
   grouped <- if (by_year) dplyr::group_by(.data, YEAR) else .data
-  dplyr::summarise(grouped, !!!summary_exprs, .groups = "drop") |>
+  counts <- dplyr::summarise(grouped, !!!summary_exprs, .groups = "drop") |>
     nis_collect()
+  # SQL SUM returns NULL on empty inputs; R sum returns zero.
+  empty <- counts[[".nis_attrition_n_0"]] == 0
+  counts[empty, names(summary_exprs)] <- 0
+  counts
 }
 
 .nis_attrition_empty_annual <- function(counts, by_year) {
@@ -130,7 +134,9 @@
 #' dropped counts are `NA`. Criteria are evaluated in order; `NA` values
 #' are treated as excluded, matching [dplyr::filter()]. The summary is
 #' aggregated lazily for DuckDB queries and returned as a collected tibble.
-#' Missing weights contribute zero to weighted totals.
+#' Missing weights (including `NaN`) contribute zero to weighted totals.
+#' Existing input groups are ignored, including when evaluating criteria.
+#' Criteria are evaluated over the full input before annual aggregation.
 #'
 #' @template dot-data
 #' @param ... Named logical expressions applied cumulatively. Unnamed
@@ -161,9 +167,12 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   labels <- names(criteria)
   keep_names <- .nis_attrition_keep_names(.data, length(criteria))
   keep_exprs <- .nis_attrition_keep_exprs(criteria, keep_names)
-  prepared <- dplyr::mutate(.data, !!!keep_exprs)
+  prepared <- dplyr::mutate(dplyr::ungroup(.data), !!!keep_exprs)
+  missing_weight <- nis_is_missing_expr(prepared, weight_var) # nolint: object_usage_linter
+  weight <- rlang::expr(dplyr::if_else(
+    !!missing_weight, 0, as.double(!!rlang::sym(weight_var))))
   summary_exprs <- .nis_attrition_summary_exprs(
-    length(criteria), keep_names, weight_var)
+    length(criteria), keep_names, weight)
   counts <- .nis_attrition_summarise(prepared, summary_exprs, by_year)
   if (by_year && anyNA(counts$YEAR)) {
     cli::cli_abort("`YEAR` must not contain missing values when `by_year` is `TRUE`.")

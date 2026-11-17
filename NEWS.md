@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_attrition()` ignores input groups consistently and returns matching
+  local and DuckDB totals for empty inputs and missing weights, including `NaN`.
+
 - Reuse a shared roxygen template for repeated `.data` parameter
   documentation.
 - `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
