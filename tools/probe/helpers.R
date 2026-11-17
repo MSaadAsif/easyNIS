@@ -306,10 +306,13 @@ parse_quality_line <- function(line) {
     return(list(step = item[["step", exact = TRUE]], commit = item[["commit", exact = TRUE]],
       status = "invalid_evidence", pass = FALSE))
   }
-  list(step = quality_line_steps(line), status = "invalid_evidence", pass = FALSE)
+  commit <- quality_line_fields(line, "commit")
+  list(step = quality_line_fields(line, "step"),
+    commit = if (valid_nonempty_string(commit)) commit else NULL,
+    status = "invalid_evidence", pass = FALSE)
 }
 
-quality_line_steps <- function(line) {
+quality_line_fields <- function(line, field) {
   tokens <- regmatches(line, gregexpr('"([^"\\\\]|\\\\.)*"|[{}\\[\\]:,]', line,
     perl = TRUE))[[1L]]
   if (!length(tokens) || tokens[[1L]] != "{") return(character())
@@ -322,11 +325,11 @@ quality_line_steps <- function(line) {
     if (token %in% c("}", "]")) depth <- depth - 1L
     if (depth == 0L) break
     if (depth != 1L || i + 2L > length(tokens) || !startsWith(token, '"')) next
-    if (!identical(decode(token), "step") || tokens[[i + 1L]] != ":") next
+    if (!identical(decode(token), field) || tokens[[i + 1L]] != ":") next
     value <- decode(tokens[[i + 2L]])
-    if (valid_nonempty_string(value)) steps <- c(steps, value)
+    steps <- c(steps, if (valid_nonempty_string(value)) value else NA_character_)
   }
-  unique(steps)
+  if (field == "step") unique(steps[!is.na(steps)]) else steps
 }
 
 load_quality_evidence <- function(files) {

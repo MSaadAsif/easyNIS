@@ -392,6 +392,11 @@ local({
   altered$commit <- "invented-old"
   stopifnot(run_readiness(encode(altered))$coverage_ready,
     !run_readiness(clean = FALSE)$coverage_ready)
+  for (line in c(
+      '{"diagnostic":{"commit":"invented-head"},"step":"coverage_percent","commit":"invented-old","status":"failed","status":"completed"}',
+      '{"step":"coverage_percent","commit":"invented-old","unfinished":')) {
+    stopifnot(run_readiness(line)$coverage_ready)
+  }
   for (flag in list(FALSE, 1, "true", NULL)) {
     altered <- baseline
     altered$working_tree_clean <- flag
