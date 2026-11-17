@@ -533,13 +533,17 @@ code_system_filter <- function(data, columns, slots, system) {
   }
   if ("YEAR" %in% columns) {
     missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
+    finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
+    valid_year <- rlang::expr(!!finite_year & YEAR == floor(YEAR))
     # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
       rlang::expr(YEAR >= 2015L)
     }
-    conditions <- c(conditions, list(rlang::expr(!!missing_year | !!year_range)))
+    conditions <- c(conditions, list(rlang::expr(
+      !!missing_year | (!!valid_year & !!year_range)
+    )))
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
