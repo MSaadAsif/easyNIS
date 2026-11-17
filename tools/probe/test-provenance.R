@@ -1,4 +1,5 @@
 source("tools/probe/provenance.R")
+source("tools/probe/helpers.R")
 local({
   scratch <- tempfile("quality-fixture-")
   dir.create(scratch)
@@ -32,6 +33,20 @@ local({
   }), error = identity)
   stopifnot(inherits(failed, "error"), !grepl("Callback must never", conditionMessage(failed)))
   cat("Install failure refused before callback\n")
+  for (throws in c(FALSE, TRUE)) {
+    captured <- capture_quality_step("invented", function() {
+      with_verified_source(requested, function(root, package) {
+        warning(structure(list(message = "INVENTED_WARNING", call = NULL),
+          class = c("invented_warning", "warning", "condition")))
+        if (throws) stop("Invented callback failure")
+        FALSE
+      })
+    })
+    stopifnot(length(captured$warning_conditions) == 1L,
+      inherits(captured$warning_conditions[[1L]], "invented_warning"),
+      identical(conditionMessage(captured$warning_conditions[[1L]]), "INVENTED_WARNING"),
+      identical(inherits(captured$value, "error"), throws))
+  }
   result <- with_verified_source(requested, function(root, package) {
     list(marker = getExportedValue(package, "marker")(),
       complexity = cyclocomp::cyclocomp_package(package)$cyclocomp,

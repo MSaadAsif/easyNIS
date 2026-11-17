@@ -1,7 +1,7 @@
 # Install in a fresh library using R CMD INSTALL, independently of parent state.
 # The callback runs only after the effective namespace path has been verified.
 with_verified_source <- function(root, fn) {
-  callr::r(function(root, fn) {
+  result <- callr::r(function(root, fn) {
     library <- tempfile("quality-library-")
     dir.create(library)
     on.exit(unlink(library, recursive = TRUE), add = TRUE)
@@ -16,9 +16,18 @@ with_verified_source <- function(root, fn) {
     if (!identical(normalizePath(effective), normalizePath(expected))) {
       stop("Effective namespace does not match the isolated installation")
     }
-    fn(root, package)
+    warnings <- list()
+    error <- NULL
+    value <- tryCatch(withCallingHandlers(fn(root, package), warning = function(w) {
+      warnings[[length(warnings) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }), error = function(e) { error <<- e; NULL })
+    list(value = value, warnings = warnings, error = error)
   }, list(normalizePath(root, mustWork = TRUE), fn),
     user_profile = FALSE, system_profile = FALSE)
+  for (condition in result$warnings) warning(condition)
+  if (!is.null(result$error)) stop(result$error)
+  result$value
 }
 
 # Outer namespace verification cannot attest to installations made by nested tools.
