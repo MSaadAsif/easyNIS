@@ -190,6 +190,43 @@ test_that("plain double-quoted CSV files still parse", {
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })
 
+test_that("standard CSV mappings reject extra and missing record fields", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  header <- "ICD-10-CM CODE,CCSR CATEGORY 1"
+
+  for (row in c("X100,X101,ZZZ001", "X100")) {
+    writeLines(c(header, row), path)
+    expect_error(nis_ccsr_codes(path, "ZZZ001"), "record field counts")
+    writeLines(c(header, "X102,ZZZ001", row), path)
+    expect_error(nis_ccsr_codes(path, "ZZZ001"), "record field counts")
+  }
+})
+
+test_that("standard CSV validation respects quoted commas and multiline records", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  writeLines(c(
+    '"ICD-10-CM CODE","Description","CCSR CATEGORY 1"',
+    '"X100","Invented, description","ZZZ001"',
+    '"X101","Invented ""quoted""',
+    'description, continued","ZZZ001"'
+  ), path)
+  expect_identical(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X101"))
+})
+
+test_that("standard CSV validation accepts multiline headers and checks later records", {
+  path <- tempfile(fileext = ".csv")
+  on.exit(unlink(path), add = TRUE)
+  header <- c('"ICD-10-CM', 'CODE","Description","CCSR CATEGORY 1"')
+  writeLines(c(header, '"X100","Invented","ZZZ001"'), path)
+  expect_identical(nis_ccsr_codes(path, "ZZZ001"), "X100")
+  for (row in c('"X100","ZZZ001"', '"X100","Invented","ZZZ001","Extra"')) {
+    writeLines(c(header, row), path)
+    expect_error(nis_ccsr_codes(path, "ZZZ001"), "record field counts")
+  }
+})
+
 test_that("a byte-order mark before the header is tolerated", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
