@@ -6,18 +6,17 @@ read_main_renviron(main_repo)
 loop_dir <- resolve_loop_dir(main_repo)
 quality_files <- list.files(loop_dir, pattern = "^quality[.]jsonl$", recursive = TRUE, full.names = TRUE)
 quality_files <- quality_files[order(file.info(quality_files)$mtime)]
-quality <- if (!length(quality_files) || !requireNamespace("jsonlite", quietly = TRUE)) list() else
-  unlist(lapply(quality_files, function(file) lapply(readLines(file, warn = FALSE),
-    jsonlite::fromJSON, simplifyVector = FALSE)), recursive = FALSE)
+quality <- load_quality_evidence(quality_files)
 current_evidence <- git_evidence()
 current_commit <- current_evidence$commit
 current_tree_clean <- current_evidence$working_tree_clean
 quality_by_step <- list()
 for (item in quality) {
-  if (!identical(item$status, "skipped_by_selection") &&
-      quality_evidence_valid(item, current_commit, current_tree_clean)) {
-    quality_by_step[[item$step]] <- item
-  }
+  if (!quality_step_identifiable(item)) next
+  if (valid_nonempty_string(item$commit) && !identical(item$commit, current_commit)) next
+  if (identical(item$status, "skipped_by_selection") &&
+      quality_evidence_valid(item, current_commit, current_tree_clean)) next
+  quality_by_step[[item$step]] <- item
 }
 record <- function(criterion, status, evidence) data.frame(criterion, status, evidence, stringsAsFactors = FALSE)
 check_pass <- function(name) {
@@ -64,13 +63,11 @@ workflow_documented <- length(workflow_topics) > 0L &&
   all(vapply(workflow_topics, grepl, logical(1), x = doc_text, fixed = TRUE))
 manual <- quality_by_step[["ropensci_manual_subset"]]
 pkgcheck <- quality_by_step[["pkgcheck"]]
-manual_pass <- !is.null(manual) && identical(manual$pass, TRUE) &&
-  identical(manual$commit, current_commit)
+manual_pass <- check_pass("ropensci_manual_subset")
 pkgcheck_available <- !is.null(pkgcheck) && !identical(pkgcheck$status, "skipped_not_installed")
 pkgcheck_pass <- pkgcheck_available && check_pass("pkgcheck") && manual_pass
 coverage_ready <- is.finite(coverage_value) && coverage_value >= 90 &&
-  quality_evidence_valid(coverage, current_commit, current_tree_clean) &&
-  identical(coverage$pass, TRUE)
+  check_pass("coverage_percent")
 examples_ready <- all(man_examples) && check_pass("R CMD check --as-cran")
 pkgdown_ready <- check_pass("pkgdown::check_pkgdown") && workflow_documented
 local_as_cran_ready <- check_pass("R CMD check --as-cran")
@@ -87,7 +84,7 @@ as_cran_evidence <- function() {
 criteria <- rbind(
   record("R CMD check --as-cran: 0/0/0 on CI", as_cran_status(ci_runs_ok, local_as_cran_ready), as_cran_evidence()),
   record("rOpenSci packaging-guide conformance", if (pkgcheck_pass) "ready" else if (!pkgcheck_available) "not verified" else "not met", if (!pkgcheck_available) "pkgcheck is unavailable; manual checklist alone cannot establish conformance" else "Requires passing pkgcheck and the passing manual subset from a clean current commit"),
-  record("Test coverage >= 90%", if (coverage_ready) "ready" else if (!is.finite(coverage_value)) "not measured" else "not met", if (!is.finite(coverage_value)) "Latest covr run unavailable" else paste("Latest covr percentage:", coverage_value, "on commit", if (is.null(coverage$commit)) "unknown" else coverage$commit)),
+  record("Test coverage >= 90%", if (coverage_ready) "ready" else if (!is.finite(coverage_value)) "not measured" else "not met", if (!is.finite(coverage_value)) "Latest covr run unavailable" else paste("Latest covr percentage:", coverage_value, "on commit", if (identical(coverage$commit, current_commit)) current_commit else "unknown")),
   record("Every export has runnable examples", if (examples_ready) "ready" else "not met", paste(sum(man_examples), "of", length(exports), "exports have examples; a clean current-commit package check is required")),
   record("pkgdown documents the full workflow", if (pkgdown_ready) "ready" else "not met", paste("pkgdown check on current commit:", check_pass("pkgdown::check_pkgdown"), "; full workflow topics documented:", workflow_documented)),
   record("Cyclomatic complexity <= 15 per function", if (check_pass("cyclocomp_linter(15)")) "ready" else "not met", "Requires a passing cyclocomp_linter(15) result for the current commit"),

@@ -123,6 +123,7 @@ valid_receipt_time <- function(value) {
 }
 
 numeric_reference_value <- function(value) {
+  if ((!is.numeric(value) && !is.character(value)) || length(value) != 1L) return(NA_real_)
   parsed <- suppressWarnings(as.numeric(value))
   if (length(parsed) != 1L || !is.finite(parsed)) return(NA_real_)
   parsed
@@ -133,7 +134,7 @@ valid_named_fields <- function(value, required) {
 }
 
 valid_nonempty_string <- function(value) {
-  is.character(value) && length(value) == 1L && nzchar(value)
+  is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
 }
 
 valid_estimate_interval <- function(value) {
@@ -251,7 +252,8 @@ valid_receipt_comparison <- function(result, comparison) {
 
 valid_receipt_reference_values <- function(result, reference, value, tolerance) {
   identical(numeric_reference_value(result$reference_value), value) &&
-    identical(as.numeric(unlist(result$reference_ci)), as.numeric(vapply(reference$ci,
+    (is.list(result$reference_ci) || is.numeric(result$reference_ci) || is.character(result$reference_ci)) &&
+    identical(vapply(result$reference_ci, numeric_reference_value, numeric(1)), as.numeric(vapply(reference$ci,
       numeric_reference_value, numeric(1)))) &&
     identical(numeric_reference_value(result$tolerance), tolerance)
 }
@@ -294,6 +296,34 @@ check_result_counts <- function(value) {
 quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
   is.list(item) && isTRUE(current_tree_clean) &&
     identical(item$commit, current_commit) && identical(item$working_tree_clean, TRUE)
+}
+
+parse_quality_line <- function(line) {
+  item <- tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE), error = function(e) NULL)
+  if (is.list(item) && !is.null(names(item)) && !anyDuplicated(names(item))) {
+    required <- c("step", "status", "pass", "commit", "working_tree_clean")
+    if (valid_named_fields(item, required)) return(item)
+    return(list(step = item[["step", exact = TRUE]], commit = item[["commit", exact = TRUE]],
+      status = "invalid_evidence", pass = FALSE))
+  }
+  # Recover only a step identity, never raw diagnostic text, from broken JSON.
+  match <- regexec('"step"[[:space:]]*:[[:space:]]*("([^"\\\\]|\\\\.)*")', line)
+  fields <- regmatches(line, match)[[1L]]
+  step <- if (length(fields) >= 2L) tryCatch(jsonlite::fromJSON(fields[[2L]]),
+    error = function(e) NULL) else NULL
+  list(step = step, status = "invalid_evidence", pass = FALSE)
+}
+
+load_quality_evidence <- function(files) {
+  if (!requireNamespace("jsonlite", quietly = TRUE)) return(list())
+  unlist(lapply(files, function(file) {
+    lines <- tryCatch(readLines(file, warn = FALSE), error = function(e) character())
+    lapply(lines, parse_quality_line)
+  }), recursive = FALSE)
+}
+
+quality_step_identifiable <- function(item) {
+  is.list(item) && valid_nonempty_string(item$step)
 }
 
 private_quality_diagnostics <- function(checks, records) {
@@ -420,8 +450,9 @@ write_private_quality_diagnostics <- function(run_dir, checks, records) {
 }
 
 coverage_percent_value <- function(item) {
-  value <- item$value
-  if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) return(NA_real_)
+  value <- if (is.list(item)) item[["value", exact = TRUE]] else NULL
+  if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
+      value < 0 || value > 100) return(NA_real_)
   as.numeric(value)
 }
 

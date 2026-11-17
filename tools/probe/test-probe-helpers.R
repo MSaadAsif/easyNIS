@@ -73,6 +73,31 @@ local({
     study_verification_ready(receipt_path, current_commit, reference)
   }
   stopifnot(valid_reference_study(reference), write_receipt())
+  boolean_reference <- reference
+  boolean_reference$headline_estimates[[1L]]$estimate <- TRUE
+  stopifnot(!valid_reference_study(boolean_reference))
+  # Values that would pass if TRUE were coerced to one.
+  unit_reference <- reference
+  unit_reference$headline_estimates[[1L]]$estimate <- "1.00"
+  unit_reference$headline_estimates[[1L]]$ci <- c("0.00", "1.00")
+  unit_receipt <- receipt
+  unit_receipt$results[[1L]]$computed_estimate <- 1
+  unit_receipt$results[[1L]]$reference_value <- 1
+  unit_receipt$results[[1L]]$reference_ci <- c(0, 1)
+  jsonlite::write_json(unit_receipt, receipt_path, auto_unbox = TRUE)
+  stopifnot(study_verification_ready(receipt_path, current_commit, unit_reference))
+  string_receipt <- unit_receipt
+  string_receipt$results[[1L]]$computed_estimate <- "1.00"
+  string_receipt$results[[1L]]$reference_value <- "1.00"
+  string_receipt$results[[1L]]$reference_ci <- c("0.00", "1.00")
+  jsonlite::write_json(string_receipt, receipt_path, auto_unbox = TRUE)
+  stopifnot(study_verification_ready(receipt_path, current_commit, unit_reference))
+  for (field in c("computed_estimate", "reference_value", "reference_ci", "tolerance")) {
+    malformed <- unit_receipt
+    malformed$results[[1L]][[field]] <- if (field == "reference_ci") list(FALSE, TRUE) else TRUE
+    jsonlite::write_json(malformed, receipt_path, auto_unbox = TRUE)
+    stopifnot(!study_verification_ready(receipt_path, current_commit, unit_reference))
+  }
   for (field in c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")) {
     malformed <- reference
     malformed[[field]] <- NULL
@@ -281,6 +306,96 @@ local({
   Sys.setenv(EASYNIS_LOOP_DIR = "from-shell")
   read_main_renviron(repo)
   stopifnot(identical(Sys.getenv("EASYNIS_LOOP_DIR"), "from-shell"))
+})
+
+local({
+  fixture_dir <- tempfile("invented-readiness-")
+  dir.create(fixture_dir)
+  on.exit(unlink(fixture_dir, recursive = TRUE))
+  quality_file <- file.path(fixture_dir, "quality.jsonl")
+  baseline <- list(step = "coverage_percent", status = "completed", pass = TRUE,
+    value = 94, commit = "invented-head", working_tree_clean = TRUE)
+  pkg <- baseline
+  pkg$step <- "pkgcheck"
+  manual <- baseline
+  manual$step <- "ropensci_manual_subset"
+  complexity <- baseline
+  complexity$step <- "cyclocomp_linter(15)"
+  encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE))
+  run_readiness <- function(extra = character(), coverage = baseline, subset = manual,
+      clean = TRUE) {
+    writeLines(c(vapply(list(coverage, pkg, subset, complexity), encode, character(1)), extra),
+      quality_file)
+    env <- new.env(parent = globalenv())
+    env$source <- function(file) {
+      sys.source(file, envir = env)
+      env$find_main_repo <- function(...) normalizePath(".")
+      env$read_main_renviron <- function(...) invisible(NULL)
+      env$resolve_loop_dir <- function(...) fixture_dir
+      env$git_evidence <- function(...) list(commit = "invented-head", working_tree_clean = clean)
+    }
+    env$system2 <- function(command, args, ...) {
+      stopifnot(identical(command, "gh"))
+      if (identical(args[[1L]], "issue")) return("[]")
+      '[{"name":"R-CMD-check","headSha":"invented-head","status":"completed","conclusion":"success"}]'
+    }
+    output <- capture.output(sys.source("tools/probe/readiness.R", envir = env))
+    stopifnot(nrow(env$criteria) == 8L,
+      !any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
+    env
+  }
+  ready <- run_readiness()
+  stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
+    ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
+  for (status in c("failed", "partial", "not_verified", "", NA_character_)) {
+    altered <- baseline
+    altered$status <- status
+    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
+    altered <- manual
+    altered$status <- status
+    stopifnot(!run_readiness(subset = altered)$pkgcheck_pass)
+  }
+  for (value in list(-1, 101, TRUE, "94", c(91, 94), NULL)) {
+    altered <- baseline
+    altered$value <- value
+    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
+  }
+  for (value in c(0, 90, 100)) {
+    altered <- baseline
+    altered$value <- value
+    stopifnot(identical(run_readiness(coverage = altered)$coverage_ready, value >= 90))
+  }
+  malformed <- c('{"INVENTED_PRIVATE_MARKER":', '7', 'null', '[]',
+    '{"step":["coverage_percent"],"commit":"invented-old"}')
+  stopifnot(run_readiness(malformed)$coverage_ready)
+  for (line in c('{"step":"coverage_percent","INVENTED_PRIVATE_MARKER":',
+      '{"step":"coverage_percent"}',
+      '{"step":"coverage_percent","status_extra":"completed","pass":true,"value":94,"commit":"invented-head","working_tree_clean":true}',
+      '{"step":"coverage_percent","status":"completed","pass":true,"value_extra":94,"commit":"invented-head","working_tree_clean":true}',
+      '{"step":"coverage_percent","status":"completed","pass":true,"value":94,"commit":{"text":"INVENTED_PRIVATE_MARKER"},"working_tree_clean":true}',
+      '{"step":"coverage_percent","commit":"invented-head","working_tree_clean":true,"status":7}',
+      '{"step":"coverage_percent","step":"coverage_percent"}')) {
+    result <- run_readiness(c(malformed, line))
+    stopifnot(!result$coverage_ready, result$check_pass("cyclocomp_linter(15)"))
+  }
+  altered <- baseline
+  altered$status <- "failed"
+  altered$pass <- FALSE
+  stopifnot(!run_readiness(encode(altered))$coverage_ready)
+  altered$status <- "skipped_by_selection"
+  stopifnot(run_readiness(encode(altered))$coverage_ready)
+  altered$status <- "failed"
+  altered$commit <- "invented-old"
+  stopifnot(run_readiness(encode(altered))$coverage_ready,
+    !run_readiness(clean = FALSE)$coverage_ready)
+  for (flag in list(FALSE, 1, "true", NULL)) {
+    altered <- baseline
+    altered$working_tree_clean <- flag
+    stopifnot(!run_readiness(encode(altered))$coverage_ready)
+    altered <- baseline
+    altered$pass <- flag
+    stopifnot(!run_readiness(encode(altered))$coverage_ready)
+  }
 })
 
 cat("Probe-helper tests passed.\n")
