@@ -3,8 +3,14 @@
 - `nis_attrition()` ignores input groups consistently and returns matching
   local and DuckDB totals for empty inputs and missing weights, including `NaN`.
 
+- Quality probes verify a disposable source installation and its effective
+  namespace before measuring installed complexity. Nested packaging and coverage
+  evidence remains unverified unless it reports a failure; equal versions and
+  library search order no longer imply source provenance (#170).
+
 - Reuse a shared roxygen template for repeated `.data` parameter
   documentation.
+
 - `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
   empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
 
