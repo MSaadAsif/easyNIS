@@ -241,6 +241,26 @@ test_that("nis_open checks mixed layouts only for selected years", {
     "Year 2020: annual .*NIS_2020[.]parquet.*Hive .*YEAR=2020")
 })
 
+test_that("nis_open accepts Hive parts within one annual dataset", {
+  path <- tempfile("nis-nested-annual-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(id = 1L),
+    file.path(path, "NIS_2020.parquet", "YEAR=2020", "part.parquet"))
+  readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
+  for (reader in readers) {
+    for (years in list(NULL, 2020L)) {
+      result <- dplyr::collect(nis_open(path, years = years, reader = reader))
+      expect_identical(result$id, 1L)
+      expect_identical(result$YEAR, 2020L)
+    }
+    write_duckdb_parquet(dplyr::tibble(id = 2L),
+      file.path(path, "YEAR=2020", "part.parquet"))
+    expect_error(nis_open(path, reader = reader), "both annual and Hive")
+    unlink(file.path(path, "YEAR=2020"), recursive = TRUE)
+  }
+})
+
 test_that("nis_open accepts multiple Hive parts for one year", {
   path <- tempfile("nis-hive-multiple-parts-")
   dir.create(path)
