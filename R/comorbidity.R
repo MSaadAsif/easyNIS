@@ -33,6 +33,8 @@
 #'   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for example, a
 #'   condition is not flagged from the principal diagnosis alone where AHRQ
 #'   excludes it). Codes in `I10_DX2` onward are secondary.
+#'   Only positive slot suffixes without leading zeros are recognized;
+#'   malformed names such as `I10_DX0` and `I10_DX01` are ignored.
 #' * **ICD-10 only.** Only the `I10_DX*` columns are read. A discharge with no
 #'   usable `I10_DX*` code (all blank, missing or invalid UTF-8), such as an ICD-9
 #'   discharge from before October 2015, gets `NA` in every added column, and
@@ -130,7 +132,7 @@ nis_comorbidity_validate_data <- function(.data) {
     cli::cli_abort("`.data` must be a collected data frame or a {.cls tbl_svy}; call {.fn dplyr::collect} first.")
   }
 
-  slots <- grep("^I10_DX[0-9]+$", nis_names(.data), value = TRUE) # nolint: object_usage_linter
+  slots <- grep("^I10_DX[1-9][0-9]*$", nis_names(.data), value = TRUE) # nolint: object_usage_linter
   if (length(slots) == 0L) {
     cli::cli_abort(c(
       "`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).",
@@ -138,7 +140,7 @@ nis_comorbidity_validate_data <- function(.data) {
     ))
   }
   slot_number <- as.integer(sub("^I10_DX", "", slots))
-  if (!1L %in% slot_number) {
+  if (!"I10_DX1" %in% slots) {
     cli::cli_abort(c(
       "`I10_DX1` is required because it identifies the principal diagnosis.",
       i = "When using `nis_design()`, retain it with `keep = dplyr::starts_with('I10_DX')`."
