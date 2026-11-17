@@ -20,8 +20,8 @@
 #' have no default assignment.
 #'
 #' UNVERIFIED: the file layouts above are assumed from secondhand descriptions
-#' of HCUP downloads, not checked against a current release. The single-quoted
-#' CSV reader checks row field counts; all supported formats check that codes
+#' of HCUP downloads, not checked against a current release. Both CSV readers
+#' check record field counts; all supported formats check that codes
 #' look like ICD-10 codes (3 to 7 letters or digits). Check the returned codes
 #' against your reference file before you rely on them.
 #'
@@ -199,8 +199,7 @@ read_ccsr_csv <- function(file) {
     cli::cli_abort("`file` is empty.", call = sys.call())
   }
   if (!grepl("^'.*'$", lines[1L])) {
-    return(utils::read.csv(text = lines, colClasses = "character",
-      check.names = FALSE, na.strings = character()))
+    return(read_ccsr_standard_csv(lines))
   }
   sentinel <- "\001"
   fields <- lapply(lines, function(line) {
@@ -226,6 +225,22 @@ read_ccsr_csv <- function(file) {
   }
   names(body) <- fields[[1L]]
   body
+}
+
+read_ccsr_standard_csv <- function(lines) {
+  connection <- textConnection(lines)
+  on.exit(close(connection), add = TRUE)
+  # Multiline quoted records have NA counts until their final physical line.
+  width <- utils::count.fields(connection, sep = ",", quote = "\"",
+    comment.char = "")
+  if (any(width[!is.na(width)] != width[1L])) {
+    cli::cli_abort(
+      "`file` is not a well-formed CSV: record field counts differ from the header.",
+      call = sys.call()
+    )
+  }
+  utils::read.csv(text = lines, colClasses = "character",
+    check.names = FALSE, na.strings = character())
 }
 
 # HCUP workbooks put title rows above the header, so find the header row.

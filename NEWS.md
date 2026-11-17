@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- `nis_ccsr_codes()` rejects standard CSV records with extra or missing fields
+  before parsing, preventing shifted code/category mappings. Quoted commas
+  and multiline descriptions remain supported.
+
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
