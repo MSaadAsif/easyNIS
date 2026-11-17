@@ -1,17 +1,19 @@
 nis_validate_layout_years <- function(entries, found, years, error_call) {
   annual <- grepl("^NIS_[0-9]{4}[.]parquet$", basename(entries))
   paths <- normalizePath(entries, winslash = "/", mustWork = TRUE)
-  covered <- vapply(seq_along(entries), function(i) {
-    any(startsWith(paths[[i]], paste0(paths[annual & found == found[[i]]], "/")))
+  overlapping <- vapply(seq_along(entries), function(i) {
+    annual_paths <- paths[annual & found == found[[i]]]
+    any(startsWith(paths[[i]], paste0(annual_paths, "/")) |
+      startsWith(annual_paths, paste0(paths[[i]], "/")))
   }, logical(1))
   annual_years <- found[annual]
-  hive_years <- found[!annual & !covered]
+  hive_years <- found[!annual & !overlapping]
   conflicting_years <- intersect(years, intersect(annual_years, hive_years))
   if (length(conflicting_years) == 0L) return(invisible(NULL))
 
   details <- vapply(conflicting_years, function(year) {
     annual_path <- entries[annual & found == year]
-    hive_path <- entries[!annual & !covered & found == year]
+    hive_path <- entries[!annual & !overlapping & found == year]
     paste0("Year ", year, ": annual ", paste(annual_path, collapse = ", "),
       " and Hive ", paste(hive_path, collapse = ", "))
   }, character(1))

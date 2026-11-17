@@ -261,6 +261,24 @@ test_that("nis_open accepts Hive parts within one annual dataset", {
   }
 })
 
+test_that("nis_open accepts annual parts within one Hive dataset", {
+  path <- tempfile("nis-nested-hive-")
+  hive <- file.path(path, "YEAR=2020")
+  dir.create(hive, recursive = TRUE)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(dplyr::tibble(id = 1L),
+    file.path(hive, "NIS_2020.parquet", "part.parquet"))
+  write_duckdb_parquet(dplyr::tibble(id = 2L), file.path(hive, "extra.parquet"))
+  readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
+  for (reader in readers) {
+    for (years in list(NULL, 2020L)) {
+      result <- dplyr::collect(nis_open(hive, years = years, reader = reader))
+      expect_identical(sort(result$id), 1:2)
+      expect_identical(result$YEAR, c(2020L, 2020L))
+    }
+  }
+})
+
 test_that("nis_open accepts multiple Hive parts for one year", {
   path <- tempfile("nis-hive-multiple-parts-")
   dir.create(path)
