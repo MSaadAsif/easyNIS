@@ -43,7 +43,13 @@ nis_design(
 
 - keep:
 
-  Tidyselect expression naming analysis columns to collect.
+  Tidyselect expression naming analysis columns to collect. Renaming
+  uses the selected source values and labels. Required design fields
+  remain under their original names, as do selected cost inputs when
+  costs are computed. Aliases cannot overwrite these retained fields or
+  computed cost columns. Type predicates inspect actual columns locally
+  and a zero-row schema for lazy queries; predicates depending on row
+  values are therefore not portable across backends.
 
 - annualize:
 
@@ -116,7 +122,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpPiTsSl/duckdb
+#> ℹ /tmp/RtmpnUaBAC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -124,7 +130,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpPiTsSl/duckdb
+#> ℹ /tmp/RtmpnUaBAC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -132,7 +138,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpPiTsSl/duckdb
+#> ℹ /tmp/RtmpnUaBAC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

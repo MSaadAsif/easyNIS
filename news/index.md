@@ -2,6 +2,11 @@
 
 ## easyNIS (development version)
 
+- `nis_design(keep = ...)` now uses selected source values for aliases
+  and actual column types for predicates on local and lazy DuckDB
+  inputs. Aliases preserve source labels and cannot overwrite retained
+  design or cost fields.
+
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   and
   [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
