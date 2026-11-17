@@ -14,7 +14,9 @@ nis_design(
 )
 }
 \arguments{
-\item{.data}{Lazy DuckDB query or data frame.}
+\item{.data}{Lazy DuckDB query or data frame. Existing dplyr groups and
+rowwise grouping are removed before evaluating \code{cohort}; aggregate cohort
+expressions therefore use the full input, not individual input groups.}
 
 \item{cohort}{Logical data-masked cohort expression. Missing values are
 counted and treated as outside the cohort. Only valid-design discharges
