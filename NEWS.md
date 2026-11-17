@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_flag_dx()` and `nis_flag_pr()` ignore malformed slot suffixes;
+  principal flags use the canonical slot with suffix 1.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
