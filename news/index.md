@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
+  ignores input groups consistently and returns matching local and
+  DuckDB totals for empty inputs and missing weights, including `NaN`.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   now rejects selected years present in both an annual Parquet directory
   and a separate Hive partition, preventing duplicate rows. Hive parts

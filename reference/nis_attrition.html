@@ -4,12 +4,16 @@ discharge counts at each step. The initial row has no preceding step, so its
 dropped counts are NA. Criteria are evaluated in order; NA values
 are treated as excluded, matching dplyr::filter(). The summary is
 aggregated lazily for DuckDB queries and returned as a collected tibble.
-Missing weights contribute zero to weighted totals."><meta property="og:description" content="Applies logical criteria cumulatively and reports remaining and dropped
+Missing weights (including NaN) contribute zero to weighted totals.
+Existing input groups are ignored, including when evaluating criteria.
+Criteria are evaluated over the full input before annual aggregation."><meta property="og:description" content="Applies logical criteria cumulatively and reports remaining and dropped
 discharge counts at each step. The initial row has no preceding step, so its
 dropped counts are NA. Criteria are evaluated in order; NA values
 are treated as excluded, matching dplyr::filter(). The summary is
 aggregated lazily for DuckDB queries and returned as a collected tibble.
-Missing weights contribute zero to weighted totals."></head><body>
+Missing weights (including NaN) contribute zero to weighted totals.
+Existing input groups are ignored, including when evaluating criteria.
+Criteria are evaluated over the full input before annual aggregation."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -69,7 +73,9 @@ discharge counts at each step. The initial row has no preceding step, so its
 dropped counts are <code>NA</code>. Criteria are evaluated in order; <code>NA</code> values
 are treated as excluded, matching <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code>. The summary is
 aggregated lazily for DuckDB queries and returned as a collected tibble.
-Missing weights contribute zero to weighted totals.</p>
+Missing weights (including <code>NaN</code>) contribute zero to weighted totals.
+Existing input groups are ignored, including when evaluating criteria.
+Criteria are evaluated over the full input before annual aggregation.</p>
     </div>
 
     <div class="section level2">

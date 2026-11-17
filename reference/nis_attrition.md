@@ -6,7 +6,10 @@ its dropped counts are `NA`. Criteria are evaluated in order; `NA`
 values are treated as excluded, matching
 [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html).
 The summary is aggregated lazily for DuckDB queries and returned as a
-collected tibble. Missing weights contribute zero to weighted totals.
+collected tibble. Missing weights (including `NaN`) contribute zero to
+weighted totals. Existing input groups are ignored, including when
+evaluating criteria. Criteria are evaluated over the full input before
+annual aggregation.
 
 ## Usage
 
