@@ -1,7 +1,17 @@
 # easyNIS (development version)
 
 - `nis_open()` now rejects selected years present in both an annual Parquet
-  directory and a Hive partition, preventing duplicate rows.
+  directory and a separate Hive partition, preventing duplicate rows. Hive
+  parts within one annual dataset remain supported.
+
+- `nis_ccsr_codes()` rejects standard CSV records with extra or missing fields
+  before parsing, preventing shifted code/category mappings. Quoted commas
+  and multiline descriptions remain supported.
+
+- `nis_design(keep = ...)` now uses selected source values for aliases and
+  actual column types for predicates on local and lazy DuckDB inputs. Aliases
+  preserve source labels and cannot overwrite retained design or cost fields.
+
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
