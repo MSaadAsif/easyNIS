@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- Diagnosis and procedure code-system eligibility now rejects fractional
+  and infinite numeric `YEAR` indicators while preserving missing-year
+  fallback and 2015 quarter rules.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
