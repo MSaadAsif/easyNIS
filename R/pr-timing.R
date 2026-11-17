@@ -14,7 +14,7 @@
 #' tests <; same_day tests equality. within_days tests whether the outcome is
 #' from 0 through window days after the earliest index day, inclusive.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param index_pr Character vector of index procedure code prefixes.
 #' @param outcome_pr Character vector of outcome procedure code prefixes.
 #' @param name Single name for the new logical flag.

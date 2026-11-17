@@ -296,7 +296,7 @@ nis_open_warn_2023 <- function(query) {
 #' ICD-10 crosswalk, and even with both code sets, counts of a condition can
 #' break at the transition.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`. For
 #'   exclusions or full-code patterns, use a list such as
 #'   `heart_failure = list(prefix = "I50", exclude = "I502")` or
@@ -346,7 +346,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' expression, exclusion, and `system` semantics as [nis_flag_dx()]. `"icd10"`
 #' reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `ablation = "02L"`; see
 #'   [nis_flag_dx()] for list definitions with exclusions or regexes.
 #' @param position Slots to check: all slots or the principal slot only.
