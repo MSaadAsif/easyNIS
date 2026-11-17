@@ -4,6 +4,9 @@
   directory and a separate Hive partition, preventing duplicate rows. Hive
   parts within one annual dataset remain supported.
 
+- `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
+  empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
+
 - `nis_ccsr_codes()` rejects standard CSV records with extra or missing fields
   before parsing, preventing shifted code/category mappings. Quoted commas
   and multiline descriptions remain supported.
