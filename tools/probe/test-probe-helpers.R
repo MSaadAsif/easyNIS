@@ -397,6 +397,10 @@ local({
       '{"step":"coverage_percent","commit":"invented-old","unfinished":')) {
     stopifnot(run_readiness(line)$coverage_ready)
   }
+  for (ending in c('"commit":', '"commit":"invented-head')) {
+    line <- paste0('{"step":"coverage_percent","commit":"invented-old",', ending)
+    stopifnot(!run_readiness(line)$coverage_ready)
+  }
   for (flag in list(FALSE, 1, "true", NULL)) {
     altered <- baseline
     altered$working_tree_clean <- flag

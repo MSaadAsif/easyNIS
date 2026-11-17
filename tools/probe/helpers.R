@@ -324,9 +324,9 @@ quality_line_fields <- function(line, field) {
     if (token %in% c("{", "[")) depth <- depth + 1L
     if (token %in% c("}", "]")) depth <- depth - 1L
     if (depth == 0L) break
-    if (depth != 1L || i + 2L > length(tokens) || !startsWith(token, '"')) next
+    if (depth != 1L || i + 1L > length(tokens) || !startsWith(token, '"')) next
     if (!identical(decode(token), field) || tokens[[i + 1L]] != ":") next
-    value <- decode(tokens[[i + 2L]])
+    value <- if (i + 2L <= length(tokens)) decode(tokens[[i + 2L]]) else NULL
     steps <- c(steps, if (valid_nonempty_string(value)) value else NA_character_)
   }
   if (field == "step") unique(steps[!is.na(steps)]) else steps
