@@ -1,5 +1,10 @@
 # easyNIS (development version)
 
+- Quality probes verify a disposable source installation and its effective
+  namespace before measuring installed complexity. Nested packaging and coverage
+  evidence remains unverified unless it reports a failure; equal versions and
+  library search order no longer imply source provenance (#170).
+
 - `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
   empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
 
