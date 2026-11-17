@@ -11,6 +11,10 @@
   parsing, preventing shifted code/category mappings. Quoted commas and
   multiline descriptions remain supported.
 
+- [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  accepts grouped DuckDB inputs and removes input groups, including
+  rowwise grouping, before evaluating the cohort over the full input.
+
 - `nis_design(keep = ...)` now uses selected source values for aliases
   and actual column types for predicates on local and lazy DuckDB
   inputs. Aliases preserve source labels and cannot overwrite retained

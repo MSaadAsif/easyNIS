@@ -4,14 +4,20 @@
 
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
 validates `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, and `DISCWT`, then
-constructs a survey design before applying the declared domain.
+constructs a survey design before applying the declared domain. Existing
+dplyr groups (including rowwise grouping) are removed first, for both
+data frames and lazy DuckDB queries. Aggregate cohort expressions such
+as `LOS > mean(LOS)` use the full input rather than each input group. To
+use a group-specific threshold, compute an explicit cohort indicator
+upstream and pass that column to `cohort`. Group the returned survey
+design when you need grouped survey summaries.
 
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpnpHSBQ/duckdb
+#> ℹ /tmp/Rtmp3vI4nu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpnpHSBQ/duckdb
+#> ℹ /tmp/Rtmp3vI4nu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -27,7 +33,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpnpHSBQ/duckdb
+#> ℹ /tmp/Rtmp3vI4nu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
