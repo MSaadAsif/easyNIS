@@ -50,7 +50,11 @@ nis_dx_sensitivity(
 A collected tibble with one row per presentation and unweighted and
 weighted counts, shares of all prefix-positive presentations, and rates
 for requested outcomes. The principal presentation is a strict subset of
-any-position cases, so Cohen's kappa is not meaningful here.
+any-position cases, so Cohen's kappa is not meaningful here. Existing
+input groups are ignored: summaries describe the full input. Empty
+inputs return zero counts and missing shares and rates. Missing weights
+are omitted from weighted sums; missing outcomes are excluded from that
+outcome's denominator. Rates with zero denominators are missing.
 
 ## See also
 
@@ -72,7 +76,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmkLuGb/duckdb
+#> ℹ /tmp/Rtmpwro6Cy/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -80,7 +84,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmkLuGb/duckdb
+#> ℹ /tmp/Rtmpwro6Cy/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

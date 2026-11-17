@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
+  now summarizes grouped inputs completely, handles empty DuckDB
+  cohorts, and avoids aggregate collisions between outcome names.
+
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   rejects standard CSV records with extra or missing fields before
   parsing, preventing shifted code/category mappings. Quoted commas and
