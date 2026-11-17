@@ -284,7 +284,9 @@ nis_design_2015_warning <- function(design_years, collected) {
 #' additional summary scan. The cohort expression is evaluated once over the
 #' full data.
 #'
-#' @param .data Lazy DuckDB query or data frame.
+#' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
+#'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
+#'   expressions therefore use the full input, not individual input groups.
 #' @param cohort Logical data-masked cohort expression. Missing values are
 #'   counted and treated as outside the cohort. Only valid-design discharges
 #'   are counted.
@@ -334,6 +336,7 @@ nis_design_2015_warning <- function(design_years, collected) {
 nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
                        charges = "TOTCHG") {
   call <- rlang::current_call()
+  .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
   design_fields <- fields$design_fields
