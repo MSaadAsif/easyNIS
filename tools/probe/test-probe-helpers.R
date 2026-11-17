@@ -374,7 +374,11 @@ local({
       '{"step":"coverage_percent","status":"completed","pass":true,"value_extra":94,"commit":"invented-head","working_tree_clean":true}',
       '{"step":"coverage_percent","status":"completed","pass":true,"value":94,"commit":{"text":"INVENTED_PRIVATE_MARKER"},"working_tree_clean":true}',
       '{"step":"coverage_percent","commit":"invented-head","working_tree_clean":true,"status":7}',
-      '{"step":"coverage_percent","step":"coverage_percent"}')) {
+      '{"step":"coverage_percent","step":"coverage_percent"}',
+      '{"diagnostic":{"step":"diagnostic-only"},"step":"coverage_percent","status":"failed","status":"completed"}',
+      '{"diagnostic":{"step":"pkgcheck"},"step":"coverage_percent","status":"failed","status":"completed"}',
+      '{"diagnostic":{"step":"diagnostic-only"},"step":"coverage_percent","unfinished":',
+      '{"step":"diagnostic-only","step":"coverage_percent"}')) {
     result <- run_readiness(c(malformed, line))
     stopifnot(!result$coverage_ready, result$check_pass("cyclocomp_linter(15)"))
   }

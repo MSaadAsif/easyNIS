@@ -1,7 +1,8 @@
 # easyNIS (development version)
 
 - Readiness rejects incomplete, out-of-range, Boolean, and malformed evidence
-  while continuing to assess unrelated valid records.
+  while continuing to assess unrelated valid records. Invalid records use
+  top-level step identities; nested diagnostics cannot mask a failed gate.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches

@@ -306,19 +306,38 @@ parse_quality_line <- function(line) {
     return(list(step = item[["step", exact = TRUE]], commit = item[["commit", exact = TRUE]],
       status = "invalid_evidence", pass = FALSE))
   }
-  # Recover only a step identity, never raw diagnostic text, from broken JSON.
-  match <- regexec('"step"[[:space:]]*:[[:space:]]*("([^"\\\\]|\\\\.)*")', line)
-  fields <- regmatches(line, match)[[1L]]
-  step <- if (length(fields) >= 2L) tryCatch(jsonlite::fromJSON(fields[[2L]]),
-    error = function(e) NULL) else NULL
-  list(step = step, status = "invalid_evidence", pass = FALSE)
+  list(step = quality_line_steps(line), status = "invalid_evidence", pass = FALSE)
+}
+
+quality_line_steps <- function(line) {
+  tokens <- regmatches(line, gregexpr('"([^"\\\\]|\\\\.)*"|[{}\\[\\]:,]', line,
+    perl = TRUE))[[1L]]
+  if (!length(tokens) || tokens[[1L]] != "{") return(character())
+  depth <- 0L
+  steps <- character()
+  decode <- function(token) tryCatch(jsonlite::fromJSON(token), error = function(e) NULL)
+  for (i in seq_along(tokens)) {
+    token <- tokens[[i]]
+    if (token %in% c("{", "[")) depth <- depth + 1L
+    if (token %in% c("}", "]")) depth <- depth - 1L
+    if (depth == 0L) break
+    if (depth != 1L || i + 2L > length(tokens) || !startsWith(token, '"')) next
+    if (!identical(decode(token), "step") || tokens[[i + 1L]] != ":") next
+    value <- decode(tokens[[i + 2L]])
+    if (valid_nonempty_string(value)) steps <- c(steps, value)
+  }
+  unique(steps)
 }
 
 load_quality_evidence <- function(files) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) return(list())
   unlist(lapply(files, function(file) {
     lines <- tryCatch(readLines(file, warn = FALSE), error = function(e) character())
-    lapply(lines, parse_quality_line)
+    unlist(lapply(lines, function(line) {
+      item <- parse_quality_line(line)
+      if (!identical(item$status, "invalid_evidence") || length(item$step) <= 1L) return(list(item))
+      lapply(item$step, function(step) { record <- item; record$step <- step; record })
+    }), recursive = FALSE)
   }), recursive = FALSE)
 }
 
