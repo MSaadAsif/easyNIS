@@ -1,3 +1,18 @@
+test_that("nonnumeric year types retain existing eligibility behavior", {
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  for (year in list(NA, "2016")) {
+    data <- data.frame(YEAR = year, I10_DX1 = "TOKEN", I10_PR1 = "TOKEN")
+    for (flag in list(nis_flag_dx, nis_flag_pr)) {
+      expect_identical(flag(data, hit = "TOKEN")$hit, TRUE)
+      if (is.logical(year)) {
+        query <- dplyr::copy_to(con, data, tempfile("year_"), temporary = TRUE)
+        expect_identical(dplyr::collect(flag(query, hit = "TOKEN"))$hit, TRUE)
+      }
+    }
+  }
+})
+
 test_that("code flags require finite whole years while preserving missing years", {
   data <- data.frame(
     id = 1:17,

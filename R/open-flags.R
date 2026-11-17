@@ -520,6 +520,17 @@ normalize_prefixes <- function(value, arg = NULL) {
   unique(value)
 }
 
+code_system_valid_year <- function(data) {
+  schema <- if (inherits(data, "tbl_sql")) {
+    nis_collect(utils::head(dplyr::select(data, dplyr::all_of("YEAR")), 0L))
+  } else {
+    data
+  }
+  if (!is.numeric(schema$YEAR)) return(rlang::expr(TRUE))
+  finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
+  rlang::expr(!!finite_year & YEAR == floor(YEAR)) # nolint: object_usage_linter
+}
+
 code_system_filter <- function(data, columns, slots, system) {
   conditions <- list()
   version_name <- paste0(slots, "VER")
@@ -533,8 +544,7 @@ code_system_filter <- function(data, columns, slots, system) {
   }
   if ("YEAR" %in% columns) {
     missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
-    finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
-    valid_year <- rlang::expr(!!finite_year & YEAR == floor(YEAR))
+    valid_year <- code_system_valid_year(data)
     # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
