@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_label()` preserves numeric `NaN` as missing and remains idempotent
+  for empty unknown codes while retaining existing factor metadata.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
