@@ -233,7 +233,8 @@ read_ccsr_standard_csv <- function(lines) {
   # Multiline quoted records have NA counts until their final physical line.
   width <- utils::count.fields(connection, sep = ",", quote = "\"",
     comment.char = "")
-  if (any(width[!is.na(width)] != width[1L])) {
+  width <- width[!is.na(width)]
+  if (length(width) && any(width != width[1L])) {
     cli::cli_abort(
       "`file` is not a well-formed CSV: record field counts differ from the header.",
       call = sys.call()
