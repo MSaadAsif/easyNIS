@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_comorbidity()` ignores zero and leading-zero diagnosis slot suffixes
+  and requires the principal diagnosis column `I10_DX1`.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches
