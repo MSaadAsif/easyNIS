@@ -4,6 +4,9 @@
   while continuing to assess unrelated valid records. Invalid records use
   top-level step identities; nested diagnostics cannot mask a failed gate.
 
+- Reuse a shared roxygen template for repeated `.data` parameter
+  documentation.
+
 - `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
   empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
 
