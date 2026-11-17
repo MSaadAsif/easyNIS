@@ -273,10 +273,12 @@ test_that("nis_open accepts annual parts within one Hive dataset", {
     file.path(hive, "batch-b", "YEAR=2020", "part.parquet"))
   readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
   for (reader in readers) {
-    for (years in list(NULL, 2020L)) {
-      result <- dplyr::collect(nis_open(hive, years = years, reader = reader))
-      expect_identical(sort(result$id), 1:3)
-      expect_identical(result$YEAR, rep(2020L, 3L))
+    for (spelling in c(hive, paste0(hive, "/"), file.path(hive, "."))) {
+      for (years in list(NULL, 2020L)) {
+        result <- dplyr::collect(nis_open(spelling, years = years, reader = reader))
+        expect_identical(sort(result$id), 1:3)
+        expect_identical(result$YEAR, rep(2020L, 3L))
+      }
     }
   }
 })

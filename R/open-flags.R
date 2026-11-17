@@ -132,6 +132,7 @@ nis_open_entries <- function(path, error_call) {
   if (!dir.exists(path)) {
     cli::cli_abort("`path` must name an existing directory.", call = error_call)
   }
+  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
 
   entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
     full.names = TRUE, recursive = FALSE)
