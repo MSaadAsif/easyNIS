@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- `nis_ccsr_codes()` rejects standard CSV records with extra or missing fields
+  before parsing, preventing shifted code/category mappings. Quoted commas
+  and multiline descriptions remain supported.
+
 - `nis_design(keep = ...)` now uses selected source values for aliases and
   actual column types for predicates on local and lazy DuckDB inputs. Aliases
   preserve source labels and cannot overwrite retained design or cost fields.
