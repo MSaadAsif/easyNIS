@@ -7,8 +7,9 @@
   directory and a separate Hive partition, preventing duplicate rows. Hive
   parts within one annual dataset remain supported.
 
-- `nis_open()` coalesces column spellings that normalize to the same name after
-  annual type promotion, preserving source-column precedence across schema drift.
+- `nis_open()` lets DuckDB combine and promote annual fields before normalizing
+  visible names. ASCII-folded field casing is independent of annual file order;
+  Unicode normalization collisions retain their existing coalescing behavior.
 
 - Quality probes verify a disposable source installation and its effective
   namespace before measuring installed complexity. Nested packaging and coverage

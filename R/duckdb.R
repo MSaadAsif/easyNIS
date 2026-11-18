@@ -101,69 +101,21 @@ nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
     if (hive_partitioning) "true" else "false", ")")
 }
 
-nis_duckdb_normalize_scans <- function(con, sources, scans = NULL,
-    alias_case_collisions = TRUE) {
-  if (is.null(scans)) {
-    scans <- vapply(sources, function(source) {
-      nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
-    }, character(1))
-  }
-  schemas <- lapply(scans, function(scan) {
-    DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))$column_name
-  })
-  source_names <- unlist(schemas, use.names = FALSE)
-  canonical <- unique(toupper(source_names[grepl("[A-Z]", source_names)]))
-  # Keep canonical collisions separately named until DuckDB's union promotes
-  # their annual types; its SQL binder resolves identifiers case-insensitively.
-  collision_names <- character()
-  if (alias_case_collisions) {
-    collision_names <- unique(unlist(lapply(schemas, function(fields) {
-      groups <- split(fields, toupper(fields))
-      names(groups)[lengths(groups) > 1L]
-    }), use.names = FALSE))
-    collision_names <- intersect(collision_names, canonical)
-    # YEAR has special partition and validation handling below.
-    collision_names <- setdiff(collision_names, "YEAR")
-  }
-  collision_fields <- unique(source_names[toupper(source_names) %in% collision_names])
-  collision_aliases <- stats::setNames(vapply(collision_fields, function(field) {
-    bytes <- paste(sprintf("%02X", as.integer(charToRaw(enc2utf8(field)))),
-      collapse = "")
-    paste0("__EASYNIS_SCAN_ALIAS_", bytes)
-  }, character(1)), collision_fields)
-  # Keep generated identifiers outside the input schema namespace.
-  while (any(collision_aliases %in% source_names)) {
-    collision_aliases <- paste0(collision_aliases, "_X")
-  }
-  alias_targets <- stats::setNames(toupper(collision_fields), collision_aliases)
-
-  normalized <- vapply(seq_along(scans), function(index) {
-    scan <- scans[[index]]
-    old <- schemas[[index]]
-    targets <- old
-    collision <- old %in% names(collision_aliases)
-    targets[collision] <- unname(collision_aliases[old[collision]])
-    rename <- !collision & old != toupper(old) & toupper(old) %in% canonical
-    targets[rename] <- toupper(old[rename])
-    changed <- targets != old
-    if (!any(changed)) return(scan)
-    identifiers <- as.character(DBI::dbQuoteIdentifier(con, old[changed]))
-    aliases <- as.character(DBI::dbQuoteIdentifier(con, targets[changed]))
-    changes <- paste(identifiers, "AS", aliases, collapse = ", ")
-    paste0("(SELECT * RENAME (", changes, ") FROM ", scan, ")")
-  }, character(1))
-  attr(normalized, "easyNIS_case_aliases") <- alias_targets
-  normalized
-}
-
 nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
-  scans <- nis_duckdb_normalize_scans(con, sources, scans,
-    alias_case_collisions = TRUE)
-  alias_targets <- attr(scans, "easyNIS_case_aliases")
   normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
   is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
+  source_scans <- if (is.null(scans)) {
+    vapply(sources, function(source) {
+      nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
+    }, character(1))
+  } else {
+    scans
+  }
+  source_names <- unlist(lapply(source_scans, function(scan) {
+    DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))$column_name
+  }), use.names = FALSE)
   scans <- vapply(seq_along(sources), function(index) {
-    scan <- scans[[index]]
+    scan <- source_scans[[index]]
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (!is_hive[[index]] && length(year_rows) == 0L) {
@@ -194,26 +146,9 @@ nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
       ") FROM ", scan)
   }, character(1))
   parquet <- paste0("(", paste(scans, collapse = " UNION ALL BY NAME "), ")")
-  if (length(alias_targets) > 0L) {
-    union_schema <- DBI::dbGetQuery(con,
-      paste("DESCRIBE SELECT * FROM", parquet))$column_name
-    output_names <- unname(alias_targets[union_schema])
-    output_names[is.na(output_names)] <- union_schema[is.na(output_names)]
-    output_order <- unique(output_names)
-    columns <- vapply(output_order, function(output_name) {
-      fields <- union_schema[output_names == output_name]
-      quoted <- as.character(DBI::dbQuoteIdentifier(con, fields))
-      value <- if (length(fields) > 1L) {
-        paste0("COALESCE(", paste(quoted, collapse = ", "), ")")
-      } else {
-        quoted
-      }
-      paste(value, "AS", as.character(DBI::dbQuoteIdentifier(con, output_name)))
-    }, character(1))
-    parquet <- paste0("(SELECT ", paste(columns, collapse = ", "),
-      " FROM ", parquet, ")")
-  }
-  dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  attr(query, "easyNIS_source_names") <- source_names
+  query
 }
 
 nis_validate_year_values <- function(con, sources, scans = NULL) {

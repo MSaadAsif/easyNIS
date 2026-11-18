@@ -43,10 +43,13 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'   has a physical `YEAR` column, its non-missing values must agree with the
 #'   directory year; missing or absent physical values use the partition year.
 #'   Schemas are combined by column name, including when annual files and Hive
-#'   partitions are mixed. When column spellings normalize to the same name,
-#'   their values are coalesced in source column order after annual types are
-#'   promoted. When annual types differ, DuckDB may promote them; for example,
-#'   an integer field combined with a character field is returned as character.
+#'   partitions are mixed. DuckDB combines source fields and promotes annual
+#'   types. For names DuckDB folds as ASCII case-insensitive identifiers, the
+#'   output uses uppercase spelling when any selected source uses uppercase
+#'   ASCII letters. Other names retain the established name normalization,
+#'   including coalescing Unicode case-normalization collisions. When annual
+#'   types differ, DuckDB may promote them; for example, an integer field
+#'   combined with a character field is returned as character.
 #'   When present, `YEAR` is validated and returned as integer;
 #'   invalid values identify the offending file in an error. The connection
 #'   remains open while the lazy table is in use and closes after it is released.
@@ -212,8 +215,26 @@ nis_open_sources <- function(entries, found, years, error_call) {
 }
 
 nis_open_normalize_names <- function(query) {
+  source_names <- attr(query, "easyNIS_source_names")
+  attr(query, "easyNIS_source_names") <- NULL
   old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
+  if (length(source_names) > 0L) {
+    ascii_fold <- function(x) {
+      chartr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", x)
+    }
+    source_names <- unique(source_names)
+    source_groups <- split(source_names, ascii_fold(source_names))
+    uppercase_groups <- source_groups[vapply(source_groups, function(fields) {
+      any(grepl("[A-Z]", fields))
+    }, logical(1))]
+    canonical_names <- vapply(uppercase_groups, function(fields) {
+      toupper(fields[which(grepl("[A-Z]", fields))[[1L]]])
+    }, character(1))
+    source_group <- match(ascii_fold(old_names), names(canonical_names))
+    has_canonical <- !is.na(source_group)
+    new_names[has_canonical] <- unname(canonical_names[source_group[has_canonical]])
+  }
   name_groups <- split(old_names, new_names)
 
   rename_groups <- name_groups[lengths(name_groups) == 1L]

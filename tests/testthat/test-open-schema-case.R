@@ -174,3 +174,42 @@ test_that("Arrow scans share pooled canonical recognition", {
     dplyr::collect()
   expect_identical(actual$APRDRG_RISK_MORTALITY, 1:2)
 })
+
+test_that("unrelated projections survive promoted Unicode normalization collisions", {
+  path <- tempfile("nis-unicode-unrelated-projection-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, first = 1L, second = 2L, KEEP = 31L)
+  names(first)[2:3] <- c("A\u00e9", "A\u00c9")
+  second <- data.frame(YEAR = 2020L, value = "beta", KEEP = 32L)
+  names(second)[2L] <- "A\u00c9"
+  second[["__easynis_scan_alias_41c3a9"]] <- 999L
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  actual <- nis_open(path) |>
+    dplyr::select(YEAR, KEEP) |>
+    dplyr::arrange(YEAR) |>
+    dplyr::collect()
+  expect_identical(actual$YEAR, c(2019L, 2020L))
+  expect_identical(actual$KEEP, c(31L, 32L))
+})
+
+test_that("real alias-like fields remain independent of Unicode names", {
+  path <- tempfile("nis-real-scan-alias-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, first = 1L, second = 2L, KEEP = 31L)
+  names(first)[2:3] <- c("A\u00e9", "A\u00c9")
+  second <- data.frame(YEAR = 2020L, KEEP = 32L)
+  second[["__easynis_scan_alias_41c3a9"]] <- 999L
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  actual <- nis_open(path) |>
+    dplyr::arrange(YEAR) |>
+    dplyr::collect()
+  expect_identical(actual[["A\u00c9"]], c(1L, NA_integer_))
+  expect_identical(actual[["__easynis_scan_alias_41c3a9"]],
+    c(NA_integer_, 999L))
+})
