@@ -1,0 +1,74 @@
+test_that("factor procedure-day labels obey documented missing-day modes", {
+  data <- data.frame(
+    I10_PR1 = rep("IX", 8L), I10_PR2 = rep("OUT", 8L),
+    PRDAY1 = factor(c("1", "1", "0", "0", "-99", NA, "2", "0")),
+    PRDAY2 = factor(c("0", "2", "-99", NA, "1", "1", "0", "0")),
+    group = ordered(rep(c("B", "A"), 4L), levels = c("B", "A"))
+  )
+  expected <- list(
+    exclude = c(FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE),
+    assume_same_day = c(FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE),
+    indeterminate = c(FALSE, TRUE, NA, NA, NA, NA, FALSE, TRUE)
+  )
+  for (policy in names(expected)) {
+    actual <- nis_flag_pr_timing(data, "IX", "OUT", missing_day = policy)
+    expect_identical(actual$outcome_post_index, expected[[policy]], info = policy)
+    expect_identical(actual[names(data)], data)
+  }
+})
+
+test_that("factor day labels match numeric days across level orders and relations", {
+  reference <- dplyr::tibble(
+    I10_PR1 = rep("IX", 8L), I10_PR2 = rep("OUT", 8L),
+    PRDAY1 = c(1, 1, 0, 0, -99, NA, 2, 0),
+    PRDAY2 = c(0, 2, -99, NA, 1, 1, 0, 0),
+    group = factor(rep(c("B", "A"), 4L), levels = c("B", "A"))
+  )
+  variants <- expand.grid(ordered = c(FALSE, TRUE), reverse = c(FALSE, TRUE))
+  for (variant in seq_len(nrow(variants))) {
+    ordered <- variants$ordered[[variant]]
+    reverse <- variants$reverse[[variant]]
+    levels <- c("-99", "0", "1", "2")
+    if (reverse) levels <- rev(levels)
+    data <- reference
+    data$PRDAY1 <- factor(data$PRDAY1, levels = levels, ordered = ordered)
+    data$PRDAY2 <- factor(data$PRDAY2, levels = levels, ordered = ordered)
+    for (policy in c("exclude", "assume_same_day", "indeterminate")) {
+      for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
+        window <- if (relation == "within_days") 1L else NULL
+        expected <- nis_flag_pr_timing(reference, "IX", "OUT", relation = relation,
+          window = window, missing_day = policy)$outcome_post_index
+        actual <- nis_flag_pr_timing(data, "IX", "OUT", relation = relation,
+          window = window, missing_day = policy)
+        expect_identical(actual$outcome_post_index, expected,
+          info = paste(ordered, reverse, policy, relation))
+        expect_identical(actual[names(data)], data)
+      }
+    }
+  }
+})
+
+test_that("DuckDB and local factor procedure days agree", {
+  for (ordered in c(FALSE, TRUE)) {
+    data <- dplyr::tibble(
+      I10_PR1 = rep("IX", 8L), I10_PR2 = rep("OUT", 8L),
+      PRDAY1 = factor(c("1", "1", "0", "0", "-99", NA, "2", "0"),
+        levels = c("2", "1", "0", "-99"), ordered = ordered),
+      PRDAY2 = factor(c("0", "2", "-99", NA, "1", "1", "0", "0"),
+        levels = c("-99", "0", "1", "2"), ordered = ordered)
+    )
+    query <- duckdb_query_fixture(data)
+    for (policy in c("exclude", "assume_same_day", "indeterminate")) {
+      for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
+        window <- if (relation == "within_days") 1L else NULL
+        expected <- nis_flag_pr_timing(data, "IX", "OUT", relation = relation,
+          window = window, missing_day = policy)$outcome_post_index
+        actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = relation,
+          window = window, missing_day = policy)
+        expect_s3_class(actual, "tbl_sql")
+        expect_identical(dplyr::collect(actual)$outcome_post_index, expected,
+          info = paste(ordered, policy, relation))
+      }
+    }
+  }
+})
