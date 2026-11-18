@@ -352,7 +352,7 @@ utils::globalVariables(".nis_invalid_weight")
 #' prefix matches. The counts are exact, so apply your disclosure rules (see
 #' [nis_suppress()]) before sharing them.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param codes A named character vector or named list of character vectors.
 #'   Each name is a `code_group`; each value contains prefixes. Names must be
 #'   non-empty and unique.
