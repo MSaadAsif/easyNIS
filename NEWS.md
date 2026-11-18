@@ -28,6 +28,9 @@
   actual column types for predicates on local and lazy DuckDB inputs. Aliases
   preserve source labels and cannot overwrite retained design or cost fields.
 
+- Pooled Parquet sources retain uppercase-normalized column names whenever a
+  selected source supplies an uppercase-bearing spelling. Lowercase-only
+  fields retain their spelling.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches

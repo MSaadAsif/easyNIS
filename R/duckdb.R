@@ -101,16 +101,37 @@ nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
     if (hive_partitioning) "true" else "false", ")")
 }
 
+nis_duckdb_normalize_scans <- function(con, sources, scans = NULL) {
+  if (is.null(scans)) {
+    scans <- vapply(sources, function(source) {
+      nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
+    }, character(1))
+  }
+  schemas <- lapply(scans, function(scan) {
+    DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))$column_name
+  })
+  source_names <- unlist(schemas, use.names = FALSE)
+  canonical <- unique(toupper(source_names[grepl("[A-Z]", source_names)]))
+  # Recognize casing before DuckDB's case-insensitive union discards it.
+  vapply(seq_along(scans), function(index) {
+    old <- schemas[[index]]
+    collisions <- toupper(old)[duplicated(toupper(old))]
+    rename <- old != toupper(old) & toupper(old) %in% canonical &
+      !toupper(old) %in% collisions
+    if (!any(rename)) return(scans[[index]])
+    identifiers <- as.character(DBI::dbQuoteIdentifier(con, old[rename]))
+    aliases <- as.character(DBI::dbQuoteIdentifier(con, toupper(old[rename])))
+    changes <- paste(identifiers, "AS", aliases, collapse = ", ")
+    paste0("(SELECT * RENAME (", changes, ") FROM ", scans[[index]], ")")
+  }, character(1))
+}
+
 nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
+  scans <- nis_duckdb_normalize_scans(con, sources, scans)
   normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
   is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
   scans <- vapply(seq_along(sources), function(index) {
-    source <- sources[[index]]
-    scan <- if (!is.null(scans)) {
-      scans[[index]]
-    } else {
-      nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
-    }
+    scan <- scans[[index]]
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (!is_hive[[index]] && length(year_rows) == 0L) {
