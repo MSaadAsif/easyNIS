@@ -1,9 +1,11 @@
 # easyNIS (development version)
 
-- `nis_label()` treats `NaN` as missing only in unclassed numeric vectors,
-  preserving displayed values from `integer64` and labelled numeric inputs.
-  It also preserves recognized factor labels alongside raw code levels and
-  normalizes ambiguous bare `Code ` labels idempotently.
+- `nis_label()` treats `NaN` as missing in ordinary and Haven-labelled numeric
+  storage while retaining finite SPSS sentinels and `integer64` values as
+  displayed codes. Factors with raw codes use whole-vector normalization;
+  mixed raw and labelled factors therefore label the latter as unknown codes.
+  A bare `Code ` factor with no raw-code levels is preserved as an existing
+  label because its origin cannot be recovered after levels are dropped.
 - `nis_attrition()` ignores input groups consistently and returns matching
   local and DuckDB totals for empty inputs and missing weights, including `NaN`.
 
