@@ -25,7 +25,8 @@ nis_cell_counts(.data, by)
 
 - by:
 
-  Character vector of cell-defining columns.
+  Character vector of cell-defining columns. The summary names `n` and
+  `hospitals` are reserved and cannot be used as cell-defining columns.
 
 ## Value
 

@@ -86,7 +86,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCfKhHE/duckdb
+#> ℹ /tmp/RtmpLXPUuS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -94,7 +94,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCfKhHE/duckdb
+#> ℹ /tmp/RtmpLXPUuS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -103,7 +103,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCfKhHE/duckdb
+#> ℹ /tmp/RtmpLXPUuS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -124,7 +124,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCfKhHE/duckdb
+#> ℹ /tmp/RtmpLXPUuS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

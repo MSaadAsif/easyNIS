@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
+  now rejects grouping keys named `n` or `hospitals` to prevent cell
+  identities from being overwritten.
+
 - [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
   ignores input groups consistently and returns matching local and
   DuckDB totals for empty inputs and missing weights, including `NaN`.
