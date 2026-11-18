@@ -26,7 +26,16 @@ operation is idempotent.
 Negative numeric sentinels are not converted to missing values. The
 supplied HCUP documentation represents missing numeric values as system
 missing and does not document negative sentinels for any element handled
-here.
+here. `NaN` values in ordinary numeric vectors and Haven-labelled
+numeric storage are treated as missing, while ordinary and tagged `NA`
+values remain missing. Finite SPSS user-missing values and `integer64`
+values are interpreted through their displayed values and remain visible
+codes. Factors containing raw codes are normalized as a whole. Existing
+labels, including `Code 7`, are preserved when unused raw-code levels
+remain after subsetting. A bare `Code ` value with raw-code levels and
+no recognized value label is treated as raw text; without such levels it
+is preserved as an existing label because its origin cannot be recovered
+after dropping levels.
 
 ## See also
 
@@ -44,7 +53,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpLXPUuS/duckdb
+#> ℹ /tmp/Rtmp26U8pW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -52,7 +61,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpLXPUuS/duckdb
+#> ℹ /tmp/Rtmp26U8pW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
