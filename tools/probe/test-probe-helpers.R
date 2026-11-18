@@ -86,10 +86,23 @@ assert_readiness_rejects_malformed_lines <- function(run_readiness) {
   }
 }
 
+quality_item_from_line <- function(line) {
+  parse_line <- match.fun("parse_quality_line")
+  parsed <- parse_line(line)
+  if (inherits(parsed, "invalid_quality_records")) parsed[[1L]] else parsed
+}
+
+append_raw_receipt <- function(path, bytes) {
+  if (!length(bytes)) return(invisible(NULL))
+  connection <- file(path, open = "ab")
+  on.exit(close(connection))
+  writeBin(bytes, connection)
+  invisible(NULL)
+}
+
 assert_reconcile_cases <- function(run_readiness, encode) {
   shape_valid <- match.fun("quality_receipt_shape_valid")
   should_apply <- match.fun("quality_evidence_should_apply")
-  parse_line <- match.fun("parse_quality_line")
   receipt_pairs <- list(
     completed_pass = list(status = "completed", pass = TRUE),
     completed_failure = list(status = "completed", pass = FALSE),
@@ -104,8 +117,8 @@ assert_reconcile_cases <- function(run_readiness, encode) {
       working_tree_clean = TRUE), pair))
   }
   stopifnot(all(vapply(receipt_pairs, receipt_shape, logical(1))))
-  invalid_pairs <- list(list(status = "skipped_by_selection", pass = FALSE),
-    list(status = "completed", pass = NA), list(status = "partial", pass = c(FALSE, TRUE)))
+  invalid_pairs <- list(list(status = "completed", pass = NA),
+    list(status = "partial", pass = c(FALSE, TRUE)))
   stopifnot(!any(vapply(invalid_pairs, receipt_shape, logical(1))))
   make_receipts <- function(commit, clean) {
     lapply(receipt_pairs, function(pair) {
@@ -118,7 +131,7 @@ assert_reconcile_cases <- function(run_readiness, encode) {
   stopifnot(all(vapply(dirty_receipts, shape_valid, logical(1))),
     identical(unname(vapply(dirty_receipts, should_apply, logical(1),
       current_commit = "invented-head")),
-      c(TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE)),
+      rep(FALSE, length(receipt_pairs))),
     identical(unname(vapply(clean_receipts, should_apply, logical(1),
       current_commit = "invented-head")),
       c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE)),
@@ -136,7 +149,7 @@ assert_reconcile_cases <- function(run_readiness, encode) {
       '"pass":null,"working_tree_clean":true,"commit":"invented-head",',
       '"commit":"invented-old","unfinished":'), apply = TRUE))
   malformed_applies <- vapply(malformed_cases, function(case) {
-    item <- parse_line(case$line)[[1L]]
+    item <- quality_item_from_line(case$line)
     identical(should_apply(item, "invented-head"), case$apply)
   }, logical(1))
   stopifnot(all(malformed_applies))
@@ -447,9 +460,10 @@ local({
   complexity$step <- "cyclocomp_linter(15)"
   encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE, null = "null"))
   run_readiness <- function(extra = character(), coverage = baseline, subset = manual,
-      clean = TRUE) {
+      clean = TRUE, extra_raw = raw()) {
     writeLines(c(vapply(list(coverage, pkg, subset, complexity), encode, character(1)), extra),
       quality_file)
+    append_raw_receipt(quality_file, extra_raw)
     env <- new.env(parent = globalenv())
     env$source <- function(file) {
       sys.source(file, envir = env)
@@ -482,6 +496,10 @@ local({
     stopifnot(quality_receipt_shape_valid(altered),
       !run_readiness(coverage = altered)$coverage_ready)
   }
+  exact_pass <- baseline
+  exact_pass$passed <- exact_pass$pass
+  exact_pass$pass <- NULL
+  stopifnot(!quality_receipt_shape_valid(exact_pass))
   synthetic_hits <- c(1, 0)
   synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")
   synthetic_percent <- function(value) 100 * mean(value$hits > 0)
@@ -551,7 +569,8 @@ local({
   for (flag in list(FALSE, 1, "true", NULL)) {
     altered <- baseline
     altered$working_tree_clean <- flag
-    stopifnot(!run_readiness(encode(altered))$coverage_ready)
+    expected_ready <- identical(flag, FALSE)
+    stopifnot(identical(run_readiness(encode(altered))$coverage_ready, expected_ready))
     altered <- baseline
     altered$pass <- flag
     stopifnot(!run_readiness(encode(altered))$coverage_ready)
@@ -604,6 +623,18 @@ local({
   skipped_dirty["pass"] <- list(NULL)
   skipped_dirty$working_tree_clean <- FALSE
   stopifnot(run_readiness(extra = encode(skipped_dirty))$coverage_ready)
+  dirty_unverified <- baseline
+  dirty_unverified$status <- "not_verified"
+  dirty_unverified["pass"] <- list(NULL)
+  dirty_unverified$provenance <- "nested_unverified"
+  dirty_unverified$working_tree_clean <- FALSE
+  dirty_unverified$value <- 100
+  dirty_result <- run_readiness(extra = encode(dirty_unverified))
+  stopifnot(dirty_result$coverage_ready, identical(dirty_result$coverage_value, 94))
+  nul_receipt <- baseline
+  nul_line <- charToRaw(encode(nul_receipt))
+  nul_record <- run_readiness(extra_raw = c(nul_line, as.raw(0), charToRaw("junk\n")))
+  stopifnot(!nul_record$coverage_ready)
   dirty_failure <- baseline
   dirty_failure$status <- "failed"
   dirty_failure$pass <- FALSE

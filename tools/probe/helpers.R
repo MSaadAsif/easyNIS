@@ -345,10 +345,9 @@ quality_boolean_pass_valid <- function(pass) {
 }
 
 quality_receipt_pass_valid <- function(item) {
-  status <- item$status
-  if (!valid_nonempty_string(status)) return(FALSE)
-  valid_pass <- is.null(item$pass) || quality_boolean_pass_valid(item$pass)
-  valid_pass && (!identical(status, "skipped_by_selection") || is.null(item$pass))
+  valid_named_fields(item, "pass") &&
+    (is.null(item[["pass", exact = TRUE]]) ||
+      quality_boolean_pass_valid(item[["pass", exact = TRUE]]))
 }
 
 quality_receipt_tree_valid <- function(item) {
@@ -532,12 +531,41 @@ quality_recovered_commit <- function(names, commits) {
   commits[!is.na(commits)][[1L]]
 }
 
+quality_read_raw_lines <- function(path) {
+  connection <- file(path, open = "rb")
+  on.exit(close(connection))
+  bytes <- readBin(connection, what = "raw", n = file.info(path)$size)
+  if (!length(bytes)) return(list())
+  breaks <- which(bytes == as.raw(0x0A))
+  starts <- c(1L, breaks + 1L)
+  ends <- c(breaks - 1L, length(bytes))
+  if (length(breaks) && tail(breaks, 1L) == length(bytes)) {
+    starts <- head(starts, -1L)
+    ends <- head(ends, -1L)
+  }
+  Map(function(start, end) {
+    if (start > end) raw() else bytes[start:end]
+  }, starts, ends)
+}
+
+quality_parse_raw_line <- function(bytes) {
+  nul <- which(bytes == as.raw(0))
+  if (!length(nul)) return(parse_quality_line(rawToChar(bytes)))
+  prefix <- if (nul[[1L]] > 1L) rawToChar(bytes[seq_len(nul[[1L]] - 1L)]) else ""
+  recovered <- quality_line_fields(prefix)
+  if (!length(recovered$steps)) return(invalid_quality_identity(NULL, recovered$commit))
+  structure(lapply(recovered$steps, function(step) {
+    list(step = step, commit = recovered$commit, status = "invalid_evidence",
+      pass = FALSE, invalid_evidence = TRUE)
+  }), class = "invalid_quality_records")
+}
+
 load_quality_evidence <- function(files) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) return(list())
   unlist(lapply(files, function(file) {
-    lines <- tryCatch(readLines(file, warn = FALSE), error = function(e) character())
+    lines <- tryCatch(quality_read_raw_lines(file), error = function(e) list())
     unlist(lapply(lines, function(line) {
-      item <- parse_quality_line(line)
+      item <- quality_parse_raw_line(line)
       if (inherits(item, "invalid_quality_records")) return(item)
       list(item)
     }), recursive = FALSE)
@@ -552,19 +580,13 @@ quality_evidence_stale <- function(item, current_commit) {
   valid_nonempty_string(item$commit) && !identical(item$commit, current_commit)
 }
 
-quality_dirty_failure <- function(item, current_commit) {
-  same_commit <- identical(item$commit, current_commit)
-  failed <- identical(item$pass, FALSE) &&
-    item$status %in% c("completed", "failed", "partial", "not_verified")
-  same_commit && identical(item$working_tree_clean, FALSE) && failed
-}
-
 quality_evidence_should_apply <- function(item, current_commit) {
   if (!quality_step_identifiable(item)) return(FALSE)
   if (quality_evidence_stale(item, current_commit)) return(FALSE)
   if (quality_evidence_invalid(item)) return(TRUE)
+  if (quality_receipt_shape_valid(item) && identical(item$working_tree_clean, FALSE)) return(FALSE)
   if (quality_item_skipped(item)) return(FALSE)
-  !quality_dirty_failure(item, current_commit)
+  TRUE
 }
 
 merge_quality_evidence <- function(quality, current_commit) {
