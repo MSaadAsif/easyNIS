@@ -85,6 +85,83 @@ assert_readiness_rejects_malformed_lines <- function(run_readiness) {
   }
 }
 
+assert_reconcile_cases <- function(run_readiness, encode) {
+  shape_valid <- match.fun("quality_receipt_shape_valid")
+  should_apply <- match.fun("quality_evidence_should_apply")
+  parse_line <- match.fun("parse_quality_line")
+  receipt_pairs <- list(
+    completed_pass = list(status = "completed", pass = TRUE),
+    completed_failure = list(status = "completed", pass = FALSE),
+    failed = list(status = "failed", pass = FALSE),
+    partial = list(status = "partial", pass = FALSE),
+    not_verified = list(status = "not_verified", pass = NULL),
+    selection_skip = list(status = "skipped_by_selection", pass = NULL),
+    missing_dependency = list(status = "skipped_not_installed", pass = NULL))
+  receipt_shape <- function(pair) {
+    shape_valid(c(list(step = "pkgcheck", commit = "invented-head",
+      working_tree_clean = TRUE), pair))
+  }
+  stopifnot(all(vapply(receipt_pairs, receipt_shape, logical(1))))
+  invalid_pairs <- list(list(status = "failed", pass = TRUE),
+    list(status = "partial", pass = NULL), list(status = "not_verified", pass = TRUE),
+    list(status = "skipped_by_selection", pass = FALSE),
+    list(status = "completed", pass = NULL))
+  stopifnot(!any(vapply(invalid_pairs, receipt_shape, logical(1))))
+  make_receipts <- function(commit, clean) {
+    lapply(receipt_pairs, function(pair) {
+      c(list(step = "pkgcheck", commit = commit, working_tree_clean = clean), pair)
+    })
+  }
+  dirty_receipts <- make_receipts("invented-head", FALSE)
+  clean_receipts <- make_receipts("invented-head", TRUE)
+  stale_receipts <- make_receipts("invented-old", TRUE)
+  stopifnot(all(vapply(dirty_receipts, shape_valid, logical(1))),
+    identical(unname(vapply(dirty_receipts, should_apply, logical(1),
+      current_commit = "invented-head")),
+      c(TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, TRUE)),
+    identical(unname(vapply(clean_receipts, should_apply, logical(1),
+      current_commit = "invented-head")),
+      c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE)),
+    identical(unname(vapply(stale_receipts, should_apply, logical(1),
+      current_commit = "invented-head")), rep(FALSE, length(receipt_pairs))))
+  malformed_cases <- list(
+    known_stale_partial = list(line =
+      '{"step":"ropensci_manual_subset","commit":"invented-old","status":', apply = FALSE),
+    malformed_current_skip = list(line = paste0(
+      '{"step":"coverage_percent","commit":"invented-head",',
+      '"status":"skipped_by_selection","pass":false,"working_tree_clean":true}'),
+      apply = TRUE),
+    ambiguous_skip_commit = list(line = paste0(
+      '{"step":"coverage_percent","status":"skipped_by_selection",',
+      '"pass":null,"working_tree_clean":true,"commit":"invented-head",',
+      '"commit":"invented-old","unfinished":'), apply = TRUE))
+  malformed_applies <- vapply(malformed_cases, function(case) {
+    item <- parse_line(case$line)[[1L]]
+    identical(should_apply(item, "invented-head"), case$apply)
+  }, logical(1))
+  stopifnot(all(malformed_applies))
+  dirty_failures <- lapply(receipt_pairs[c("completed_failure", "failed", "partial")],
+    function(pair) {
+      c(list(step = "ropensci_manual_subset", commit = "invented-head",
+        working_tree_clean = FALSE), pair)
+    })
+  clean_failures <- lapply(dirty_failures, function(item) {
+    item$working_tree_clean <- TRUE
+    item
+  })
+  stopifnot(all(vapply(dirty_failures, function(item) {
+    shape_valid(item) && !should_apply(item, "invented-head")
+  }, logical(1))), all(vapply(clean_failures, function(item) {
+    shape_valid(item) && should_apply(item, "invented-head")
+  }, logical(1))))
+  dirty_manual_failures <- lapply(dirty_failures, function(item) {
+    run_readiness(extra = encode(item))$pkgcheck_pass
+  })
+  current_partial_failure <- clean_failures[["partial"]]
+  stopifnot(all(unlist(dirty_manual_failures)),
+    !run_readiness(extra = encode(current_partial_failure))$pkgcheck_pass)
+}
+
 local({
   receipt_path <- tempfile(fileext = ".json")
   on.exit(unlink(receipt_path))
@@ -390,6 +467,7 @@ local({
       !any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
     env
   }
+  assert_reconcile_cases(run_readiness, encode)
   ready <- run_readiness()
   stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
     ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
@@ -418,6 +496,12 @@ local({
   invalid_skip <- altered
   invalid_skip$pass <- "invalid"
   stopifnot(!run_readiness(encode(invalid_skip))$coverage_ready)
+  invalid_skip_values <- list(pass = FALSE, working_tree_clean = "true")
+  for (field_name in names(invalid_skip_values)) {
+    invalid_skip <- altered
+    invalid_skip[[field_name]] <- invalid_skip_values[[field_name]]
+    stopifnot(!run_readiness(encode(invalid_skip))$coverage_ready)
+  }
   altered$status <- "failed"
   altered$commit <- "invented-old"
   stopifnot(run_readiness(encode(altered))$coverage_ready,
@@ -425,7 +509,7 @@ local({
   for (line in c(
       '{"diagnostic":{"commit":"invented-head"},"step":"coverage_percent","commit":"invented-old","status":"failed","status":"completed"}',
       '{"step":"coverage_percent","commit":"invented-old","unfinished":')) {
-    stopifnot(!run_readiness(line)$coverage_ready)
+    stopifnot(run_readiness(line)$coverage_ready)
   }
   for (ending in c('"commit":', '"commit":"invented-head')) {
     line <- paste0('{"step":"coverage_percent","commit":"invented-old",', ending)
@@ -443,20 +527,32 @@ local({
     '{"step":"coverage_percent","commit":false "invented-old"}'
   malformed_known_stale <-
     '{"step":"coverage_percent","commit":"invented-old","unfinished":'
+  malformed_partial_stale <-
+    '{"step":"ropensci_manual_subset","commit":"invented-old","status":'
   truncated_terminal_step <- '{"commit":"invented-head","step":"coverage_percent"'
   truncated_terminal_stale_commit <-
     '{"step":"coverage_percent","commit":"invented-old"'
   ambiguous_stale_commit <- paste0(
     '{"step":"coverage_percent","commit":"invented-old",',
     '"commit":"invented-head","unfinished":')
+  ambiguous_skip_commit <- paste0(
+    '{"step":"coverage_percent","status":"skipped_by_selection",',
+    '"pass":null,"working_tree_clean":true,"commit":"invented-head",',
+    '"commit":"invented-old","unfinished":')
   malformed_unidentifiable <-
     '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"'
   stopifnot(!run_readiness(malformed_current_commit)$coverage_ready,
-    !run_readiness(malformed_known_stale)$coverage_ready,
+    run_readiness(malformed_known_stale)$coverage_ready,
+    run_readiness(malformed_partial_stale)$coverage_ready,
     !run_readiness(truncated_terminal_step)$coverage_ready,
     !run_readiness(truncated_terminal_stale_commit)$coverage_ready,
     !run_readiness(ambiguous_stale_commit)$coverage_ready,
+    !run_readiness(ambiguous_skip_commit)$coverage_ready,
     run_readiness(malformed_unidentifiable)$coverage_ready)
+  stale_partial <- parse_quality_line(malformed_partial_stale)[[1L]]
+  ambiguous_skip <- parse_quality_line(ambiguous_skip_commit)[[1L]]
+  stopifnot(!quality_evidence_should_apply(stale_partial, "invented-head"),
+    is.null(ambiguous_skip$commit), quality_evidence_should_apply(ambiguous_skip, "invented-head"))
   malformed_step_result <- run_readiness(truncated_terminal_step)
   stopifnot(!malformed_step_result$coverage_ready,
     malformed_step_result$check_pass("cyclocomp_linter(15)"))

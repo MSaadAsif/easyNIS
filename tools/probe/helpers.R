@@ -340,10 +340,20 @@ quality_receipt_step_status_valid <- function(item) {
       "skipped_by_selection", "skipped_not_installed")
 }
 
+quality_null_pass_status <- function(status) {
+  status %in% c("not_verified", "skipped_by_selection", "skipped_not_installed")
+}
+
+quality_boolean_pass_valid <- function(pass) {
+  is.logical(pass) && length(pass) == 1L && !is.na(pass)
+}
+
 quality_receipt_pass_valid <- function(item) {
-  if (is.null(item$pass)) return(TRUE)
-  is.logical(item$pass) && length(item$pass) == 1L && !is.na(item$pass) &&
-    (!identical(item$status, "skipped_by_selection") || is.null(item$pass))
+  status <- item$status
+  if (!valid_nonempty_string(status)) return(FALSE)
+  if (quality_null_pass_status(status)) return(is.null(item$pass))
+  if (identical(status, "completed")) return(quality_boolean_pass_valid(item$pass))
+  status %in% c("failed", "partial") && identical(item$pass, FALSE)
 }
 
 quality_receipt_tree_valid <- function(item) {
@@ -549,15 +559,15 @@ quality_evidence_stale <- function(item, current_commit) {
 
 quality_dirty_failure <- function(item, current_commit) {
   same_commit <- identical(item$commit, current_commit)
-  failed <- identical(item$pass, FALSE) && item$status %in% c("completed", "failed")
+  failed <- identical(item$pass, FALSE) && item$status %in% c("completed", "failed", "partial")
   same_commit && identical(item$working_tree_clean, FALSE) && failed
 }
 
 quality_evidence_should_apply <- function(item, current_commit) {
   if (!quality_step_identifiable(item)) return(FALSE)
+  if (quality_evidence_stale(item, current_commit)) return(FALSE)
   if (quality_evidence_invalid(item)) return(TRUE)
   if (quality_item_skipped(item)) return(FALSE)
-  if (quality_evidence_stale(item, current_commit)) return(FALSE)
   !quality_dirty_failure(item, current_commit)
 }
 
