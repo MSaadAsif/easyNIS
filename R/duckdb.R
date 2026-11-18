@@ -112,17 +112,44 @@ nis_duckdb_normalize_scans <- function(con, sources, scans = NULL) {
   })
   source_names <- unlist(schemas, use.names = FALSE)
   canonical <- unique(toupper(source_names[grepl("[A-Z]", source_names)]))
-  # Recognize casing before DuckDB's case-insensitive union discards it.
+  # Normalize each source before DuckDB's case-insensitive union discards
+  # differing spellings. Coalesce within a source while exact names remain
+  # addressable; a later wrapper cannot bind case-folding collisions.
   vapply(seq_along(scans), function(index) {
+    scan <- scans[[index]]
     old <- schemas[[index]]
-    collisions <- toupper(old)[duplicated(toupper(old))]
+    collision_groups <- split(old, toupper(old))
+    collision_groups <- collision_groups[lengths(collision_groups) > 1L]
+    collisions <- names(collision_groups)
+    if (length(collision_groups) > 0L) {
+      collision_index <- match(toupper(old), collisions)
+      collision_first <- vapply(collision_groups, function(fields) {
+        match(fields[[1L]], old)
+      }, integer(1))
+      columns <- vapply(seq_along(old), function(field) {
+        group <- collision_index[[field]]
+        if (is.na(group)) {
+          return(as.character(DBI::dbQuoteIdentifier(con, old[[field]])))
+        }
+        if (field != collision_first[[group]]) return("")
+        fields <- as.character(DBI::dbQuoteIdentifier(con,
+          collision_groups[[group]]))
+        paste0("COALESCE(", paste(fields, collapse = ", "), ") AS ",
+          as.character(DBI::dbQuoteIdentifier(con, collisions[[group]])))
+      }, character(1))
+      columns <- columns[nzchar(columns)]
+      scan <- paste0("(SELECT ", paste(columns, collapse = ", "),
+        " FROM ", scan, ")")
+      old <- DBI::dbGetQuery(con,
+        paste("DESCRIBE SELECT * FROM", scan))$column_name
+    }
     rename <- old != toupper(old) & toupper(old) %in% canonical &
       !toupper(old) %in% collisions
-    if (!any(rename)) return(scans[[index]])
+    if (!any(rename)) return(scan)
     identifiers <- as.character(DBI::dbQuoteIdentifier(con, old[rename]))
     aliases <- as.character(DBI::dbQuoteIdentifier(con, toupper(old[rename])))
     changes <- paste(identifiers, "AS", aliases, collapse = ", ")
-    paste0("(SELECT * RENAME (", changes, ") FROM ", scans[[index]], ")")
+    paste0("(SELECT * RENAME (", changes, ") FROM ", scan, ")")
   }, character(1))
 }
 
