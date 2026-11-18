@@ -223,11 +223,8 @@ nis_open_normalize_names <- function(query) {
   old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
   if (length(source_names) > 0L) {
-    ascii_fold <- function(x) {
-      chartr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", x)
-    }
     source_names <- unique(source_names)
-    source_groups <- split(source_names, ascii_fold(source_names))
+    source_groups <- split(source_names, nis_open_ascii_fold(source_names))
     uppercase_groups <- source_groups[vapply(source_groups, function(fields) {
       any(grepl("[A-Z]", fields))
     }, logical(1))]
@@ -254,7 +251,7 @@ nis_open_normalize_names <- function(query) {
 
   if (length(source_names) > 0L) {
     output_names <- colnames(query)
-    source_group <- match(ascii_fold(output_names), names(canonical_names))
+    source_group <- match(nis_open_ascii_fold(output_names), names(canonical_names))
     proposed_names <- output_names
     has_canonical <- !is.na(source_group)
     proposed_names[has_canonical] <- unname(canonical_names[
@@ -262,19 +259,14 @@ nis_open_normalize_names <- function(query) {
     ])
     changed <- which(proposed_names != output_names)
     if (length(changed) > 0L) {
-      con <- dbplyr::remote_con(query)
       blocked <- vapply(changed, function(index) {
-        other_names <- output_names[-index]
-        any(vapply(other_names, function(other) {
-          nis_open_identifier_equivalent(con, proposed_names[[index]], other)
-        }, logical(1)))
+        any(nis_open_identifier_equivalent(proposed_names[[index]],
+          output_names[-index]))
       }, logical(1))
-      proposed_collisions <- vapply(changed, function(index) {
-        other_targets <- proposed_names[setdiff(changed, index)]
-        any(vapply(other_targets, function(other) {
-          nis_open_identifier_equivalent(con, proposed_names[[index]], other)
-        }, logical(1)))
-      }, logical(1))
+      proposed_keys <- nis_open_ascii_fold(proposed_names)
+      target_keys <- proposed_keys[changed]
+      proposed_collisions <- duplicated(target_keys) |
+        duplicated(target_keys, fromLast = TRUE)
       rename_indices <- changed[!blocked & !proposed_collisions]
       if (length(rename_indices) > 0L) {
         rename_map <- stats::setNames(rlang::syms(output_names[rename_indices]),
@@ -286,15 +278,12 @@ nis_open_normalize_names <- function(query) {
   query
 }
 
-nis_open_identifier_equivalent <- function(con, left, right) {
-  left <- as.character(DBI::dbQuoteIdentifier(con, left))
-  right <- as.character(DBI::dbQuoteIdentifier(con, right))
-  probe <- paste0("SELECT ", right, " FROM (SELECT 1 AS ", left,
-    ") AS easyNIS_identifier_probe")
-  tryCatch({
-    DBI::dbGetQuery(con, probe)
-    TRUE
-  }, error = function(condition) FALSE)
+nis_open_ascii_fold <- function(names) {
+  chartr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", names)
+}
+
+nis_open_identifier_equivalent <- function(left, right) {
+  nis_open_ascii_fold(left) == nis_open_ascii_fold(right)
 }
 
 nis_open_warn_2023 <- function(query) {

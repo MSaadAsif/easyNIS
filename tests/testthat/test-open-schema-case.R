@@ -130,6 +130,48 @@ test_that("canonical rename proposals that share a target stay unchanged", {
   expect_identical(actual[["a\u00c9"]], 2L)
 })
 
+test_that("wide Unicode naming collisions use no DuckDB identifier probes", {
+  path <- tempfile("nis-unicode-wide-name-collisions-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  suffixes <- sprintf("%02d", seq_len(12L))
+  lower_names <- paste0("a\u00e9_", suffixes)
+  mixed_names <- paste0("A\u00e9_", suffixes)
+  upper_names <- paste0("A\u00c9_", suffixes)
+  first <- as.data.frame(matrix(as.integer(c(2019L, seq_len(24L))), nrow = 1L),
+    check.names = FALSE)
+  names(first) <- c("YEAR", lower_names, upper_names)
+  second <- as.data.frame(matrix(as.integer(c(2020L, 100L + seq_len(24L))),
+    nrow = 1L), check.names = FALSE)
+  names(second) <- c("YEAR", mixed_names, upper_names)
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  identifier_probes <- 0L
+  dbi_original_db_get_query <- DBI::dbGetQuery
+  testthat::local_mocked_bindings(
+    dbGetQuery = function(conn, statement, ...) {
+      if (grepl("easyNIS_identifier_probe", statement, fixed = TRUE)) {
+        identifier_probes <<- identifier_probes + 1L
+      }
+      dbi_original_db_get_query(conn, statement, ...)
+    },
+    .package = "DBI"
+  )
+  actual <- nis_open(path) |>
+    dplyr::arrange(YEAR) |>
+    dplyr::collect()
+
+  expect_identical(identifier_probes, 0L)
+  expect_setequal(names(actual), c("YEAR", lower_names, upper_names))
+  expect_identical(unname(as.matrix(actual[lower_names])),
+    rbind(as.integer(seq_len(12L)), as.integer(100L + seq_len(12L))))
+  expect_identical(unname(as.matrix(actual[upper_names])),
+    rbind(as.integer(12L + seq_len(12L)), as.integer(112L + seq_len(12L))))
+  expect_true(nis_open_identifier_equivalent("a\u00e9", "A\u00e9"))
+  expect_false(nis_open_identifier_equivalent("a\u00e9", "A\u00c9"))
+})
+
 test_that("lowercase Greek sigma spellings remain separate columns", {
   path <- tempfile("nis-lowercase-sigma-")
   dir.create(path)
