@@ -43,9 +43,11 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'   has a physical `YEAR` column, its non-missing values must agree with the
 #'   directory year; missing or absent physical values use the partition year.
 #'   Schemas are combined by column name, including when annual files and Hive
-#'   partitions are mixed. When annual types differ, DuckDB may promote them;
-#'   for example, an integer field combined with a character field is returned
-#'   as character. When present, `YEAR` is validated and returned as integer;
+#'   partitions are mixed. When column spellings normalize to the same name,
+#'   their values are coalesced in source column order after annual types are
+#'   promoted. When annual types differ, DuckDB may promote them; for example,
+#'   an integer field combined with a character field is returned as character.
+#'   When present, `YEAR` is validated and returned as integer;
 #'   invalid values identify the offending file in an error. The connection
 #'   remains open while the lazy table is in use and closes after it is released.
 #'   Use `dplyr::collect()` to return

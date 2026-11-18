@@ -7,6 +7,9 @@
   directory and a separate Hive partition, preventing duplicate rows. Hive
   parts within one annual dataset remain supported.
 
+- `nis_open()` coalesces column spellings that normalize to the same name after
+  annual type promotion, preserving source-column precedence across schema drift.
+
 - Quality probes verify a disposable source installation and its effective
   namespace before measuring installed complexity. Nested packaging and coverage
   evidence remains unverified unless it reports a failure; equal versions and

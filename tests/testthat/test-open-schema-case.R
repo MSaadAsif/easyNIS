@@ -27,6 +27,66 @@ test_that("normalization collisions retain coalesced names and values", {
   }
 })
 
+test_that("pooled normalization collisions coalesce after annual type promotion", {
+  path <- tempfile("nis-pooled-unicode-case-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, first = 1L, second = 2L,
+    check.names = FALSE)
+  names(first)[2:3] <- c("A\u00e9", "A\u00c9")
+  second <- data.frame(YEAR = 2020L, first = 20L, second = 10L,
+    check.names = FALSE)
+  names(second)[2:3] <- c("A\u00c9", "A\u00e9")
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
+  for (reader in readers) {
+    actual <- nis_open(path, reader = reader) |>
+      dplyr::arrange(YEAR) |>
+      dplyr::collect()
+    expect_identical(actual[["A\u00c9"]], c(1L, 10L))
+  }
+})
+
+test_that("normalization collisions coalesce after character promotion", {
+  path <- tempfile("nis-pooled-unicode-types-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, first = NA_integer_, second = "alpha",
+    check.names = FALSE)
+  names(first)[2:3] <- c("A\u00e9", "A\u00c9")
+  second <- data.frame(YEAR = 2020L, first = "beta", second = "gamma",
+    check.names = FALSE)
+  names(second)[2:3] <- c("A\u00e9", "A\u00c9")
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
+  for (reader in readers) {
+    actual <- nis_open(path, reader = reader) |>
+      dplyr::arrange(YEAR) |>
+      dplyr::collect()
+    expect_identical(actual[["A\u00c9"]], c("alpha", "beta"))
+  }
+})
+
+test_that("lowercase Greek sigma spellings remain separate columns", {
+  path <- tempfile("nis-lowercase-sigma-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  data <- data.frame(YEAR = 2019L, first = 1L, second = 2L)
+  names(data)[2:3] <- c("\u03c3", "\u03c2")
+  write_duckdb_parquet(data, file.path(path, "NIS_2019.parquet"))
+
+  readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
+  for (reader in readers) {
+    actual <- dplyr::collect(nis_open(path, reader = reader))
+    expect_identical(actual[["\u03c3"]], 1L)
+    expect_identical(actual[["\u03c2"]], 2L)
+  }
+})
+
 test_that("single sources retain the established case normalization", {
   spellings <- c("aprdrg_risk_mortality", "APRDRG_Risk_Mortality",
     "APRDRG_RISK_MORTALITY")
