@@ -20,6 +20,15 @@ is idempotent.
 Negative numeric sentinels are not converted to missing values. The supplied
 HCUP documentation represents missing numeric values as system missing and
 does not document negative sentinels for any element handled here.
+\code{NaN} values in ordinary numeric vectors and Haven-labelled numeric storage
+are treated as missing, while ordinary and tagged \code{NA} values remain
+missing. Finite SPSS user-missing values and \code{integer64} values are
+interpreted through their displayed values and remain visible codes.
+Factors containing raw codes are normalized as a whole. Existing labels,
+including \verb{Code 7}, are preserved when unused raw-code levels remain after
+subsetting. A bare \code{Code } value with raw-code levels and no recognized value
+label is treated as raw text; without such levels it is preserved as an
+existing label because its origin cannot be recovered after dropping levels.
 }
 \description{
 Apply HCUP labels
