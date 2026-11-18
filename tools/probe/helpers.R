@@ -130,7 +130,8 @@ numeric_reference_value <- function(value) {
 }
 
 valid_named_fields <- function(value, required) {
-  is.list(value) && all(required %in% names(value))
+  is.list(value) && !is.null(names(value)) && !anyDuplicated(names(value)) &&
+    all(required %in% names(value))
 }
 
 valid_nonempty_string <- function(value) {
@@ -238,7 +239,7 @@ valid_receipt_result <- function(result, expected, reference_study) {
 }
 
 valid_receipt_result_fields <- function(result, required) {
-  is.list(result) && all(required %in% names(result)) && valid_receipt_result_id(result)
+  valid_named_fields(result, required) && valid_receipt_result_id(result)
 }
 
 valid_receipt_result_id <- function(result) {
@@ -259,16 +260,20 @@ valid_receipt_reference_values <- function(result, reference, value, tolerance) 
 }
 
 valid_study_receipt <- function(receipt, current_commit, reference_study) {
-  is.list(receipt) && identical(receipt$package_commit_hash, current_commit) &&
-    identical(receipt$study_id, reference_study$id) &&
-    valid_receipt_time(receipt$verified_at) &&
-    valid_receipt_results(receipt$results, reference_study)
+  required <- c("package_commit_hash", "study_id", "verified_at", "results")
+  valid_named_fields(receipt, required) &&
+    identical(receipt[["package_commit_hash", exact = TRUE]], current_commit) &&
+    identical(receipt[["study_id", exact = TRUE]], reference_study$id) &&
+    valid_receipt_time(receipt[["verified_at", exact = TRUE]]) &&
+    valid_receipt_results(receipt[["results", exact = TRUE]], reference_study)
 }
 
 study_verification_ready <- function(path, current_commit, reference_study) {
   if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE) ||
       !valid_reference_study(reference_study)) return(FALSE)
-  receipt <- tryCatch(jsonlite::fromJSON(path, simplifyVector = FALSE),
+  receipt_text <- tryCatch(paste(readLines(path, warn = FALSE), collapse = "\n"),
+    error = function(e) "")
+  receipt <- tryCatch(jsonlite::parse_json(receipt_text, simplifyVector = FALSE),
     error = function(e) NULL)
   valid_study_receipt(receipt, current_commit, reference_study)
 }
@@ -295,41 +300,187 @@ check_result_counts <- function(value) {
 
 quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
   is.list(item) && isTRUE(current_tree_clean) &&
-    identical(item$commit, current_commit) && identical(item$working_tree_clean, TRUE)
+    identical(item$commit, current_commit) && identical(item$working_tree_clean, TRUE) &&
+    !(identical(item$provenance, "nested_unverified") && identical(item$pass, TRUE))
 }
 
 parse_quality_line <- function(line) {
-  item <- tryCatch(jsonlite::fromJSON(line, simplifyVector = FALSE), error = function(e) NULL)
+  item <- tryCatch(jsonlite::parse_json(line, simplifyVector = FALSE), error = function(e) NULL)
   if (is.list(item) && !is.null(names(item)) && !anyDuplicated(names(item))) {
     required <- c("step", "status", "pass", "commit", "working_tree_clean")
     if (valid_named_fields(item, required)) return(item)
-    return(list(step = item[["step", exact = TRUE]], commit = item[["commit", exact = TRUE]],
-      status = "invalid_evidence", pass = FALSE))
   }
-  commit <- quality_line_fields(line, "commit")
-  list(step = quality_line_fields(line, "step"),
-    commit = if (valid_nonempty_string(commit)) commit else NULL,
-    status = "invalid_evidence", pass = FALSE)
+  recovered <- quality_line_fields(line)
+  if (!length(recovered$steps)) {
+    return(structure(list(list(step = NULL, commit = recovered$commit,
+      status = "invalid_evidence", pass = FALSE)), class = "invalid_quality_records"))
+  }
+  structure(lapply(unique(recovered$steps), function(step) {
+    list(step = step, commit = recovered$commit,
+      status = "invalid_evidence", pass = FALSE)
+  }),
+    class = "invalid_quality_records")
 }
 
-quality_line_fields <- function(line, field) {
-  tokens <- regmatches(line, gregexpr('"([^"\\\\]|\\\\.)*"|[{}\\[\\]:,]', line,
-    perl = TRUE))[[1L]]
-  if (!length(tokens) || tokens[[1L]] != "{") return(character())
-  depth <- 0L
-  steps <- character()
-  decode <- function(token) tryCatch(jsonlite::fromJSON(token), error = function(e) NULL)
-  for (i in seq_along(tokens)) {
-    token <- tokens[[i]]
-    if (token %in% c("{", "[")) depth <- depth + 1L
-    if (token %in% c("}", "]")) depth <- depth - 1L
-    if (depth == 0L) break
-    if (depth != 1L || i + 1L > length(tokens) || !startsWith(token, '"')) next
-    if (!identical(decode(token), field) || tokens[[i + 1L]] != ":") next
-    value <- if (i + 2L <= length(tokens)) decode(tokens[[i + 2L]]) else NULL
-    steps <- c(steps, if (valid_nonempty_string(value)) value else NA_character_)
+quality_json_space <- function(chars, pos) {
+  while (pos <= length(chars) && chars[[pos]] %in% c(" ", "\t", "\r", "\n")) pos <- pos + 1L
+  pos
+}
+
+quality_json_string_end <- function(chars, pos) {
+  if (pos >= length(chars) || chars[[pos]] != '"') return(NA_integer_)
+  escaped <- FALSE
+  for (i in seq.int(pos + 1L, length(chars))) {
+    if (escaped) {
+      escaped <- FALSE
+    } else if (chars[[i]] == "\\") {
+      escaped <- TRUE
+    } else if (chars[[i]] == '"') {
+      return(i)
+    }
   }
-  if (field == "step") unique(steps[!is.na(steps)]) else steps
+  NA_integer_
+}
+
+quality_json_token <- function(chars, pos) {
+  end <- quality_json_string_end(chars, pos)
+  if (is.na(end)) return(list(ok = FALSE))
+  token <- paste(chars[pos:end], collapse = "")
+  value <- tryCatch(jsonlite::parse_json(token, simplifyVector = FALSE),
+    error = function(e) NULL)
+  if (!is.character(value) || length(value) != 1L || is.na(value)) return(list(ok = FALSE))
+  list(ok = TRUE, value = value, end = end + 1L)
+}
+
+quality_json_value <- function(chars, pos) {
+  if (pos > length(chars)) return(list(ok = FALSE))
+  if (chars[[pos]] == '"') {
+    token <- quality_json_token(chars, pos)
+    if (!token$ok) return(token)
+    return(list(ok = TRUE, kind = "string", value = token$value, end = token$end))
+  }
+  if (chars[[pos]] %in% c("{", "[")) return(quality_json_compound(chars, pos))
+  quality_json_primitive(chars, pos)
+}
+
+quality_json_primitive <- function(chars, pos) {
+  end <- pos
+  while (end <= length(chars) && !chars[[end]] %in% c(",", "]", "}", " ", "\t", "\r", "\n")) {
+    end <- end + 1L
+  }
+  if (end == pos) return(list(ok = FALSE))
+  token <- paste(chars[pos:(end - 1L)], collapse = "")
+  value <- tryCatch(jsonlite::parse_json(token, simplifyVector = FALSE),
+    error = function(e) structure(list(), class = "invalid_json_value"))
+  if (inherits(value, "invalid_json_value")) return(list(ok = FALSE))
+  list(ok = TRUE, kind = "other", value = value, end = end)
+}
+
+quality_json_compound <- function(chars, pos) {
+  end <- quality_json_compound_end(chars, pos)
+  if (is.na(end)) return(list(ok = FALSE))
+  token <- paste(chars[pos:end], collapse = "")
+  value <- tryCatch(jsonlite::parse_json(token, simplifyVector = FALSE),
+    error = function(e) structure(list(), class = "invalid_json_value"))
+  if (inherits(value, "invalid_json_value")) return(list(ok = FALSE))
+  list(ok = TRUE, kind = if (chars[[pos]] == "{") "object" else "array",
+    value = value, end = end + 1L)
+}
+
+quality_json_compound_end <- function(chars, pos) {
+  if (pos >= length(chars)) return(NA_integer_)
+  state <- list(stack = chars[[pos]], in_string = FALSE, escaped = FALSE, ok = TRUE)
+  for (i in seq.int(pos + 1L, length(chars))) {
+    state <- quality_json_compound_step(state, chars[[i]])
+    if (!state$ok) return(NA_integer_)
+    if (!length(state$stack)) return(i)
+  }
+  NA_integer_
+}
+
+quality_json_compound_step <- function(state, char) {
+  if (state$in_string) return(quality_json_string_step(state, char))
+  if (char == '"') state$in_string <- TRUE
+  if (char %in% c("{", "[")) state$stack <- c(state$stack, char)
+  if (char %in% c("}", "]")) {
+    expected <- if (char == "}") "{" else "["
+    if (tail(state$stack, 1L) != expected) {
+      state$ok <- FALSE
+    } else {
+      state$stack <- head(state$stack, -1L)
+    }
+  }
+  state
+}
+
+quality_json_string_step <- function(state, char) {
+  if (state$escaped) {
+    state$escaped <- FALSE
+  } else if (char == "\\") {
+    state$escaped <- TRUE
+  } else if (char == '"') {
+    state$in_string <- FALSE
+  }
+  state
+}
+
+quality_line_fields <- function(line) {
+  chars <- strsplit(line, "", fixed = TRUE)[[1L]]
+  pos <- quality_json_space(chars, 1L)
+  if (pos > length(chars) || chars[[pos]] != "{") return(list(steps = character(), commit = NULL))
+  fields <- quality_scan_top_fields(chars, pos + 1L)
+  quality_recovered_identities(fields)
+}
+
+quality_scan_top_fields <- function(chars, pos) {
+  fields <- list()
+  repeat {
+    field <- quality_scan_top_field(chars, pos)
+    if (!field$found) break
+    fields[[length(fields) + 1L]] <- field
+    if (!field$complete || field$done) break
+    pos <- field$next_pos
+  }
+  fields
+}
+
+quality_scan_top_field <- function(chars, pos) {
+  pos <- quality_json_space(chars, pos)
+  key <- quality_json_token(chars, pos)
+  if (!isTRUE(key$ok)) return(list(found = FALSE))
+  field <- list(found = TRUE, name = key$value, complete = FALSE, value = NULL,
+    kind = NULL, next_pos = pos, done = FALSE)
+  pos <- quality_json_space(chars, key$end)
+  if (pos > length(chars) || chars[[pos]] != ":") return(field)
+  value <- quality_json_value(chars, quality_json_space(chars, pos + 1L))
+  if (!isTRUE(value$ok)) return(field)
+  pos <- quality_json_space(chars, value$end)
+  if (pos > length(chars) || !chars[[pos]] %in% c(",", "}")) return(field)
+  field$complete <- TRUE
+  field$value <- value$value
+  field$kind <- value$kind
+  field$done <- chars[[pos]] == "}"
+  field$next_pos <- pos + 1L
+  field
+}
+
+quality_recovered_identities <- function(fields) {
+  names <- vapply(fields, function(field) field$name, character(1))
+  steps <- vapply(fields, function(field) {
+    if (isTRUE(field$complete) && identical(field$name, "step") &&
+        identical(field$kind, "string")) field$value else NA_character_
+  }, character(1))
+  commits <- vapply(fields, function(field) {
+    if (isTRUE(field$complete) && identical(field$name, "commit") &&
+        identical(field$kind, "string")) field$value else NA_character_
+  }, character(1))
+  list(steps = unique(steps[!is.na(steps)]),
+    commit = quality_recovered_commit(names, commits))
+}
+
+quality_recovered_commit <- function(names, commits) {
+  if (sum(names == "commit") != 1L || sum(!is.na(commits)) != 1L) return(NULL)
+  commits[!is.na(commits)][[1L]]
 }
 
 load_quality_evidence <- function(files) {
@@ -338,14 +489,33 @@ load_quality_evidence <- function(files) {
     lines <- tryCatch(readLines(file, warn = FALSE), error = function(e) character())
     unlist(lapply(lines, function(line) {
       item <- parse_quality_line(line)
-      if (!identical(item$status, "invalid_evidence") || length(item$step) <= 1L) return(list(item))
-      lapply(item$step, function(step) { record <- item; record$step <- step; record })
+      if (inherits(item, "invalid_quality_records")) return(item)
+      list(item)
     }), recursive = FALSE)
   }), recursive = FALSE)
 }
 
 quality_step_identifiable <- function(item) {
   is.list(item) && valid_nonempty_string(item$step)
+}
+
+quality_item_skipped <- function(item) {
+  valid_named_fields(item, c("step", "status", "pass", "commit", "working_tree_clean")) &&
+    quality_skip_identity_valid(item) && quality_skip_status_valid(item) &&
+    quality_skip_tree_valid(item)
+}
+
+quality_skip_identity_valid <- function(item) {
+  valid_nonempty_string(item$step) && valid_nonempty_string(item$commit)
+}
+
+quality_skip_status_valid <- function(item) {
+  identical(item$status, "skipped_by_selection")
+}
+
+quality_skip_tree_valid <- function(item) {
+  is.logical(item$working_tree_clean) && length(item$working_tree_clean) == 1L &&
+    !is.na(item$working_tree_clean)
 }
 
 private_quality_diagnostics <- function(checks, records) {
@@ -473,9 +643,13 @@ write_private_quality_diagnostics <- function(run_dir, checks, records) {
 
 coverage_percent_value <- function(item) {
   value <- if (is.list(item)) item[["value", exact = TRUE]] else NULL
-  if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
-      value < 0 || value > 100) return(NA_real_)
+  if (!valid_coverage_percent(value)) return(NA_real_)
   as.numeric(value)
+}
+
+valid_coverage_percent <- function(value) {
+  is.numeric(value) && length(value) == 1L && is.finite(value) &&
+    value >= 0 && value <= 100
 }
 
 private_sanity_summary <- function(step, result) {

@@ -5,7 +5,9 @@
 
 - Readiness rejects incomplete, out-of-range, Boolean, and malformed evidence
   while continuing to assess unrelated valid records. Invalid records use
-  top-level step identities; nested diagnostics cannot mask a failed gate.
+  structurally recovered top-level string identities and unambiguous commit
+  bindings; nested diagnostics cannot mask a failed gate. Study receipts require
+  unique exact fields, including the package commit and computed estimates.
 
 - `nis_open()` now rejects selected years present in both an annual Parquet
   directory and a separate Hive partition, preventing duplicate rows. Hive

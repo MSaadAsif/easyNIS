@@ -13,9 +13,8 @@ current_tree_clean <- current_evidence$working_tree_clean
 quality_by_step <- list()
 for (item in quality) {
   if (!quality_step_identifiable(item)) next
+  if (quality_item_skipped(item)) next
   if (valid_nonempty_string(item$commit) && !identical(item$commit, current_commit)) next
-  if (identical(item$status, "skipped_by_selection") &&
-      quality_evidence_valid(item, current_commit, current_tree_clean)) next
   quality_by_step[[item$step]] <- item
 }
 record <- function(criterion, status, evidence) data.frame(criterion, status, evidence, stringsAsFactors = FALSE)

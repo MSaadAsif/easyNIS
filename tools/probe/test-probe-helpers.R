@@ -48,6 +48,43 @@ synthetic_estimates <- data.frame(estimate = 1, standard_error = 0.1, label = "s
 private_weighted_summary <- private_sanity_summary("weighted_descriptives", synthetic_estimates)
 stopifnot(identical(names(private_weighted_summary), c("estimate", "standard_error")))
 
+assert_readiness_rejects_statuses <- function(run_readiness, baseline, manual) {
+  for (status in c("failed", "partial", "not_verified", "", NA_character_)) {
+    altered <- baseline
+    altered$status <- status
+    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
+    altered <- manual
+    altered$status <- status
+    stopifnot(!run_readiness(subset = altered)$pkgcheck_pass)
+  }
+}
+
+assert_readiness_rejects_malformed_lines <- function(run_readiness) {
+  lines <- c(
+    "{\"step\":\"coverage_percent\",\"INVENTED_PRIVATE_MARKER\":",
+    "{\"step\":\"coverage_percent\"}",
+    paste0("{\"step\":\"coverage_percent\",\"status_extra\":\"completed\",\"pass\":true,",
+      "\"value\":94,\"commit\":\"invented-head\",\"working_tree_clean\":true}"),
+    paste0("{\"step\":\"coverage_percent\",\"status\":\"completed\",\"pass\":true,",
+      "\"value_extra\":94,\"commit\":\"invented-head\",\"working_tree_clean\":true}"),
+    paste0("{\"step\":\"coverage_percent\",\"status\":\"completed\",\"pass\":true,\"value\":94,",
+      "\"commit\":{\"text\":\"INVENTED_PRIVATE_MARKER\"},\"working_tree_clean\":true}"),
+    paste0("{\"step\":\"coverage_percent\",\"commit\":\"invented-head\",",
+      "\"working_tree_clean\":true,\"status\":7}"),
+    "{\"step\":\"coverage_percent\",\"step\":\"coverage_percent\"}",
+    paste0("{\"diagnostic\":{\"step\":\"diagnostic-only\"},\"step\":\"coverage_percent\",",
+      "\"status\":\"failed\",\"status\":\"completed\"}"),
+    paste0("{\"diagnostic\":{\"step\":\"pkgcheck\"},\"step\":\"coverage_percent\",",
+      "\"status\":\"failed\",\"status\":\"completed\"}"),
+    paste0("{\"diagnostic\":{\"step\":\"diagnostic-only\"},\"step\":\"coverage_percent\",",
+      "\"unfinished\":"),
+    "{\"step\":\"diagnostic-only\",\"step\":\"coverage_percent\"}")
+  for (line in lines) {
+    result <- run_readiness(line)
+    stopifnot(!result$coverage_ready, result$check_pass("cyclocomp_linter(15)"))
+  }
+}
+
 local({
   receipt_path <- tempfile(fileext = ".json")
   on.exit(unlink(receipt_path))
@@ -122,6 +159,15 @@ local({
   malformed_id$results[[1L]]$estimate_id <- NA_character_
   stopifnot(!write_receipt(malformed_id))
   stopifnot(!study_verification_ready(receipt_path, "different-commit", reference))
+  receipt_json <- as.character(jsonlite::toJSON(receipt, auto_unbox = TRUE))
+  note_only_json <- sub('"package_commit_hash":"synthetic-commit"',
+    '"package_commit_hash_note":"synthetic-commit"', receipt_json, fixed = TRUE)
+  writeLines(note_only_json, receipt_path)
+  stopifnot(!study_verification_ready(receipt_path, current_commit, reference))
+  duplicate_estimate_json <- sub('"computed_estimate":0.52',
+    '"computed_estimate":0.52,"computed_estimate":true', receipt_json, fixed = TRUE)
+  writeLines(duplicate_estimate_json, receipt_path)
+  stopifnot(!study_verification_ready(receipt_path, current_commit, reference))
   wrong_reference <- receipt
   wrong_reference$results[[1L]]$reference_value <- 0.45
   stopifnot(!write_receipt(wrong_reference))
@@ -347,14 +393,7 @@ local({
   ready <- run_readiness()
   stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
     ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
-  for (status in c("failed", "partial", "not_verified", "", NA_character_)) {
-    altered <- baseline
-    altered$status <- status
-    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
-    altered <- manual
-    altered$status <- status
-    stopifnot(!run_readiness(subset = altered)$pkgcheck_pass)
-  }
+  assert_readiness_rejects_statuses(run_readiness, baseline, manual)
   for (value in list(-1, 101, TRUE, "94", c(91, 94), NULL)) {
     altered <- baseline
     altered$value <- value
@@ -368,20 +407,7 @@ local({
   malformed <- c('{"INVENTED_PRIVATE_MARKER":', '7', 'null', '[]',
     '{"step":["coverage_percent"],"commit":"invented-old"}')
   stopifnot(run_readiness(malformed)$coverage_ready)
-  for (line in c('{"step":"coverage_percent","INVENTED_PRIVATE_MARKER":',
-      '{"step":"coverage_percent"}',
-      '{"step":"coverage_percent","status_extra":"completed","pass":true,"value":94,"commit":"invented-head","working_tree_clean":true}',
-      '{"step":"coverage_percent","status":"completed","pass":true,"value_extra":94,"commit":"invented-head","working_tree_clean":true}',
-      '{"step":"coverage_percent","status":"completed","pass":true,"value":94,"commit":{"text":"INVENTED_PRIVATE_MARKER"},"working_tree_clean":true}',
-      '{"step":"coverage_percent","commit":"invented-head","working_tree_clean":true,"status":7}',
-      '{"step":"coverage_percent","step":"coverage_percent"}',
-      '{"diagnostic":{"step":"diagnostic-only"},"step":"coverage_percent","status":"failed","status":"completed"}',
-      '{"diagnostic":{"step":"pkgcheck"},"step":"coverage_percent","status":"failed","status":"completed"}',
-      '{"diagnostic":{"step":"diagnostic-only"},"step":"coverage_percent","unfinished":',
-      '{"step":"diagnostic-only","step":"coverage_percent"}')) {
-    result <- run_readiness(c(malformed, line))
-    stopifnot(!result$coverage_ready, result$check_pass("cyclocomp_linter(15)"))
-  }
+  assert_readiness_rejects_malformed_lines(function(line) run_readiness(c(malformed, line)))
   altered <- baseline
   altered$status <- "failed"
   altered$pass <- FALSE
@@ -409,6 +435,33 @@ local({
     altered$pass <- flag
     stopifnot(!run_readiness(encode(altered))$coverage_ready)
   }
+  malformed_current_commit <-
+    '{"step":"coverage_percent","commit":false "invented-old"}'
+  malformed_known_stale <-
+    '{"step":"coverage_percent","commit":"invented-old","unfinished":'
+  malformed_unidentifiable <-
+    '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"'
+  stopifnot(!run_readiness(malformed_current_commit)$coverage_ready,
+    run_readiness(malformed_known_stale)$coverage_ready,
+    run_readiness(malformed_unidentifiable)$coverage_ready)
+  nested_gate_diagnostic <- paste0(
+    '{"step":"pkgcheck","commit":"invented-head",',
+    '"diagnostic":{"step":"coverage_percent"}]}')
+  nested_result <- run_readiness(nested_gate_diagnostic)
+  stopifnot(nested_result$coverage_ready,
+    nested_result$check_pass("cyclocomp_linter(15)"))
+  array_step_one <- '{"step":["coverage_percent"],"commit":"invented-head"}'
+  array_step_two <- '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"}'
+  array_result <- run_readiness(c(array_step_one, array_step_two))
+  stopifnot(array_result$coverage_ready, array_result$pkgcheck_pass)
+  skipped_dirty <- baseline
+  skipped_dirty$status <- "skipped_by_selection"
+  skipped_dirty["pass"] <- list(NULL)
+  skipped_dirty$working_tree_clean <- FALSE
+  stopifnot(run_readiness(extra = encode(skipped_dirty))$coverage_ready)
+  contradictory_provenance <- baseline
+  contradictory_provenance$provenance <- "nested_unverified"
+  stopifnot(!run_readiness(coverage = contradictory_provenance)$coverage_ready)
 })
 
 cat("Probe-helper tests passed.\n")
