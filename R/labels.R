@@ -149,6 +149,15 @@ attr(.hcup_labels, "source") <- paste(
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
+#' `NaN` values in ordinary numeric vectors and Haven-labelled numeric storage
+#' are treated as missing, while ordinary and tagged `NA` values remain
+#' missing. Finite SPSS user-missing values and `integer64` values are
+#' interpreted through their displayed values and remain visible codes.
+#' Factors containing raw codes are normalized as a whole. Existing labels,
+#' including `Code 7`, are preserved when unused raw-code levels remain after
+#' subsetting. A bare `Code ` value with raw-code levels and no recognized value
+#' label is treated as raw text; without such levels it is preserved as an
+#' existing label because its origin cannot be recovered after dropping levels.
 #' @family data-access
 #' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
@@ -199,10 +208,20 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
   values <- if (binary_comorbidity) c("No", "Yes") else
     definition$value_label[value_rows]
   raw <- as.character(x)
+  class <- attr(x, "class", exact = TRUE)
+  haven_numeric <- inherits(x, "haven_labelled") &&
+    typeof(unclass(x)) == "double" && !inherits(x, "integer64")
+  if ((is.double(x) && is.null(class)) || haven_numeric) {
+    raw[is.nan(unclass(x))] <- NA_character_
+  }
   already_labelled <- !is.na(raw) &
-    (raw %in% values | grepl("^Code .+", raw))
-  if (is.factor(x) && all(is.na(raw) | already_labelled)) {
-    return(factor(raw, levels = levels(x), ordered = is.ordered(x)))
+    (raw %in% values | startsWith(raw, "Code "))
+  raw_code_levels <- is.factor(x) && any(levels(x) %in% codes)
+  observed_value_labels <- any(!is.na(raw) & raw %in% values)
+  ambiguous_bare_code <- any(!is.na(raw) & raw == "Code ")
+  if (is.factor(x) && all(is.na(raw) | already_labelled) &&
+      (!raw_code_levels || observed_value_labels || !ambiguous_bare_code)) {
+    return(x)
   }
   label_raw_codes(raw, codes, values, variable, call)
 }

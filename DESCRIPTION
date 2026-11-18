@@ -31,6 +31,7 @@ Imports:
     srvyr,
     tidyselect
 Suggests:
+    bit64,
     broom.helpers,
     arrow,
     cardx,
@@ -39,6 +40,7 @@ Suggests:
     ggplot2,
     gt,
     gtsummary,
+    haven,
     knitr,
     jsonlite,
     medicalcoder (>= 0.10.0),

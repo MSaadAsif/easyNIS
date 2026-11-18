@@ -1,5 +1,11 @@
 nis_validate_layout_years <- function(entries, found, years, error_call) {
-  annual <- !dir.exists(entries)
+  paths <- normalizePath(entries, winslash = "/", mustWork = TRUE)
+  covered <- vapply(seq_along(entries), function(i) {
+    any(startsWith(paths[[i]], paste0(paths[found == found[[i]]], "/")))
+  }, logical(1))
+  entries <- entries[!covered]
+  found <- found[!covered]
+  annual <- grepl("^NIS_[0-9]{4}[.]parquet$", basename(entries))
   annual_years <- found[annual]
   hive_years <- found[!annual]
   conflicting_years <- intersect(years, intersect(annual_years, hive_years))
@@ -31,7 +37,9 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
 #'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
-#'   and Hive directories named `YEAR=YYYY` containing Parquet parts. If a part file
+#'   or directories and Hive directories named `YEAR=YYYY` containing Parquet
+#'   parts. A selected year must not appear in both annual and Hive layouts.
+#'   If a part file
 #'   has a physical `YEAR` column, its non-missing values must agree with the
 #'   directory year; missing or absent physical values use the partition year.
 #'   Schemas are combined by column name, including when annual files and Hive
@@ -124,6 +132,7 @@ nis_open_entries <- function(path, error_call) {
   if (!dir.exists(path)) {
     cli::cli_abort("`path` must name an existing directory.", call = error_call)
   }
+  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
 
   entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
     full.names = TRUE, recursive = FALSE)
@@ -287,7 +296,7 @@ nis_open_warn_2023 <- function(query) {
 #' ICD-10 crosswalk, and even with both code sets, counts of a condition can
 #' break at the transition.
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`. For
 #'   exclusions or full-code patterns, use a list such as
 #'   `heart_failure = list(prefix = "I50", exclude = "I502")` or
@@ -337,7 +346,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' expression, exclusion, and `system` semantics as [nis_flag_dx()]. `"icd10"`
 #' reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
 #'
-#' @param .data A data frame or lazy DuckDB query.
+#' @template dot-data
 #' @param ... Named flag definitions, such as `ablation = "02L"`; see
 #'   [nis_flag_dx()] for list definitions with exclusions or regexes.
 #' @param position Slots to check: all slots or the principal slot only.

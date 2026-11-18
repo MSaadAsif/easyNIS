@@ -38,7 +38,9 @@ Open annual NIS Parquet files lazily
 \details{
 \code{nis_open()} reads Parquet directly with DuckDB and returns a
 DuckDB-backed dbplyr table. It accepts annual \verb{NIS_<year>.parquet} files
-and Hive directories named \code{YEAR=YYYY} containing Parquet parts. If a part file
+or directories and Hive directories named \code{YEAR=YYYY} containing Parquet
+parts. A selected year must not appear in both annual and Hive layouts.
+If a part file
 has a physical \code{YEAR} column, its non-missing values must agree with the
 directory year; missing or absent physical values use the partition year.
 Schemas are combined by column name, including when annual files and Hive
