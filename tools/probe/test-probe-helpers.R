@@ -367,7 +367,7 @@ local({
   manual$step <- "ropensci_manual_subset"
   complexity <- baseline
   complexity$step <- "cyclocomp_linter(15)"
-  encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE))
+  encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE, null = "null"))
   run_readiness <- function(extra = character(), coverage = baseline, subset = manual,
       clean = TRUE) {
     writeLines(c(vapply(list(coverage, pkg, subset, complexity), encode, character(1)), extra),
@@ -413,7 +413,11 @@ local({
   altered$pass <- FALSE
   stopifnot(!run_readiness(encode(altered))$coverage_ready)
   altered$status <- "skipped_by_selection"
+  altered["pass"] <- list(NULL)
   stopifnot(run_readiness(encode(altered))$coverage_ready)
+  invalid_skip <- altered
+  invalid_skip$pass <- "invalid"
+  stopifnot(!run_readiness(encode(invalid_skip))$coverage_ready)
   altered$status <- "failed"
   altered$commit <- "invented-old"
   stopifnot(run_readiness(encode(altered))$coverage_ready,
@@ -421,7 +425,7 @@ local({
   for (line in c(
       '{"diagnostic":{"commit":"invented-head"},"step":"coverage_percent","commit":"invented-old","status":"failed","status":"completed"}',
       '{"step":"coverage_percent","commit":"invented-old","unfinished":')) {
-    stopifnot(run_readiness(line)$coverage_ready)
+    stopifnot(!run_readiness(line)$coverage_ready)
   }
   for (ending in c('"commit":', '"commit":"invented-head')) {
     line <- paste0('{"step":"coverage_percent","commit":"invented-old",', ending)
@@ -439,11 +443,23 @@ local({
     '{"step":"coverage_percent","commit":false "invented-old"}'
   malformed_known_stale <-
     '{"step":"coverage_percent","commit":"invented-old","unfinished":'
+  truncated_terminal_step <- '{"commit":"invented-head","step":"coverage_percent"'
+  truncated_terminal_stale_commit <-
+    '{"step":"coverage_percent","commit":"invented-old"'
+  ambiguous_stale_commit <- paste0(
+    '{"step":"coverage_percent","commit":"invented-old",',
+    '"commit":"invented-head","unfinished":')
   malformed_unidentifiable <-
     '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"'
   stopifnot(!run_readiness(malformed_current_commit)$coverage_ready,
-    run_readiness(malformed_known_stale)$coverage_ready,
+    !run_readiness(malformed_known_stale)$coverage_ready,
+    !run_readiness(truncated_terminal_step)$coverage_ready,
+    !run_readiness(truncated_terminal_stale_commit)$coverage_ready,
+    !run_readiness(ambiguous_stale_commit)$coverage_ready,
     run_readiness(malformed_unidentifiable)$coverage_ready)
+  malformed_step_result <- run_readiness(truncated_terminal_step)
+  stopifnot(!malformed_step_result$coverage_ready,
+    malformed_step_result$check_pass("cyclocomp_linter(15)"))
   nested_gate_diagnostic <- paste0(
     '{"step":"pkgcheck","commit":"invented-head",',
     '"diagnostic":{"step":"coverage_percent"}]}')
@@ -459,6 +475,11 @@ local({
   skipped_dirty["pass"] <- list(NULL)
   skipped_dirty$working_tree_clean <- FALSE
   stopifnot(run_readiness(extra = encode(skipped_dirty))$coverage_ready)
+  dirty_failure <- baseline
+  dirty_failure$status <- "failed"
+  dirty_failure$pass <- FALSE
+  dirty_failure$working_tree_clean <- FALSE
+  stopifnot(run_readiness(extra = encode(dirty_failure))$coverage_ready)
   contradictory_provenance <- baseline
   contradictory_provenance$provenance <- "nested_unverified"
   stopifnot(!run_readiness(coverage = contradictory_provenance)$coverage_ready)

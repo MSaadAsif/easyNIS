@@ -10,13 +10,7 @@ quality <- load_quality_evidence(quality_files)
 current_evidence <- git_evidence()
 current_commit <- current_evidence$commit
 current_tree_clean <- current_evidence$working_tree_clean
-quality_by_step <- list()
-for (item in quality) {
-  if (!quality_step_identifiable(item)) next
-  if (quality_item_skipped(item)) next
-  if (valid_nonempty_string(item$commit) && !identical(item$commit, current_commit)) next
-  quality_by_step[[item$step]] <- item
-}
+quality_by_step <- merge_quality_evidence(quality, current_commit)
 record <- function(criterion, status, evidence) data.frame(criterion, status, evidence, stringsAsFactors = FALSE)
 check_pass <- function(name) {
   item <- quality_by_step[[name]]

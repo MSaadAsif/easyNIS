@@ -308,18 +308,52 @@ parse_quality_line <- function(line) {
   item <- tryCatch(jsonlite::parse_json(line, simplifyVector = FALSE), error = function(e) NULL)
   if (is.list(item) && !is.null(names(item)) && !anyDuplicated(names(item))) {
     required <- c("step", "status", "pass", "commit", "working_tree_clean")
-    if (valid_named_fields(item, required)) return(item)
+    if (valid_named_fields(item, required)) {
+      if (quality_receipt_shape_valid(item)) return(item)
+      return(invalid_quality_identity(item$step, item$commit))
+    }
   }
   recovered <- quality_line_fields(line)
   if (!length(recovered$steps)) {
     return(structure(list(list(step = NULL, commit = recovered$commit,
-      status = "invalid_evidence", pass = FALSE)), class = "invalid_quality_records"))
+      status = "invalid_evidence", pass = FALSE, invalid_evidence = TRUE)),
+      class = "invalid_quality_records"))
   }
   structure(lapply(unique(recovered$steps), function(step) {
     list(step = step, commit = recovered$commit,
-      status = "invalid_evidence", pass = FALSE)
+      status = "invalid_evidence", pass = FALSE, invalid_evidence = TRUE)
   }),
     class = "invalid_quality_records")
+}
+
+invalid_quality_identity <- function(step, commit = NULL) {
+  if (!valid_nonempty_string(step)) step <- NULL
+  if (!valid_nonempty_string(commit)) commit <- NULL
+  structure(list(list(step = step, commit = commit,
+    status = "invalid_evidence", pass = FALSE, invalid_evidence = TRUE)),
+    class = "invalid_quality_records")
+}
+
+quality_receipt_step_status_valid <- function(item) {
+  valid_nonempty_string(item$step) && valid_nonempty_string(item$status) &&
+    item$status %in% c("completed", "failed", "partial", "not_verified",
+      "skipped_by_selection", "skipped_not_installed")
+}
+
+quality_receipt_pass_valid <- function(item) {
+  if (is.null(item$pass)) return(TRUE)
+  is.logical(item$pass) && length(item$pass) == 1L && !is.na(item$pass) &&
+    (!identical(item$status, "skipped_by_selection") || is.null(item$pass))
+}
+
+quality_receipt_tree_valid <- function(item) {
+  valid_nonempty_string(item$commit) && is.logical(item$working_tree_clean) &&
+    length(item$working_tree_clean) == 1L && !is.na(item$working_tree_clean)
+}
+
+quality_receipt_shape_valid <- function(item) {
+  all(c(quality_receipt_step_status_valid(item), quality_receipt_pass_valid(item),
+    quality_receipt_tree_valid(item)))
 }
 
 quality_json_space <- function(chars, pos) {
@@ -455,7 +489,13 @@ quality_scan_top_field <- function(chars, pos) {
   value <- quality_json_value(chars, quality_json_space(chars, pos + 1L))
   if (!isTRUE(value$ok)) return(field)
   pos <- quality_json_space(chars, value$end)
-  if (pos > length(chars) || !chars[[pos]] %in% c(",", "}")) return(field)
+  if (pos > length(chars)) {
+    field$value <- value$value
+    field$kind <- value$kind
+    field$terminal_string <- identical(value$kind, "string")
+    return(field)
+  }
+  if (!chars[[pos]] %in% c(",", "}")) return(field)
   field$complete <- TRUE
   field$value <- value$value
   field$kind <- value$kind
@@ -464,16 +504,20 @@ quality_scan_top_field <- function(chars, pos) {
   field
 }
 
+quality_recovered_step <- function(field) {
+  if ((isTRUE(field$complete) || isTRUE(field$terminal_string)) &&
+      identical(field$name, "step") && identical(field$kind, "string")) field$value else NA_character_
+}
+
+quality_recovered_commit_value <- function(field) {
+  if (isTRUE(field$complete) && identical(field$name, "commit") &&
+      identical(field$kind, "string")) field$value else NA_character_
+}
+
 quality_recovered_identities <- function(fields) {
-  names <- vapply(fields, function(field) field$name, character(1))
-  steps <- vapply(fields, function(field) {
-    if (isTRUE(field$complete) && identical(field$name, "step") &&
-        identical(field$kind, "string")) field$value else NA_character_
-  }, character(1))
-  commits <- vapply(fields, function(field) {
-    if (isTRUE(field$complete) && identical(field$name, "commit") &&
-        identical(field$kind, "string")) field$value else NA_character_
-  }, character(1))
+  names <- vapply(fields, `[[`, character(1), "name")
+  steps <- vapply(fields, quality_recovered_step, character(1))
+  commits <- vapply(fields, quality_recovered_commit_value, character(1))
   list(steps = unique(steps[!is.na(steps)]),
     commit = quality_recovered_commit(names, commits))
 }
@@ -495,6 +539,38 @@ load_quality_evidence <- function(files) {
   }), recursive = FALSE)
 }
 
+quality_evidence_invalid <- function(item) {
+  isTRUE(item$invalid_evidence) || identical(item$status, "invalid_evidence")
+}
+
+quality_evidence_stale <- function(item, current_commit) {
+  valid_nonempty_string(item$commit) && !identical(item$commit, current_commit)
+}
+
+quality_dirty_failure <- function(item, current_commit) {
+  same_commit <- identical(item$commit, current_commit)
+  failed <- identical(item$pass, FALSE) && item$status %in% c("completed", "failed")
+  same_commit && identical(item$working_tree_clean, FALSE) && failed
+}
+
+quality_evidence_should_apply <- function(item, current_commit) {
+  if (!quality_step_identifiable(item)) return(FALSE)
+  if (quality_evidence_invalid(item)) return(TRUE)
+  if (quality_item_skipped(item)) return(FALSE)
+  if (quality_evidence_stale(item, current_commit)) return(FALSE)
+  !quality_dirty_failure(item, current_commit)
+}
+
+merge_quality_evidence <- function(quality, current_commit) {
+  quality_by_step <- list()
+  for (item in quality) {
+    if (quality_evidence_should_apply(item, current_commit)) {
+      quality_by_step[[item$step]] <- item
+    }
+  }
+  quality_by_step
+}
+
 quality_step_identifiable <- function(item) {
   is.list(item) && valid_nonempty_string(item$step)
 }
@@ -502,7 +578,7 @@ quality_step_identifiable <- function(item) {
 quality_item_skipped <- function(item) {
   valid_named_fields(item, c("step", "status", "pass", "commit", "working_tree_clean")) &&
     quality_skip_identity_valid(item) && quality_skip_status_valid(item) &&
-    quality_skip_tree_valid(item)
+    quality_skip_tree_valid(item) && is.null(item$pass)
 }
 
 quality_skip_identity_valid <- function(item) {
