@@ -100,6 +100,19 @@ append_raw_receipt <- function(path, bytes) {
   invisible(NULL)
 }
 
+synthetic_study_receipt <- function(study, commit) {
+  numeric_value <- match.fun("numeric_reference_value")
+  results <- lapply(study$headline_estimates, function(estimate) {
+    value <- numeric_value(estimate$estimate)
+    list(estimate_id = estimate$id, computed_estimate = value,
+      reference_value = value,
+      reference_ci = vapply(estimate$ci, numeric_value, numeric(1)),
+      tolerance = numeric_value(study$tolerance), comparison_result = "pass")
+  })
+  list(package_commit_hash = commit, study_id = study$id,
+    verified_at = "2026-11-19T12:00:00Z", results = results)
+}
+
 assert_reconcile_cases <- function(run_readiness, encode) {
   shape_valid <- match.fun("quality_receipt_shape_valid")
   should_apply <- match.fun("quality_evidence_should_apply")
@@ -201,6 +214,9 @@ local({
     study_verification_ready(receipt_path, current_commit, reference)
   }
   stopifnot(valid_reference_study(reference), write_receipt())
+  receipt_json <- as.character(jsonlite::toJSON(receipt, auto_unbox = TRUE))
+  writeBin(c(charToRaw(receipt_json), as.raw(0), charToRaw("junk")), receipt_path)
+  stopifnot(!study_verification_ready(receipt_path, current_commit, reference), write_receipt())
   boolean_reference <- reference
   boolean_reference$headline_estimates[[1L]]$estimate <- TRUE
   stopifnot(!valid_reference_study(boolean_reference))
@@ -250,7 +266,6 @@ local({
   malformed_id$results[[1L]]$estimate_id <- NA_character_
   stopifnot(!write_receipt(malformed_id))
   stopifnot(!study_verification_ready(receipt_path, "different-commit", reference))
-  receipt_json <- as.character(jsonlite::toJSON(receipt, auto_unbox = TRUE))
   note_only_json <- sub('"package_commit_hash":"synthetic-commit"',
     '"package_commit_hash_note":"synthetic-commit"', receipt_json, fixed = TRUE)
   writeLines(note_only_json, receipt_path)
@@ -458,6 +473,11 @@ local({
   manual$step <- "ropensci_manual_subset"
   complexity <- baseline
   complexity$step <- "cyclocomp_linter(15)"
+  synthetic_reference <- list(id = "synthetic-isolation",
+    doi = "10.1234/synthetic-isolation", cohort_definition = "Invented cohort",
+    tolerance = 0.05, headline_estimates = list(list(id = "estimate",
+      label = "Synthetic estimate", estimate_printed = "0.50", estimate = "0.50",
+      ci_printed = "0.40 to 0.60", ci = c("0.40", "0.60"))))
   encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE, null = "null"))
   run_readiness <- function(extra = character(), coverage = baseline, subset = manual,
       clean = TRUE, extra_raw = raw()) {
@@ -467,6 +487,7 @@ local({
     env <- new.env(parent = globalenv())
     env$source <- function(file) {
       sys.source(file, envir = env)
+      env$load_reference_studies <- function(...) list(synthetic_reference)
       env$find_main_repo <- function(...) normalizePath(".")
       env$read_main_renviron <- function(...) invisible(NULL)
       env$resolve_loop_dir <- function(...) fixture_dir
@@ -486,6 +507,31 @@ local({
   ready <- run_readiness()
   stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
     ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
+  boundary_path <- file.path(fixture_dir, "quality-boundaries.jsonl")
+  boundary_receipts <- list(baseline, pkg, manual, complexity)
+  boundary_text <- vapply(boundary_receipts, encode, character(1))
+  boundary_bytes <- c(charToRaw(boundary_text[[1L]]), as.raw(0x0D),
+    charToRaw(boundary_text[[2L]]), as.raw(0x0A), charToRaw(boundary_text[[3L]]),
+    as.raw(c(0x0D, 0x0A)), charToRaw(boundary_text[[4L]]))
+  writeBin(boundary_bytes, boundary_path)
+  raw_lines <- quality_read_raw_lines(boundary_path)
+  boundary_evidence <- load_quality_evidence(boundary_path)
+  stopifnot(identical(unname(vapply(raw_lines, rawToChar, character(1))),
+      unname(boundary_text)),
+    identical(vapply(boundary_evidence, `[[`, character(1), "step"),
+      c("coverage_percent", "pkgcheck", "ropensci_manual_subset", "cyclocomp_linter(15)")))
+  study <- ready$reference_studies[[1L]]
+  study_path <- file.path(fixture_dir, "private", "study-verification",
+    paste0(study$id, ".json"))
+  dir.create(dirname(study_path), recursive = TRUE)
+  study_text <- encode(synthetic_study_receipt(study, "invented-head"))
+  writeLines(study_text, study_path, useBytes = TRUE)
+  stopifnot(study_verification_ready(study_path, "invented-head", study))
+  writeBin(c(charToRaw(study_text), as.raw(0), charToRaw("junk")), study_path)
+  stopifnot(!study_verification_ready(study_path, "invented-head", study))
+  scoped_study_result <- run_readiness()
+  stopifnot(!scoped_study_result$headline_pass, scoped_study_result$coverage_ready,
+    scoped_study_result$pkgcheck_pass)
   nonpassing_pairs <- list(list(status = "failed", pass = TRUE),
     list(status = "partial", pass = NULL), list(status = "not_verified", pass = TRUE),
     list(status = "completed", pass = NULL))

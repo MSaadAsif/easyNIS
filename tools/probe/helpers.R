@@ -271,8 +271,9 @@ valid_study_receipt <- function(receipt, current_commit, reference_study) {
 study_verification_ready <- function(path, current_commit, reference_study) {
   if (!file.exists(path) || !requireNamespace("jsonlite", quietly = TRUE) ||
       !valid_reference_study(reference_study)) return(FALSE)
-  receipt_text <- tryCatch(paste(readLines(path, warn = FALSE), collapse = "\n"),
-    error = function(e) "")
+  receipt_bytes <- tryCatch(read_raw_bytes(path), error = function(e) raw())
+  if (any(receipt_bytes == as.raw(0))) return(FALSE)
+  receipt_text <- tryCatch(rawToChar(receipt_bytes), error = function(e) "")
   receipt <- tryCatch(jsonlite::parse_json(receipt_text, simplifyVector = FALSE),
     error = function(e) NULL)
   valid_study_receipt(receipt, current_commit, reference_study)
@@ -531,21 +532,31 @@ quality_recovered_commit <- function(names, commits) {
   commits[!is.na(commits)][[1L]]
 }
 
-quality_read_raw_lines <- function(path) {
+read_raw_bytes <- function(path) {
   connection <- file(path, open = "rb")
   on.exit(close(connection))
-  bytes <- readBin(connection, what = "raw", n = file.info(path)$size)
+  readBin(connection, what = "raw", n = file.info(path)$size)
+}
+
+quality_read_raw_lines <- function(path) {
+  bytes <- read_raw_bytes(path)
   if (!length(bytes)) return(list())
-  breaks <- which(bytes == as.raw(0x0A))
-  starts <- c(1L, breaks + 1L)
-  ends <- c(breaks - 1L, length(bytes))
-  if (length(breaks) && tail(breaks, 1L) == length(bytes)) {
-    starts <- head(starts, -1L)
-    ends <- head(ends, -1L)
+  lines <- list()
+  start <- 1L
+  position <- 1L
+  while (position <= length(bytes)) {
+    byte <- bytes[[position]]
+    if (byte %in% as.raw(c(0x0A, 0x0D))) {
+      end <- position - 1L
+      lines[[length(lines) + 1L]] <- if (start <= end) bytes[start:end] else raw()
+      if (byte == as.raw(0x0D) && position < length(bytes) &&
+          bytes[[position + 1L]] == as.raw(0x0A)) position <- position + 1L
+      start <- position + 1L
+    }
+    position <- position + 1L
   }
-  Map(function(start, end) {
-    if (start > end) raw() else bytes[start:end]
-  }, starts, ends)
+  if (start <= length(bytes)) lines[[length(lines) + 1L]] <- bytes[start:length(bytes)]
+  lines
 }
 
 quality_parse_raw_line <- function(bytes) {
