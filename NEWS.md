@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_attrition()` ignores input groups consistently and returns matching
+  local and DuckDB totals for empty inputs and missing weights, including `NaN`.
+
 - Readiness rejects incomplete, out-of-range, Boolean, and malformed evidence
   while continuing to assess unrelated valid records. Invalid records use
   top-level step identities; nested diagnostics cannot mask a failed gate.
