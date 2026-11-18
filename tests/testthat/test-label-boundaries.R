@@ -1,3 +1,8 @@
+is.na.synthetic_labelled_spss <- function(x) {
+  values <- unclass(x)
+  is.na(values) | values %in% attr(x, "na_values", exact = TRUE)
+}
+
 test_that("empty unknown codes retain their identity on repeated labelling", {
   data <- data.frame(DIED = c("0", "", "1", "", NA_character_))
 
@@ -52,6 +57,27 @@ test_that("numeric unknown codes still warn while NaN remains missing", {
     "No", NA_character_, "Code -9", "Code Inf", NA_character_, "Code -9"
   ))
   expect_identical(levels(labelled$DIED), c("No", "Yes", "Code -9", "Code Inf"))
+  expect_no_warning(repeated <- nis_label(labelled))
+  expect_identical(repeated, labelled)
+})
+
+test_that("numeric NaN handling preserves SPSS sentinel values", {
+  data <- data.frame(DIED = structure(c(0, -9, 1),
+    na_values = -9,
+    class = c("synthetic_labelled_spss", "numeric")))
+
+  expect_identical(is.na(data$DIED), c(FALSE, TRUE, FALSE))
+  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
+  expect_identical(as.character(labelled$DIED), c("No", "Code -9", "Yes"))
+  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code -9"))
+})
+
+test_that("raw factor levels resembling generated codes are still labelled", {
+  data <- data.frame(DIED = factor("Code ", levels = c("0", "1", "Code ")))
+
+  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
+  expect_identical(as.character(labelled$DIED), "Code Code ")
+  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code Code "))
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })

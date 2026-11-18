@@ -149,6 +149,8 @@ attr(.hcup_labels, "source") <- paste(
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
+#' Actual numeric `NaN` values are treated as missing, while ordinary `NA`
+#' values remain missing.
 #' @family data-access
 #' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
@@ -199,10 +201,12 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
   values <- if (binary_comorbidity) c("No", "Yes") else
     definition$value_label[value_rows]
   raw <- as.character(x)
-  raw[is.na(x)] <- NA_character_
+  if (is.numeric(x)) raw[is.nan(unclass(x))] <- NA_character_
   already_labelled <- !is.na(raw) &
     (raw %in% values | startsWith(raw, "Code "))
-  if (is.factor(x) && all(is.na(raw) | already_labelled)) {
+  raw_codes_in_levels <- is.factor(x) && any(levels(x) %in% codes)
+  if (is.factor(x) && !raw_codes_in_levels &&
+      all(is.na(raw) | already_labelled)) {
     return(x)
   }
   label_raw_codes(raw, codes, values, variable, call)
