@@ -47,7 +47,10 @@ nis_validate_layout_years <- function(entries, found, years, error_call) {
 #'   types. For names DuckDB folds as ASCII case-insensitive identifiers, the
 #'   output uses uppercase spelling when any selected source uses uppercase
 #'   ASCII letters. Other names retain the established name normalization,
-#'   including coalescing Unicode case-normalization collisions. When annual
+#'   including coalescing Unicode case-normalization collisions. Source
+#'   metadata may suggest an additional spelling-only rename; it is applied
+#'   only when its target is unique and does not collide with an output name
+#'   under DuckDB's identifier rules. When annual
 #'   types differ, DuckDB may promote them; for example, an integer field
 #'   combined with a character field is returned as character.
 #'   When present, `YEAR` is validated and returned as integer;
@@ -231,9 +234,6 @@ nis_open_normalize_names <- function(query) {
     canonical_names <- vapply(uppercase_groups, function(fields) {
       toupper(fields[which(grepl("[A-Z]", fields))[[1L]]])
     }, character(1))
-    source_group <- match(ascii_fold(old_names), names(canonical_names))
-    has_canonical <- !is.na(source_group)
-    new_names[has_canonical] <- unname(canonical_names[source_group[has_canonical]])
   }
   name_groups <- split(old_names, new_names)
 
@@ -250,7 +250,51 @@ nis_open_normalize_names <- function(query) {
     }, fields)
     query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
   }
-  dplyr::select(query, dplyr::all_of(names(name_groups)))
+  query <- dplyr::select(query, dplyr::all_of(names(name_groups)))
+
+  if (length(source_names) > 0L) {
+    output_names <- colnames(query)
+    source_group <- match(ascii_fold(output_names), names(canonical_names))
+    proposed_names <- output_names
+    has_canonical <- !is.na(source_group)
+    proposed_names[has_canonical] <- unname(canonical_names[
+      source_group[has_canonical]
+    ])
+    changed <- which(proposed_names != output_names)
+    if (length(changed) > 0L) {
+      con <- dbplyr::remote_con(query)
+      blocked <- vapply(changed, function(index) {
+        other_names <- output_names[-index]
+        any(vapply(other_names, function(other) {
+          nis_open_identifier_equivalent(con, proposed_names[[index]], other)
+        }, logical(1)))
+      }, logical(1))
+      proposed_collisions <- vapply(changed, function(index) {
+        other_targets <- proposed_names[setdiff(changed, index)]
+        any(vapply(other_targets, function(other) {
+          nis_open_identifier_equivalent(con, proposed_names[[index]], other)
+        }, logical(1)))
+      }, logical(1))
+      rename_indices <- changed[!blocked & !proposed_collisions]
+      if (length(rename_indices) > 0L) {
+        rename_map <- stats::setNames(rlang::syms(output_names[rename_indices]),
+          proposed_names[rename_indices])
+        query <- dplyr::rename(query, !!!rename_map)
+      }
+    }
+  }
+  query
+}
+
+nis_open_identifier_equivalent <- function(con, left, right) {
+  left <- as.character(DBI::dbQuoteIdentifier(con, left))
+  right <- as.character(DBI::dbQuoteIdentifier(con, right))
+  probe <- paste0("SELECT ", right, " FROM (SELECT 1 AS ", left,
+    ") AS easyNIS_identifier_probe")
+  tryCatch({
+    DBI::dbGetQuery(con, probe)
+    TRUE
+  }, error = function(condition) FALSE)
 }
 
 nis_open_warn_2023 <- function(query) {

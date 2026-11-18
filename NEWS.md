@@ -10,6 +10,9 @@
 - `nis_open()` lets DuckDB combine and promote annual fields before normalizing
   visible names. ASCII-folded field casing is independent of annual file order;
   Unicode normalization collisions retain their existing coalescing behavior.
+  Metadata-only spelling changes are applied only when the target is unique and
+  does not collide with an existing or proposed output name under DuckDB's
+  identifier rules.
 
 - Quality probes verify a disposable source installation and its effective
   namespace before measuring installed complexity. Nested packaging and coverage

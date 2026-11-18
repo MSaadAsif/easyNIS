@@ -48,7 +48,10 @@ partitions are mixed. DuckDB combines source fields and promotes annual
 types. For names DuckDB folds as ASCII case-insensitive identifiers, the
 output uses uppercase spelling when any selected source uses uppercase
 ASCII letters. Other names retain the established name normalization,
-including coalescing Unicode case-normalization collisions. When annual
+including coalescing Unicode case-normalization collisions. Source
+metadata may suggest an additional spelling-only rename; it is applied
+only when its target is unique and does not collide with an output name
+under DuckDB's identifier rules. When annual
 types differ, DuckDB may promote them; for example, an integer field
 combined with a character field is returned as character.
 When present, \code{YEAR} is validated and returned as integer;

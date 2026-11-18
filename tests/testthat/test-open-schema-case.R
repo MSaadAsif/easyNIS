@@ -71,6 +71,65 @@ test_that("normalization collisions coalesce after character promotion", {
   }
 })
 
+test_that("source spelling proposals do not merge existing normalized outputs", {
+  path <- tempfile("nis-unicode-source-name-collision-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, value = 11L)
+  names(first)[[2L]] <- "a\u00e9"
+  second <- data.frame(YEAR = 2020L, mixed = 22L, uppercase = 29L,
+    check.names = FALSE)
+  names(second)[2:3] <- c("A\u00e9", "A\u00c9")
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+
+  actual <- nis_open(path) |>
+    dplyr::arrange(YEAR) |>
+    dplyr::collect()
+  expect_setequal(names(actual), c("YEAR", "a\u00e9", "A\u00c9"))
+  expect_identical(actual[["a\u00e9"]], c(11L, 22L))
+  expect_identical(actual[["A\u00c9"]], c(NA_integer_, 29L))
+})
+
+test_that("source spelling proposals preserve promoted normalization values", {
+  path <- tempfile("nis-unicode-source-name-types-")
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  first <- data.frame(YEAR = 2019L, value = 11L)
+  names(first)[[2L]] <- "a\u00e9"
+  second <- data.frame(YEAR = 2020L, value = 22L)
+  names(second)[[2L]] <- "A\u00e9"
+  third <- data.frame(YEAR = 2021L, value = "separate")
+  names(third)[[2L]] <- "A\u00c9"
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
+  write_duckdb_parquet(third, file.path(path, "NIS_2021.parquet"))
+
+  actual <- nis_open(path) |>
+    dplyr::arrange(YEAR) |>
+    dplyr::collect()
+  expect_setequal(names(actual), c("YEAR", "a\u00e9", "A\u00c9"))
+  expect_identical(actual[["a\u00e9"]], c(11L, 22L, NA_integer_))
+  expect_identical(actual[["A\u00c9"]], c(NA_character_, NA_character_,
+    "separate"))
+})
+
+test_that("canonical rename proposals that share a target stay unchanged", {
+  con <- nis_duckdb_connect()
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  query <- dplyr::tbl(con, dbplyr::sql(
+    'SELECT 1 AS "a\u00e9", 2 AS "a\u00c9"'
+  ))
+  attr(query, "easyNIS_source_names") <- c("a\u00e9", "A\u00e9",
+    "a\u00c9", "A\u00c9")
+
+  actual <- nis_open_normalize_names(query) |>
+    dplyr::collect()
+  expect_setequal(names(actual), c("a\u00e9", "a\u00c9"))
+  expect_identical(actual[["a\u00e9"]], 1L)
+  expect_identical(actual[["a\u00c9"]], 2L)
+})
+
 test_that("lowercase Greek sigma spellings remain separate columns", {
   path <- tempfile("nis-lowercase-sigma-")
   dir.create(path)
