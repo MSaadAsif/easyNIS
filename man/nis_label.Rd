@@ -24,10 +24,11 @@ does not document negative sentinels for any element handled here.
 are treated as missing, while ordinary and tagged \code{NA} values remain
 missing. Finite SPSS user-missing values and \code{integer64} values are
 interpreted through their displayed values and remain visible codes.
-Factors containing raw codes are normalized as a whole. A factor containing
-only labels is preserved unless unused raw-code levels indicate raw input.
-A bare \code{Code } value without such levels is treated as an existing label
-because it cannot be distinguished from that label after dropping levels.
+Factors containing raw codes are normalized as a whole. Existing labels,
+including \verb{Code 7}, are preserved when unused raw-code levels remain after
+subsetting. A bare \code{Code } value with raw-code levels and no recognized value
+label is treated as raw text; without such levels it is preserved as an
+existing label because its origin cannot be recovered after dropping levels.
 }
 \description{
 Apply HCUP labels

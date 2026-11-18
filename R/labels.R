@@ -153,10 +153,11 @@ attr(.hcup_labels, "source") <- paste(
 #' are treated as missing, while ordinary and tagged `NA` values remain
 #' missing. Finite SPSS user-missing values and `integer64` values are
 #' interpreted through their displayed values and remain visible codes.
-#' Factors containing raw codes are normalized as a whole. A factor containing
-#' only labels is preserved unless unused raw-code levels indicate raw input.
-#' A bare `Code ` value without such levels is treated as an existing label
-#' because it cannot be distinguished from that label after dropping levels.
+#' Factors containing raw codes are normalized as a whole. Existing labels,
+#' including `Code 7`, are preserved when unused raw-code levels remain after
+#' subsetting. A bare `Code ` value with raw-code levels and no recognized value
+#' label is treated as raw text; without such levels it is preserved as an
+#' existing label because its origin cannot be recovered after dropping levels.
 #' @family data-access
 #' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
@@ -217,8 +218,9 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
     (raw %in% values | startsWith(raw, "Code "))
   raw_code_levels <- is.factor(x) && any(levels(x) %in% codes)
   observed_value_labels <- any(!is.na(raw) & raw %in% values)
+  ambiguous_bare_code <- any(!is.na(raw) & raw == "Code ")
   if (is.factor(x) && all(is.na(raw) | already_labelled) &&
-      (!raw_code_levels || observed_value_labels)) {
+      (!raw_code_levels || observed_value_labels || !ambiguous_bare_code)) {
     return(x)
   }
   label_raw_codes(raw, codes, values, variable, call)

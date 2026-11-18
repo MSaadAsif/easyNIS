@@ -171,6 +171,16 @@ test_that("recognized factor labels survive raw code levels", {
   expect_identical(nis_label(labelled), labelled)
 })
 
+test_that("subsets preserve Code labels with unused raw-code levels", {
+  # Sol's compatibility reproduction: the subset retains its factor levels.
+  died <- factor(c("No", "Code 7"), levels = c("0", "No", "Code 7"))[2]
+  expect_no_warning(labelled <- nis_label(data.frame(DIED = died)))
+  expect_identical(as.character(labelled$DIED), "Code 7")
+  expect_identical(levels(labelled$DIED), levels(died))
+  expect_no_warning(repeated <- nis_label(labelled))
+  expect_identical(repeated, labelled)
+})
+
 test_that("bare Code factor labels remain stable despite ambiguous provenance", {
   # This is also the value generated from an empty raw code after levels drop.
   # A factor alone cannot tell those inputs apart, so treat it as already labelled.
@@ -193,6 +203,13 @@ test_that("bare Code factor labels remain stable despite ambiguous provenance", 
     "Unknown code.*DIED")
   expect_identical(as.character(normalized$DIED), "Code Code ")
   expect_identical(nis_label(normalized), normalized)
+
+  # A nonempty suffix, including the synthetic newline value, is a label.
+  newline <- factor("Code \n", levels = c("0", "Code \n"))
+  expect_no_warning(labelled_newline <- nis_label(data.frame(DIED = newline)))
+  expect_identical(as.character(labelled_newline$DIED), "Code \n")
+  expect_identical(levels(labelled_newline$DIED), levels(newline))
+  expect_identical(nis_label(labelled_newline), labelled_newline)
 
   subset <- generated[2L, , drop = FALSE]
   expect_no_warning(labelled_subset <- nis_label(subset))
