@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_cell_counts()` now rejects grouping keys named `n` or `hospitals`
+  to prevent cell identities from being overwritten.
+
 - `nis_label()` treats `NaN` as missing in ordinary and Haven-labelled numeric
   storage while retaining finite SPSS sentinels and `integer64` values as
   displayed codes. Factors with observed raw codes use whole-vector
