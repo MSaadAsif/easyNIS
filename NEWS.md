@@ -1,7 +1,9 @@
 # easyNIS (development version)
 
-- `nis_label()` preserves numeric `NaN` as missing and remains idempotent
-  for empty unknown codes while retaining existing factor metadata.
+- `nis_label()` treats `NaN` as missing only in unclassed numeric vectors,
+  preserving displayed values from `integer64` and labelled numeric inputs.
+  It also preserves recognized factor labels alongside raw code levels and
+  normalizes ambiguous bare `Code ` labels idempotently.
 - `nis_attrition()` ignores input groups consistently and returns matching
   local and DuckDB totals for empty inputs and missing weights, including `NaN`.
 

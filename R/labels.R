@@ -149,8 +149,10 @@ attr(.hcup_labels, "source") <- paste(
 #' Negative numeric sentinels are not converted to missing values. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
-#' Actual numeric `NaN` values are treated as missing, while ordinary `NA`
-#' values remain missing.
+#' `NaN` values in unclassed numeric vectors are treated as missing, while
+#' ordinary `NA` values remain missing. Classed numeric values, including
+#' labelled values and `integer64`, are interpreted through their displayed
+#' values so sentinels and labelled `NaN` values remain visible codes.
 #' @family data-access
 #' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
@@ -201,19 +203,43 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
   values <- if (binary_comorbidity) c("No", "Yes") else
     definition$value_label[value_rows]
   raw <- as.character(x)
-  if (is.numeric(x)) raw[is.nan(unclass(x))] <- NA_character_
+  if (is.double(x) && is.null(attr(x, "class", exact = TRUE))) {
+    raw[is.nan(x)] <- NA_character_
+  }
   already_labelled <- !is.na(raw) &
     (raw %in% values | startsWith(raw, "Code "))
-  raw_codes_in_levels <- is.factor(x) && any(levels(x) %in% codes)
-  if (is.factor(x) && !raw_codes_in_levels &&
+  observed_raw_codes <- !is.na(raw) & raw %in% codes
+  if (is.factor(x) && !any(observed_raw_codes) &&
       all(is.na(raw) | already_labelled)) {
-    return(x)
+    ambiguous_code_label <- any(!is.na(raw) & raw == "Code ")
+    has_observed_value_label <- any(!is.na(raw) & raw %in% values)
+    if (!ambiguous_code_label || has_observed_value_label ||
+        is_generated_label_factor(x, values)) {
+      return(x)
+    }
   }
-  label_raw_codes(raw, codes, values, variable, call)
+  label_raw_codes(raw, codes, values, variable, call,
+    preserve_factor_labels = is.factor(x))
 }
 
-label_raw_codes <- function(raw, codes, values, variable, call) {
-  unknown <- !is.na(raw) & !raw %in% codes
+is_generated_label_factor <- function(x, values) {
+  if (!is.factor(x) || is.ordered(x)) return(FALSE)
+  factor_levels <- levels(x)
+  if (length(factor_levels) < length(values) ||
+      !identical(factor_levels[seq_along(values)], values)) {
+    return(FALSE)
+  }
+  generated_levels <- factor_levels[-seq_along(values)]
+  all(startsWith(generated_levels, "Code "))
+}
+
+label_raw_codes <- function(raw, codes, values, variable, call,
+                            preserve_factor_labels = FALSE) {
+  observed_value_labels <- preserve_factor_labels & !is.na(raw) & raw %in% values
+  observed_code_labels <- preserve_factor_labels & !is.na(raw) &
+    startsWith(raw, "Code ") & raw != "Code "
+  unknown <- !is.na(raw) & !raw %in% codes &
+    !observed_value_labels & !observed_code_labels
   unknown_labels <- if (any(unknown)) {
     unique(paste0("Code ", raw[unknown]))
   } else {
@@ -229,6 +255,8 @@ label_raw_codes <- function(raw, codes, values, variable, call) {
     )
   }
   labels <- ifelse(is.na(raw), NA_character_,
-    ifelse(raw %in% codes, values[match(raw, codes)], paste0("Code ", raw)))
+    ifelse(raw %in% codes, values[match(raw, codes)],
+      ifelse(observed_value_labels | observed_code_labels, raw,
+        paste0("Code ", raw))))
   factor(labels, levels = c(values, unique(unknown_labels)))
 }

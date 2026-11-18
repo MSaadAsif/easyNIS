@@ -20,8 +20,10 @@ is idempotent.
 Negative numeric sentinels are not converted to missing values. The supplied
 HCUP documentation represents missing numeric values as system missing and
 does not document negative sentinels for any element handled here.
-Actual numeric \code{NaN} values are treated as missing, while ordinary \code{NA}
-values remain missing.
+\code{NaN} values in unclassed numeric vectors are treated as missing, while
+ordinary \code{NA} values remain missing. Classed numeric values, including
+labelled values and \code{integer64}, are interpreted through their displayed
+values so sentinels and labelled \code{NaN} values remain visible codes.
 }
 \description{
 Apply HCUP labels
