@@ -194,19 +194,8 @@ records[[length(records) + 1L]] <- list(step = "ropensci_manual_subset",
   commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean,
   evidence = checklist)
 coverage_check <- checks$coverage
-coverage <- coverage_check$value
-if (identical(coverage, "skipped_by_selection")) {
-  coverage_record <- NULL
-} else if (inherits(coverage, "coverage")) {
-  cov <- covr::percent_coverage(coverage)
-  coverage_record <- list(step = "coverage_percent", status = "not_verified",
-    pass = provenance_pass(cov >= 90, "nested_unverified"), provenance = "nested_unverified",
-    value = cov, commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
-} else {
-  coverage_record <- list(step = "coverage_percent", status = "failed", pass = FALSE,
-    value = NA_real_, error_class = coverage_check$error_class,
-    commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
-}
+coverage_record <- coverage_percent_record(coverage_check, run_evidence,
+  covr::percent_coverage, provenance_pass)
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")
 writeLines(lines, output, useBytes = TRUE)

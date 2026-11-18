@@ -340,10 +340,6 @@ quality_receipt_step_status_valid <- function(item) {
       "skipped_by_selection", "skipped_not_installed")
 }
 
-quality_null_pass_status <- function(status) {
-  status %in% c("not_verified", "skipped_by_selection", "skipped_not_installed")
-}
-
 quality_boolean_pass_valid <- function(pass) {
   is.logical(pass) && length(pass) == 1L && !is.na(pass)
 }
@@ -351,9 +347,8 @@ quality_boolean_pass_valid <- function(pass) {
 quality_receipt_pass_valid <- function(item) {
   status <- item$status
   if (!valid_nonempty_string(status)) return(FALSE)
-  if (quality_null_pass_status(status)) return(is.null(item$pass))
-  if (identical(status, "completed")) return(quality_boolean_pass_valid(item$pass))
-  status %in% c("failed", "partial") && identical(item$pass, FALSE)
+  valid_pass <- is.null(item$pass) || quality_boolean_pass_valid(item$pass)
+  valid_pass && (!identical(status, "skipped_by_selection") || is.null(item$pass))
 }
 
 quality_receipt_tree_valid <- function(item) {
@@ -559,7 +554,8 @@ quality_evidence_stale <- function(item, current_commit) {
 
 quality_dirty_failure <- function(item, current_commit) {
   same_commit <- identical(item$commit, current_commit)
-  failed <- identical(item$pass, FALSE) && item$status %in% c("completed", "failed", "partial")
+  failed <- identical(item$pass, FALSE) &&
+    item$status %in% c("completed", "failed", "partial", "not_verified")
   same_commit && identical(item$working_tree_clean, FALSE) && failed
 }
 
@@ -731,6 +727,22 @@ coverage_percent_value <- function(item) {
   value <- if (is.list(item)) item[["value", exact = TRUE]] else NULL
   if (!valid_coverage_percent(value)) return(NA_real_)
   as.numeric(value)
+}
+
+coverage_percent_record <- function(coverage_check, evidence,
+    percent_coverage, provenance_pass_fn) {
+  coverage <- coverage_check$value
+  if (identical(coverage, "skipped_by_selection")) return(NULL)
+  if (inherits(coverage, "coverage")) {
+    value <- percent_coverage(coverage)
+    return(list(step = "coverage_percent", status = "not_verified",
+      pass = provenance_pass_fn(value >= 90, "nested_unverified"),
+      provenance = "nested_unverified", value = value, commit = evidence$commit,
+      working_tree_clean = evidence$working_tree_clean))
+  }
+  list(step = "coverage_percent", status = "failed", pass = FALSE,
+    value = NA_real_, error_class = coverage_check$error_class,
+    commit = evidence$commit, working_tree_clean = evidence$working_tree_clean)
 }
 
 valid_coverage_percent <- function(value) {

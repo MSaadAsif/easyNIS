@@ -1,4 +1,5 @@
 source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "provenance.R"))
 
 test_paths <- c(
   "C:\\sandbox\\invented person\\nis.parquet",
@@ -95,6 +96,7 @@ assert_reconcile_cases <- function(run_readiness, encode) {
     failed = list(status = "failed", pass = FALSE),
     partial = list(status = "partial", pass = FALSE),
     not_verified = list(status = "not_verified", pass = NULL),
+    not_verified_failure = list(status = "not_verified", pass = FALSE),
     selection_skip = list(status = "skipped_by_selection", pass = NULL),
     missing_dependency = list(status = "skipped_not_installed", pass = NULL))
   receipt_shape <- function(pair) {
@@ -102,10 +104,8 @@ assert_reconcile_cases <- function(run_readiness, encode) {
       working_tree_clean = TRUE), pair))
   }
   stopifnot(all(vapply(receipt_pairs, receipt_shape, logical(1))))
-  invalid_pairs <- list(list(status = "failed", pass = TRUE),
-    list(status = "partial", pass = NULL), list(status = "not_verified", pass = TRUE),
-    list(status = "skipped_by_selection", pass = FALSE),
-    list(status = "completed", pass = NULL))
+  invalid_pairs <- list(list(status = "skipped_by_selection", pass = FALSE),
+    list(status = "completed", pass = NA), list(status = "partial", pass = c(FALSE, TRUE)))
   stopifnot(!any(vapply(invalid_pairs, receipt_shape, logical(1))))
   make_receipts <- function(commit, clean) {
     lapply(receipt_pairs, function(pair) {
@@ -118,10 +118,10 @@ assert_reconcile_cases <- function(run_readiness, encode) {
   stopifnot(all(vapply(dirty_receipts, shape_valid, logical(1))),
     identical(unname(vapply(dirty_receipts, should_apply, logical(1),
       current_commit = "invented-head")),
-      c(TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, TRUE)),
+      c(TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE)),
     identical(unname(vapply(clean_receipts, should_apply, logical(1),
       current_commit = "invented-head")),
-      c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE)),
+      c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE)),
     identical(unname(vapply(stale_receipts, should_apply, logical(1),
       current_commit = "invented-head")), rep(FALSE, length(receipt_pairs))))
   malformed_cases <- list(
@@ -140,7 +140,8 @@ assert_reconcile_cases <- function(run_readiness, encode) {
     identical(should_apply(item, "invented-head"), case$apply)
   }, logical(1))
   stopifnot(all(malformed_applies))
-  dirty_failures <- lapply(receipt_pairs[c("completed_failure", "failed", "partial")],
+  dirty_failures <- lapply(receipt_pairs[c("completed_failure", "failed", "partial",
+    "not_verified_failure")],
     function(pair) {
       c(list(step = "ropensci_manual_subset", commit = "invented-head",
         working_tree_clean = FALSE), pair)
@@ -471,6 +472,38 @@ local({
   ready <- run_readiness()
   stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
     ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
+  nonpassing_pairs <- list(list(status = "failed", pass = TRUE),
+    list(status = "partial", pass = NULL), list(status = "not_verified", pass = TRUE),
+    list(status = "completed", pass = NULL))
+  for (pair in nonpassing_pairs) {
+    altered <- baseline
+    altered$status <- pair$status
+    altered["pass"] <- list(pair$pass)
+    stopifnot(quality_receipt_shape_valid(altered),
+      !run_readiness(coverage = altered)$coverage_ready)
+  }
+  synthetic_hits <- c(1, 0)
+  synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")
+  synthetic_percent <- function(value) 100 * mean(value$hits > 0)
+  clean_below_threshold <- coverage_percent_record(
+    list(value = synthetic_coverage, error_class = ""),
+    list(commit = "invented-head", working_tree_clean = TRUE),
+    percent_coverage = synthetic_percent, provenance_pass_fn = provenance_pass)
+  clean_below_result <- run_readiness(coverage = clean_below_threshold)
+  stopifnot(identical(clean_below_threshold$status, "not_verified"),
+    identical(clean_below_threshold$pass, FALSE),
+    identical(clean_below_threshold$value, 50),
+    identical(clean_below_result$coverage_value, 50),
+    identical(clean_below_result$criteria$status[
+      clean_below_result$criteria$criterion == "Test coverage >= 90%"], "not met"))
+  dirty_below_threshold <- coverage_percent_record(
+    list(value = synthetic_coverage, error_class = ""),
+    list(commit = "invented-head", working_tree_clean = FALSE),
+    percent_coverage = synthetic_percent, provenance_pass_fn = provenance_pass)
+  dirty_only_result <- run_readiness(coverage = dirty_below_threshold, clean = FALSE)
+  stopifnot(run_readiness(extra = encode(dirty_below_threshold))$coverage_ready,
+    identical(dirty_only_result$criteria$status[
+      dirty_only_result$criteria$criterion == "Test coverage >= 90%"], "not measured"))
   assert_readiness_rejects_statuses(run_readiness, baseline, manual)
   for (value in list(-1, 101, TRUE, "94", c(91, 94), NULL)) {
     altered <- baseline
