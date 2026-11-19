@@ -56,12 +56,19 @@ parts. A selected year must not appear in both annual and Hive layouts.
 If a part file has a physical `YEAR` column, its non-missing values must
 agree with the directory year; missing or absent physical values use the
 partition year. Schemas are combined by column name, including when
-annual files and Hive partitions are mixed. When annual types differ,
-DuckDB may promote them; for example, an integer field combined with a
-character field is returned as character. When present, `YEAR` is
-validated and returned as integer; invalid values identify the offending
-file in an error. The connection remains open while the lazy table is in
-use and closes after it is released. Use
+annual files and Hive partitions are mixed. DuckDB combines source
+fields and promotes annual types. For names DuckDB folds as ASCII
+case-insensitive identifiers, the output uses uppercase spelling when
+any selected source uses uppercase ASCII letters. Other names retain the
+established name normalization, including coalescing Unicode
+case-normalization collisions. Source metadata may suggest an additional
+spelling-only rename; it is applied only when its target is unique and
+does not collide with an output name under DuckDB's identifier rules.
+When annual types differ, DuckDB may promote them; for example, an
+integer field combined with a character field is returned as character.
+When present, `YEAR` is validated and returned as integer; invalid
+values identify the offending file in an error. The connection remains
+open while the lazy table is in use and closes after it is released. Use
 [`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
 to return data to R. Years before 2016 emit an experimental ICD-9 layout
 notice once per R session. The `engine` argument was removed entirely;
@@ -86,7 +93,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6uLiWD/duckdb
+#> ℹ /tmp/RtmpV4OKWu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -94,7 +101,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6uLiWD/duckdb
+#> ℹ /tmp/RtmpV4OKWu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -103,7 +110,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6uLiWD/duckdb
+#> ℹ /tmp/RtmpV4OKWu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -124,7 +131,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6uLiWD/duckdb
+#> ℹ /tmp/RtmpV4OKWu/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

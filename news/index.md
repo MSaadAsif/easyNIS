@@ -36,6 +36,14 @@
   and a separate Hive partition, preventing duplicate rows. Hive parts
   within one annual dataset remain supported.
 
+- [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  lets DuckDB combine and promote annual fields before normalizing
+  visible names. ASCII-folded field casing is independent of annual file
+  order; Unicode normalization collisions retain their existing
+  coalescing behavior. Metadata-only spelling changes are applied only
+  when the target is unique and does not collide with an existing or
+  proposed output name under DuckDB’s identifier rules.
+
 - Quality probes verify a disposable source installation and its
   effective namespace before measuring installed complexity. Nested
   packaging and coverage evidence remains unverified when it appears to
@@ -64,6 +72,10 @@
   and actual column types for predicates on local and lazy DuckDB
   inputs. Aliases preserve source labels and cannot overwrite retained
   design or cost fields.
+
+- Pooled Parquet sources retain uppercase-normalized column names
+  whenever a selected source supplies an uppercase-bearing spelling.
+  Lowercase-only fields retain their spelling.
 
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   and
