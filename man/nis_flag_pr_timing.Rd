@@ -44,6 +44,9 @@ Compares procedure slots with the correspondingly numbered PRDAY values.
 The earliest valid index day is used when the index procedure occurs in
 multiple slots. A slot matching both prefix sets counts as both procedures.
 Prefixes follow the normalization and matching rules of \code{\link[=nis_flag_pr]{nis_flag_pr()}}.
+Factor and ordered-factor PRDAY columns are interpreted by their labels,
+not their internal level numbers. Values that decode to missing numeric days
+are handled as missing. Input columns are preserved.
 Negative days (including HCUP sentinel values) and missing days are unknown.
 If either procedure is absent, the result is FALSE. Otherwise, any outcome
 with a known day satisfying the relation returns TRUE. If none does and a
