@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_comorbidity()` ignores zero and leading-zero diagnosis slot suffixes
+  and requires the principal diagnosis column `I10_DX1`.
+
 - `nis_cell_counts()` now rejects grouping keys named `n` or `hospitals`
   to prevent cell identities from being overwritten.
 
