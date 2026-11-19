@@ -73,6 +73,32 @@ for (expression in probe) {
         "quality_step_detail", "quality_record")) eval(expression)
 }
 evidence <- list(commit = "invented", working_tree_clean = TRUE)
+synthetic_hits <- c(1, 0)
+synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")
+coverage_record <- coverage_percent_record(
+  list(value = synthetic_coverage, error_class = ""), evidence,
+  percent_coverage = function(value) 100 * mean(value$hits > 0),
+  provenance_pass_fn = provenance_pass)
+stopifnot(identical(coverage_record$status, "not_verified"),
+  identical(coverage_record$pass, FALSE), identical(coverage_record$value, 50),
+  identical(coverage_record$provenance, "nested_unverified"))
+passing_coverage <- structure(list(hits = c(1, 1)), class = "coverage")
+passing_coverage_record <- coverage_percent_record(
+  list(value = passing_coverage, error_class = ""), evidence,
+  percent_coverage = function(value) 100 * mean(value$hits > 0),
+  provenance_pass_fn = provenance_pass)
+stopifnot(identical(passing_coverage_record$status, "not_verified"),
+  is.na(passing_coverage_record$pass), identical(passing_coverage_record$value, 100))
+stopifnot(is.null(coverage_percent_record(
+  list(value = "skipped_by_selection"), evidence,
+  percent_coverage = identity, provenance_pass_fn = provenance_pass)))
+failed_coverage_record <- coverage_percent_record(
+  list(value = simpleError("invented failure"), error_class = "simpleError"), evidence,
+  percent_coverage = identity, provenance_pass_fn = provenance_pass)
+stopifnot(identical(failed_coverage_record$status, "failed"),
+  identical(failed_coverage_record$pass, FALSE),
+  is.na(failed_coverage_record$value),
+  identical(failed_coverage_record$error_class, "simpleError"))
 receipt <- function(name, fn) quality_record(capture_quality_step(name, fn), evidence)
 check <- receipt("R CMD check --as-cran", function() list(errors = character(),
   warnings = character(), notes = character()))
