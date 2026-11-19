@@ -60,6 +60,10 @@
   actual column types for predicates on local and lazy DuckDB inputs. Aliases
   preserve source labels and cannot overwrite retained design or cost fields.
 
+- `nis_flag_pr_timing()` now uses factor and ordered-factor procedure-day
+  labels consistently with numeric values and DuckDB, including labels that
+  decode to missing days.
+
 - Pooled Parquet sources retain uppercase-normalized column names whenever a
   selected source supplies an uppercase-bearing spelling. Lowercase-only
   fields retain their spelling.
