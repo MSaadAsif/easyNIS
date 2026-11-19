@@ -75,7 +75,9 @@ below remain pending scientific approval.
 - **Principal diagnosis** is `I10_DX1`. It is passed as the primary
   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for
   example, a condition is not flagged from the principal diagnosis alone
-  where AHRQ excludes it). Codes in `I10_DX2` onward are secondary.
+  where AHRQ excludes it). Codes in `I10_DX2` onward are secondary. Only
+  positive slot suffixes without leading zeros are recognized; malformed
+  names such as `I10_DX0` and `I10_DX01` are ignored.
 
 - **ICD-10 only.** Only the `I10_DX*` columns are read. A discharge with
   no usable `I10_DX*` code (all blank, missing or invalid UTF-8), such
@@ -127,7 +129,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpV4OKWu/duckdb
+#> ℹ /tmp/Rtmp1nDUp7/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -135,7 +137,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpV4OKWu/duckdb
+#> ℹ /tmp/Rtmp1nDUp7/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

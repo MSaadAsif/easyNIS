@@ -3,6 +3,9 @@
 The earliest valid index day is used when the index procedure occurs in
 multiple slots. A slot matching both prefix sets counts as both procedures.
 Prefixes follow the normalization and matching rules of nis_flag_pr().
+Factor and ordered-factor PRDAY columns are interpreted by their labels,
+not their internal level numbers. Values that decode to missing numeric days
+are handled as missing. Input columns are preserved.
 Negative days (including HCUP sentinel values) and missing days are unknown.
 If either procedure is absent, the result is FALSE. Otherwise, any outcome
 with a known day satisfying the relation returns TRUE. If none does and a
@@ -11,6 +14,9 @@ assume_same_day treats that day as 0, and indeterminate returns NA."><meta prope
 The earliest valid index day is used when the index procedure occurs in
 multiple slots. A slot matching both prefix sets counts as both procedures.
 Prefixes follow the normalization and matching rules of nis_flag_pr().
+Factor and ordered-factor PRDAY columns are interpreted by their labels,
+not their internal level numbers. Values that decode to missing numeric days
+are handled as missing. Input columns are preserved.
 Negative days (including HCUP sentinel values) and missing days are unknown.
 If either procedure is absent, the result is FALSE. Otherwise, any outcome
 with a known day satisfying the relation returns TRUE. If none does and a
@@ -74,6 +80,9 @@ assume_same_day treats that day as 0, and indeterminate returns NA."></head><bod
 The earliest valid index day is used when the index procedure occurs in
 multiple slots. A slot matching both prefix sets counts as both procedures.
 Prefixes follow the normalization and matching rules of <code><a href="nis_flag_pr.html">nis_flag_pr()</a></code>.
+Factor and ordered-factor PRDAY columns are interpreted by their labels,
+not their internal level numbers. Values that decode to missing numeric days
+are handled as missing. Input columns are preserved.
 Negative days (including HCUP sentinel values) and missing days are unknown.
 If either procedure is absent, the result is FALSE. Otherwise, any outcome
 with a known day satisfying the relation returns TRUE. If none does and a

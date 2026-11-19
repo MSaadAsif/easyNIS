@@ -5,12 +5,14 @@ The earliest valid index day is used when the index procedure occurs in
 multiple slots. A slot matching both prefix sets counts as both
 procedures. Prefixes follow the normalization and matching rules of
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md).
-Negative days (including HCUP sentinel values) and missing days are
-unknown. If either procedure is absent, the result is FALSE. Otherwise,
-any outcome with a known day satisfying the relation returns TRUE. If
-none does and a matching procedure has an unknown day, exclude returns
-FALSE, assume_same_day treats that day as 0, and indeterminate returns
-NA.
+Factor and ordered-factor PRDAY columns are interpreted by their labels,
+not their internal level numbers. Values that decode to missing numeric
+days are handled as missing. Input columns are preserved. Negative days
+(including HCUP sentinel values) and missing days are unknown. If either
+procedure is absent, the result is FALSE. Otherwise, any outcome with a
+known day satisfying the relation returns TRUE. If none does and a
+matching procedure has an unknown day, exclude returns FALSE,
+assume_same_day treats that day as 0, and indeterminate returns NA.
 
 ## Usage
 

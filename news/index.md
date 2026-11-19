@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
+  ignores zero and leading-zero diagnosis slot suffixes and requires the
+  principal diagnosis column `I10_DX1`.
+
 - [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
   now rejects grouping keys named `n` or `hospitals` to prevent cell
   identities from being overwritten.
@@ -72,6 +76,11 @@
   and actual column types for predicates on local and lazy DuckDB
   inputs. Aliases preserve source labels and cannot overwrite retained
   design or cost fields.
+
+- [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+  now uses factor and ordered-factor procedure-day labels consistently
+  with numeric values and DuckDB, including labels that decode to
+  missing days.
 
 - Pooled Parquet sources retain uppercase-normalized column names
   whenever a selected source supplies an uppercase-bearing spelling.
