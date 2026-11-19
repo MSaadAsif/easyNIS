@@ -20,6 +20,17 @@
   ignores input groups consistently and returns matching local and
   DuckDB totals for empty inputs and missing weights, including `NaN`.
 
+- Readiness rejects incomplete, out-of-range, Boolean, and malformed
+  evidence while continuing to assess unrelated valid records. Invalid
+  records use structurally recovered top-level string identities and
+  unambiguous commit bindings; known stale records are ignored before
+  invalid evidence is applied, and structurally valid dirty receipts
+  cannot supersede clean proof. Nested diagnostics cannot mask a failed
+  gate. Study receipts require unique exact fields, including the
+  package commit and computed estimates, and reject embedded NUL bytes.
+  Quality JSONL preserves CR, LF, CRLF, and unterminated final-line
+  boundaries.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   now rejects selected years present in both an annual Parquet directory
   and a separate Hive partition, preventing duplicate rows. Hive parts
@@ -27,7 +38,8 @@
 
 - Quality probes verify a disposable source installation and its
   effective namespace before measuring installed complexity. Nested
-  packaging and coverage evidence remains unverified unless it reports a
+  packaging and coverage evidence remains unverified when it appears to
+  pass, while measured coverage below target remains available as a
   failure; equal versions and library search order no longer imply
   source provenance
   ([\#170](https://github.com/MSaadAsif/easyNIS/issues/170)).
