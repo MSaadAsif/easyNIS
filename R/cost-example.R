@@ -201,7 +201,8 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
 #'   by [nis_design()].
 #'
 #' @return A list describing the charge and CCR fields, CPI-U source and base
-#'   year, annual multipliers, invalid CCR and missing charge counts, and output
+#'   year, annual multipliers, counts of invalid CCR and of missing or invalid
+#'   charges, and output
 #'   meanings. Returns `NULL` when no cost adjustment provenance is present.
 #' @family costs
 #' @seealso [Charges, costs, and provenance](articles/costs.html).
