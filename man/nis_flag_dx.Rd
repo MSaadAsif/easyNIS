@@ -48,6 +48,10 @@ behavior.
 ...; \code{"icd9"} (experimental) reads \code{DX1}, \code{DX2}, ... as stored in NIS 2012
 through Q3 2015. A prefix is only ever compared with slots of the chosen
 system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
+Slot suffixes must be positive integers without leading zeros. Malformed
+slot names are ignored; an error is raised if no slots match the requested
+position. The principal slot has suffix \code{1}; sparse and reordered slots
+are supported.
 
 In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
 ICD-10 codes. HCUP is understood to recommend \code{DXVER} (9 or 10) to

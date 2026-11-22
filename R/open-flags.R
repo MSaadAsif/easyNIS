@@ -334,6 +334,10 @@ nis_open_warn_2023 <- function(query) {
 #' ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as stored in NIS 2012
 #' through Q3 2015. A prefix is only ever compared with slots of the chosen
 #' system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
+#' Slot suffixes must be positive integers without leading zeros. Malformed
+#' slot names are ignored; an error is raised if no slots match the requested
+#' position. The principal slot has suffix `1`; sparse and reordered slots
+#' are supported.
 #'
 #' In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
 #' ICD-10 codes. HCUP is understood to recommend `DXVER` (9 or 10) to
@@ -401,6 +405,10 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' Each procedure slot is checked separately, with the same prefix, regular
 #' expression, exclusion, and `system` semantics as [nis_flag_dx()]. `"icd10"`
 #' reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
+#' Slot suffixes must be positive integers without leading zeros. Malformed
+#' slot names are ignored; an error is raised if no slots match the requested
+#' position. The principal slot has suffix `1`; sparse and reordered slots
+#' are supported.
 #'
 #' @template dot-data
 #' @param ... Named flag definitions, such as `ablation = "02L"`; see
@@ -443,17 +451,18 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   if (length(regexes)) validate_flag_regex(regexes)
 
   stem <- paste0(if (system == "icd10") "I10_", slots)
-  slot_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
-  slot_number <- as.integer(sub(paste0("^", stem), "", slot_names))
+  slot_names <- grep(paste0("^", stem, "[1-9][0-9]*$"), data_names, value = TRUE)
+  principal <- paste0(stem, "1")
   if (position == "principal") {
-    slot_names <- slot_names[slot_number == 1L]
+    slot_names <- slot_names[slot_names == principal]
   } else if (position == "secondary") {
-    slot_names <- slot_names[slot_number > 1L]
+    slot_names <- slot_names[slot_names != principal]
   }
   if (length(slot_names) == 0L) {
     cli::cli_abort(paste(
       "No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} {slots} columns",
-      "({stem}<n>) match the requested position."
+      "({stem}<n>) match the requested position.",
+      "Slot suffixes must be positive integers without leading zeros."
     ))
   }
 
@@ -585,6 +594,17 @@ normalize_prefixes <- function(value, arg = NULL) {
   unique(value)
 }
 
+code_system_valid_year <- function(data) {
+  schema <- if (inherits(data, "tbl_sql")) {
+    nis_collect(utils::head(dplyr::select(data, dplyr::all_of("YEAR")), 0L))
+  } else {
+    data
+  }
+  if (!is.numeric(schema$YEAR)) return(rlang::expr(TRUE))
+  finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
+  rlang::expr(!!finite_year & YEAR == floor(YEAR)) # nolint: object_usage_linter
+}
+
 code_system_filter <- function(data, columns, slots, system) {
   conditions <- list()
   version_name <- paste0(slots, "VER")
@@ -598,13 +618,16 @@ code_system_filter <- function(data, columns, slots, system) {
   }
   if ("YEAR" %in% columns) {
     missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
+    valid_year <- code_system_valid_year(data)
     # rlang expressions use data-masked names.
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
     } else {
       rlang::expr(YEAR >= 2015L)
     }
-    conditions <- c(conditions, list(rlang::expr(!!missing_year | !!year_range)))
+    conditions <- c(conditions, list(rlang::expr(
+      !!missing_year | (!!valid_year & !!year_range)
+    )))
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
