@@ -468,8 +468,8 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
 nis_reweight_data <- function(design, weights_quo, call) {
   placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
   cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)
-  if (!inherits(design, "tbl_svy") || !is.data.frame(placeholders) ||
-      is.null(cohort_rows)) {
+  if (any(c(!inherits(design, "tbl_svy"), !is.data.frame(placeholders),
+      is.null(cohort_rows)))) {
     cli::cli_abort("`design` must be a result of `nis_design()`.", call = call)
   }
   variables <- design$variables
@@ -494,8 +494,44 @@ nis_reweight_data <- function(design, weights_quo, call) {
     cli::cli_abort("`weights` must be positive.", call = call)
   }
 
+  variables <- nis_reweight_restore(design, call)
+  aligned <- variables[rep(NA_integer_, nrow(placeholders)), , drop = FALSE]
+  for (field in c(".nis_psu", ".nis_stratum", ".nis_weight", ".in_cohort")) {
+    aligned[[field]] <- placeholders[[field]]
+  }
   variables$.nis_weight <- variables$.nis_weight * weight_values
-  list(combined = dplyr::bind_rows(variables, placeholders), variables = variables)
+  list(combined = dplyr::bind_rows(variables, aligned), variables = variables)
+}
+
+nis_reweight_restore <- function(design, call) {
+  if (any(c(ncol(design$cluster) != 1L, ncol(design$strata) != 1L,
+      !is.null(design$postStrata), !is.null(design$fpc$popsize),
+      !identical(design$pps, FALSE)))) {
+    cli::cli_abort("`design` has unsupported survey structure for reweighting.", call = call)
+  }
+  stratum <- as.character(design$strata[[1L]])
+  psu <- as.character(design$cluster[[1L]])
+  prefix <- paste0(stratum, ".")
+  if (any(!startsWith(psu, prefix))) {
+    cli::cli_abort("`design` has unsupported PSU identities for reweighting.", call = call)
+  }
+  variables <- design$variables
+  variables$.nis_psu <- substring(psu, nchar(prefix) + 1L)
+  variables$.nis_stratum <- stratum
+  variables$.nis_weight <- as.numeric(stats::weights(design))
+  variables$.in_cohort <- rep(TRUE, nrow(variables))
+  variables
+}
+
+nis_reweight_structure <- function(original, rebuilt, call) {
+  same_ids <- function(field) {
+    identical(as.character(original[[field]][[1L]]),
+      as.character(rebuilt[[field]][[1L]]))
+  }
+  if (!same_ids("cluster") || !same_ids("strata") ||
+      !identical(original$fpc, rebuilt$fpc)) {
+    cli::cli_abort("`design` variance structure cannot be safely rebuilt for reweighting.", call = call)
+  }
 }
 
 #' Reweight a cohort survey design
@@ -507,6 +543,9 @@ nis_reweight_data <- function(design, weights_quo, call) {
 #' full-data reference design.
 #'
 #' @param design A result of [nis_design()].
+#'   Column selection, renaming, and mutation are supported when cohort rows
+#'   are unchanged. Required internal design fields are restored from survey
+#'   metadata; removed analysis columns are not restored.
 #' @param weights Numeric weights aligned with the cohort rows of `design`, or
 #'   an unquoted numeric column name in the design data. They are matched to
 #'   rows by position, so take them from `design$variables` in that order (for
@@ -545,6 +584,7 @@ nis_reweight <- function(design, weights) {
     if (!is.null(label)) attr(combined[[name]], "label") <- label
   }
   reweighted <- nis_cohort_design(combined)
+  nis_reweight_structure(design, reweighted, call)
   attr(reweighted, "nis_excluded") <- attr(design, "nis_excluded", exact = TRUE)
   cost_provenance <- attr(design, "nis_cost_provenance", exact = TRUE)
   if (!is.null(cost_provenance)) {
