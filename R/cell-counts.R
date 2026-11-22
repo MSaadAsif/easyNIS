@@ -15,6 +15,10 @@
   if (!is.character(by) || anyNA(by) || any(!nzchar(by))) {
     cli::cli_abort("`by` must be a character vector of cell-defining columns.")
   }
+  reserved <- intersect(by, c("n", "hospitals"))
+  if (length(reserved)) {
+    cli::cli_abort("`by` must not contain reserved summary names: {.val {reserved}}.")
+  }
 }
 
 .nis_cell_count_validate_cols <- function(.data, by) {
@@ -54,7 +58,8 @@
 #' are rejected so counts cannot silently understate disclosure risk.
 #'
 #' @param .data Record-level data frame or result of [nis_design()].
-#' @param by Character vector of cell-defining columns.
+#' @param by Character vector of cell-defining columns. The summary names `n`
+#'   and `hospitals` are reserved and cannot be used as cell-defining columns.
 #'
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).

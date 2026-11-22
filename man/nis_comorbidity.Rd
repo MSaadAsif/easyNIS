@@ -64,6 +64,8 @@ Elixhauser method requires POA for 18 of its 38 measures.
 diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
 condition is not flagged from the principal diagnosis alone where AHRQ
 excludes it). Codes in \code{I10_DX2} onward are secondary.
+Only positive slot suffixes without leading zeros are recognized;
+malformed names such as \code{I10_DX0} and \code{I10_DX01} are ignored.
 \item \strong{ICD-10 only.} Only the \verb{I10_DX*} columns are read. A discharge with no
 usable \verb{I10_DX*} code (all blank, missing or invalid UTF-8), such as an ICD-9
 discharge from before October 2015, gets \code{NA} in every added column, and

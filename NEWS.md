@@ -2,6 +2,73 @@
 
 - `nis_flag_dx()` and `nis_flag_pr()` ignore malformed slot suffixes;
   principal flags use the canonical slot with suffix 1.
+- `nis_comorbidity()` ignores zero and leading-zero diagnosis slot suffixes
+  and requires the principal diagnosis column `I10_DX1`.
+
+- `nis_cell_counts()` now rejects grouping keys named `n` or `hospitals`
+  to prevent cell identities from being overwritten.
+
+- `nis_label()` treats `NaN` as missing in ordinary and Haven-labelled numeric
+  storage while retaining finite SPSS sentinels and `integer64` values as
+  displayed codes. Factors with observed raw codes use whole-vector
+  normalization; mixed raw and labelled factors therefore label the latter as
+  unknown codes. Existing `Code 7` labels survive subsets that retain unused
+  raw-code levels. A bare `Code ` factor with no raw-code levels is preserved
+  as an existing label because its origin cannot be recovered after levels
+  are dropped.
+- `nis_attrition()` ignores input groups consistently and returns matching
+  local and DuckDB totals for empty inputs and missing weights, including `NaN`.
+
+- Readiness rejects incomplete, out-of-range, Boolean, and malformed evidence
+  while continuing to assess unrelated valid records. Invalid records use
+  structurally recovered top-level string identities and unambiguous commit
+  bindings; known stale records are ignored before invalid evidence is applied,
+  and structurally valid dirty receipts cannot supersede clean proof. Nested
+  diagnostics cannot mask a failed gate. Study receipts require unique exact
+  fields, including the package commit and computed estimates, and reject
+  embedded NUL bytes. Quality JSONL preserves CR, LF, CRLF, and unterminated
+  final-line boundaries.
+
+- `nis_open()` now rejects selected years present in both an annual Parquet
+  directory and a separate Hive partition, preventing duplicate rows. Hive
+  parts within one annual dataset remain supported.
+
+- `nis_open()` lets DuckDB combine and promote annual fields before normalizing
+  visible names. ASCII-folded field casing is independent of annual file order;
+  Unicode normalization collisions retain their existing coalescing behavior.
+  Metadata-only spelling changes are applied only when the target is unique and
+  does not collide with an existing or proposed output name under DuckDB's
+  identifier rules.
+
+- Quality probes verify a disposable source installation and its effective
+  namespace before measuring installed complexity. Nested packaging and coverage
+  evidence remains unverified when it appears to pass, while measured coverage
+  below target remains available as a failure; equal versions and library search
+  order no longer imply source provenance (#170).
+
+- Reuse a shared roxygen template for repeated `.data` parameter
+  documentation.
+
+- `nis_dx_sensitivity()` now summarizes grouped inputs completely, handles
+  empty DuckDB cohorts, and avoids aggregate collisions between outcome names.
+
+- `nis_ccsr_codes()` rejects standard CSV records with extra or missing fields
+  before parsing, preventing shifted code/category mappings. Quoted commas
+  and multiline descriptions remain supported.
+
+- `nis_design()` accepts grouped DuckDB inputs and removes input groups,
+  including rowwise grouping, before evaluating the cohort over the full input.
+- `nis_design(keep = ...)` now uses selected source values for aliases and
+  actual column types for predicates on local and lazy DuckDB inputs. Aliases
+  preserve source labels and cannot overwrite retained design or cost fields.
+
+- `nis_flag_pr_timing()` now uses factor and ordered-factor procedure-day
+  labels consistently with numeric values and DuckDB, including labels that
+  decode to missing days.
+
+- Pooled Parquet sources retain uppercase-normalized column names whenever a
+  selected source supplies an uppercase-bearing spelling. Lowercase-only
+  fields retain their spelling.
 - `nis_flag_dx()` and `nis_flag_pr()` accept named-list code definitions with
   per-slot exact exclusions and whole-code regular expressions. Existing
   character-vector prefix definitions are unchanged; prefix and regex matches

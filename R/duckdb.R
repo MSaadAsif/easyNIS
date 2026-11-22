@@ -104,13 +104,18 @@ nis_duckdb_parquet_sql <- function(con, sources, hive_partitioning = FALSE) {
 nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
   normalized <- normalizePath(sources, winslash = "/", mustWork = TRUE)
   is_hive <- grepl("(^|/)YEAR=[0-9]{4}/", normalized)
-  scans <- vapply(seq_along(sources), function(index) {
-    source <- sources[[index]]
-    scan <- if (!is.null(scans)) {
-      scans[[index]]
-    } else {
+  source_scans <- if (is.null(scans)) {
+    vapply(sources, function(source) {
       nis_duckdb_parquet_sql(con, source, hive_partitioning = FALSE)
-    }
+    }, character(1))
+  } else {
+    scans
+  }
+  source_names <- unlist(lapply(source_scans, function(scan) {
+    DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))$column_name
+  }), use.names = FALSE)
+  scans <- vapply(seq_along(sources), function(index) {
+    scan <- source_scans[[index]]
     schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
     year_rows <- which(toupper(schema$column_name) == "YEAR")
     if (!is_hive[[index]] && length(year_rows) == 0L) {
@@ -141,7 +146,9 @@ nis_duckdb_query_from_parquet <- function(con, sources, scans = NULL) {
       ") FROM ", scan)
   }, character(1))
   parquet <- paste0("(", paste(scans, collapse = " UNION ALL BY NAME "), ")")
-  dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
+  attr(query, "easyNIS_source_names") <- source_names
+  query
 }
 
 nis_validate_year_values <- function(con, sources, scans = NULL) {

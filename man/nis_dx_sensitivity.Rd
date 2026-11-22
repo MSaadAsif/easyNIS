@@ -29,7 +29,11 @@ nis_dx_sensitivity(
 A collected tibble with one row per presentation and unweighted and
 weighted counts, shares of all prefix-positive presentations, and rates
 for requested outcomes. The principal presentation is a strict subset of
-any-position cases, so Cohen's kappa is not meaningful here.
+any-position cases, so Cohen's kappa is not meaningful here. Existing input
+groups are ignored: summaries describe the full input. Empty inputs return
+zero counts and missing shares and rates. Missing weights are omitted from
+weighted sums; missing outcomes are excluded from that outcome's denominator.
+Rates with zero denominators are missing.
 }
 \description{
 Summarizes unweighted and weighted presentation counts and outcome rates for
