@@ -83,7 +83,8 @@ by <code><a href="nis_design.html">nis_design()</a></code>.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list describing the charge and CCR fields, CPI-U source and base
-year, annual multipliers, invalid CCR and missing charge counts, and output
+year, annual multipliers, counts of invalid CCR and of missing or invalid
+charges, and output
 meanings. Returns <code>NULL</code> when no cost adjustment provenance is present.</p>
     </div>
     <div class="section level2">
@@ -100,7 +101,7 @@ meanings. Returns <code>NULL</code> when no cost adjustment provenance is presen
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="nis_cost.html">nis_cost</a></span><span class="op">(</span>dollars <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpbhtlb4/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpetFgOE/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -108,7 +109,7 @@ meanings. Returns <code>NULL</code> when no cost adjustment provenance is presen
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpbhtlb4/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpetFgOE/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -143,6 +144,9 @@ meanings. Returns <code>NULL</code> when no cost adjustment provenance is presen
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $ccr_treatment</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained."</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $charges_treatment</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Negative, missing, or non-finite charges produce NA charges_adj and cost_adj; zero charges are retained."</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $output_types</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                  charges_adj                     cost_adj </span>

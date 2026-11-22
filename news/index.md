@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
+  now treats negative, missing, and non-finite charges as invalid,
+  reports their count, and retains zero charges.
+
 - [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
   classifies factor PRDAY values from their labels and counts `NaN` or
   unparseable day values as missing, matching character, numeric, and

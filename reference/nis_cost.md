@@ -21,7 +21,8 @@ nis_cost(data, dollars, charges = "TOTCHG")
 
 - charges:
 
-  Name of the total-charge column. Defaults to `"TOTCHG"`. Use
+  Name of the total-charge column. Defaults to `"TOTCHG"`. Negative,
+  missing, and non-finite values are invalid; zero is retained. Use
   `"TOTCHG_2023"` only knowingly: HCUP adjusts that field for states
   missing from 2023, so it is not comparable to earlier-year `TOTCHG`,
   and it is missing for earlier years.
@@ -47,7 +48,7 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbhtlb4/duckdb
+#> ℹ /tmp/RtmpetFgOE/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -55,7 +56,7 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbhtlb4/duckdb
+#> ℹ /tmp/RtmpetFgOE/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -63,7 +64,7 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbhtlb4/duckdb
+#> ℹ /tmp/RtmpetFgOE/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

@@ -28,8 +28,9 @@ nis_cost_provenance(x)
 ## Value
 
 A list describing the charge and CCR fields, CPI-U source and base year,
-annual multipliers, invalid CCR and missing charge counts, and output
-meanings. Returns `NULL` when no cost adjustment provenance is present.
+annual multipliers, counts of invalid CCR and of missing or invalid
+charges, and output meanings. Returns `NULL` when no cost adjustment
+provenance is present.
 
 ## See also
 
@@ -47,7 +48,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
   dplyr::collect() |>
   nis_cost(dollars = 2024)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbhtlb4/duckdb
+#> ℹ /tmp/RtmpetFgOE/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -55,7 +56,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbhtlb4/duckdb
+#> ℹ /tmp/RtmpetFgOE/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -90,6 +91,9 @@ nis_cost_provenance(charges)
 #> 
 #> $ccr_treatment
 #> [1] "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained."
+#> 
+#> $charges_treatment
+#> [1] "Negative, missing, or non-finite charges produce NA charges_adj and cost_adj; zero charges are retained."
 #> 
 #> $output_types
 #>                  charges_adj                     cost_adj 
