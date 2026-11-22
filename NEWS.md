@@ -1,7 +1,8 @@
 # easyNIS (development version)
 
-- `nis_prday_completeness()` classifies factor PRDAY values from their labels,
-  matching character, numeric, and DuckDB inputs.
+- `nis_prday_completeness()` classifies factor PRDAY values from their labels
+  and counts `NaN` or unparseable day values as missing, matching character,
+  numeric, and DuckDB inputs and `nis_flag_pr_timing()`.
 
 - `nis_flag_dx()` and `nis_flag_pr()` ignore malformed slot suffixes;
   principal flags use the canonical slot with suffix 1.
