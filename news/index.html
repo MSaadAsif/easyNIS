@@ -54,7 +54,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<ul><li><p><code><a href="../reference/nis_design.html">nis_design()</a></code> counts and excludes missing logical cohorts consistently on data frames and DuckDB, including literal <code>NA</code> and flags initialized with <code>NA</code>. Typed numeric and character cohorts remain invalid, even when all missing.</p></li>
+<ul><li><p><code><a href="../reference/nis_prday_completeness.html">nis_prday_completeness()</a></code> classifies factor PRDAY values from their labels and counts <code>NaN</code> or unparseable day values as missing, matching character, numeric, and DuckDB inputs and <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code>.</p></li>
+<li><p><code><a href="../reference/nis_design.html">nis_design()</a></code> counts and excludes missing logical cohorts consistently on data frames and DuckDB, including literal <code>NA</code> and flags initialized with <code>NA</code>. Typed numeric and character cohorts remain invalid, even when all missing.</p></li>
 <li><p><code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> ignore malformed slot suffixes; principal flags use the canonical slot with suffix 1.</p></li>
 <li><p>Diagnosis and procedure code-system eligibility now rejects fractional and infinite numeric <code>YEAR</code> indicators while preserving missing-year fallback and 2015 quarter rules.</p></li>
 <li><p><code><a href="../reference/nis_reweight.html">nis_reweight()</a></code> supports column selection, renaming, and mutation while preserving survey weights and variance structure without restoring removed analysis columns.</p></li>

@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+  classifies factor PRDAY values from their labels and counts `NaN` or
+  unparseable day values as missing, matching character, numeric, and
+  DuckDB inputs and
+  [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md).
+
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   counts and excludes missing logical cohorts consistently on data
   frames and DuckDB, including literal `NA` and flags initialized with
