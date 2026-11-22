@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+  and
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
+  ignore malformed slot suffixes; principal flags use the canonical slot
+  with suffix 1.
+
 - Diagnosis and procedure code-system eligibility now rejects fractional
   and infinite numeric `YEAR` indicators while preserving missing-year
   fallback and 2015 quarter rules.

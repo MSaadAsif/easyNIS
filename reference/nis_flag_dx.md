@@ -58,7 +58,10 @@ nis_flag_dx(
 `I10_DX2`, ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as
 stored in NIS 2012 through Q3 2015. A prefix is only ever compared with
 slots of the chosen system, so an ICD-10 flag never matches an ICD-9
-slot and the reverse.
+slot and the reverse. Slot suffixes must be positive integers without
+leading zeros. Malformed slot names are ignored; an error is raised if
+no slots match the requested position. The principal slot has suffix
+`1`; sparse and reordered slots are supported.
 
 In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges
 carry ICD-10 codes. HCUP is understood to recommend `DXVER` (9 or 10) to
@@ -96,7 +99,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt7zvfE/duckdb
+#> ℹ /tmp/RtmpFNBOY4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -104,7 +107,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt7zvfE/duckdb
+#> ℹ /tmp/RtmpFNBOY4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -112,7 +115,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt7zvfE/duckdb
+#> ℹ /tmp/RtmpFNBOY4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -155,7 +158,7 @@ nis |>
   dplyr::count(hf_full) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt7zvfE/duckdb
+#> ℹ /tmp/RtmpFNBOY4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
