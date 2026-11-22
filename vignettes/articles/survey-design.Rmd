@@ -17,6 +17,12 @@ library(easyNIS)
 
 `nis_design()` validates `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, and `DISCWT`,
 then constructs a survey design before applying the declared domain.
+Existing dplyr groups (including rowwise grouping) are removed first, for both
+data frames and lazy DuckDB queries. Aggregate cohort expressions such as
+`LOS > mean(LOS)` use the full input rather than each input group. To use a
+group-specific threshold, compute an explicit cohort indicator upstream and
+pass that column to `cohort`. Group the returned survey design when you need
+grouped survey summaries.
 
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
