@@ -33,6 +33,21 @@ attr(.cpi_u, "source") <- paste(
   }
 }
 
+.nis_cost_valid_charges <- function(charges) {
+  dplyr::coalesce(is.finite(charges) & charges >= 0, FALSE)
+}
+
+.nis_cost_inform_charges <- function(count, cohort = FALSE) {
+  if (count > 0L) {
+    row_type <- if (cohort) " cohort row" else " row"
+    count_text <- paste0(count, row_type, if (count == 1L) " has" else "s have")
+    cli::cli_inform(paste0(
+      count_text,
+      " missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
+    ))
+  }
+}
+
 .nis_cost_validate_data <- function(data) {
   if (!is.data.frame(data)) {
     cli::cli_abort("`data` must be a collected data frame.",
@@ -106,6 +121,10 @@ attr(.cpi_u, "source") <- paste(
       "Missing, non-finite, zero, or negative CCR_NIS values produce ",
       "NA cost_adj; charges_adj is retained."
     ),
+    charges_treatment = paste0(
+      "Negative, missing, or non-finite charges produce NA charges_adj and ",
+      "cost_adj; zero charges are retained."
+    ),
     output_types = c(
       charges_adj = "Inflation-adjusted charges",
       cost_adj = "Estimated cost via CCR_NIS"
@@ -119,6 +138,7 @@ attr(.cpi_u, "source") <- paste(
 #'   `CCR_NIS`. Lazy DuckDB queries must be collected first.
 #' @param dollars Reference dollar year, from 2012 through 2024.
 #' @param charges Name of the total-charge column. Defaults to `"TOTCHG"`.
+#'   Negative, missing, and non-finite values are invalid; zero is retained.
 #'   Use `"TOTCHG_2023"` only knowingly: HCUP adjusts that field for states
 #'   missing from 2023, so it is not comparable to earlier-year `TOTCHG`, and it
 #'   is missing for earlier years.
@@ -147,8 +167,8 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   valid_ccr <- is.finite(ccr) & ccr > 0
   invalid_ccr_count <- sum(!dplyr::coalesce(valid_ccr, FALSE))
   charges_value <- data[[charges]]
-  valid_charges <- is.finite(charges_value)
-  missing_charges_count <- sum(!dplyr::coalesce(valid_charges, FALSE))
+  valid_charges <- .nis_cost_valid_charges(charges_value)
+  missing_charges_count <- sum(!valid_charges)
   data$cost_adj <- ifelse(valid_ccr & valid_charges,
     charges_value * ccr * reference_index / .cpi_u$index[index], NA_real_)
   data$charges_adj <- ifelse(valid_charges,
@@ -166,6 +186,7 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   )
   attr(data, "nis_cost_provenance") <- provenance
   .nis_cost_inform_invalid_ccr(invalid_ccr_count)
+  .nis_cost_inform_charges(missing_charges_count)
   data
 }
 
