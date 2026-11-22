@@ -4,6 +4,10 @@
   and counts `NaN` or unparseable day values as missing, matching character,
   numeric, and DuckDB inputs and `nis_flag_pr_timing()`.
 
+- `nis_design()` counts and excludes missing logical cohorts consistently on
+  data frames and DuckDB, including literal `NA` and flags initialized with
+  `NA`. Typed numeric and character cohorts remain invalid, even when all missing.
+
 - `nis_flag_dx()` and `nis_flag_pr()` ignore malformed slot suffixes;
   principal flags use the canonical slot with suffix 1.
 
