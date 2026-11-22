@@ -3,6 +3,10 @@
 - `nis_prday_completeness()` classifies factor PRDAY values from their labels,
   matching character, numeric, and DuckDB inputs.
 
+- `nis_reweight()` supports column selection, renaming, and mutation while
+  preserving survey weights and variance structure without restoring removed
+  analysis columns.
+
 - `nis_comorbidity()` ignores zero and leading-zero diagnosis slot suffixes
   and requires the principal diagnosis column `I10_DX1`.
 
