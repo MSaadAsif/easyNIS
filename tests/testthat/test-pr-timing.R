@@ -386,6 +386,69 @@ test_that("PRDAY completeness classifies days like procedure timing", {
   expect_identical(summary$sentinel_invalid_day[summary$slot == 2L], 1L)
 })
 
+test_that("PRDAY completeness uses factor labels across input types", {
+  values <- c("-1", "999", NA_character_, "1")
+  data <- dplyr::tibble(
+    YEAR = rep(2020L, length(values)),
+    I10_PR1 = rep("OUT", length(values)),
+    PRDAY1 = factor(values, levels = c("", "-1", "1", "999", "unused"))
+  )
+  expected <- nis_prday_completeness(data, "OUT")
+  expect_identical(expected$known_day, 2L)
+  expect_identical(expected$missing_day, 1L)
+  expect_identical(expected$sentinel_invalid_day, 1L)
+
+  for (input in list(
+    character = dplyr::mutate(data, PRDAY1 = values),
+    numeric = dplyr::mutate(data, PRDAY1 = c(-1, 999, NA_real_, 1))
+  )) {
+    expect_identical(nis_prday_completeness(input, "OUT"), expected)
+  }
+
+  query <- duckdb_query_fixture(data)
+  on.exit({
+    con <- query$src$con
+    query <- NULL
+    invisible(gc())
+    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+  }, add = TRUE)
+  expect_identical(nis_prday_completeness(query, "OUT"), expected)
+})
+
+test_that("PRDAY completeness buckets unparseable and NaN text days as missing", {
+  values <- c("0", "-1", "", "abc", "NaN", NA_character_)
+  data <- dplyr::tibble(
+    YEAR = rep(2020L, length(values)),
+    I10_PR1 = rep("OUT", length(values)),
+    PRDAY1 = values
+  )
+  # Unparseable text days coerce to NA with a base R warning, as in
+  # nis_flag_pr_timing().
+  expected <- suppressWarnings(nis_prday_completeness(data, "OUT"))
+  expect_identical(expected$known_day, 1L)
+  expect_identical(expected$sentinel_invalid_day, 1L)
+  expect_identical(expected$missing_day, 4L)
+  expect_identical(
+    expected$known_day + expected$missing_day + expected$sentinel_invalid_day,
+    expected$matched_slots
+  )
+
+  levels <- c("", "-1", "0", "NaN", "abc", "unused")
+  factor_data <- dplyr::mutate(data, PRDAY1 = factor(values, levels = levels))
+  expect_identical(
+    suppressWarnings(nis_prday_completeness(factor_data, "OUT")), expected
+  )
+
+  query <- duckdb_query_fixture(data)
+  on.exit({
+    con <- query$src$con
+    query <- NULL
+    invisible(gc())
+    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+  }, add = TRUE)
+  expect_identical(nis_prday_completeness(query, "OUT"), expected)
+})
+
 test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
   data <- dplyr::tibble(
     YEAR = rep(2020L, 5L),

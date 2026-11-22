@@ -19,8 +19,9 @@
 #'   those matches. `pct_known` is `100 * known_day / matched_slots`, or `NA`
 #'   when there are no matched slots. A PRDAY column is considered absent when
 #'   it is absent from the input query's schema. A unified multi-file query
-#'   does not retain source-file field presence by year. When present, `NA`
-#'   days count as missing and all negative days (including HCUP sentinels)
+#'   does not retain source-file field presence by year. When present, `NA`,
+#'   `NaN`, and values that do not convert to a number (factor days use their
+#'   labels) count as missing, and all negative days (including HCUP sentinels)
 #'   count as sentinel/invalid, matching `nis_flag_pr_timing()`.
 #' @family cohort-definition
 #' @seealso [Defining cohorts](articles/cohorts.html).
@@ -86,8 +87,8 @@ nis_prday_completeness <- function(.data, pr,
       counts[[paste0("absent_prday_column", suffix)]] <-
         rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     } else {
-      day <- nis_numeric_value_expr(day_name) # nolint: object_usage_linter
-      missing <- nis_is_missing_expr(.data, day_name) # nolint: object_usage_linter
+      day <- timing_days(.data, slot, day_by_slot)[[1L]]
+      missing <- timing_day_missing(.data, list(day), slot, day_by_slot)[[1L]]
       counts[[paste0("known_day", suffix)]] <- rlang::expr(
         sum(as.integer(!!match & ! (!!missing) & !!day >= 0), na.rm = TRUE))
       counts[[paste0("missing_day", suffix)]] <- rlang::expr(

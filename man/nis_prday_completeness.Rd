@@ -22,8 +22,9 @@ An in-memory tibble with one row per year and procedure slot.
 those matches. \code{pct_known} is \code{100 * known_day / matched_slots}, or \code{NA}
 when there are no matched slots. A PRDAY column is considered absent when
 it is absent from the input query's schema. A unified multi-file query
-does not retain source-file field presence by year. When present, \code{NA}
-days count as missing and all negative days (including HCUP sentinels)
+does not retain source-file field presence by year. When present, \code{NA},
+\code{NaN}, and values that do not convert to a number (factor days use their
+labels) count as missing, and all negative days (including HCUP sentinels)
 count as sentinel/invalid, matching \code{nis_flag_pr_timing()}.
 }
 \description{
