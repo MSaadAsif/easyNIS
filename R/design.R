@@ -474,12 +474,16 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       )
     )
     cost_provenance$rows_missing_charges <- sum(
-      !dplyr::coalesce(is.finite(cohort_rows[[charges]]), FALSE)
+      !.nis_cost_valid_charges(cohort_rows[[charges]]) # nolint: object_usage_linter. Package helper.
     )
-    # Emit one message for cohort rows; placeholder rows are synthetic and
-    # have no discharge CCR by construction.
+    # Emit one message per kind for cohort rows; placeholder rows are synthetic
+    # and have no discharge CCR by construction.
     .nis_cost_inform_invalid_ccr( # nolint: object_usage_linter. Package helper.
       cost_provenance$rows_missing_or_invalid_ccr,
+      cohort = TRUE
+    )
+    .nis_cost_inform_charges( # nolint: object_usage_linter. Package helper.
+      cost_provenance$rows_missing_charges,
       cohort = TRUE
     )
   } else {

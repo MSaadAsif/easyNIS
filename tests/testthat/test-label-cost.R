@@ -238,6 +238,36 @@ test_that("nis_cost records non-finite charges and makes both outputs missing", 
   expect_equal(nis_cost_provenance(adjusted)$rows_missing_or_invalid_ccr, 0L)
 })
 
+test_that("nis_cost rejects negative and non-finite charges but retains zero", {
+  data <- dplyr::tibble(
+    YEAR = rep(2020, 5), TOTCHG = c(-1, 0, NA_real_, NaN, Inf),
+    CCR_NIS = rep(0.25, 5)
+  )
+  adjusted <- nis_cost(data, dollars = 2020)
+  expect_true(all(is.na(adjusted$charges_adj[c(1, 3:5)])))
+  expect_true(all(is.na(adjusted$cost_adj[c(1, 3:5)])))
+  expect_equal(as.numeric(adjusted$charges_adj[2]), 0)
+  expect_equal(as.numeric(adjusted$cost_adj[2]), 0)
+  expect_equal(nis_cost_provenance(adjusted)$rows_missing_charges, 4L)
+
+  design_data <- nis_example(years = 2020) |>
+    nis_open() |>
+    dplyr::collect()
+  design_data$test_row <- seq_len(nrow(design_data))
+  design_data$TOTCHG[1:5] <- c(-1, 0, NA_real_, NaN, Inf)
+  design <- nis_design(design_data, cohort = TRUE, keep = dplyr::everything(),
+    dollars = 2020)
+  variables <- design$variables
+  invalid <- variables[variables$test_row %in% c(1L, 3:5), ]
+  zero <- variables[variables$test_row == 2L, ]
+  expect_equal(nrow(invalid), 4L)
+  expect_true(all(is.na(invalid$charges_adj)))
+  expect_true(all(is.na(invalid$cost_adj)))
+  expect_equal(as.numeric(zero$charges_adj), 0)
+  expect_equal(as.numeric(zero$cost_adj), 0)
+  expect_equal(nis_cost_provenance(design)$rows_missing_charges, 4L)
+})
+
 test_that("common labels and cost adjustment work in experimental ICD-9 years", {
   data <- dplyr::tibble(
     YEAR = 2012:2015, PAY1 = rep(1L, 4L), DIED = c(0L, 1L, 0L, 1L),

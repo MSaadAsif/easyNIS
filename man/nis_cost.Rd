@@ -13,6 +13,7 @@ nis_cost(data, dollars, charges = "TOTCHG")
 \item{dollars}{Reference dollar year, from 2012 through 2024.}
 
 \item{charges}{Name of the total-charge column. Defaults to \code{"TOTCHG"}.
+Negative, missing, and non-finite values are invalid; zero is retained.
 Use \code{"TOTCHG_2023"} only knowingly: HCUP adjusts that field for states
 missing from 2023, so it is not comparable to earlier-year \code{TOTCHG}, and it
 is missing for earlier years.}
