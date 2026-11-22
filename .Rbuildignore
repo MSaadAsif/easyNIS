@@ -25,5 +25,6 @@
 ^_pkgdown\.yml$
 ^_site($|[/\\])
 ^\.githooks($|[/\\])
+^\.gitattributes$
 
 ^codemeta\.json$
