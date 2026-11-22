@@ -40,8 +40,8 @@ with \code{position = "principal"} in \code{\link[=nis_flag_dx]{nis_flag_dx()}}.
 have no default assignment.
 
 UNVERIFIED: the file layouts above are assumed from secondhand descriptions
-of HCUP downloads, not checked against a current release. The single-quoted
-CSV reader checks row field counts; all supported formats check that codes
+of HCUP downloads, not checked against a current release. Both CSV readers
+check record field counts; all supported formats check that codes
 look like ICD-10 codes (3 to 7 letters or digits). Check the returned codes
 against your reference file before you rely on them.
 

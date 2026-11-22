@@ -21,7 +21,12 @@ nis_design_fields <- function(.data, keep_quo, call) {
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
   }
-  select_data <- stats::setNames(as.list(seq_along(data_names)), data_names)
+  # A zero-row lazy query obtains R column types without collecting discharges.
+  select_data <- if (inherits(.data, "tbl_lazy")) {
+    nis_collect(utils::head(.data, 0L))
+  } else {
+    .data
+  }
   keep_expr <- rlang::get_expr(keep_quo)
   keep_symbol <- rlang::is_symbol(keep_expr)
   keep_symbol_name <- if (keep_symbol) rlang::as_string(keep_expr) else NULL
@@ -31,16 +36,19 @@ nis_design_fields <- function(.data, keep_quo, call) {
   } else {
     keep_expr
   }
-  keep_names <- if (is.character(keep_value)) {
+  selection <- if (is.character(keep_value)) {
     absent_keep <- setdiff(keep_value, data_names)
     if (length(absent_keep)) {
       cli::cli_abort("`keep` references missing column{?s} {.val {absent_keep}}.", call = call)
     }
-    unique(keep_value)
+    tidyselect::eval_select(rlang::expr(tidyselect::all_of(!!keep_value)),
+      data = select_data)
   } else {
-    names(tidyselect::eval_select(keep_quo, data = select_data))
+    tidyselect::eval_select(keep_quo, data = select_data)
   }
-  if (any(startsWith(keep_names, "."))) {
+  keep_names <- data_names[unname(selection)]
+  keep_map <- stats::setNames(keep_names, names(selection))
+  if (any(startsWith(c(keep_names, names(keep_map)), "."))) {
     cli::cli_abort("`keep` cannot select internal or dot-prefixed columns.", call = call)
   }
   selected <- unique(c(design_fields, keep_names))
@@ -48,9 +56,28 @@ nis_design_fields <- function(.data, keep_quo, call) {
     design_fields = design_fields,
     data_names = data_names,
     keep_names = keep_names,
+    keep_map = keep_map,
     selected = selected,
     collected_fields = unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
   )
+}
+
+nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, call) {
+  keep_map <- fields$keep_map
+  retained <- unique(c(fields$design_fields, cost_fields))
+  renamed <- names(keep_map) != unname(keep_map)
+  conflicts <- intersect(names(keep_map)[renamed], retained)
+  if (length(conflicts)) {
+    cli::cli_abort("`keep` cannot rename another column to retained field{?s} {.val {conflicts}}.", call = call)
+  }
+  # Copy simultaneously so swaps and multiple aliases use the original values
+  # and labels, including aliases whose names are other HCUP field names.
+  aliases <- combined[unname(keep_map)]
+  aliases[renamed] <- alias_sources[unname(keep_map[renamed])]
+  names(aliases) <- names(keep_map)
+  combined <- combined[setdiff(names(combined), setdiff(fields$keep_names, retained))]
+  combined[names(aliases)] <- aliases
+  combined
 }
 
 nis_design_groups <- function(prepared, design_fields, call) {
@@ -294,13 +321,21 @@ nis_design_2015_warning <- function(design_years, collected) {
 #' additional summary scan. The cohort expression is evaluated once over the
 #' full data.
 #'
-#' @param .data Lazy DuckDB query or data frame.
+#' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
+#'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
+#'   expressions therefore use the full input, not individual input groups.
 #' @param cohort Logical data-masked cohort expression. Missing values are
 #'   counted and treated as outside the cohort. Only valid-design discharges
 #'   are counted. Untyped SQL `NULL` values are accepted as missing logical
 #'   values. Lazy columns are validated using their SQL type; numeric and
 #'   character columns are rejected even when all missing.
 #' @param keep Tidyselect expression naming analysis columns to collect.
+#'   Renaming uses the selected source values and labels. Required design
+#'   fields remain under their original names, as do selected cost inputs when
+#'   costs are computed. Aliases cannot overwrite these retained fields or
+#'   computed cost columns. Type predicates inspect actual columns locally and
+#'   a zero-row schema for lazy queries; predicates depending on row values
+#'   are therefore not portable across backends.
 #' @param annualize Divide discharge weights by the number of distinct `YEAR`
 #'   values among valid-design discharges. A year counts as one whole year
 #'   however much of it is present, so a partial-year era such as the ICD-10
@@ -340,6 +375,7 @@ nis_design_2015_warning <- function(design_years, collected) {
 nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
                        charges = "TOTCHG") {
   call <- rlang::current_call()
+  .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
   design_fields <- fields$design_fields
@@ -405,7 +441,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   }
   # nolint next: object_usage_linter. Function is defined in this package.
   combined <- nis_label(combined)
+  alias_sources <- combined[unique(fields$keep_names)]
   if (has_cost_inputs) {
+    cost_fields <- c(charges, "CCR_NIS", "charges_adj", "cost_adj")
     charge_years <- unique(cohort_rows$YEAR)
     missing_charge_years <- charge_years[vapply(charge_years, function(year) {
       all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
@@ -445,6 +483,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       cohort = TRUE
     )
   } else {
+    cost_fields <- NULL
     cost_provenance <- NULL
   }
 
@@ -456,6 +495,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
   ))
+  combined <- nis_design_aliases(combined, fields, cost_fields, alias_sources, call)
   design <- nis_cohort_design(combined)
   attr(design, "nis_excluded") <- excluded
   if (!is.null(cost_provenance)) {

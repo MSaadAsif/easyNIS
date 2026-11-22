@@ -9,7 +9,8 @@ nis_cell_counts(.data, by)
 \arguments{
 \item{.data}{Record-level data frame or result of \code{\link[=nis_design]{nis_design()}}.}
 
-\item{by}{Character vector of cell-defining columns.}
+\item{by}{Character vector of cell-defining columns. The summary names \code{n}
+and \code{hospitals} are reserved and cannot be used as cell-defining columns.}
 }
 \value{
 A data frame with the columns in \code{by}, \code{n} (unweighted discharges),
