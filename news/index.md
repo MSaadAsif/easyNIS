@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  counts and excludes missing logical cohorts consistently on data
+  frames and DuckDB, including literal `NA` and flags initialized with
+  `NA`. Typed numeric and character cohorts remain invalid, even when
+  all missing.
+
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   and
   [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
