@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- Diagnosis and procedure code-system eligibility now rejects fractional
+  and infinite numeric `YEAR` indicators while preserving missing-year
+  fallback and 2015 quarter rules.
+
 - `nis_reweight()` supports column selection, renaming, and mutation while
   preserving survey weights and variance structure without restoring removed
   analysis columns.
