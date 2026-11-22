@@ -29,6 +29,10 @@ nis_flag_pr(
 Each procedure slot is checked separately, with the same prefix, regular
 expression, exclusion, and \code{system} semantics as \code{\link[=nis_flag_dx]{nis_flag_dx()}}. \code{"icd10"}
 reads \code{I10_PR1}, ...; \code{"icd9"} (experimental) reads \code{PR1}, ...
+Slot suffixes must be positive integers without leading zeros. Malformed
+slot names are ignored; an error is raised if no slots match the requested
+position. The principal slot has suffix \code{1}; sparse and reordered slots
+are supported.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))
