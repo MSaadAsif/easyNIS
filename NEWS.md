@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_prday_completeness()` classifies factor PRDAY values from their labels,
+  matching character, numeric, and DuckDB inputs.
+
 - `nis_comorbidity()` ignores zero and leading-zero diagnosis slot suffixes
   and requires the principal diagnosis column `I10_DX1`.
 

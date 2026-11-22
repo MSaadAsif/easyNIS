@@ -86,7 +86,7 @@ nis_prday_completeness <- function(.data, pr,
       counts[[paste0("absent_prday_column", suffix)]] <-
         rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     } else {
-      day <- nis_numeric_value_expr(day_name) # nolint: object_usage_linter
+      day <- timing_days(.data, slot, day_by_slot)[[1L]]
       missing <- nis_is_missing_expr(.data, day_name) # nolint: object_usage_linter
       counts[[paste0("known_day", suffix)]] <- rlang::expr(
         sum(as.integer(!!match & ! (!!missing) & !!day >= 0), na.rm = TRUE))
