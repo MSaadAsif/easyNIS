@@ -2,6 +2,7 @@
 
 root <- normalizePath(".", mustWork = TRUE)
 source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "provenance.R"))
 main_repo <- find_main_repo(root)
 read_main_renviron(main_repo)
 loop_dir <- Sys.getenv("EASYNIS_LOOP_DIR", unset = file.path(main_repo, "local", "loop"))
@@ -12,7 +13,6 @@ dir.create(run_dir, recursive = TRUE)
 output <- file.path(run_dir, "quality.jsonl")
 if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite to write probe output.")
 run_evidence <- git_evidence()
-devtools::load_all(root, quiet = TRUE)
 quarto_command <- Sys.which("quarto")
 quarto_pandoc <- if (nzchar(quarto_command)) file.path(dirname(quarto_command), "tools") else ""
 if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && file.exists(file.path(quarto_pandoc, "pandoc.exe"))) {
@@ -21,7 +21,8 @@ if (!nzchar(Sys.getenv("RSTUDIO_PANDOC")) && file.exists(file.path(quarto_pandoc
 
 requested_text <- Sys.getenv("EASYNIS_QUALITY_STEPS", unset = "")
 requested_steps <- if (nzchar(requested_text)) strsplit(requested_text, ",", fixed = TRUE)[[1L]] else character()
-step_keys <- c("as_cran", "lintr", "cyclocomp", "coverage", "goodpractice", "pkgcheck", "pkgdown")
+step_keys <- c("as_cran", "lintr", "cyclocomp", "namespace_complexity",
+  "coverage", "goodpractice", "pkgcheck", "pkgdown")
 unknown_steps <- setdiff(requested_steps, step_keys)
 if (length(unknown_steps)) stop("Unknown EASYNIS_QUALITY_STEPS: ", paste(unknown_steps, collapse = ", "))
 run_step <- function(key, name, fn) {
@@ -40,16 +41,20 @@ checks[["lintr"]] <- run_step("lintr", "lintr", function() lintr::lint_package(r
 checks[["cyclocomp"]] <- run_step("cyclocomp", "cyclocomp_linter(15)", function() {
   lintr::lint_package(root, linters = list(cyclocomp = lintr::cyclocomp_linter(15)))
 })
+checks[["namespace_complexity"]] <- run_step("namespace_complexity",
+  "installed_namespace_complexity", function() {
+    with_verified_source(root, function(root, package) cyclocomp::cyclocomp_package(package))
+  })
 checks[["coverage"]] <- run_step("coverage", "covr", function() {
   covr::package_coverage(root, quiet = TRUE)
 })
 checks[["goodpractice"]] <- run_step("goodpractice", "goodpractice", function() {
   if (!requireNamespace("goodpractice", quietly = TRUE)) return("not installed")
-  goodpractice::gp(root)
+  with_verified_source(root, function(root, package) goodpractice::gp(root))
 })
 checks[["pkgcheck"]] <- run_step("pkgcheck", "pkgcheck", function() {
   if (!requireNamespace("pkgcheck", quietly = TRUE)) return("not installed")
-  pkgcheck::pkgcheck(root)
+  with_verified_source(root, function(root, package) pkgcheck::pkgcheck(root))
 })
 checks[["pkgdown"]] <- run_step("pkgdown", "pkgdown::check_pkgdown", function() {
   if (!requireNamespace("pkgdown", quietly = TRUE)) return("not installed")
@@ -57,12 +62,10 @@ checks[["pkgdown"]] <- run_step("pkgdown", "pkgdown::check_pkgdown", function() 
 })
 
 pkgcheck_pass <- function(value) {
+  # No published aggregate pass API; retain known nested failures only.
   if (!inherits(value, "pkgcheck")) return(NA)
-  summary_lines <- tryCatch(getFromNamespace("summarise_all_checks", "pkgcheck")(value),
-    error = function(e) NULL)
-  okay <- attr(summary_lines, "checks_okay", exact = TRUE)
-  if (!is.logical(okay) || length(okay) != 1L || is.na(okay)) return(NA)
-  okay
+  if (identical(goodpractice_pass(value$goodpractice), FALSE)) return(FALSE)
+  NA
 }
 export_docs <- exported_example_status(root)
 exports <- export_docs$exports
@@ -86,10 +89,17 @@ required_fields <- c("Package", "Title", "Version", "Authors@R", "Description", 
 description_fields <- stats::setNames(vapply(required_fields, function(field) {
   any(grepl(paste0("^", field, ":"), description_text))
 }, logical(1)), required_fields)
-exported_args <- lapply(exports, function(name) {
-  tryCatch(names(formals(getExportedValue("easyNIS", name))), error = function(e) character())
+checks[["export_arguments"]] <- capture_quality_step("export_arguments", function() {
+  with_verified_source(root, function(root, package) {
+    exports <- getNamespaceExports(package)
+    stats::setNames(lapply(exports, function(name) {
+      names(formals(getExportedValue(package, name)))
+    }), exports)
+  })
 })
-names(exported_args) <- exports
+exported_args <- checks$export_arguments$value
+if (inherits(exported_args, "error")) exported_args <- stats::setNames(rep(list(character()), length(exports)), exports)
+exported_args <- exported_args[exports]
 data_first_exceptions <- names(exported_args)[!vapply(exported_args, function(args) {
   length(args) > 0L && args[[1L]] %in% c(".data", "data", "x", "design", "path", "file")
 }, logical(1))]
@@ -126,6 +136,7 @@ quality_step_pass <- function(x, counts) {
   value <- x$value
   if (identical(value, "skipped_by_selection") || identical(value, "not installed")) return(NA)
   if (inherits(value, "error")) return(FALSE)
+  if (x$name == "installed_namespace_complexity") return(namespace_complexity_pass(value))
   if (x$name %in% c("lintr", "cyclocomp_linter(15)")) return(x$pass && length(value) == 0L)
   if (!is.null(counts)) return(x$pass && all(counts == 0L))
   if (inherits(value, "coverage")) return(x$pass && covr::percent_coverage(value) >= 90)
@@ -164,10 +175,15 @@ quality_step_detail <- function(x, counts, passed) {
 quality_record <- function(x, evidence) {
   value <- x$value
   counts <- check_counts_for(value)
-  passed <- quality_step_pass(x, counts)
+  provenance <- quality_provenance(x$name)
+  passed <- provenance_pass(quality_step_pass(x, counts), provenance)
   detail <- quality_step_detail(x, counts, passed)
   if (!x$name %in% c("lintr", "cyclocomp_linter(15)")) detail <- redact_paths(detail)
-  quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
+  record <- quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
+  record$provenance <- if (inherits(value, "error")) "failed" else if (
+    identical(value, "skipped_by_selection") || identical(value, "not installed")
+  ) "not_measured" else provenance
+  record
 }
 records <- lapply(checks, quality_record, evidence = run_evidence)
 records[[length(records) + 1L]] <- list(step = "export_documentation", status = "completed",
@@ -178,18 +194,8 @@ records[[length(records) + 1L]] <- list(step = "ropensci_manual_subset",
   commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean,
   evidence = checklist)
 coverage_check <- checks$coverage
-coverage <- coverage_check$value
-if (identical(coverage, "skipped_by_selection")) {
-  coverage_record <- NULL
-} else if (inherits(coverage, "coverage")) {
-  cov <- covr::percent_coverage(coverage)
-  coverage_record <- list(step = "coverage_percent", status = "completed", pass = cov >= 90,
-    value = cov, commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
-} else {
-  coverage_record <- list(step = "coverage_percent", status = "failed", pass = FALSE,
-    value = NA_real_, error_class = coverage_check$error_class,
-    commit = run_evidence$commit, working_tree_clean = run_evidence$working_tree_clean)
-}
+coverage_record <- coverage_percent_record(coverage_check, run_evidence,
+  covr::percent_coverage, provenance_pass)
 if (!is.null(coverage_record)) records[[length(records) + 1L]] <- coverage_record
 lines <- vapply(records, jsonlite::toJSON, character(1), auto_unbox = TRUE, null = "null", na = "null")
 writeLines(lines, output, useBytes = TRUE)

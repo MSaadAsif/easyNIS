@@ -60,6 +60,29 @@ diagnostic results and captured warning conditions in
 quality receipts include numeric failed-check, R CMD check error, and captured
 warning counts, without nested condition text. A goodpractice prep failure is
 a failed step, while an unknown check status remains unverified.
+
+The quality probe no longer source-loads easyNIS before running checkers.
+`namespace_complexity` installs the requested source with `R CMD INSTALL` in
+a disposable library, requires successful installation, and checks the effective
+loaded namespace path before calling `cyclocomp::cyclocomp_package()`.
+Neither equal version strings, library search order, nor a clean child process
+alone verifies namespace identity. Installation failures remain failures; no
+fallback installation is accepted. Run `tools/probe/test-provenance.R` for the
+invented loaded-parent, same-version older-installation, and install-failure cases.
+
+The goodpractice and pkgcheck entry processes also use verified isolated
+installations, but their nested installations and subprocesses are not attested
+by that outer check. R CMD check and coverage likewise create their own
+installations. These receipts carry `nested_unverified`: observed failures
+remain false, while apparent passes and unknown outcomes remain unverified
+(`pass: null`). The separate coverage percentage receipt follows the same rule.
+Static lint receipts describe source inspection, not installed-namespace evidence.
+The installed complexity receipt verifies only that direct measurement, not
+every result returned by packaging tools. pkgcheck has no published aggregate
+pass API used here; the probe retains known goodpractice failures and otherwise
+leaves its aggregate status unknown. Older receipts cannot be retrospectively
+attested by this instrumentation.
+
 A public issue contains only a synthetic reproduction using `nis_example()` or
 another fixture, plus a description of the problem in general terms. The
 public-text scanner is a backstop, not publication clearance. Use judgment and

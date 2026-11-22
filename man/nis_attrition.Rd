@@ -27,7 +27,9 @@ discharge counts at each step. The initial row has no preceding step, so its
 dropped counts are \code{NA}. Criteria are evaluated in order; \code{NA} values
 are treated as excluded, matching \code{\link[dplyr:filter]{dplyr::filter()}}. The summary is
 aggregated lazily for DuckDB queries and returned as a collected tibble.
-Missing weights contribute zero to weighted totals.
+Missing weights (including \code{NaN}) contribute zero to weighted totals.
+Existing input groups are ignored, including when evaluating criteria.
+Criteria are evaluated over the full input before annual aggregation.
 }
 \examples{
 toy_nis <- dplyr::tibble(
