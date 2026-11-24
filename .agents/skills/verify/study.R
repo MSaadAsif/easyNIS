@@ -120,6 +120,14 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     if (!is.null(disclosure_case)) {
       definition[grepl("^  years:", definition)] <-
         paste0("  years: [", paste(disclosure_case$years, collapse = ", "), "]")
+      if (isTRUE(disclosure_case$supported)) {
+        flags_line <- grep("^nis_data <- nis_data", definition)
+        stopifnot(length(flags_line) == 1L)
+        definition <- append(definition, c(
+          'outcomes <- dplyr::add_row(outcomes, outcome = "TOTCHG", family = "gaussian", exponentiate = FALSE)',
+          ""
+        ), after = flags_line - 1L)
+      }
       definition <- c(definition, "", "```{r}", "#| include: false",
         'dput(trend_long, file = "trend-plot-data.R")', "```")
     }
@@ -234,7 +242,8 @@ verify_study_disclosure <- function(report, case) {
     outcomes <- study_report_section(document, "outcomes")
     headers <- xml2::xml_text(xml2::xml_find_all(outcomes, ".//thead//th"))
     stopifnot(any(grepl(paste0("N = ", sum(case$sizes)), headers, fixed = TRUE)),
-      length(xml2::xml_find_all(table_one, ".//table")) == 1L)
+      length(xml2::xml_find_all(table_one, ".//table")) == 1L,
+      any(grepl("TOTCHG", xml2::xml_text(published_models), fixed = TRUE)))
     stopifnot(length(published_models) > 0L,
       grepl(as.character(tail(case$years, 1L)), xml2::xml_text(published_models), fixed = TRUE))
     return(invisible(NULL))

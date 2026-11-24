@@ -432,7 +432,7 @@ not changed to make a model fit.
 model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
   if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe) ||
-      identical(outcome_ok[[current$outcome[[1L]]]], FALSE)) {
+      isFALSE(outcome_ok[current$outcome[[1L]]])) {
     return(easyNIS:::nis_study_withheld_model())
   }
   model_family <- switch(
