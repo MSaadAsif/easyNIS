@@ -4,8 +4,9 @@ ci_run_list_args <- function(commit) {
 }
 
 ci_run_succeeded <- function(run, commit) {
-  is.list(run) && is.character(run$name) && length(run$name) == 1L &&
-    !is.na(run$name) && grepl("R-CMD-check", run$name, ignore.case = TRUE) &&
+  fields <- c("name", "headSha", "status", "conclusion")
+  is.list(run) && !anyDuplicated(names(run)) && all(fields %in% names(run)) &&
+    identical(run$name, "R-CMD-check") &&
     identical(run$headSha, commit) && identical(run$status, "completed") &&
     identical(run$conclusion, "success")
 }
