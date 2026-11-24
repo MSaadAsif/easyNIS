@@ -26,6 +26,7 @@ input_path <- if (is_example) {
 }
 
 nis_data <- nis_open(input_path, years = params$years)
+data_files <- easyNIS:::nis_open_source_paths(nis_data)
 ```
 
 ## Study definitions
@@ -40,7 +41,6 @@ codes <- list(
 
 cohort <- rlang::expr(principal_dx & AGE >= 18)
 exposure <- "exposed"
-# The default adjusts for year only when more than one year is selected.
 covariates <- c(
   "AGE", "FEMALE",
   if (length(params$years) > 1L) "factor(YEAR)"
@@ -56,16 +56,10 @@ nis_data <- nis_data |>
   nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
   nis_flag_dx(exposed = codes$exposure, position = "any")
 
-# The example data is small and content-hashed because its temporary directory
-# changes on every render. User-provided files use path, size, and modification
-# time to avoid rescanning large Parquet inputs. Parsed setup/definitions code,
-# package functions, dependency versions, and survey options complete the key;
-# prose and comments do not invalidate the design. Changes made by sourced
-# scripts or mutable environment state are not detected; include their explicit
-# values in a cache key or rerun affected chunks.
-data_files <- list.files(input_path, pattern = "[.]parquet$",
-  recursive = TRUE, full.names = TRUE)
-design_key <- easyNIS:::nis_study_cache_key(
+# Quarto can put chunk options in HTML attributes, so pass hashes to the renderer.
+# Changes made by sourced scripts or mutable environment state need an explicit
+# cache input or a fresh render without the saved cache.
+design_key <- rlang::hash(easyNIS:::nis_study_cache_key(
   input_path = input_path,
   is_example = is_example,
   data_files = data_files,
@@ -81,14 +75,14 @@ design_key <- easyNIS:::nis_study_cache_key(
     lonely_psu = getOption("survey.lonely.psu"),
     adjust_domain_lonely = getOption("survey.adjust.domain.lonely")
   )
-)
-report_key <- easyNIS:::nis_study_report_cache_key(
+))
+report_key <- rlang::hash(easyNIS:::nis_study_report_cache_key(
   design_key = design_key,
   exposure = exposure,
   covariates = covariates,
   outcomes = outcomes,
   output_format = knitr::is_html_output()
-)
+))
 ```
 
 ```{r}
@@ -156,39 +150,40 @@ scientific approval.
 
 ## Cohort flow
 
-The first three rows are lazy aggregates over the opened data. The final row
+The first three rows come from one aggregate over the opened data. The final row
 comes from the survey design, which also drops discharges with a missing or
 non-positive `DISCWT`, `NIS_STRATUM`, or `HOSP_NIS`.
 
 ```{r}
 #| label: flow
-flow_summary <- function(data, step) {
-  data |>
-    dplyr::summarise(
-      n = dplyr::n(),
-      weighted_discharges = sum(DISCWT, na.rm = TRUE) # Data-masked field in the lazy query. # nolint
-    ) |>
-    dplyr::collect() |>
-    dplyr::mutate(step = step)
-}
+flow_counts <- nis_data |>
+  dplyr::transmute(
+    cohort_match = !!cohort,
+    principal_match = principal_dx,
+    weight = DISCWT
+  ) |>
+  dplyr::summarise(
+    all_n = dplyr::n(),
+    all_weight = sum(weight, na.rm = TRUE),
+    principal_n = dplyr::coalesce(
+      sum(dplyr::if_else(principal_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
+    ),
+    principal_weight = sum(dplyr::if_else(principal_match, weight, NA), na.rm = TRUE),
+    cohort_n = dplyr::coalesce(
+      sum(dplyr::if_else(cohort_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
+    ),
+    cohort_weight = sum(dplyr::if_else(cohort_match, weight, NA), na.rm = TRUE)
+  ) |>
+  dplyr::collect()
 
-flow_all <- flow_summary(nis_data, "All discharges")
-flow_principal_dx <- flow_summary(
-  dplyr::filter(nis_data, principal_dx), "Principal diagnosis prefix"
+flow_raw <- dplyr::tibble(
+  step = c("All discharges", "Principal diagnosis prefix", "Cohort definition",
+    "Analysis cohort (valid survey design)"),
+  n = c(flow_counts$all_n, flow_counts$principal_n, flow_counts$cohort_n, cohort_n),
+  weighted_discharges = c(flow_counts$all_weight, flow_counts$principal_weight,
+    flow_counts$cohort_weight, sum(study_design$variables$DISCWT))
 )
-flow_cohort <- flow_summary(
-  rlang::inject(dplyr::filter(nis_data, !!cohort)), "Cohort definition"
-)
-flow_analysis <- dplyr::tibble(
-  n = cohort_n,
-  weighted_discharges = sum(study_design$variables$DISCWT),
-  step = "Analysis cohort (valid survey design)"
-)
-
-flow_raw <- dplyr::bind_rows(
-  flow_all, flow_principal_dx, flow_cohort, flow_analysis
-)
-stopifnot(flow_analysis$n[[1L]] <= flow_cohort$n[[1L]])
+stopifnot(cohort_n <= flow_counts$cohort_n)
 flow_display <- flow_raw |>
   dplyr::mutate(
     discharges = dplyr::if_else(

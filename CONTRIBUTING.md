@@ -26,10 +26,10 @@ filename and put focused tests next to that domain's other tests in
 
 | To change | Start here |
 | --- | --- |
-| Annual and Hive discovery | `R/open.R` for part selection, `R/open-parquet.R` for scan planning and year validation, and `R/duckdb.R` for connections and spill storage |
+| Annual and Hive discovery | `R/open-discovery.R` for part ownership, `R/open-parquet.R` for scan planning and year validation, and `R/duckdb.R` for connections and spill storage |
 | Diagnosis or procedure selection | `R/code-layout.R` for slot names and code-system eligibility, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
-| Survey design or weights | `R/design.R` for input and cohort selection, `R/cohort-design.R` for the survey representation, and `R/reweight.R` for factor validation and application |
-| Disclosure | `R/disclosure-policy.R` for primary masks and hospital identity, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for format-specific behavior |
+| Survey design or weights | `R/design.R` for input selection, `R/design-sample.R` for sample and cohort scans, `R/cohort-design.R` for survey objects, and `R/reweight.R` for factor validation and application |
+| Disclosure | `R/disclosure-policy.R` for primary masks and hospital identity, `R/cell-counts.R` for cell summaries, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for format-specific masking |
 | Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for cache inputs, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
 | Improvement probes | `tools/probe/` for commands, `quality-checks.R` for check definitions, `quality-receipts.R` for evidence, and `readiness-criteria.R` for decisions |
 

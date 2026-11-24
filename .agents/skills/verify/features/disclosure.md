@@ -7,8 +7,9 @@ estimates together, including complementary masking.
 
 ## How to get to it (user POV)
 
-Call `nis_cell_counts(records, by = ...)`. Pass its unweighted and
-hospital-count columns and any weighted fields to `nis_suppress()`.
+Call `nis_cell_counts(query, by = ...)` to aggregate a lazy DuckDB query.
+Pass its unweighted and hospital-count columns and any weighted fields to
+`nis_suppress()`.
 
 ## Driving it with Rscript
 

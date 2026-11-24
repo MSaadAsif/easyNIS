@@ -52,3 +52,93 @@ The audit uses invented fixtures, package source, and Git history. Public signat
 - Integer64 attrition and reweighting preserve counts and usable survey weights.
 - Generated studies normalize relative scaffold paths, include reference tables in cache keys, and use factor levels present in complete cases for model preflight.
 - The privacy guard sees the exact staged blob even when a different worktree copy exists.
+
+## Architecture audit at `b3c72ad`
+
+The second audit covered package entry points, the generated study, probe
+commands, CI, and the project verification skills. The following decisions
+record the source layout at the start of this pass.
+
+### Plan Parquet scans and retain their sources in one module
+
+- `R/open.R:115–123` validates each part before `R/open-parquet.R:81–98`
+  groups compatible consecutive parts. Bind and validate the scan groups
+  first, then use those groups to read data. On a validation failure, identify
+  the offending parts using the same predicate. Keep per-part schemas because
+  the native reader and the Arrow adapter can expose different types.
+- Wide integer years need a range check. Use native integer bounds to let
+  DuckDB discard valid row groups from Parquet statistics.
+- `R/open.R:147–152,203–222` visits nested directories for discovery and
+  revisits them through each selected parent. Give each part an explicit owner
+  and retain its selected path. Preserve nearest Hive ownership, physical
+  `YEAR` checks, literal paths, and stable output column spelling.
+- `inst/templates/nis-study/analysis.qmd:66–70` requests cache metadata for
+  every Parquet file under the input root. Use the selected paths from the
+  opener so an unrelated file cannot force an expensive rebuild. Keep the
+  cache helper interface already used by generated studies.
+- The same template passes the raw cache payload to knitr, which can put
+  package source and private paths into HTML chunk attributes. Use a digest
+  as the rendered cache key and verify explicit input paths stay out of HTML.
+- `tools/probe/probe-real-data.R:16–20` recognizes only annual filenames.
+  Give the probe the opener's discovery result and cover mixed layouts.
+
+### Collect a compact description of the survey sample
+
+- `R/design.R:85–126` groups invalid records on raw hospital and stratum
+  IDs and transfers those groups to R, although exclusion reporting uses
+  only the defect flags and usable year. Group by IDs only for valid rows.
+- `R/design.R:202–222,394–400` reads the valid sample again solely to
+  check which quarters are present. Add bounded quarter indicators to
+  the sample summary, keeping the distinct 2015 cohort diagnostic.
+- `R/design.R:180–199` collects missing-cohort rows only to count them.
+  DuckDB R 1.5.2 slices an already materialized DBI result. A SQL window or
+  materialized CTE can shrink the result sent to R while buffering the
+  candidate rows in DuckDB, and an extra scan would reevaluate the cohort
+  expression. A temporary counter would add connection state and depend
+  on optimizer evaluation order. Keep once-only evaluation and discard
+  missing rows before constructing the survey object. The retained cohort
+  still requires R memory.
+
+### Validate code audit inputs in the summaries that already read them
+
+- `R/code-audit.R:40–52,420` reads the whole eligible input to check
+  weights separately from each audit's period summary. Aggregate validity
+  with the denominators and preserve period rows when there are no code matches.
+- `R/dx-sensitivity.R:150–172` has a separate missing-value rule from
+  `R/attrition.R:145–149`, so DuckDB NaN can corrupt weighted counts and
+  mortality. Reuse the backend missing-value rule and keep the two analyses'
+  distinct statistical semantics.
+- Move column names, identifier allocation, missing-value expressions and
+  collection to `R/query-expressions.R`. Those are query operations.
+  `R/duckdb.R` owns connection and temporary-storage lifecycle.
+
+### Visit each disclosure stratum once
+
+- `R/suppress-data-frame.R:99–108` repeatedly scans all row groups to
+  find one stratum's rows. Use the rows already produced by grouping.
+  Preserve primary precedence, positive counts, tie order, and isolation
+  across strata. The bounded disclosure check covers all these cases.
+- `R/cell-counts.R:1–8` and the getting-started vignette require
+  collecting all discharges before counting. Give DuckDB an adapter
+  that counts the same year-scoped hospitals and validates each identity
+  in the aggregate. The disclosure interface should collect only cell counts.
+
+### Put study cohort flow and render verification behind their own interfaces
+
+- `inst/templates/nis-study/analysis.qmd:165–181` scans the Parquet
+  query independently for baseline, principal diagnosis, and cohort totals.
+  Summarize all three in one statement. Keep the criteria independent so
+  custom cohorts need not be subsets of the principal diagnosis.
+- `.agents/skills/verify/drive.R:122–153` and
+  `.github/workflows/template-render.yaml:29–59` drive the same
+  public study interface independently. Share the installed journey, keeping
+  built-in inputs and explicit inputs as separate cases. Use rendered output
+  to check the scaffold promises where tests currently match source text.
+
+### Reuse a writer for each invented fixture
+
+- `R/example.R:144–170` opens a new DuckDB instance for every annual
+  file through `R/duckdb.R:104–115`. The fixture operation should own one
+  writer, one temporary table at a time, and its destination until the
+  annual files have been written successfully. Tests that write one Parquet
+  part can still use the same writing operation.

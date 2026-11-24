@@ -13,11 +13,15 @@ options(easyNIS.duckdb_config = duckdb_config)
 record_step <- recorder$record
 devtools::load_all(".", quiet = TRUE)
 
-files <- list.files(data_dir, pattern = "^NIS_[0-9]{4}[.]parquet$", full.names = TRUE)
-years <- sort(as.integer(sub("^NIS_([0-9]{4})[.]parquet$", "\\1", basename(files))))
-if (!length(years)) stop("No NIS_<year>.parquet files found in EASYNIS_DATA.")
+years <- easyNIS:::nis_open_available_years(data_dir)
+if (!length(years)) stop("No annual or Hive NIS Parquet parts found in EASYNIS_DATA.")
 for (year in years) {
-  record_step("open_year", "nis_open", year, function() easyNIS::nis_open(data_dir, years = year))
+  record_step("open_year", "nis_open + collect", year, function() {
+    easyNIS::nis_open(data_dir, years = year) |>
+      dplyr::transmute(.nis_probe_row = 1L) |>
+      utils::head(1L) |>
+      dplyr::collect()
+  })
 }
 
 year <- max(years)

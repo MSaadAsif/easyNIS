@@ -33,6 +33,29 @@ test_that("study cache keys change when definitions or external data roots chang
   expect_false(identical(key_a, make(data_a, file_a)))
 })
 
+test_that("study cache keys track selected Parquet parts only", {
+  path <- nis_example(2019:2020)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  selected <- nis_open(path, years = 2020L)
+  make_key <- function() {
+    nis_study_cache_key(
+      input_path = path, is_example = FALSE,
+      data_files = nis_open_source_paths(selected),
+      years = 2020L, codes = list(dx = "I50"), cohort = "dx",
+      annualize = FALSE, source_chunks = list(), survey_options = list()
+    )
+  }
+  input_key <- make_key()
+  unselected_part <- file.path(path, "NIS_2019.parquet", "part-0.parquet")
+  selected_part <- file.path(path, "NIS_2020.parquet", "part-0.parquet")
+  updated_time <- as.POSIXct("2020-01-01 00:00:00", tz = "UTC")
+
+  expect_true(Sys.setFileTime(unselected_part, updated_time))
+  expect_identical(make_key(), input_key)
+  expect_true(Sys.setFileTime(selected_part, updated_time))
+  expect_false(identical(make_key(), input_key))
+})
+
 test_that("report cache keys include model inputs, format, and dependency versions", {
   make_key <- getFromNamespace("nis_study_report_cache_key", "easyNIS")
   design <- list(cache_key = "design")

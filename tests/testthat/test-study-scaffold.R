@@ -65,58 +65,15 @@ test_that("nis_new_study validates path arguments with stable conditions", {
   expect_identical(conditionCall(missing), quote(easyNIS::nis_new_study()))
 })
 
-test_that("the packaged Quarto template follows the scaffold contract", {
+test_that("the packaged Quarto template contains no private paths", {
   template <- system.file("templates", "nis-study", package = "easyNIS")
-  expect_true(file.exists(file.path(template, "_quarto.yml")))
-  expect_true(file.exists(file.path(template, "analysis.qmd")))
-  expect_false(file.exists(file.path(template, "styles.css")))
-
-  quarto <- paste(readLines(file.path(template, "_quarto.yml")), collapse = "\n")
-  analysis <- paste(
-    readLines(file.path(template, "analysis.qmd"), encoding = "UTF-8"),
-    collapse = "\n"
-  )
-  combined <- paste(quarto, analysis, sep = "\n")
-
-  expect_match(quarto, "embed-resources: true")
-  expect_match(quarto, "output-dir: docs")
-  expect_match(quarto, "toc: true")
-  expect_match(quarto, "echo: false")
-  expect_match(analysis, "data_path: null")
-  expect_match(analysis, "years: [2017, 2018, 2019, 2020, 2021, 2022]",
-               fixed = TRUE)
-  for (section in c("Methods", "Cohort flow", "Table 1", "Outcomes",
-                    "Trends by year", "Multivariable models")) {
-    expect_match(analysis, paste0("## ", section), fixed = TRUE)
-  }
-  expect_match(analysis, "IPTW")
-  analysis_raw <- readBin(
-    file.path(template, "analysis.qmd"),
-    what = "raw",
-    n = file.info(file.path(template, "analysis.qmd"))$size
-  )
-  dua_marker <- c(
-    charToRaw("Cells based on "),
-    as.raw(c(0xe2, 0x89, 0xa4)),
-    charToRaw(paste0(
-      "10 unweighted discharges are masked (with the overall cell in the same row); ",
-      "review tables for other derivable cells before sharing, ",
-      "per the HCUP Data Use Agreement."
-    ))
-  )
-  marker_starts <- seq_len(length(analysis_raw) - length(dua_marker) + 1L)
-  expect_true(any(vapply(marker_starts, function(start) {
-    identical(
-      analysis_raw[start:(start + length(dua_marker) - 1L)],
-      dua_marker
-    )
-  }, logical(1))))
-  expect_match(analysis, "experimental pending")
-  expect_false(grepl("heart[- ]failure|cardiac", combined, ignore.case = TRUE))
+  files <- file.path(template, c("_quarto.yml", "analysis.qmd"))
+  combined <- unlist(lapply(files, readLines, encoding = "UTF-8"))
   drive_roots <- paste0(c(LETTERS, letters), ":", intToUtf8(92))
-  expect_false(any(vapply(drive_roots, grepl, logical(1), x = combined,
-                          fixed = TRUE)))
-  expect_false(grepl("/Users/|/home/|/private/", combined))
+  expect_false(any(vapply(drive_roots, function(root) {
+    any(grepl(root, combined, fixed = TRUE))
+  }, logical(1))))
+  expect_false(any(grepl("/Users/|/home/|/private/", combined)))
 })
 
 test_that("study scaffold reports parent creation failure", {

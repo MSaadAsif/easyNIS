@@ -60,7 +60,7 @@ ungrouped path and year-scoped hospital counting.
 ## Code and sync
 
 The checker last matched package source at
-`d2c84834ae4a676c698f54b3d2aa72bc6117e197`, using R 4.6.1 and dplyr 1.2.1.
+`aefa33db24b73ce814f8bc14c91cae0d25f826d0`, using R 4.6.1 and dplyr 1.2.1.
 
 - [R/suppress.R](../../../R/suppress.R) selects the data-frame path and validates the threshold.
 - [R/disclosure-policy.R](../../../R/disclosure-policy.R) supplies the primary masks in `nis_disclosure_masks()`.

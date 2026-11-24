@@ -2,8 +2,8 @@
 
 ## Sub-features
 
-Generate a Quarto study directory, then render the starter HTML report with
-its built-in invented inputs.
+Generate a Quarto study directory, then render the report with built-in or
+explicit invented inputs.
 
 ## How to get to it (user POV)
 
@@ -12,22 +12,29 @@ Call `nis_new_study()` with an unused directory path, then run
 
 ## Driving it with Rscript
 
-Keep Quarto on PATH and install `purrr`, `survey`, `gtsummary`, `cardx`,
-`gt`, `knitr`, `rmarkdown`, and `broom.helpers` in your normal R library.
+Keep Quarto on PATH and install the package's suggested dependencies and
+`xml2` in your normal R library.
 
 ```sh
 Rscript --vanilla .agents/skills/verify/drive.R study
+Rscript --vanilla .agents/skills/verify/drive.R study-ci
 ```
 
-The driver verifies the generated project files, renders with the scaffold's
-default `nis_example()` data, and verifies the study title and cohort-flow
-section in the HTML. Inspect `scaffold.txt`, `analysis.qmd`, `render.txt`,
-and `analysis.html`. Compare the rendered tables or model output when they
-are the subject of the change.
+The `study` journey renders the default scaffold with built-in example
+data. The `study-ci` journey supplies a synthetic Parquet directory and
+edits the cohort definition to include some discharges outside the principal
+diagnosis group. It renders HTML and Word and verifies the four HTML
+cohort-flow rows against the fixture.
+
+Both journeys check the rendered sections and the disclosure notice.
+`study-ci` also checks that the explicit input directory is absent from
+the HTML. Inspect the scaffold, render logs, and reports in the evidence
+directory. The CI journey records its fixture hashes and the expected and
+observed cohort flow.
 
 ## Gotchas
 
 The report runs in a separate process. The driver points Quarto to the same
 R installation and the temporary library used to install the checkout.
-This journey covers HTML. A Word-specific change also needs a Word render
-with `quarto render analysis.qmd --to docx` and `flextable` installed.
+The Word render also requires `flextable`. In CI the evidence is uploaded
+as `synthetic-study-render`.

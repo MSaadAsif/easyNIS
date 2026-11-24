@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 source(".agents/skills/verify/runner.R")
+source(".agents/skills/verify/study.R")
 
 write_evidence <- function(x, path, digits = 12L) {
   print(x, digits = digits)
@@ -104,9 +105,12 @@ drive_survey <- function(scratch, evidence) {
 }
 
 drive_disclosure <- function(scratch, evidence) {
-  rows <- dplyr::collect(easyNIS::nis_open(annual_fixture(scratch, evidence)))
-  rows$category <- ifelse(rows$key == 1L, "small",
-    ifelse(rows$key %in% c(2L, 5L, 6L), "companion", "other"))
+  rows <- easyNIS::nis_open(annual_fixture(scratch, evidence)) |>
+    dplyr::mutate(category = dplyr::case_when(
+      key == 1L ~ "small",
+      key %in% c(2L, 5L, 6L) ~ "companion",
+      TRUE ~ "other"
+    ))
   cells <- easyNIS::nis_cell_counts(rows, by = "category") |>
     dplyr::arrange(category) |>
     dplyr::mutate(estimate = 10 * n)
@@ -119,37 +123,8 @@ drive_disclosure <- function(scratch, evidence) {
   write_evidence(list(cells = cells, suppressed = suppressed), file.path(evidence, "results.R"))
 }
 
-drive_study <- function(scratch, evidence) {
-  quarto <- Sys.which("quarto")
-  if (!nzchar(quarto)) stop("Quarto must be on PATH to drive the study feature.")
-  version <- system2(quarto, "--version", stdout = TRUE)
-  if (!length(version) || !is.null(attr(version, "status"))) stop("Quarto version check failed.")
-  cat("QUARTO ", version, "\n", sep = "")
-  path <- easyNIS::nis_new_study(file.path(scratch, "study"))
-  stopifnot(all(file.exists(file.path(path, c("_quarto.yml", "analysis.qmd", ".gitignore")))))
-  files <- list.files(path, all.files = TRUE, no.. = TRUE)
-  writeLines(files, file.path(evidence, "scaffold.txt"))
-  stopifnot(all(file.copy(file.path(path, c("analysis.qmd", "_quarto.yml")), evidence)))
-
-  original <- getwd()
-  on.exit(setwd(original))
-  setwd(path)
-  Sys.setenv(QUARTO_R = R.home("bin"), R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
-  render_log <- file.path(evidence, "render.txt")
-  args <- c("render", "analysis.qmd", "--to", "html")
-  cat("RENDER ", paste(c(shQuote(quarto), args), collapse = " "), "\n", sep = "")
-  status <- system2(quarto, args, stdout = render_log, stderr = render_log)
-  if (status != 0L) stop("Quarto render failed. Read render.txt.")
-  report <- file.path("docs", "analysis.html")
-  stopifnot(file.exists(report))
-  html <- readLines(report, warn = FALSE, encoding = "UTF-8")
-  stopifnot(any(grepl("National Inpatient Sample Study", html, fixed = TRUE)),
-    any(grepl("Cohort flow", html, fixed = TRUE)), file.copy(report, evidence))
-  cat("RENDER PASS ", file.info(report)$size, " bytes\n", sep = "")
-}
-
 drivers <- list(open = drive_open, cohort = drive_cohort, survey = drive_survey,
-  disclosure = drive_disclosure, study = drive_study)
+  disclosure = drive_disclosure, study = drive_study, `study-ci` = drive_study_ci)
 args <- commandArgs(trailingOnly = TRUE)
 if (identical(args, "doctor")) {
   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))
@@ -158,10 +133,9 @@ if (identical(args, "doctor")) {
   cat("DOCTOR PASS easyNIS ", description[1L, "Version"], " / ", R.version.string, "\n",
     sep = "")
 } else if (length(args) == 1L && args %in% names(drivers)) {
-  study_packages <- c("purrr", "survey", "gtsummary", "cardx", "gt", "knitr", "rmarkdown",
-    "broom.helpers")
   verification_run(args, drivers[[args]],
-    packages = if (args == "study") study_packages else character())
+    packages = study_verification_packages(args))
 } else {
-  stop("Usage: Rscript --vanilla .agents/skills/verify/drive.R [doctor|open|cohort|survey|disclosure|study]")
+  stop(paste("Usage: Rscript --vanilla .agents/skills/verify/drive.R",
+    paste(c("doctor", names(drivers)), collapse = "|")))
 }
