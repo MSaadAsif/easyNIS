@@ -96,13 +96,11 @@ nis_sample_exclusions <- function(design_groups) {
   excluded_by_field <- vapply(.nis_design_invalid_fields, function(column) {
     as.integer(sum(design_groups$n[design_groups[[column]]]))
   }, integer(1))
-  # nolint start: object_usage_linter. dplyr data-masked `.data` pronoun.
   year_counts <- design_groups |>
     dplyr::filter(!.nis_valid, !is.na(YEAR)) |>
     dplyr::group_by(YEAR) |>
-    dplyr::summarise(n = sum(.data$n), .groups = "drop") |>
+    dplyr::summarise(n = sum(!!rlang::sym("n")), .groups = "drop") |>
     dplyr::arrange(YEAR)
-  # nolint end
   excluded <- list(total = excluded_count, by_field = excluded_by_field,
     by_year = year_counts)
   if (excluded_count > 0L) {
