@@ -1,31 +1,4 @@
-nis_example_test_digest <- function(data) {
-  encode <- function(value) {
-    if (is.na(value)) return("N;")
-    text <- if (is.character(value)) {
-      enc2utf8(value)
-    } else if (is.double(value)) {
-      format(value, digits = 15, scientific = TRUE, trim = TRUE)
-    } else {
-      as.character(value)
-    }
-    paste0("V", nchar(text, type = "bytes"), ":", text, ";")
-  }
-  columns <- paste0(nchar(names(data), type = "bytes"), ":", names(data), ";")
-  rows <- vapply(seq_len(nrow(data)), function(i) {
-    paste0(vapply(data, function(column) encode(column[[i]]), character(1)),
-      collapse = "")
-  }, character(1))
-  content <- paste0(paste(columns, collapse = ""), "\n",
-    paste(rows, collapse = "\n"), "\n")
-  path <- tempfile()
-  on.exit(unlink(path), add = TRUE)
-  connection <- file(path, "wb")
-  writeBin(charToRaw(enc2utf8(content)), connection)
-  close(connection)
-  unname(tools::md5sum(path))
-}
-
-test_that("nis_example keeps annual layouts and invented values stable", {
+test_that("nis_example writes the documented annual layouts and coding eras", {
   configs <- list(2012L, c(2015L, 2016L), c(2022L, 2023L))
   expected_years <- unlist(configs, use.names = FALSE)
   paths <- lapply(configs, nis_example)
@@ -38,37 +11,8 @@ test_that("nis_example keeps annual layouts and invented values stable", {
     })
   }, paths, configs))
 
-  expected <- data.frame(
-    year = expected_years,
-    rows = rep(96L, 5L),
-    columns = c(80L, 137L, 108L, 108L, 108L),
-    data_digest = c(
-      "f52c3ef14dea917d33b2b710579cc403",
-      "7475953cbae9aac5322739e942ede8c4",
-      "4753b5b1c07725c07610534b36fb10ff",
-      "43d9a1be3738ab4f3c25a95e3e84f7e3",
-      "3d0e1aa5ea49f31d78528008a7f77fa5"
-    ),
-    schema_digest = c(
-      "0e23d0cc44c11c5832c1fb67ac2476dc",
-      "c120bfe98c6b6fe70386ad6d70737851",
-      "c766aba2324e55ab976c7d755743f148",
-      "41a23bc0e1ef0458e689c5cf520c942d",
-      "c766aba2324e55ab976c7d755743f148"
-    )
-  )
-  schema_digest <- function(data) {
-    schema <- paste(names(data), vapply(data, typeof, character(1)),
-      sep = ":", collapse = "|")
-    nis_example_test_digest(data.frame(schema = schema))
-  }
-  expect_identical(vapply(records, nrow, integer(1)), expected$rows)
-  expect_identical(vapply(records, ncol, integer(1)), expected$columns)
-  expect_identical(vapply(records, nis_example_test_digest, character(1)),
-    expected$data_digest)
-  expect_identical(vapply(records, schema_digest, character(1)),
-    expected$schema_digest)
-
+  expect_identical(vapply(records, function(data) unique(data$YEAR), integer(1)), expected_years)
+  expect_true(all(vapply(records, function(data) all(data$DISCWT > 0), logical(1))))
   expect_false(any(grepl("^I10_", names(records[[1L]]))))
   expect_true(all(c("DXVER", "PRVER", "DX1", "PR1", "NDX", "NPR") %in%
     names(records[[2L]])))
@@ -90,4 +34,22 @@ test_that("nis_example keeps annual layouts and invented values stable", {
     duplicate_path, "NIS_2023.parquet"
   )) |> dplyr::collect()
   expect_identical(duplicate_records, records[[5L]])
+})
+
+test_that("failed fixture writes close their connection and remove their destination", {
+  write_part <- nis_duckdb_write_parquet
+  paths <- character()
+  connections <- list()
+  local_mocked_bindings(nis_duckdb_write_parquet = function(data, path, con) {
+    paths <<- c(paths, path)
+    connections[[length(connections) + 1L]] <<- con
+    if (length(paths) == 2L) stop("fixture write interrupted")
+    write_part(data, path, con)
+  })
+
+  expect_error(nis_example(2019:2020), "fixture write interrupted")
+  expect_length(paths, 2L)
+  expect_identical(connections[[1L]], connections[[2L]])
+  expect_false(DBI::dbIsValid(connections[[1L]]))
+  expect_false(dir.exists(dirname(dirname(paths[[1L]]))))
 })

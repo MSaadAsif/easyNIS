@@ -141,14 +141,6 @@
   )
 }
 
-.nis_example_write_year <- function(path, year) {
-  year_path <- file.path(path, paste0("NIS_", year, ".parquet"))
-  dir.create(year_path)
-  nis_duckdb_write_parquet( # nolint: object_usage_linter
-    .nis_example_records(year), file.path(year_path, "part-0.parquet")
-  )
-}
-
 #' Write an invented NIS-shaped Parquet dataset
 #'
 #' @param years Years to create, from 2012 through 2024. Years before 2016
@@ -166,7 +158,21 @@ nis_example <- function(years = 2017:2022) {
   .nis_example_validate_years(years)
   years <- unique(as.integer(years))
   path <- tempfile("nis-example-")
-  dir.create(path)
-  for (year in years) .nis_example_write_year(path, year)
+  if (!dir.create(path, mode = "0700")) {
+    cli::cli_abort("Could not create a temporary NIS example directory.")
+  }
+  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  complete <- FALSE
+  on.exit(if (!complete) nis_remove_owned_directory(path))
+
+  con <- nis_duckdb_connect(config = list(threads = "1"))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE, after = FALSE)
+  for (year in years) {
+    year_path <- file.path(path, paste0("NIS_", year, ".parquet"))
+    if (!dir.create(year_path)) cli::cli_abort("Could not create an example year directory.")
+    nis_duckdb_write_parquet(.nis_example_records(year),
+      file.path(year_path, "part-0.parquet"), con)
+  }
+  complete <- TRUE
   path
 }

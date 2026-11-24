@@ -7,7 +7,7 @@
 nis_cell_counts(.data, by)
 }
 \arguments{
-\item{.data}{Record-level data frame or result of \code{\link[=nis_design]{nis_design()}}.}
+\item{.data}{Record-level data frame, lazy DuckDB query, or result of \code{\link[=nis_design]{nis_design()}}.}
 
 \item{by}{Character vector of cell-defining columns. The summary names \code{n}
 and \code{hospitals} are reserved and cannot be used as cell-defining columns.}
@@ -19,9 +19,10 @@ and \code{hospitals} (distinct year-scoped hospitals).
 \description{
 Produces the unweighted discharge and distinct hospital counts used by
 \code{\link[=nis_suppress]{nis_suppress()}}. Hospital identity is the year-scoped pair \code{YEAR} and
-\code{HOSP_NIS}, matching \code{\link[=nis_design]{nis_design()}}. The input can be a record-level data
-frame or the result of \code{\link[=nis_design]{nis_design()}}. Rows with invalid hospital identity
-are rejected so counts cannot silently understate disclosure risk.
+\code{HOSP_NIS}, matching \code{\link[=nis_design]{nis_design()}}. Rows with invalid hospital identity
+are rejected so counts cannot silently understate disclosure risk. For
+DuckDB queries, the database counts discharges and hospitals and returns
+only the grouped summary.
 }
 \examples{
 records <- data.frame(

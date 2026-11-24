@@ -96,13 +96,8 @@ validate_df_count_columns <- function(x, count_col, hospital_col, error_call) {
 complementary_suppress_rows <- function(x, counts, primary, by) {
   secondary_rows <- rep(FALSE, nrow(x))
   if (!any(primary)) return(secondary_rows)
-  group_id <- if (length(by) == 0L) {
-    rep(1L, nrow(x))
-  } else {
-    dplyr::group_indices(dplyr::group_by(x, dplyr::across(dplyr::all_of(by))))
-  }
-  for (group in unique(group_id)) {
-    rows <- which(group_id == group)
+  groups <- dplyr::group_by(x, dplyr::across(dplyr::all_of(by)))
+  for (rows in dplyr::group_rows(groups)) {
     masked <- rows[primary[rows]]
     if (length(masked) != 1L || length(rows) < 2L) next
     candidates <- rows[!primary[rows] & counts[rows] > 0]

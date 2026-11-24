@@ -4,8 +4,10 @@ nis_disclosure_masks <- function(counts, hospitals, threshold) {
   list(count = count, hospital = hospital & !count)
 }
 
+.nis_hospital_fields <- c("YEAR", "HOSP_NIS")
+
 nis_validate_hospital_columns <- function(.data, by = character()) {
-  required <- c("YEAR", "HOSP_NIS", by)
+  required <- c(.nis_hospital_fields, by)
   absent <- setdiff(required, nis_names(.data)) # nolint: object_usage_linter
   if (length(absent)) {
     cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
@@ -17,9 +19,11 @@ nis_validate_hospital_columns <- function(.data, by = character()) {
 }
 
 nis_validate_hospital_ids <- function(.data) {
-  year <- .data[["YEAR"]]
-  hospital <- .data[["HOSP_NIS"]]
-  if (!.nis_cell_count_valid_id(year) || !.nis_cell_count_valid_id(hospital)) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
+  if (!all(vapply(.data[.nis_hospital_fields], .nis_cell_count_valid_id, logical(1)))) {
+    nis_invalid_hospital_ids()
   }
+}
+
+nis_invalid_hospital_ids <- function() {
+  cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
 }

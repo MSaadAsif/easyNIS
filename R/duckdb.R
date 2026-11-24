@@ -17,7 +17,7 @@ nis_duckdb_open_data <- function() {
   config$temp_directory <- spill
   con <- NULL
   release <- function() {
-    on.exit(nis_remove_spill_directory(spill), add = TRUE)
+    on.exit(nis_remove_owned_directory(spill), add = TRUE)
     if (!is.null(con) && DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
   }
   on.exit(if (is.null(con)) release(), add = TRUE)
@@ -25,7 +25,7 @@ nis_duckdb_open_data <- function() {
   list(con = con, release = release)
 }
 
-nis_remove_spill_directory <- function(path) {
+nis_remove_owned_directory <- function(path) {
   if (dir.exists(path) && identical(normalizePath(path, winslash = "/", mustWork = TRUE), path)) {
     unlink(path, recursive = TRUE)
   }
@@ -50,49 +50,6 @@ nis_duckdb_setting_text <- function(value) {
   as.character(value)
 }
 
-nis_names <- function(data) {
-  if (inherits(data, "tbl_sql")) colnames(data) else names(data)
-}
-
-nis_is_finite_expr <- function(data, column) {
-  if (inherits(data, "tbl_sql")) {
-    return(dbplyr::sql_expr(isfinite(!!dbplyr::ident(column)), # nolint: object_usage_linter
-      con = data$src$con))
-  }
-  rlang::expr(is.finite(!!rlang::sym(column)))
-}
-
-nis_is_missing_expr <- function(data, column) {
-  value <- rlang::sym(column)
-  if (inherits(data, "tbl_sql")) {
-    numeric_types <- c("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT",
-      "UTINYINT", "USMALLINT", "UINTEGER", "UBIGINT", "UHUGEINT",
-      "FLOAT", "REAL", "DOUBLE", "DECIMAL")
-    identifier <- as.character(DBI::dbQuoteIdentifier(data$src$con, column))
-    types <- paste(as.character(DBI::dbQuoteString(data$src$con, numeric_types)),
-      collapse = ", ")
-    return(dbplyr::sql(paste0("(", identifier, " IS NULL OR (typeof(",
-      identifier, ") IN (", types, ") AND isnan(TRY_CAST(", identifier,
-      " AS DOUBLE))))")))
-  }
-  rlang::expr(is.na(!!value))
-}
-
-nis_internal_names <- function(data, reserved, candidates) {
-  if (!inherits(data, "tbl_sql")) {
-    return(utils::tail(make.unique(c(reserved, candidates)), length(candidates)))
-  }
-  keys <- nis_sql_identifier_key(c(reserved, candidates))
-  unique_keys <- make.unique(keys)
-  candidate_keys <- utils::tail(keys, length(candidates))
-  suffix <- substring(utils::tail(unique_keys, length(candidates)), nchar(candidate_keys) + 1L)
-  paste0(candidates, suffix)
-}
-
-nis_sql_identifier_key <- function(names) {
-  chartr("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", names)
-}
-
 nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   finalizer <- new.env(parent = emptyenv())
   reg.finalizer(finalizer, function(e) release(), onexit = TRUE)
@@ -101,36 +58,13 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   tbl
 }
 
-nis_duckdb_write_parquet <- function(data, path) {
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+nis_duckdb_write_parquet <- function(data, path, con) {
   table <- "easyNIS_fixture"
-  DBI::dbWriteTable(con, table, data, temporary = TRUE)
+  DBI::dbWriteTable(con, table, data, temporary = TRUE, overwrite = TRUE)
   destination <- as.character(DBI::dbQuoteString(con,
     normalizePath(path, winslash = "/", mustWork = FALSE)))
   statement <- paste0("COPY ", as.character(DBI::dbQuoteIdentifier(con, table)),
     " TO ", destination, " (FORMAT PARQUET)")
   DBI::dbExecute(con, statement)
   invisible(path)
-}
-
-nis_collect <- function(x) {
-  if (is.data.frame(x)) return(x)
-  tryCatch(
-    dplyr::collect(x),
-    error = function(error) {
-      if (grepl("invalid string encoding|invalid UTF-8",
-        conditionMessage(error), ignore.case = TRUE)) {
-        cli::cli_abort(c(
-          "A string column in the Parquet input is not valid UTF-8.",
-          i = paste0(
-            "This usually happens when converting HCUP ASCII files without ",
-            "declaring their source encoding.",
-            " Re-convert with the correct encoding, for example Latin-1 to UTF-8."
-          )
-        ), parent = error)
-      }
-      stop(error)
-    }
-  )
 }

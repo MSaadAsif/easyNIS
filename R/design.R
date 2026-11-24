@@ -1,7 +1,3 @@
-.nis_design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
-.nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields),
-  .nis_design_fields)
-
 nis_design_validate <- function(.data, charges, annualize, call) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.", call = call)
@@ -13,7 +9,6 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   if (!identical(reserved, nis_internal_names(.data, nis_names(.data), reserved))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
   }
-
 }
 
 nis_design_fields <- function(.data, keep_quo, call) {
@@ -55,18 +50,16 @@ nis_design_fields <- function(.data, keep_quo, call) {
   }
   selected <- unique(c(design_fields, keep_names))
   list(
-    design_fields = design_fields,
-    data_names = data_names,
     keep_names = keep_names,
     keep_map = keep_map,
     selected = selected,
-    collected_fields = unique(c(selected, if ("DQTR" %in% data_names) "DQTR"))
+    quarter_prototype = select_data[["DQTR"]][integer()]
   )
 }
 
 nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, call) {
   keep_map <- fields$keep_map
-  retained <- unique(c(fields$design_fields, cost_fields))
+  retained <- unique(c(.nis_design_fields, cost_fields))
   renamed <- names(keep_map) != unname(keep_map)
   conflicts <- intersect(names(keep_map)[renamed], retained)
   if (length(conflicts)) {
@@ -80,202 +73,6 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
   combined <- combined[setdiff(names(combined), setdiff(fields$keep_names, retained))]
   combined[names(aliases)] <- aliases
   combined
-}
-
-nis_design_groups <- function(prepared, design_fields, call) {
-  # Scan 1 reads only the design columns, because the lazy source drops the cohort
-  # expression from the projection when it is not selected.
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
-  design_groups <- prepared |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(c(
-      ".nis_valid", unname(.nis_design_invalid_fields), setdiff(design_fields, "DISCWT")
-    )))) |>
-    dplyr::summarise(
-      DISCWT = min(dplyr::if_else(.nis_valid, as.double(DISCWT), Inf), na.rm = TRUE),
-      n = dplyr::n(),
-      .groups = "drop"
-    ) |>
-    nis_collect()
-  # nolint end
-  excluded <- nis_design_exclusions(design_groups)
-  hospital_rows <- design_groups[design_groups$.nis_valid, design_fields]
-  if (nrow(hospital_rows) == 0L) {
-    cli::cli_abort("No discharges have valid design fields.", call = call)
-  }
-  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS) # nolint: object_usage_linter. dplyr data mask.
-  if (any(stratum_counts$n != 1L)) {
-    cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
-  }
-  list(hospital_rows = hospital_rows, excluded = excluded)
-}
-
-nis_design_exclusions <- function(.data) {
-  design_groups <- .data
-  excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
-  excluded_by_field <- vapply(.nis_design_invalid_fields, function(column) {
-    as.integer(sum(design_groups$n[design_groups[[column]]]))
-  }, integer(1))
-  # nolint start: object_usage_linter. dplyr data-masked `.data` pronoun.
-  year_counts <- design_groups |>
-    dplyr::filter(.nis_valid == FALSE, is.finite(YEAR), YEAR > 0) |>
-    dplyr::group_by(YEAR) |>
-    dplyr::summarise(n = sum(.data$n), .groups = "drop") |>
-    dplyr::arrange(YEAR)
-  # nolint end
-  excluded <- list(total = excluded_count, by_field = excluded_by_field,
-    by_year = year_counts)
-  if (excluded_count > 0L) {
-    by_field_text <- paste0(names(excluded_by_field), ": ", excluded_by_field,
-      collapse = ", ")
-    year_text <- if (nrow(year_counts) > 1L) {
-      paste0(" Affected valid years: ", paste0(year_counts$YEAR, ": ", year_counts$n, collapse = ", "), ".")
-    } else {
-      ""
-    }
-    cli::cli_warn(paste0(
-      "Excluded {excluded_count} discharge{?s} with invalid design fields (",
-      by_field_text, "); a discharge can fail more than one field. Exclusion happens before cohort filtering.",
-      year_text
-    ))
-  }
-  excluded
-}
-
-nis_design_cohort_expr <- function(cohort_quo, call) {
-  cohort_expr <- rlang::get_expr(cohort_quo)
-  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr) &&
-    !inherits(cohort_expr, "sql")) {
-    cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
-  }
-  cohort_quo
-}
-
-nis_design_cohort_type <- function(prepared, call) {
-  if (inherits(prepared, "tbl_sql") &&
-    inherits(dbplyr::remote_con(prepared), "duckdb_connection")) {
-    # LIMIT 0 inspects the expression's bound SQL type without reading rows.
-    # Collection alone loses the distinction between SQL NULL and typed NA.
-    query <- paste0(
-      "SELECT typeof((SELECT \".nis_cohort\" FROM (",
-      dbplyr::sql_render(prepared),
-      ") AS cohort_type LIMIT 0)) AS cohort_type"
-    )
-    type <- DBI::dbGetQuery(dbplyr::remote_con(prepared), query)$cohort_type
-    if (identical(type, "\"NULL\"")) {
-      return(dplyr::mutate(prepared,
-        .nis_cohort = as.logical(!!rlang::sym(".nis_cohort"))))
-    }
-    logical_cohort <- identical(type, "BOOLEAN")
-  } else if (is.data.frame(prepared)) {
-    logical_cohort <- is.logical(prepared$.nis_cohort)
-  } else {
-    return(prepared)
-  }
-  if (!logical_cohort) {
-    cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
-  }
-  prepared
-}
-
-nis_design_collect_cohort <- function(prepared, collected_fields, call) {
-  prepared <- nis_design_cohort_type(prepared, call)
-  # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
-  # the cohort expression runs once per discharge. Missing values are counted
-  # here and dropped.
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
-  collected <- prepared |>
-    dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
-    dplyr::select(dplyr::all_of(collected_fields), .nis_cohort) |>
-    nis_collect()
-  # nolint end
-  if (!is.logical(collected$.nis_cohort)) {
-    cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
-  }
-  if (inherits(collected$DISCWT, "integer64")) collected$DISCWT <- as.double(collected$DISCWT)
-  missing_count <- sum(is.na(collected$.nis_cohort))
-  if (missing_count > 0L) {
-    cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
-  }
-  collected
-}
-
-nis_design_annual_warnings <- function(prepared, data_names, hospital_rows,
-                                       collected) {
-  design_years <- sort(unique(hospital_rows$YEAR))
-  if ("DQTR" %in% data_names) {
-    nis_design_quarter_warning(prepared, design_years)
-    nis_design_2015_warning(design_years, collected)
-  } else if (2015L %in% design_years) {
-    cli::cli_inform(paste0(
-      "Cannot check the 2015 ICD-9/ICD-10 split because `DQTR` is ",
-      "unavailable; 2015 counts as a whole year in annualization."
-    ))
-  }
-}
-
-nis_design_quarter_warning <- function(.data, design_years) {
-  # nolint start: object_usage_linter. dplyr data-masked `.data` pronoun.
-  data_quarters <- .data |>
-    dplyr::filter(.nis_valid) |>
-    dplyr::group_by(YEAR, .data$DQTR) |>
-    dplyr::summarise(n = dplyr::n(), .groups = "drop") |>
-    nis_collect()
-  # nolint end
-  data_quarters <- data_quarters[
-    is.finite(data_quarters$DQTR) & data_quarters$DQTR %in% 1:4,
-    , drop = FALSE
-  ]
-  quarter_coverage <- lapply(design_years, function(year) {
-    sort(unique(data_quarters$DQTR[data_quarters$YEAR == year]))
-  })
-  partial <- lengths(quarter_coverage) < 4L
-  if (any(partial)) {
-    coverage_text <- vapply(which(partial), function(i) {
-      quarters <- quarter_coverage[[i]]
-      present <- if (length(quarters)) paste0("Q", quarters, collapse = ", ") else "none"
-      paste0(design_years[[i]], " (", present, ")")
-    }, character(1))
-    cli::cli_warn(c(
-      paste0("Annualization includes year(s) with incomplete data-quarter coverage: ",
-        paste(coverage_text, collapse = "; "), "."),
-      i = paste0(
-        "Each listed year still counts as one whole year. Exclude partial ",
-        "years or set `annualize = FALSE` and apply a fractional-year ",
-        "factor with `nis_reweight()`."
-      )
-    ))
-  }
-}
-
-nis_design_2015_warning <- function(design_years, collected) {
-  if (2015L %in% design_years) {
-    cohort_2015 <- collected[which(
-      !is.na(collected$.nis_cohort) & collected$.nis_cohort &
-        collected$YEAR == 2015L
-    ), , drop = FALSE]
-    cohort_quarters <- sort(unique(cohort_2015$DQTR[
-      is.finite(cohort_2015$DQTR) & cohort_2015$DQTR %in% 1:4
-    ]))
-    if (length(cohort_quarters) == 1L && cohort_quarters == 4L) {
-      cli::cli_warn(c(
-        paste0(
-          "The cohort includes only ICD-10-coded 2015 discharges (Q4); ",
-          "2015 counts as a whole year in annualization, although the ",
-          "cohort covers about one quarter of the year."
-        ),
-        i = "Exclude 2015 or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
-      ))
-    } else if (length(cohort_quarters) > 0L && all(cohort_quarters %in% 1:3)) {
-      cli::cli_warn(c(
-        paste0(
-          "The cohort includes only ICD-9-coded 2015 discharges (Q1-Q3); ",
-          "2015 counts as a whole year in annualization, although the ",
-          "cohort covers about three quarters of the year."
-        ),
-        i = "Exclude 2015 or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
-      ))
-    }
-  }
 }
 
 #' Prepare a cohort survey design
@@ -312,10 +109,10 @@ nis_design_2015_warning <- function(design_years, collected) {
 #' and `by_year` counts; `by_year` includes years with exclusions when the
 #' year is itself valid. A discharge can fail more than one field.
 #'
-#' The query is scanned twice for design validation and cohort collection.
-#' When annualizing and `DQTR` is present, quarter coverage requires an
-#' additional summary scan. The cohort expression is evaluated once over the
-#' full data.
+#' A lazy query is scanned twice. The sample scan summarises design fields,
+#' exclusion counts, and quarter coverage when annualizing. The cohort scan
+#' evaluates the cohort expression once over the full data and collects the
+#' retained analysis columns.
 #'
 #' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
 #'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
@@ -374,38 +171,16 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
-  design_fields <- fields$design_fields
-  data_names <- fields$data_names
-  keep_names <- fields$keep_names
-  selected <- fields$selected
-  collected_fields <- fields$collected_fields
-
-  cohort_quo <- nis_design_cohort_expr(rlang::enquo(cohort), call)
-  invalid <- lapply(.nis_design_fields, function(field) {
-    finite <- nis_is_finite_expr(.data, field)
-    positive <- rlang::expr(!!rlang::sym(field) > 0)
-    rlang::expr(!dplyr::coalesce(!!finite & !!positive, FALSE))
-  })
-  names(invalid) <- unname(.nis_design_invalid_fields)
-  any_invalid <- reduce_or(rlang::syms(names(invalid)))
-  prepared <- dplyr::mutate(.data, .nis_cohort = !!cohort_quo,
-    !!!invalid, .nis_valid = !(!!any_invalid))
-
-  groups <- nis_design_groups(prepared, design_fields, call)
-  hospital_rows <- groups$hospital_rows
-  excluded <- groups$excluded
-
-  collected <- nis_design_collect_cohort(prepared, collected_fields, call)
-  if (annualize) nis_design_annual_warnings(prepared, data_names,
-    hospital_rows, collected)
-  cohort_rows <- collected[which(collected$.nis_cohort), selected, drop = FALSE]
+  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected,
+    fields$quarter_prototype, annualize, call)
+  hospital_rows <- sample$hospital_rows
+  cohort_rows <- sample$cohort_rows
   cohort_rows$.in_cohort <- rep(TRUE, nrow(cohort_rows))
   cohort_hospitals <- unique(cohort_rows[c("YEAR", "HOSP_NIS")])
   empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals,
     by = c("YEAR", "HOSP_NIS"))
 
-  hospital_years <- sort(unique(hospital_rows$YEAR))
-  no_cohort_years <- setdiff(hospital_years, cohort_rows$YEAR)
+  no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
   if (length(no_cohort_years) > 0L) {
     cli::cli_warn(c(
       "No cohort discharges in {cli::qty(length(no_cohort_years))}year{?s} {.val {no_cohort_years}}.",
@@ -413,18 +188,19 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     ))
   }
 
-  placeholders <- cohort_rows[rep(NA_integer_, nrow(empty_hospitals)), , drop = FALSE]
+  combined <- cohort_rows
   if (nrow(empty_hospitals) > 0L) {
-    for (field in design_fields) placeholders[[field]] <- empty_hospitals[[field]]
+    placeholders <- cohort_rows[rep(NA_integer_, nrow(empty_hospitals)), , drop = FALSE]
+    for (field in .nis_design_fields) placeholders[[field]] <- empty_hospitals[[field]]
     placeholders$.in_cohort <- FALSE
+    combined <- dplyr::bind_rows(cohort_rows, placeholders)
   }
-  combined <- dplyr::bind_rows(cohort_rows, placeholders)
   combined$.nis_psu <- paste(combined$YEAR, combined$HOSP_NIS, sep = "::")
   combined$.nis_stratum <- paste(combined$YEAR, combined$NIS_STRATUM, sep = "::")
-  year_count <- length(unique(hospital_rows$YEAR))
+  year_count <- length(sample$years)
   combined$.nis_weight <- combined$DISCWT / if (annualize) year_count else 1
 
-  has_cost_inputs <- all(c(charges, "CCR_NIS") %in% keep_names)
+  has_cost_inputs <- all(c(charges, "CCR_NIS") %in% fields$keep_names)
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
@@ -447,7 +223,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
         i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
       ))
     }
-    if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
+    if (is.null(dollars)) dollars <- max(sample$years)
     combined <- nis_adjust_costs(combined, dollars, charges, call,
       population = combined$.in_cohort)
     cost_provenance <- nis_cost_provenance(combined)
@@ -457,7 +233,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   }
 
   # nolint next: object_usage_linter. Used by cli interpolation below.
-  hospitals <- length(unique(paste(cohort_rows$YEAR, cohort_rows$HOSP_NIS)))
+  hospitals <- nrow(cohort_hospitals)
   # nolint next: object_usage_linter. Used by cli interpolation below.
   weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
   cli::cli_inform(paste0(
@@ -465,5 +241,5 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     "{hospitals} hospitals across {year_count} years."
   ))
   combined <- nis_design_aliases(combined, fields, cost_fields, alias_sources, call)
-  nis_cohort_design(combined, excluded, cost_provenance)
+  nis_cohort_design(combined, sample$excluded, cost_provenance)
 }

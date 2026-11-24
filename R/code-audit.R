@@ -1,5 +1,3 @@
-utils::globalVariables(".nis_invalid_weight")
-
 .nis_audit_is_column_name <- function(value) {
   is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
 }
@@ -37,19 +35,10 @@ utils::globalVariables(".nis_invalid_weight")
   }
 }
 
-.nis_audit_check_weight_values <- function(.data, weight_var) {
-  .data <- dplyr::ungroup(.data)
+.nis_audit_validate_weight_type <- function(.data, weight_var) {
   projection <- dplyr::select(.data, dplyr::all_of(weight_var))
   if (!is.numeric(nis_collect(utils::head(projection, 0L))[[weight_var]])) {
     cli::cli_abort("`weight_var` must be a numeric column.")
-  }
-  missing <- nis_is_missing_expr(.data, weight_var)
-  finite <- nis_is_finite_expr(.data, weight_var)
-  invalid <- dplyr::summarise(.data, .nis_invalid_weight =
-    dplyr::coalesce(sum(as.integer(!!missing | !(!!finite)), na.rm = TRUE), 0L))
-  invalid_count <- dplyr::pull(nis_collect(invalid), ".nis_invalid_weight")
-  if (invalid_count > 0) {
-    cli::cli_abort("`weight_var` must contain only finite, non-missing numeric values in the selected cohort.")
   }
 }
 
@@ -141,12 +130,22 @@ utils::globalVariables(".nis_invalid_weight")
   summary[do.call(order, keys), , drop = FALSE]
 }
 
-.nis_audit_period_summary <- function(data, expressions, by) {
+.nis_audit_period_summary <- function(data, expressions, by, weight_var) {
+  reserved <- c(nis_names(data), names(expressions))
+  invalid <- nis_internal_names(data, reserved, ".nis_audit_invalid_weight")
+  missing <- nis_is_missing_expr(data, weight_var)
+  finite <- nis_is_finite_expr(data, weight_var)
+  expressions[[invalid]] <- rlang::expr(any(!!missing | !(!!finite), na.rm = TRUE))
+
   summary <- data |>
     dplyr::ungroup() |>
     dplyr::group_by(!!!rlang::syms(by)) |>
     dplyr::summarise(!!!expressions, .groups = "drop") |>
     nis_collect()
+  if (any(summary[[invalid]], na.rm = TRUE)) {
+    cli::cli_abort("`weight_var` must contain only finite, non-missing numeric values in the selected cohort.")
+  }
+  summary[[invalid]] <- NULL
   if (nrow(summary) == 0L) return(summary)
   .nis_audit_order_periods(summary, by)
 }
@@ -193,7 +192,7 @@ utils::globalVariables(".nis_invalid_weight")
   data <- do.call(flag_function, c(list(.data = data), codes, list(system = system)))
   expressions <- .nis_audit_summary_expressions(
     temp$flag, temp$count, temp$weight, weight_var, temp$cohort)
-  summary <- .nis_audit_period_summary(data, expressions, by)
+  summary <- .nis_audit_period_summary(data, expressions, by, weight_var)
   if (nrow(summary) == 0L) return(.nis_audit_empty_output(by, summary, "summary"))
   pieces <- lapply(seq_along(codes), .nis_audit_group_piece,
     summary = summary, code_groups = code_groups, temp = temp, by = by)
@@ -305,7 +304,7 @@ utils::globalVariables(".nis_invalid_weight")
   temp <- .nis_audit_inventory_temp(data, data_names)
 
   cohort_expression <- stats::setNames(list(rlang::expr(dplyr::n())), temp$cohort)
-  periods <- .nis_audit_period_summary(data, cohort_expression, by)
+  periods <- .nis_audit_period_summary(data, cohort_expression, by, weight_var)
   if (nrow(periods) == 0L) return(.nis_audit_empty_output(by, periods, "inventory"))
 
   prefixes <- unique(unlist(codes, use.names = FALSE))
@@ -417,7 +416,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo)
-  .nis_audit_check_weight_values(data, weight_var)
+  .nis_audit_validate_weight_type(dplyr::ungroup(data), weight_var)
 
   if (output == "inventory") {
     return(.nis_audit_inventory(data, codes, type, system, weight_var, by, sparse_n))

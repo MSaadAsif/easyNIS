@@ -1,6 +1,8 @@
 write_duckdb_parquet <- function(data, path) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  nis_duckdb_write_parquet(data, path) # nolint: object_usage_linter
+  con <- nis_duckdb_connect(config = list(threads = "1"))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  nis_duckdb_write_parquet(data, path, con) # nolint: object_usage_linter
 }
 
 open_duckdb_dataset <- function(path) {

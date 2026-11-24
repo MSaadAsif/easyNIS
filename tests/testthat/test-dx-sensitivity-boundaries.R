@@ -98,6 +98,21 @@ test_that("Local and DuckDB zero and missing weights keep omission arithmetic", 
   }
 })
 
+test_that("DuckDB physical NaN weights and outcomes are missing", {
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  query <- dplyr::tbl(con, dbplyr::sql(paste(
+    "SELECT * FROM (VALUES ('I50', 2.0::DOUBLE, 1.0::DOUBLE),",
+    "('I50', 'NaN'::DOUBLE, 0.0), ('I50', 4.0, 'NaN'::DOUBLE))",
+    "AS t(I10_DX1, DISCWT, DIED)"
+  )))
+  result <- nis_dx_sensitivity(query, "I50")
+  expect_equal(result$n_weighted, c(6, 0, 6))
+  expect_equal(result$DIED_rate_unweighted, c(1 / 2, NA, 1 / 2))
+  expect_equal(result$DIED_rate_weighted, c(1, NA, 1))
+  expect_equal(result, nis_dx_sensitivity(dplyr::collect(query), "I50"))
+})
+
 test_that("Local and DuckDB available slots and eligibility still govern flags", {
   for (make_input in list(identity, duckdb_query_fixture)) {
     fixture <- dx_boundary_fixture()

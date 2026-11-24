@@ -102,9 +102,10 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
   data <- dx_add_position_flags(dplyr::ungroup(.data), columns, code, system, flags)
 
   summary_flags <- dx_summary_names(nis_names(data), flags) # nolint: object_usage_linter
-  summary_exprs <- dx_summary_exprs(flags, outcomes, weight_var, summary_flags)
+  summary_exprs <- dx_summary_exprs(data, flags, outcomes, weight_var, summary_flags)
   summary <- dplyr::summarise(data, !!!summary_exprs) |>
-    dplyr::collect()
+    nis_collect() |>
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::coalesce(.x, 0)))
   dx_summary_result(summary, summary_flags, outcomes)
 }
 
@@ -138,42 +139,45 @@ dx_summary_names <- function(columns, flags) {
   stats::setNames(paste0(prefix, seq_along(flags)), names(flags))
 }
 
-dx_summary_exprs <- function(flags, outcomes, weight_var, summary_flags) {
-  expressions <- Reduce(c, lapply(names(flags), function(presentation) {
-    dx_flag_exprs(flags[[presentation]], outcomes, weight_var,
+dx_summary_exprs <- function(data, flags, outcomes, weight_var, summary_flags) {
+  missing_weight <- nis_is_missing_expr(data, weight_var)
+  weight <- rlang::expr(dplyr::if_else(!!missing_weight, 0, !!rlang::sym(weight_var)))
+  known_outcomes <- lapply(outcomes, function(outcome) {
+    rlang::expr(!(!!nis_is_missing_expr(data, outcome)))
+  })
+  Reduce(c, lapply(names(flags), function(presentation) {
+    dx_flag_exprs(flags[[presentation]], outcomes, known_outcomes, weight,
       summary_flags[[presentation]])
   }))
-  lapply(expressions, function(expression) {
-    rlang::expr(dplyr::coalesce(!!expression, 0))
-  })
 }
 
-dx_flag_exprs <- function(flag, outcomes, weight_var, summary_flag) {
+dx_flag_exprs <- function(flag, outcomes, known_outcomes, weight, summary_flag) {
+  selected <- rlang::sym(flag)
   expressions <- list(
-    rlang::expr(sum(dplyr::coalesce(!!rlang::sym(flag), FALSE), na.rm = TRUE)),
-    rlang::expr(sum(dplyr::if_else(!!rlang::sym(flag),
-      !!rlang::sym(weight_var), 0), na.rm = TRUE))
+    rlang::expr(sum(!!selected, na.rm = TRUE)),
+    dx_weighted_count(selected, weight)
   )
   names(expressions) <- paste0(summary_flag, c("_n", "_weighted"))
   for (index in seq_along(outcomes)) {
     expressions <- c(expressions,
-      dx_outcome_exprs(flag, outcomes[[index]], weight_var,
+      dx_outcome_exprs(selected, outcomes[[index]], known_outcomes[[index]], weight,
         paste0(summary_flag, "_", index)))
   }
   expressions
 }
 
-dx_outcome_exprs <- function(flag, outcome, weight_var, summary_name) {
-  value <- rlang::sym(outcome)
-  weight <- rlang::sym(weight_var)
-  selected <- rlang::sym(flag)
+dx_weighted_count <- function(selected, weight) {
+  rlang::expr(sum(dplyr::if_else(!!selected, !!weight, 0), na.rm = TRUE))
+}
+
+dx_outcome_exprs <- function(selected, outcome, known, weight, summary_name) {
+  denominator <- rlang::expr(!!selected & !!known)
+  events <- rlang::expr(!!denominator & !!rlang::sym(outcome) == 1)
   expressions <- list(
-    rlang::expr(sum(!!selected & !is.na(!!value), na.rm = TRUE)),
-    rlang::expr(sum(!!selected & !is.na(!!value) & !!value == 1, na.rm = TRUE)),
-    rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value),
-      !!weight, 0), na.rm = TRUE)),
-    rlang::expr(sum(dplyr::if_else(!!selected & !is.na(!!value) &
-      !!value == 1, !!weight, 0), na.rm = TRUE))
+    rlang::expr(sum(!!denominator, na.rm = TRUE)),
+    rlang::expr(sum(!!events, na.rm = TRUE)),
+    dx_weighted_count(denominator, weight),
+    dx_weighted_count(events, weight)
   )
   names(expressions) <- paste0(summary_name,
     c("_n", "_events", "_weighted_n", "_weighted_events"))

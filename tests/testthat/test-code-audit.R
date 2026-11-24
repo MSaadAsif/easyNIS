@@ -165,6 +165,21 @@ test_that("code transition audit validates weights only in the selected cohort",
   expect_equal(nis_audit_code_transition(grouped_query, c(a = "B"), cohort = KEEP)$n_weighted, 2)
 })
 
+test_that("audit weight validation includes rows without a matching code", {
+  data <- dplyr::tibble(YEAR = c(2020L, 2021L), I10_PR1 = c("A", "B"),
+    DISCWT = c(2, Inf), .NIS_AUDIT_INVALID_WEIGHT = "analyst field")
+  query <- duckdb_query_fixture(data)
+  for (source in list(data, query)) {
+    for (format in c("summary", "inventory")) {
+      expect_error(nis_audit_code_transition(source, c(target = "A"), output = format,
+        by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT")), "finite, non-missing")
+      result <- nis_audit_code_transition(source, c(target = "A"), output = format,
+        by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT"), cohort = YEAR == 2020L)
+      expect_equal(result$n_weighted, 2)
+    }
+  }
+})
+
 test_that("missing periods have no year-over-year percentage change", {
   data <- dplyr::tibble(
     YEAR = c(2019L, 2020L, NA_integer_),

@@ -87,8 +87,7 @@ row-level summaries would not represent this sampling design.
 hospitals for each output cell.
 
 ```{r disclosure}
-records <- dplyr::collect(nis)
-cells <- nis_cell_counts(records, by = "heart_failure")
+cells <- nis_cell_counts(nis, by = "heart_failure")
 nis_suppress(cells, count_col = "n", hospital_col = "hospitals")
 ```
 
