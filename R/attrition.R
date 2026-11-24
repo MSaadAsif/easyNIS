@@ -26,11 +26,8 @@
 }
 
 .nis_attrition_keep_names <- function(.data, criteria_count) {
-  keep_names <- paste0(".nis_attrition_keep_", seq_len(criteria_count))
-  while (any(keep_names %in% nis_names(.data))) { # nolint: object_usage_linter
-    keep_names <- paste0(".", keep_names)
-  }
-  keep_names
+  nis_internal_names(.data, nis_names(.data),
+    paste0(".nis_attrition_keep_", seq_len(criteria_count)))
 }
 
 .nis_attrition_keep_exprs <- function(criteria, keep_names) {
@@ -46,85 +43,62 @@
   unlist(keep_exprs, recursive = FALSE)
 }
 
-.nis_attrition_summary_exprs <- function(criteria_count, keep_names, weight) {
+nis_attrition_metrics <- function(data, criteria_count) {
+  steps <- seq.int(0L, criteria_count)
+  aliases <- nis_internal_names(data, nis_names(data),
+    c(paste0(".nis_attrition_n_", steps), paste0(".nis_attrition_w_", steps)))
+  positions <- seq_along(steps)
+  list(n = aliases[positions], weight = aliases[length(steps) + positions])
+}
+
+.nis_attrition_summary_exprs <- function(metrics, keep_names, weight) {
   summary_exprs <- list()
-  summary_exprs[[".nis_attrition_n_0"]] <- rlang::expr(dplyr::n())
-  summary_exprs[[".nis_attrition_w_0"]] <- rlang::expr(sum(
-    !!weight, na.rm = TRUE
-  ))
-  for (i in seq_len(criteria_count)) {
+  summary_exprs[[metrics$n[[1L]]]] <- rlang::expr(dplyr::n())
+  summary_exprs[[metrics$weight[[1L]]]] <- rlang::expr(sum(!!weight, na.rm = TRUE))
+  for (i in seq_along(keep_names)) {
     keep <- rlang::sym(keep_names[[i]])
-    count_name <- paste0(".nis_attrition_n_", i)
-    weight_name <- paste0(".nis_attrition_w_", i)
-    summary_exprs[[count_name]] <- rlang::expr(sum(
+    summary_exprs[[metrics$n[[i + 1L]]]] <- rlang::expr(sum(
       dplyr::if_else(!!keep, 1L, 0L), na.rm = TRUE
     ))
-    summary_exprs[[weight_name]] <- rlang::expr(sum(dplyr::if_else(
+    summary_exprs[[metrics$weight[[i + 1L]]]] <- rlang::expr(sum(dplyr::if_else(
       !!keep, !!weight, 0
     ), na.rm = TRUE))
   }
   summary_exprs
 }
 
-.nis_attrition_summarise <- function(.data, summary_exprs, by_year) {
+.nis_attrition_summarise <- function(.data, summary_exprs, by_year, baseline) {
   grouped <- if (by_year) dplyr::group_by(.data, YEAR) else .data
   counts <- dplyr::summarise(grouped, !!!summary_exprs, .groups = "drop") |>
     nis_collect()
   # SQL SUM returns NULL on empty inputs; R sum returns zero.
-  empty <- counts[[".nis_attrition_n_0"]] == 0
-  counts[empty, names(summary_exprs)] <- 0
+  counts[counts[[baseline]] == 0, names(summary_exprs)] <- 0
   counts
 }
 
-.nis_attrition_empty_annual <- function(counts, by_year) {
-  if (by_year && nrow(counts) == 0L) {
-    return(dplyr::tibble(
-      YEAR = counts$YEAR,
-      step = integer(),
-      criterion = character(),
-      n_unweighted = integer(),
-      n_dropped_unweighted = integer(),
-      n_weighted = double(),
-      n_dropped_weighted = double(),
-      pct_retained = double()
-    ))
+.nis_attrition_rows <- function(counts, labels, by_year, metrics) {
+  steps <- seq.int(0L, length(labels))
+  rows <- rep(seq_len(nrow(counts)), each = length(steps))
+  step <- rep(steps, times = nrow(counts))
+  gather <- function(columns) {
+    metrics <- lapply(counts[columns], as.numeric)
+    as.numeric(t(do.call(cbind, metrics)))
   }
-  NULL
-}
-
-.nis_attrition_group_rows <- function(counts, group, labels) {
-  criteria_count <- length(labels)
-  group_counts <- counts[group, , drop = FALSE]
-  n <- vapply(seq_len(criteria_count), function(i) {
-    group_counts[[paste0(".nis_attrition_n_", i)]][[1L]]
-  }, numeric(1))
-  weighted <- vapply(seq_len(criteria_count), function(i) {
-    group_counts[[paste0(".nis_attrition_w_", i)]][[1L]]
-  }, numeric(1))
-  n <- c(group_counts[[".nis_attrition_n_0"]][[1L]], n)
-  weighted <- c(group_counts[[".nis_attrition_w_0"]][[1L]], weighted)
-  # Step zero is the starting cohort; there is no preceding selection.
-  dropped <- c(NA_real_, n[-length(n)] - n[-1L])
-  dropped_weighted <- c(NA_real_, weighted[-length(weighted)] - weighted[-1L])
-  denominator <- n[[1L]]
-  dplyr::tibble(
-    step = seq.int(0L, length(labels)),
-    criterion = c("All discharges", labels),
+  n <- gather(metrics$n)
+  weight <- gather(metrics$weight)
+  previous <- seq_along(step) - 1L
+  previous[step == 0L] <- NA_integer_
+  denominator <- as.numeric(counts[[metrics$n[[1L]]]])[rows]
+  result <- dplyr::tibble(
+    step = step,
+    criterion = c("All discharges", labels)[step + 1L],
     n_unweighted = as.integer(n),
-    n_dropped_unweighted = as.integer(dropped),
-    n_weighted = weighted,
-    n_dropped_weighted = dropped_weighted,
-    pct_retained = if (denominator == 0) rep(NA_real_, length(n)) else 100 * n / denominator
+    n_dropped_unweighted = as.integer(n[previous] - n),
+    n_weighted = weight,
+    n_dropped_weighted = weight[previous] - weight,
+    pct_retained = dplyr::if_else(denominator == 0, NA_real_, 100 * n / denominator)
   )
-}
-
-.nis_attrition_rows <- function(counts, labels, by_year) {
-  groups <- if (by_year) seq_len(nrow(counts)) else 1L
-  rows <- lapply(groups, function(group) {
-    result <- .nis_attrition_group_rows(counts, group, labels)
-    if (by_year) dplyr::mutate(result, YEAR = counts$YEAR[[group]], .before = 1L) else result
-  })
-  dplyr::bind_rows(rows)
+  if (by_year) dplyr::mutate(result, YEAR = counts$YEAR[rows], .before = 1L) else result
 }
 
 #' Summarize sequential cohort attrition
@@ -171,13 +145,11 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   missing_weight <- nis_is_missing_expr(prepared, weight_var) # nolint: object_usage_linter
   weight <- rlang::expr(dplyr::if_else(
     !!missing_weight, 0, as.double(!!rlang::sym(weight_var))))
-  summary_exprs <- .nis_attrition_summary_exprs(
-    length(criteria), keep_names, weight)
-  counts <- .nis_attrition_summarise(prepared, summary_exprs, by_year)
+  metrics <- nis_attrition_metrics(prepared, length(criteria))
+  summary_exprs <- .nis_attrition_summary_exprs(metrics, keep_names, weight)
+  counts <- .nis_attrition_summarise(prepared, summary_exprs, by_year, metrics$n[[1L]])
   if (by_year && anyNA(counts$YEAR)) {
     cli::cli_abort("`YEAR` must not contain missing values when `by_year` is `TRUE`.")
   }
-  empty_annual <- .nis_attrition_empty_annual(counts, by_year)
-  if (!is.null(empty_annual)) return(empty_annual)
-  .nis_attrition_rows(counts, labels, by_year)
+  .nis_attrition_rows(counts, labels, by_year, metrics)
 }

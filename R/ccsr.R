@@ -55,47 +55,48 @@
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
-  categories <- validate_ccsr_categories(categories)
-  validate_ccsr_default_only(default_only)
+  call <- rlang::current_call()
+  categories <- validate_ccsr_categories(categories, call)
+  validate_ccsr_default_only(default_only, call)
 
-  map <- read_ccsr_map(file)
-  validate_ccsr_category_names(categories, map$category)
-  map <- filter_ccsr_defaults(map, default_only)
+  map <- read_ccsr_map(file, call)
+  validate_ccsr_category_names(categories, map$category, call)
+  map <- filter_ccsr_defaults(map, default_only, call)
 
   sort(unique(map$code[map$category %in% categories]))
 }
 
-validate_ccsr_categories <- function(categories) {
+validate_ccsr_categories <- function(categories, call) {
   if (!is.character(categories) || length(categories) == 0L ||
       anyNA(categories) || any(!nzchar(trimws(categories)))) {
     cli::cli_abort("`categories` must be a non-empty character vector.",
-      call = sys.call(-1L))
+      call = call)
   }
   unique(toupper(trimws(categories)))
 }
 
-validate_ccsr_default_only <- function(default_only) {
+validate_ccsr_default_only <- function(default_only, call) {
   if (!is.logical(default_only) || length(default_only) != 1L ||
       is.na(default_only)) {
     cli::cli_abort("`default_only` must be `TRUE` or `FALSE`.",
-      call = sys.call(-1L))
+      call = call)
   }
 }
 
-validate_ccsr_category_names <- function(categories, available) {
+validate_ccsr_category_names <- function(categories, available, call) {
   unknown <- setdiff(categories, available)
   if (length(unknown) > 0L) {
     cli::cli_abort("Categor{?y/ies} {.val {unknown}} not found in {.arg file}.",
-      call = sys.call(-1L))
+      call = call)
   }
 }
 
-filter_ccsr_defaults <- function(map, default_only) {
+filter_ccsr_defaults <- function(map, default_only, call) {
   if (default_only) {
     if (all(is.na(map$default))) {
       cli::cli_abort(
         "`file` has no default inpatient category; use `default_only = FALSE`.",
-        call = sys.call(-1L)
+        call = call
       )
     }
     map[map$default %in% TRUE, , drop = FALSE]
@@ -106,41 +107,41 @@ filter_ccsr_defaults <- function(map, default_only) {
 
 # Returns one row per code-category pair: code, category, and `default`
 # (TRUE for the default inpatient category, NA when the file has none).
-read_ccsr_map <- function(file) {
-  validate_ccsr_file(file)
-  raw <- read_ccsr_source(file)
-  columns <- find_ccsr_columns(names(raw))
-  code <- clean_ccsr_codes(raw[[columns$code]])
+read_ccsr_map <- function(file, call) {
+  validate_ccsr_file(file, call)
+  raw <- read_ccsr_source(file, call)
+  columns <- find_ccsr_columns(names(raw), call)
+  code <- clean_ccsr_codes(raw[[columns$code]], call)
   map <- do.call(rbind, lapply(columns$category, function(col) {
     read_ccsr_category_pairs(raw, code, col, columns)
   }))
   map[!is.na(map$code) & !is.na(map$category), , drop = FALSE]
 }
 
-validate_ccsr_file <- function(file) {
+validate_ccsr_file <- function(file, call) {
   if (!is.character(file) || length(file) != 1L || is.na(file) ||
       !file.exists(file)) {
     cli::cli_abort("`file` must name an existing CCSR reference file.",
-      call = sys.call(-1L))
+      call = call)
   }
 }
 
-read_ccsr_source <- function(file) {
+read_ccsr_source <- function(file, call) {
   if (grepl("[.]xlsx?$", file, ignore.case = TRUE)) {
-    read_ccsr_sheet(file)
+    read_ccsr_sheet(file, call)
   } else {
-    read_ccsr_csv(file)
+    read_ccsr_csv(file, call)
   }
 }
 
-find_ccsr_columns <- function(column_names) {
+find_ccsr_columns <- function(column_names, call) {
   key <- gsub("[^a-z0-9]", "", tolower(column_names))
   code_col <- grep("^icd10(cm|pcs)(code)?$", key)
   category_cols <- grep("^(ccsrcategory|prccsr)[0-9]*$", key)
   if (length(code_col) == 0L || length(category_cols) == 0L) {
     cli::cli_abort(
       "`file` does not look like an HCUP DXCCSR or PRCCSR reference file.",
-      call = sys.call(-1L)
+      call = call
     )
   }
   list(
@@ -157,7 +158,7 @@ clean_ccsr_value <- function(x) {
   toupper(x)
 }
 
-clean_ccsr_codes <- function(x) {
+clean_ccsr_codes <- function(x, call) {
   code <- gsub("[.[:space:]]", "", clean_ccsr_value(x))
   bad <- unique(code[!is.na(code) & !grepl("^[A-Z0-9]{3,7}$", code)])
   if (length(bad) > 0L) {
@@ -165,7 +166,7 @@ clean_ccsr_codes <- function(x) {
       "`file` has values in its code column that are not ICD-10 codes.",
       "x" = "First offending value{?s}: {.val {utils::head(bad, 3L)}}",
       "i" = "The file may be malformed or in an unsupported layout."
-    ), call = sys.call(-1L))
+    ), call = call)
   }
   code
 }
@@ -183,7 +184,7 @@ ccsr_default_flag <- function(raw, category, columns) {
     default_category <- clean_ccsr_value(raw[[columns$wide_default[1L]]])
     !is.na(category) & !is.na(default_category) & category == default_category
   } else {
-    NA
+    rep(NA, length(category))
   }
 }
 
@@ -191,22 +192,20 @@ ccsr_default_flag <- function(raw, category, columns) {
 # descriptions can contain commas and apostrophes. A field boundary is
 # therefore the three-character sequence ',' rather than a bare comma.
 # Files without that wrapping fall back to standard CSV parsing.
-read_ccsr_csv <- function(file) {
+read_ccsr_csv <- function(file, call) {
   lines <- readLines(file, encoding = "UTF-8", warn = FALSE)
   lines <- sub("^\ufeff", "", lines)
   lines <- lines[nzchar(trimws(lines))]
   if (length(lines) == 0L) {
-    cli::cli_abort("`file` is empty.", call = sys.call())
+    cli::cli_abort("`file` is empty.", call = call)
   }
   if (!grepl("^'.*'$", lines[1L])) {
-    return(read_ccsr_standard_csv(lines))
+    return(read_ccsr_standard_csv(lines, call))
   }
-  sentinel <- "\001"
   fields <- lapply(lines, function(line) {
     inner <- substr(line, 2L, nchar(line) - 1L)
-    parts <- strsplit(paste0(inner, sentinel), "','", fixed = TRUE)[[1L]]
-    parts[length(parts)] <- sub(sentinel, "", parts[length(parts)], fixed = TRUE)
-    parts
+    # strsplit discards the final empty field, so append one to preserve a trailing field.
+    strsplit(paste0(inner, "','"), "','", fixed = TRUE)[[1L]]
   })
   width <- lengths(fields)
   wrong <- which(width != width[1L] | !grepl("^'.*'$", lines))
@@ -217,7 +216,7 @@ read_ccsr_csv <- function(file) {
     cli::cli_abort(c(
       "`file` is not a well-formed single-quoted CSV.",
       "x" = "Line {shown} should have {expected} quoted fields like the header."
-    ), call = sys.call())
+    ), call = call)
   }
   body <- as.data.frame(do.call(rbind, fields[-1L]), stringsAsFactors = FALSE)
   if (nrow(body) == 0L) {
@@ -227,7 +226,7 @@ read_ccsr_csv <- function(file) {
   body
 }
 
-read_ccsr_standard_csv <- function(lines) {
+read_ccsr_standard_csv <- function(lines, call) {
   connection <- textConnection(lines)
   on.exit(close(connection), add = TRUE)
   # Multiline quoted records have NA counts until their final physical line.
@@ -237,7 +236,7 @@ read_ccsr_standard_csv <- function(lines) {
   if (length(width) && any(width != width[1L])) {
     cli::cli_abort(
       "`file` is not a well-formed CSV: record field counts differ from the header.",
-      call = sys.call()
+      call = call
     )
   }
   utils::read.csv(text = lines, colClasses = "character",
@@ -245,7 +244,7 @@ read_ccsr_standard_csv <- function(lines) {
 }
 
 # HCUP workbooks put title rows above the header, so find the header row.
-read_ccsr_sheet <- function(file) {
+read_ccsr_sheet <- function(file, call) {
   rlang::check_installed("readxl", "to read HCUP Excel reference files.")
   sheets <- readxl::excel_sheets(file)
   sheet <- grep("^(DX|PR)_to_CCSR_Mapping$", sheets, value = TRUE,
@@ -253,7 +252,7 @@ read_ccsr_sheet <- function(file) {
   if (length(sheet) != 1L) {
     cli::cli_abort(
       "`file` needs one `DX_to_CCSR_Mapping` or `PR_to_CCSR_Mapping` sheet.",
-      call = sys.call()
+      call = call
     )
   }
   cells <- suppressMessages(readxl::read_excel(file, sheet = sheet,
@@ -261,7 +260,7 @@ read_ccsr_sheet <- function(file) {
   header <- which(grepl("^ICD-?10", cells[[1L]], ignore.case = TRUE))[1L]
   if (is.na(header)) {
     cli::cli_abort("No header row starting with `ICD-10` was found in `file`.",
-      call = sys.call())
+      call = call)
   }
   body <- as.data.frame(cells[-seq_len(header), , drop = FALSE],
     stringsAsFactors = FALSE)

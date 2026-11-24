@@ -118,3 +118,14 @@ test_that("sensitivity does not alter input metadata", {
   invisible(nis_dx_sensitivity(data, "A1"))
   expect_identical(data, before)
 })
+
+
+test_that("sensitivity does not overwrite or reject analyst fields named like flags", {
+  data <- dplyr::tibble(YEAR = 2020L, I10_DX1 = c("I50", "Z99"),
+    DISCWT = c(2, 5), .NIS_DX_ANY = c(1, 0))
+  for (input in list(data, duckdb_query_fixture(data))) {
+    result <- nis_dx_sensitivity(input, "I50", outcomes = ".NIS_DX_ANY")
+    expect_identical(result$n_unweighted, c(1, 0, 1))
+    expect_equal(result[[".NIS_DX_ANY_rate_unweighted"]], c(1, NA, 1))
+  }
+})

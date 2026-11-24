@@ -1,5 +1,3 @@
-# Install in a fresh library using R CMD INSTALL, independently of parent state.
-# The callback runs only after the effective namespace path has been verified.
 with_verified_source <- function(root, fn) {
   result <- callr::r(function(root, fn) {
     library <- tempfile("quality-library-")
@@ -41,14 +39,4 @@ namespace_complexity_pass <- function(value) {
   if (!is.data.frame(value) || !is.numeric(value$cyclocomp) || !nrow(value) ||
       any(!is.finite(value$cyclocomp))) return(NA)
   all(value$cyclocomp <= 15)
-}
-
-quality_provenance <- function(name) {
-  if (name %in% c("R CMD check --as-cran", "covr", "goodpractice", "pkgcheck")) {
-    return("nested_unverified")
-  }
-  if (name %in% c("installed_namespace_complexity", "export_arguments")) {
-    return("isolated_namespace_verified")
-  }
-  "source_inspection"
 }

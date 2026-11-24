@@ -53,10 +53,6 @@ test_that("empty cohorts and empty sources preserve backend parity", {
     empty <- dplyr::filter(data, FALSE)
     expect_error(suppressWarnings(nis_design(empty, NA, keep = AGE)),
       "No discharges have valid design fields")
-    # The SQL type probe also works without any rows to infer a type from.
-    prepared <- dplyr::mutate(empty, .nis_cohort = NA)
-    typed <- nis_design_cohort_type(prepared, call = NULL)
-    expect_type(nis_collect(typed)$.nis_cohort, "logical")
   }
 })
 

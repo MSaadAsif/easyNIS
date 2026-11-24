@@ -43,58 +43,35 @@ nis_prday_completeness <- function(.data, pr,
     cli::cli_abort("`.data` must contain a `YEAR` column.")
   }
 
-  stem <- if (system == "icd10") "I10_PR" else "PR"
-  procedure_names <- grep(paste0("^", stem, "[0-9]+$"),
-    columns, value = TRUE)
-  if (length(procedure_names) == 0L) {
-    cli::cli_abort(paste0("No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} PR columns (",
-      stem, "<n>) were found."))
-  }
-  slots <- as.integer(sub(paste0("^", stem), "", procedure_names))
-  order_slots <- order(slots)
-  procedure_names <- procedure_names[order_slots]
-  slots <- slots[order_slots]
-  day_names <- grep("^PRDAY[0-9]+$", columns, value = TRUE)
-  day_slots <- as.character(as.integer(sub("^PRDAY", "", day_names)))
-  day_by_slot <- stats::setNames(day_names, day_slots)
-  is_frame <- is.data.frame(.data)
-  matches <- lapply(procedure_names, function(column) {
-    if (is_frame) {
-      frame_match(pr, column)
-    } else {
-      nis_sql_match(pr, column) # nolint: object_usage_linter
-    }
+  layout <- nis_procedure_slots(columns, system, rlang::current_call())
+  slots <- layout$slot
+  matches <- lapply(layout$procedure, function(column) {
+    nis_code_match(nis_prefix_rule(pr), .data, column)
   })
   eligibility <- code_system_filter(.data, columns, "PR", system) # nolint: object_usage_linter
-  if (!is.null(eligibility)) {
-    matches <- lapply(matches, function(match) {
-      nis_and_expr(eligibility, match) # nolint: object_usage_linter
-    })
-  }
+  matches <- lapply(matches, nis_in_code_system, eligibility = eligibility)
 
   counts <- list()
   for (i in seq_along(slots)) {
-    slot <- slots[[i]]
     match <- matches[[i]]
-    day_name <- unname(day_by_slot[as.character(slot)])
+    day_name <- layout$day[[i]]
     suffix <- paste0("__", i)
     counts[[paste0("matched_slots", suffix)]] <-
       rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
-    if (length(day_name) == 0L || is.na(day_name)) {
+    if (is.na(day_name)) {
       counts[[paste0("known_day", suffix)]] <- rlang::expr(0L)
       counts[[paste0("missing_day", suffix)]] <- rlang::expr(0L)
       counts[[paste0("sentinel_invalid_day", suffix)]] <- rlang::expr(0L)
       counts[[paste0("absent_prday_column", suffix)]] <-
         rlang::expr(sum(as.integer(!!match), na.rm = TRUE))
     } else {
-      day <- timing_days(.data, slot, day_by_slot)[[1L]]
-      missing <- timing_day_missing(.data, list(day), slot, day_by_slot)[[1L]]
+      decoded <- nis_procedure_day(day_name, .data)
       counts[[paste0("known_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & ! (!!missing) & !!day >= 0), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$known)), na.rm = TRUE))
       counts[[paste0("missing_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & !!missing), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$missing)), na.rm = TRUE))
       counts[[paste0("sentinel_invalid_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & ! (!!missing) & !!day < 0), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$sentinel)), na.rm = TRUE))
       counts[[paste0("absent_prday_column", suffix)]] <- rlang::expr(0L)
     }
   }
@@ -106,13 +83,12 @@ nis_prday_completeness <- function(.data, pr,
     "sentinel_invalid_day", "absent_prday_column")
   summaries <- lapply(seq_along(slots), function(i) {
     suffix <- paste0("__", i)
-    summary <- data.frame(YEAR = wide$YEAR, slot = as.integer(slots[[i]]))
+    summary <- data.frame(YEAR = wide$YEAR, slot = rep(as.integer(slots[[i]]), nrow(wide)))
     for (metric in metrics) {
       summary[[metric]] <- as.integer(wide[[paste0(metric, suffix)]])
     }
     dplyr::as_tibble(summary)
   })
-  # dplyr data-masked column names.
   output <- dplyr::bind_rows(summaries) |>
     dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_, # nolint: object_usage_linter
       100 * known_day / matched_slots)) |> # nolint: object_usage_linter

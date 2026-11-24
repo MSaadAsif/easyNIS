@@ -255,7 +255,7 @@ test_that("nis_cost rejects negative and non-finite charges but retains zero", {
     dplyr::collect()
   design_data$test_row <- seq_len(nrow(design_data))
   design_data$TOTCHG[1:5] <- c(-1, 0, NA_real_, NaN, Inf)
-  design <- nis_design(design_data, cohort = TRUE, keep = dplyr::everything(),
+  design <- nis_design(design_data, cohort = TRUE, keep = c(TOTCHG, CCR_NIS, test_row),
     dollars = 2020)
   variables <- design$variables
   invalid <- variables[variables$test_row %in% c(1L, 3:5), ]

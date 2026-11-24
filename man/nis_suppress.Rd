@@ -51,9 +51,9 @@ masks and a footnote describing them.
 }
 \description{
 For a \code{gtsummary::tbl_svysummary()} result, replaces displayed statistics
-when their corresponding unweighted count is at or below \code{threshold}. Counts
-come from the \code{cards} computed by
-\code{gtsummary::tbl_svysummary()}. Continuous2 statistic rows use the
+when their corresponding unweighted count is at or below \code{threshold}. The
+count is the smaller of the summary card count and the number of matching
+records in the supplied survey design. Continuous2 statistic rows use the
 non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell

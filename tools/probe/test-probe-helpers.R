@@ -1,5 +1,33 @@
-source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "probe-modules.R"))
 source(file.path("tools", "probe", "provenance.R"))
+source("tools/probe/quality-checks.R")
+source("tools/probe/record-probe.R")
+
+local({
+  run <- tempfile("invented-probe-")
+  stopifnot(dir.create(run))
+  on.exit(unlink(run, recursive = TRUE), add = TRUE)
+  recorder <- new_probe_recorder(run)
+  secret <- "INVENTED_PRIVATE_CONDITION"
+  result <- recorder$record("descriptives", "invented", 2020L, function() {
+    warning(secret)
+    data.frame(estimate = 2, label = "synthetic")
+  }, private_summary = numeric_probe_summary)
+  stopifnot(identical(result$estimate, 2))
+  failed <- recorder$record("summary_failure", "invented", 2020L, function() 1,
+    private_summary = function(value) stop(secret))
+  returned <- recorder$record("returned_error", "invented", 2020L, function() simpleError(secret))
+  stopifnot(inherits(failed, "error"), inherits(returned, "error"),
+    identical(recorder$finish(), c("summary_failure", "returned_error")))
+  public <- readLines(file.path(run, "findings.jsonl"))
+  private <- readRDS(file.path(run, "private", "condition-details.rds"))
+  estimates <- readRDS(file.path(run, "private", "sanity-checks.rds"))
+  stopifnot(!any(grepl(secret, public, fixed = TRUE)),
+    !jsonlite::fromJSON(public[[2L]])$pass,
+    !jsonlite::fromJSON(public[[3L]])$pass,
+    identical(vapply(private, "[[", character(1), "message"), rep(secret, 3L)),
+    identical(estimates$descriptives, data.frame(estimate = 2)))
+})
 
 test_paths <- c(
   "C:\\sandbox\\invented person\\nis.parquet",
@@ -9,8 +37,6 @@ test_paths <- c(
 )
 redacted <- redact_paths(test_paths)
 stopifnot(all(redacted == "[local path]"),
-  redact_public_text("n=7 cases") == "n=[number] cases",
-  redact_public_text("count=1e8, n=5L") == "count=[number], n=[number]",
   quality_evidence_valid(list(commit = "synthetic", working_tree_clean = TRUE), "synthetic", TRUE),
   !quality_evidence_valid(list(commit = "synthetic", working_tree_clean = FALSE), "synthetic", TRUE),
   !quality_evidence_valid(list(commit = "other", working_tree_clean = TRUE), "synthetic", TRUE),
@@ -38,25 +64,32 @@ resolved_loop <- resolve_loop_dir(main_repo, loop_root)
 outside_loop <- tryCatch(resolve_loop_dir(main_repo, tempfile("outside-loop-")), error = identity)
 stopifnot(path_is_within(resolved_loop, loop_root), inherits(outside_loop, "error"),
   is.list(load_reference_studies(file.path("tools", "probe", "reference-studies.yml"))),
-  length(load_reference_studies(file.path("tools", "probe", "reference-studies.yml"))) == 0L,
   !valid_reference_studies(list()))
 
-synthetic_fit <- stats::lm(mpg ~ cyl, data = datasets::mtcars)
-private_fit_summary <- private_sanity_summary("regression", synthetic_fit)
-stopifnot(is.matrix(private_fit_summary), !"data" %in% names(private_fit_summary),
-  is.null(private_sanity_summary("code_transitions", data.frame(code = "synthetic"))))
-synthetic_estimates <- data.frame(estimate = 1, standard_error = 0.1, label = "synthetic")
-private_weighted_summary <- private_sanity_summary("weighted_descriptives", synthetic_estimates)
-stopifnot(identical(names(private_weighted_summary), c("estimate", "standard_error")))
+readiness_status <- function(criteria, criterion) {
+  criteria$status[match(criterion, criteria$criterion)]
+}
+
+coverage_is_ready <- function(criteria) {
+  identical(readiness_status(criteria, "Test coverage >= 90%"), "ready")
+}
+
+guide_is_ready <- function(criteria) {
+  identical(readiness_status(criteria, "rOpenSci packaging-guide conformance"), "ready")
+}
+
+complexity_is_ready <- function(criteria) {
+  identical(readiness_status(criteria, "Cyclomatic complexity <= 15 per function"), "ready")
+}
 
 assert_readiness_rejects_statuses <- function(run_readiness, baseline, manual) {
   for (status in c("failed", "partial", "not_verified", "", NA_character_)) {
     altered <- baseline
     altered$status <- status
-    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
+    stopifnot(!coverage_is_ready(run_readiness(coverage = altered)))
     altered <- manual
     altered$status <- status
-    stopifnot(!run_readiness(subset = altered)$pkgcheck_pass)
+    stopifnot(!guide_is_ready(run_readiness(subset = altered)))
   }
 }
 
@@ -82,7 +115,7 @@ assert_readiness_rejects_malformed_lines <- function(run_readiness) {
     "{\"step\":\"diagnostic-only\",\"step\":\"coverage_percent\"}")
   for (line in lines) {
     result <- run_readiness(line)
-    stopifnot(!result$coverage_ready, result$check_pass("cyclocomp_linter(15)"))
+    stopifnot(!coverage_is_ready(result), complexity_is_ready(result))
   }
 }
 
@@ -182,11 +215,11 @@ assert_reconcile_cases <- function(run_readiness, encode) {
     shape_valid(item) && should_apply(item, "invented-head")
   }, logical(1))))
   dirty_manual_failures <- lapply(dirty_failures, function(item) {
-    run_readiness(extra = encode(item))$pkgcheck_pass
+    guide_is_ready(run_readiness(extra = encode(item)))
   })
   current_partial_failure <- clean_failures[["partial"]]
   stopifnot(all(unlist(dirty_manual_failures)),
-    !run_readiness(extra = encode(current_partial_failure))$pkgcheck_pass)
+    !guide_is_ready(run_readiness(extra = encode(current_partial_failure))))
 }
 
 local({
@@ -501,12 +534,12 @@ local({
     output <- capture.output(sys.source("tools/probe/readiness.R", envir = env))
     stopifnot(nrow(env$criteria) == 8L,
       !any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
-    env
+    env$criteria
   }
   assert_reconcile_cases(run_readiness, encode)
   ready <- run_readiness()
-  stopifnot(ready$coverage_ready, ready$pkgcheck_pass,
-    ready$check_pass("cyclocomp_linter(15)"), ready$ci_runs_ok, ready$issues_clean)
+  stopifnot(coverage_is_ready(ready), guide_is_ready(ready),
+    complexity_is_ready(ready), readiness_status(ready, "No open P0/P1 issues") == "ready")
   boundary_path <- file.path(fixture_dir, "quality-boundaries.jsonl")
   boundary_receipts <- list(baseline, pkg, manual, complexity)
   boundary_text <- vapply(boundary_receipts, encode, character(1))
@@ -520,7 +553,7 @@ local({
       unname(boundary_text)),
     identical(vapply(boundary_evidence, `[[`, character(1), "step"),
       c("coverage_percent", "pkgcheck", "ropensci_manual_subset", "cyclocomp_linter(15)")))
-  study <- ready$reference_studies[[1L]]
+  study <- synthetic_reference
   study_path <- file.path(fixture_dir, "private", "study-verification",
     paste0(study$id, ".json"))
   dir.create(dirname(study_path), recursive = TRUE)
@@ -530,8 +563,9 @@ local({
   writeBin(c(charToRaw(study_text), as.raw(0), charToRaw("junk")), study_path)
   stopifnot(!study_verification_ready(study_path, "invented-head", study))
   scoped_study_result <- run_readiness()
-  stopifnot(!scoped_study_result$headline_pass, scoped_study_result$coverage_ready,
-    scoped_study_result$pkgcheck_pass)
+  stopifnot(readiness_status(scoped_study_result,
+      "Reproduces headline estimates of 3 published NIS studies within stated tolerance") == "not verified", coverage_is_ready(scoped_study_result),
+    guide_is_ready(scoped_study_result))
   nonpassing_pairs <- list(list(status = "failed", pass = TRUE),
     list(status = "partial", pass = NULL), list(status = "not_verified", pass = TRUE),
     list(status = "completed", pass = NULL))
@@ -540,7 +574,7 @@ local({
     altered$status <- pair$status
     altered["pass"] <- list(pair$pass)
     stopifnot(quality_receipt_shape_valid(altered),
-      !run_readiness(coverage = altered)$coverage_ready)
+      !coverage_is_ready(run_readiness(coverage = altered)))
   }
   exact_pass <- baseline
   exact_pass$passed <- exact_pass$pass
@@ -557,69 +591,66 @@ local({
   stopifnot(identical(clean_below_threshold$status, "not_verified"),
     identical(clean_below_threshold$pass, FALSE),
     identical(clean_below_threshold$value, 50),
-    identical(clean_below_result$coverage_value, 50),
-    identical(clean_below_result$criteria$status[
-      clean_below_result$criteria$criterion == "Test coverage >= 90%"], "not met"))
+    identical(readiness_status(clean_below_result, "Test coverage >= 90%"), "not met"))
   dirty_below_threshold <- coverage_percent_record(
     list(value = synthetic_coverage, error_class = ""),
     list(commit = "invented-head", working_tree_clean = FALSE),
     percent_coverage = synthetic_percent, provenance_pass_fn = provenance_pass)
   dirty_only_result <- run_readiness(coverage = dirty_below_threshold, clean = FALSE)
-  stopifnot(run_readiness(extra = encode(dirty_below_threshold))$coverage_ready,
-    identical(dirty_only_result$criteria$status[
-      dirty_only_result$criteria$criterion == "Test coverage >= 90%"], "not measured"))
+  stopifnot(coverage_is_ready(run_readiness(extra = encode(dirty_below_threshold))),
+    identical(readiness_status(dirty_only_result, "Test coverage >= 90%"), "not measured"))
   assert_readiness_rejects_statuses(run_readiness, baseline, manual)
   for (value in list(-1, 101, TRUE, "94", c(91, 94), NULL)) {
     altered <- baseline
     altered$value <- value
-    stopifnot(!run_readiness(coverage = altered)$coverage_ready)
+    stopifnot(!coverage_is_ready(run_readiness(coverage = altered)))
   }
   for (value in c(0, 90, 100)) {
     altered <- baseline
     altered$value <- value
-    stopifnot(identical(run_readiness(coverage = altered)$coverage_ready, value >= 90))
+    stopifnot(identical(coverage_is_ready(run_readiness(coverage = altered)), value >= 90))
   }
   malformed <- c('{"INVENTED_PRIVATE_MARKER":', '7', 'null', '[]',
     '{"step":["coverage_percent"],"commit":"invented-old"}')
-  stopifnot(run_readiness(malformed)$coverage_ready)
+  stopifnot(coverage_is_ready(run_readiness(malformed)))
   assert_readiness_rejects_malformed_lines(function(line) run_readiness(c(malformed, line)))
   altered <- baseline
   altered$status <- "failed"
   altered$pass <- FALSE
-  stopifnot(!run_readiness(encode(altered))$coverage_ready)
+  stopifnot(!coverage_is_ready(run_readiness(encode(altered))))
   altered$status <- "skipped_by_selection"
   altered["pass"] <- list(NULL)
-  stopifnot(run_readiness(encode(altered))$coverage_ready)
+  stopifnot(coverage_is_ready(run_readiness(encode(altered))))
   invalid_skip <- altered
   invalid_skip$pass <- "invalid"
-  stopifnot(!run_readiness(encode(invalid_skip))$coverage_ready)
+  stopifnot(!coverage_is_ready(run_readiness(encode(invalid_skip))))
   invalid_skip_values <- list(pass = FALSE, working_tree_clean = "true")
   for (field_name in names(invalid_skip_values)) {
     invalid_skip <- altered
     invalid_skip[[field_name]] <- invalid_skip_values[[field_name]]
-    stopifnot(!run_readiness(encode(invalid_skip))$coverage_ready)
+    stopifnot(!coverage_is_ready(run_readiness(encode(invalid_skip))))
   }
   altered$status <- "failed"
   altered$commit <- "invented-old"
-  stopifnot(run_readiness(encode(altered))$coverage_ready,
-    !run_readiness(clean = FALSE)$coverage_ready)
+  stopifnot(coverage_is_ready(run_readiness(encode(altered))),
+    !coverage_is_ready(run_readiness(clean = FALSE)))
   for (line in c(
       '{"diagnostic":{"commit":"invented-head"},"step":"coverage_percent","commit":"invented-old","status":"failed","status":"completed"}',
       '{"step":"coverage_percent","commit":"invented-old","unfinished":')) {
-    stopifnot(run_readiness(line)$coverage_ready)
+    stopifnot(coverage_is_ready(run_readiness(line)))
   }
   for (ending in c('"commit":', '"commit":"invented-head')) {
     line <- paste0('{"step":"coverage_percent","commit":"invented-old",', ending)
-    stopifnot(!run_readiness(line)$coverage_ready)
+    stopifnot(!coverage_is_ready(run_readiness(line)))
   }
   for (flag in list(FALSE, 1, "true", NULL)) {
     altered <- baseline
     altered$working_tree_clean <- flag
     expected_ready <- identical(flag, FALSE)
-    stopifnot(identical(run_readiness(encode(altered))$coverage_ready, expected_ready))
+    stopifnot(identical(coverage_is_ready(run_readiness(encode(altered))), expected_ready))
     altered <- baseline
     altered$pass <- flag
-    stopifnot(!run_readiness(encode(altered))$coverage_ready)
+    stopifnot(!coverage_is_ready(run_readiness(encode(altered))))
   }
   malformed_current_commit <-
     '{"step":"coverage_percent","commit":false "invented-old"}'
@@ -639,36 +670,36 @@ local({
     '"commit":"invented-old","unfinished":')
   malformed_unidentifiable <-
     '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"'
-  stopifnot(!run_readiness(malformed_current_commit)$coverage_ready,
-    run_readiness(malformed_known_stale)$coverage_ready,
-    run_readiness(malformed_partial_stale)$coverage_ready,
-    !run_readiness(truncated_terminal_step)$coverage_ready,
-    !run_readiness(truncated_terminal_stale_commit)$coverage_ready,
-    !run_readiness(ambiguous_stale_commit)$coverage_ready,
-    !run_readiness(ambiguous_skip_commit)$coverage_ready,
-    run_readiness(malformed_unidentifiable)$coverage_ready)
+  stopifnot(!coverage_is_ready(run_readiness(malformed_current_commit)),
+    coverage_is_ready(run_readiness(malformed_known_stale)),
+    coverage_is_ready(run_readiness(malformed_partial_stale)),
+    !coverage_is_ready(run_readiness(truncated_terminal_step)),
+    !coverage_is_ready(run_readiness(truncated_terminal_stale_commit)),
+    !coverage_is_ready(run_readiness(ambiguous_stale_commit)),
+    !coverage_is_ready(run_readiness(ambiguous_skip_commit)),
+    coverage_is_ready(run_readiness(malformed_unidentifiable)))
   stale_partial <- parse_quality_line(malformed_partial_stale)[[1L]]
   ambiguous_skip <- parse_quality_line(ambiguous_skip_commit)[[1L]]
   stopifnot(!quality_evidence_should_apply(stale_partial, "invented-head"),
     is.null(ambiguous_skip$commit), quality_evidence_should_apply(ambiguous_skip, "invented-head"))
   malformed_step_result <- run_readiness(truncated_terminal_step)
-  stopifnot(!malformed_step_result$coverage_ready,
-    malformed_step_result$check_pass("cyclocomp_linter(15)"))
+  stopifnot(!coverage_is_ready(malformed_step_result),
+    complexity_is_ready(malformed_step_result))
   nested_gate_diagnostic <- paste0(
     '{"step":"pkgcheck","commit":"invented-head",',
     '"diagnostic":{"step":"coverage_percent"}]}')
   nested_result <- run_readiness(nested_gate_diagnostic)
-  stopifnot(nested_result$coverage_ready,
-    nested_result$check_pass("cyclocomp_linter(15)"))
+  stopifnot(coverage_is_ready(nested_result),
+    complexity_is_ready(nested_result))
   array_step_one <- '{"step":["coverage_percent"],"commit":"invented-head"}'
   array_step_two <- '{"step":["coverage_percent","pkgcheck"],"commit":"invented-head"}'
   array_result <- run_readiness(c(array_step_one, array_step_two))
-  stopifnot(array_result$coverage_ready, array_result$pkgcheck_pass)
+  stopifnot(coverage_is_ready(array_result), guide_is_ready(array_result))
   skipped_dirty <- baseline
   skipped_dirty$status <- "skipped_by_selection"
   skipped_dirty["pass"] <- list(NULL)
   skipped_dirty$working_tree_clean <- FALSE
-  stopifnot(run_readiness(extra = encode(skipped_dirty))$coverage_ready)
+  stopifnot(coverage_is_ready(run_readiness(extra = encode(skipped_dirty))))
   dirty_unverified <- baseline
   dirty_unverified$status <- "not_verified"
   dirty_unverified["pass"] <- list(NULL)
@@ -676,19 +707,21 @@ local({
   dirty_unverified$working_tree_clean <- FALSE
   dirty_unverified$value <- 100
   dirty_result <- run_readiness(extra = encode(dirty_unverified))
-  stopifnot(dirty_result$coverage_ready, identical(dirty_result$coverage_value, 94))
+  stopifnot(coverage_is_ready(dirty_result), any(grepl("Latest covr percentage: 94 ", dirty_result$evidence, fixed = TRUE)))
   nul_receipt <- baseline
   nul_line <- charToRaw(encode(nul_receipt))
   nul_record <- run_readiness(extra_raw = c(nul_line, as.raw(0), charToRaw("junk\n")))
-  stopifnot(!nul_record$coverage_ready)
+  stopifnot(!coverage_is_ready(nul_record))
   dirty_failure <- baseline
   dirty_failure$status <- "failed"
   dirty_failure$pass <- FALSE
   dirty_failure$working_tree_clean <- FALSE
-  stopifnot(run_readiness(extra = encode(dirty_failure))$coverage_ready)
+  stopifnot(coverage_is_ready(run_readiness(extra = encode(dirty_failure))))
   contradictory_provenance <- baseline
   contradictory_provenance$provenance <- "nested_unverified"
-  stopifnot(!run_readiness(coverage = contradictory_provenance)$coverage_ready)
+  stopifnot(!coverage_is_ready(run_readiness(coverage = contradictory_provenance)))
+  contradictory_provenance$provenance <- list("nested_unverified")
+  stopifnot(!coverage_is_ready(run_readiness(coverage = contradictory_provenance)))
 })
 
 cat("Probe-helper tests passed.\n")

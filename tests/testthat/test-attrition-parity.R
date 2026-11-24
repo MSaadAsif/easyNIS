@@ -107,3 +107,26 @@ test_that("missing weights contribute zero while infinite weights are retained",
     expect_equal(result$n_dropped_weighted[[3L]], Inf)
   }
 })
+
+
+test_that("attrition preserves counts from a DuckDB integer64 connection", {
+  skip_if_not_installed("bit64")
+  frame <- dplyr::tibble(YEAR = rep(2020:2021, each = 3L), DISCWT = 1,
+    include = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE))
+  con <- DBI::dbConnect(duckdb::duckdb(bigint = "integer64"))
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+  query <- dplyr::copy_to(con, frame, "invented_attrition64", temporary = TRUE)
+
+  expected <- nis_attrition(frame, include, by_year = TRUE)
+  expect_identical(nis_attrition(query, include, by_year = TRUE), expected)
+})
+
+
+test_that("attrition summary aliases cannot shadow the selected weight", {
+  frame <- dplyr::tibble(age = c(17, 18, 19), .nis_attrition_w_0 = c(1, 2, 3))
+  for (data in list(frame, duckdb_query_fixture(frame))) {
+    result <- nis_attrition(data, adults = age >= 18, weight_var = ".nis_attrition_w_0")
+    expect_identical(result$n_weighted, c(6, 5))
+    expect_identical(result$n_dropped_weighted, c(NA_real_, 1))
+  }
+})

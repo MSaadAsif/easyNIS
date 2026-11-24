@@ -1,3 +1,7 @@
+.nis_design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
+.nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields),
+  .nis_design_fields)
+
 nis_design_validate <- function(.data, charges, annualize, call) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.", call = call)
@@ -5,17 +9,15 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.", call = call)
   }
-  reserved <- c(".in_cohort", ".nis_cohort", ".nis_valid",
-    ".nis_psu", ".nis_stratum", ".nis_weight", ".nis_bad_YEAR",
-    ".nis_bad_HOSP_NIS", ".nis_bad_NIS_STRATUM", ".nis_bad_DISCWT")
-  if (any(reserved %in% nis_names(.data))) { # nolint: object_usage_linter
+  reserved <- c(.nis_cohort_structure_fields, ".nis_cohort", ".nis_valid", unname(.nis_design_invalid_fields))
+  if (!identical(reserved, nis_internal_names(.data, nis_names(.data), reserved))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
   }
 
 }
 
 nis_design_fields <- function(.data, keep_quo, call) {
-  design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
+  design_fields <- .nis_design_fields
   data_names <- nis_names(.data) # nolint: object_usage_linter
   absent <- setdiff(design_fields, data_names)
   if (length(absent) > 0L) {
@@ -86,12 +88,10 @@ nis_design_groups <- function(prepared, design_fields, call) {
   # nolint start: object_usage_linter. Data-masked dplyr expressions.
   design_groups <- prepared |>
     dplyr::group_by(dplyr::across(dplyr::all_of(c(
-      ".nis_valid", ".nis_bad_YEAR", ".nis_bad_HOSP_NIS",
-      ".nis_bad_NIS_STRATUM", ".nis_bad_DISCWT", "YEAR", "HOSP_NIS",
-      "NIS_STRATUM"
+      ".nis_valid", unname(.nis_design_invalid_fields), setdiff(design_fields, "DISCWT")
     )))) |>
     dplyr::summarise(
-      DISCWT = min(dplyr::if_else(.nis_valid, DISCWT, Inf), na.rm = TRUE),
+      DISCWT = min(dplyr::if_else(.nis_valid, as.double(DISCWT), Inf), na.rm = TRUE),
       n = dplyr::n(),
       .groups = "drop"
     ) |>
@@ -112,14 +112,9 @@ nis_design_groups <- function(prepared, design_fields, call) {
 nis_design_exclusions <- function(.data) {
   design_groups <- .data
   excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
-  excluded_by_field <- stats::setNames(
-    vapply(c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"), function(field) {
-      as.integer(sum(design_groups$n[
-        design_groups[[paste0(".nis_bad_", field)]]
-      ]))
-    }, integer(1)),
-    c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
-  )
+  excluded_by_field <- vapply(.nis_design_invalid_fields, function(column) {
+    as.integer(sum(design_groups$n[design_groups[[column]]]))
+  }, integer(1))
   # nolint start: object_usage_linter. dplyr data-masked `.data` pronoun.
   year_counts <- design_groups |>
     dplyr::filter(.nis_valid == FALSE, is.finite(YEAR), YEAR > 0) |>
@@ -196,6 +191,7 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   if (!is.logical(collected$.nis_cohort)) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }
+  if (inherits(collected$DISCWT, "integer64")) collected$DISCWT <- as.double(collected$DISCWT)
   missing_count <- sum(is.na(collected$.nis_cohort))
   if (missing_count > 0L) {
     cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
@@ -385,22 +381,15 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   collected_fields <- fields$collected_fields
 
   cohort_quo <- nis_design_cohort_expr(rlang::enquo(cohort), call)
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
-  prepared <- dplyr::mutate(
-    .data,
-    .nis_cohort = !!cohort_quo,
-    .nis_bad_YEAR = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "YEAR") & YEAR > 0, FALSE), # nolint: object_usage_linter
-    .nis_bad_HOSP_NIS = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "HOSP_NIS") & HOSP_NIS > 0, FALSE), # nolint: object_usage_linter
-    .nis_bad_NIS_STRATUM = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "NIS_STRATUM") & NIS_STRATUM > 0, FALSE), # nolint: object_usage_linter
-    .nis_bad_DISCWT = !dplyr::coalesce(
-      !!nis_is_finite_expr(.data, "DISCWT") & DISCWT > 0, FALSE), # nolint: object_usage_linter
-    .nis_valid = !(.data[[".nis_bad_YEAR"]] | .data[[".nis_bad_HOSP_NIS"]] |
-      .data[[".nis_bad_NIS_STRATUM"]] | .data[[".nis_bad_DISCWT"]])
-  )
-  # nolint end
+  invalid <- lapply(.nis_design_fields, function(field) {
+    finite <- nis_is_finite_expr(.data, field)
+    positive <- rlang::expr(!!rlang::sym(field) > 0)
+    rlang::expr(!dplyr::coalesce(!!finite & !!positive, FALSE))
+  })
+  names(invalid) <- unname(.nis_design_invalid_fields)
+  any_invalid <- reduce_or(rlang::syms(names(invalid)))
+  prepared <- dplyr::mutate(.data, .nis_cohort = !!cohort_quo,
+    !!!invalid, .nis_valid = !(!!any_invalid))
 
   groups <- nis_design_groups(prepared, design_fields, call)
   hospital_rows <- groups$hospital_rows
@@ -459,33 +448,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
       ))
     }
     if (is.null(dollars)) dollars <- max(hospital_rows$YEAR)
-    # nolint next: object_usage_linter. Function is defined in this package.
-    combined <- withCallingHandlers(
-      nis_cost(combined, dollars = dollars, charges = charges),
-      message = function(condition) invokeRestart("muffleMessage")
-    )
-    cost_provenance <- attr(combined, "nis_cost_provenance", exact = TRUE)
-    # Placeholder rows have no discharge CCR by construction; provenance counts
-    # only real cohort rows and excludes these synthetic rows.
-    cost_provenance$rows_missing_or_invalid_ccr <- sum(
-      !dplyr::coalesce(
-        is.finite(cohort_rows$CCR_NIS) & cohort_rows$CCR_NIS > 0,
-        FALSE
-      )
-    )
-    cost_provenance$rows_missing_charges <- sum(
-      !.nis_cost_valid_charges(cohort_rows[[charges]]) # nolint: object_usage_linter. Package helper.
-    )
-    # Emit one message per kind for cohort rows; placeholder rows are synthetic
-    # and have no discharge CCR by construction.
-    .nis_cost_inform_invalid_ccr( # nolint: object_usage_linter. Package helper.
-      cost_provenance$rows_missing_or_invalid_ccr,
-      cohort = TRUE
-    )
-    .nis_cost_inform_charges( # nolint: object_usage_linter. Package helper.
-      cost_provenance$rows_missing_charges,
-      cohort = TRUE
-    )
+    combined <- nis_adjust_costs(combined, dollars, charges, call,
+      population = combined$.in_cohort)
+    cost_provenance <- nis_cost_provenance(combined)
   } else {
     cost_fields <- NULL
     cost_provenance <- NULL
@@ -500,178 +465,5 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     "{hospitals} hospitals across {year_count} years."
   ))
   combined <- nis_design_aliases(combined, fields, cost_fields, alias_sources, call)
-  design <- nis_cohort_design(combined)
-  attr(design, "nis_excluded") <- excluded
-  if (!is.null(cost_provenance)) {
-    attr(design, "nis_cost_provenance") <- cost_provenance
-  }
-  design
-}
-
-nis_reweight_data <- function(design, weights_quo, call) {
-  placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
-  cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)
-  if (any(c(!inherits(design, "tbl_svy"), !is.data.frame(placeholders),
-      is.null(cohort_rows)))) {
-    cli::cli_abort("`design` must be a result of `nis_design()`.", call = call)
-  }
-  variables <- design$variables
-  if (nrow(variables) != cohort_rows) {
-    cli::cli_abort(c(
-      "`design` has been narrowed with `filter()`.",
-      i = "Call `nis_reweight()` before narrowing the cohort."
-    ), call = call)
-  }
-
-  weight_values <- rlang::eval_tidy(weights_quo, data = variables)
-  if (!is.numeric(weight_values) || !is.null(dim(weight_values))) {
-    cli::cli_abort("`weights` must be a numeric vector or numeric column.", call = call)
-  }
-  if (length(weight_values) != nrow(variables)) {
-    cli::cli_abort("`weights` must have one value per cohort row in `design`.", call = call)
-  }
-  if (any(!is.finite(weight_values))) {
-    cli::cli_abort("`weights` must contain only finite values.", call = call)
-  }
-  if (any(weight_values <= 0)) {
-    cli::cli_abort("`weights` must be positive.", call = call)
-  }
-
-  variables <- nis_reweight_restore(design, call)
-  aligned <- variables[rep(NA_integer_, nrow(placeholders)), , drop = FALSE]
-  for (field in c(".nis_psu", ".nis_stratum", ".nis_weight", ".in_cohort")) {
-    aligned[[field]] <- placeholders[[field]]
-  }
-  variables$.nis_weight <- variables$.nis_weight * weight_values
-  list(combined = dplyr::bind_rows(variables, aligned), variables = variables)
-}
-
-nis_reweight_restore <- function(design, call) {
-  if (any(c(ncol(design$cluster) != 1L, ncol(design$strata) != 1L,
-      !is.null(design$postStrata), !is.null(design$fpc$popsize),
-      !identical(design$pps, FALSE)))) {
-    cli::cli_abort("`design` has unsupported survey structure for reweighting.", call = call)
-  }
-  stratum <- as.character(design$strata[[1L]])
-  psu <- as.character(design$cluster[[1L]])
-  prefix <- paste0(stratum, ".")
-  if (any(!startsWith(psu, prefix))) {
-    cli::cli_abort("`design` has unsupported PSU identities for reweighting.", call = call)
-  }
-  variables <- design$variables
-  variables$.nis_psu <- substring(psu, nchar(prefix) + 1L)
-  variables$.nis_stratum <- stratum
-  variables$.nis_weight <- as.numeric(stats::weights(design))
-  variables$.in_cohort <- rep(TRUE, nrow(variables))
-  variables
-}
-
-nis_reweight_structure <- function(original, rebuilt, call) {
-  same_ids <- function(field) {
-    identical(as.character(original[[field]][[1L]]),
-      as.character(rebuilt[[field]][[1L]]))
-  }
-  if (!same_ids("cluster") || !same_ids("strata") ||
-      !identical(original$fpc, rebuilt$fpc)) {
-    cli::cli_abort("`design` variance structure cannot be safely rebuilt for reweighting.", call = call)
-  }
-}
-
-#' Reweight a cohort survey design
-#'
-#' Multiplies cohort discharge survey weights by supplied propensity weights,
-#' retains the placeholder rows for hospital-years without cohort discharges,
-#' and rebuilds the nested survey design. This experimental method is intended
-#' for analysts who have validated their weighting specification against a
-#' full-data reference design.
-#'
-#' @param design A result of [nis_design()].
-#'   Column selection, renaming, and mutation are supported when cohort rows
-#'   are unchanged. Required internal design fields are restored from survey
-#'   metadata; removed analysis columns are not restored.
-#' @param weights Numeric weights aligned with the cohort rows of `design`, or
-#'   an unquoted numeric column name in the design data. They are matched to
-#'   rows by position, so take them from `design$variables` in that order (for
-#'   example, fit the propensity model on `design$variables`) and do not
-#'   reorder or subset the rows first.
-#'
-#' @section Weighted totals:
-#' The result multiplies the discharge weights by `weights`, so
-#' `survey_total()` and similar totals no longer estimate national discharge
-#' counts. Use the result for ratios, means and model estimates, and report
-#' national counts from the design before reweighting. Each call multiplies the
-#' weights again, so call `nis_reweight()` once on the result of
-#' [nis_design()]; calling it on an already reweighted design compounds the
-#' weights.
-#'
-#' @return A filtered `srvyr::tbl_svy` survey design.
-#' @family survey-design
-#' @seealso [Survey design and weighting](articles/survey-design.html).
-#' @export
-#' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020)) |>
-#'   nis_flag_dx(heart_failure = "I50")
-#' design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
-#'
-#' # Illustrative weights only; use weights from your own validated model
-#' reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-#' srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
-nis_reweight <- function(design, weights) {
-  call <- rlang::current_call()
-  rows <- nis_reweight_data(design, rlang::enquo(weights), call)
-  variables <- rows$variables
-  combined <- rows$combined
-  # bind_rows() drops variable labels; restore them before rebuilding the design.
-  for (name in names(variables)) {
-    label <- attr(variables[[name]], "label", exact = TRUE)
-    if (!is.null(label)) attr(combined[[name]], "label") <- label
-  }
-  reweighted <- nis_cohort_design(combined)
-  nis_reweight_structure(design, reweighted, call)
-  attr(reweighted, "nis_excluded") <- attr(design, "nis_excluded", exact = TRUE)
-  cost_provenance <- attr(design, "nis_cost_provenance", exact = TRUE)
-  if (!is.null(cost_provenance)) {
-    attr(reweighted, "nis_cost_provenance") <- cost_provenance
-  }
-  reweighted
-}
-
-# Cohort rows plus placeholder rows (`.in_cohort == FALSE`) in one nested
-# design, filtered to the cohort. The placeholders and the cohort row count
-# stay on the result so `nis_reweight()` can rebuild the design.
-nis_cohort_design <- function(combined) {
-  # nolint start: object_usage_linter. srvyr/dplyr data-masked fields.
-  design <- srvyr::as_survey_design(
-    combined,
-    ids = .nis_psu,
-    strata = .nis_stratum,
-    weights = .nis_weight,
-    nest = TRUE
-  ) |>
-    dplyr::filter(.in_cohort)
-  # nolint end
-  attr(design, "nis_placeholder_rows") <- combined[!combined$.in_cohort, , drop = FALSE]
-  attr(design, "nis_cohort_rows") <- sum(combined$.in_cohort)
-  design
-}
-
-nis_collect <- function(x) {
-  if (is.data.frame(x)) return(x)
-  tryCatch(
-    dplyr::collect(x),
-    error = function(error) {
-      if (grepl("invalid string encoding|invalid UTF-8",
-        conditionMessage(error), ignore.case = TRUE)) {
-        cli::cli_abort(c(
-          "A string column in the Parquet input is not valid UTF-8.",
-          i = paste0(
-            "This usually happens when converting HCUP ASCII files without ",
-            "declaring their source encoding.",
-            " Re-convert with the correct encoding, for example Latin-1 to UTF-8."
-          )
-        ), parent = error)
-      }
-      stop(error)
-    }
-  )
+  nis_cohort_design(combined, excluded, cost_provenance)
 }

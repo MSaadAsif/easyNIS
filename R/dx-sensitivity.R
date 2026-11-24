@@ -25,22 +25,33 @@ nis_flag_dx_position <- function(.data, code, name = "dx",
       !grepl("^\\.?[A-Za-z][A-Za-z0-9._]*$", name)) {
     cli::cli_abort("`name` must be one syntactic column-name prefix.")
   }
-  output_names <- paste0(name, c("_principal", "_secondary_only", "_any"))
-  if (any(output_names %in% nis_names(.data))) { # nolint: object_usage_linter
+  output_names <- dx_position_names(name)
+  columns <- nis_names(.data)
+  if (!identical(unname(output_names),
+      nis_internal_names(.data, columns, unname(output_names)))) {
     cli::cli_abort("The diagnosis-position output columns must not replace existing columns.")
   }
+  dx_add_position_flags(.data, columns, code, system, output_names)
+}
 
-  principal_name <- output_names[[1L]]
-  any_name <- output_names[[3L]]
-  add_flag <- function(data, flag_name, position) {
-    arguments <- c(list(data), stats::setNames(list(code), flag_name),
-      list(position = position, system = system))
-    do.call(nis_flag_dx, arguments)
-  }
-  .data <- add_flag(.data, principal_name, "principal")
-  .data <- add_flag(.data, any_name, "any")
-  dplyr::mutate(.data,
-    !!output_names[[2L]] := .data[[any_name]] & !.data[[principal_name]])
+dx_position_names <- function(prefix) {
+  positions <- c("principal", "secondary_only", "any")
+  stats::setNames(paste(prefix, positions, sep = "_"), positions)
+}
+
+dx_add_position_flags <- function(data, columns, code, system, output_names) {
+  rule <- nis_prefix_rule(normalize_prefixes(code))
+  principal <- nis_flag_slot_names(columns, "DX", system, "principal")
+  slots <- nis_flag_slot_names(columns, "DX", system, "any")
+  eligibility <- code_system_filter(data, columns, "DX", system)
+  flags <- lapply(list(principal, slots), function(slots) {
+    nis_in_code_system(nis_code_match(rule, data, slots), eligibility)
+  })
+  names(flags) <- unname(output_names[c("principal", "any")])
+  secondary <- rlang::expr(!!rlang::sym(output_names[["any"]]) &
+    ! (!!rlang::sym(output_names[["principal"]])))
+  flags[[output_names[["secondary_only"]]]] <- secondary
+  dplyr::mutate(data, !!!flags)
 }
 
 #' Summarize diagnosis-position sensitivity
@@ -80,18 +91,15 @@ nis_dx_sensitivity <- function(.data, code, system = c("icd10", "icd9"),
   system <- match.arg(system)
   outcomes_were_supplied <- !missing(outcomes)
   dx_validate_weight(weight_var)
-  outcomes <- dx_validate_outcomes(outcomes, .data, outcomes_were_supplied)
-  outcomes <- intersect(outcomes, nis_names(.data)) # nolint: object_usage_linter
-  if (!weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
+  columns <- nis_names(.data)
+  outcomes <- dx_validate_outcomes(outcomes, columns, outcomes_were_supplied)
+  if (!weight_var %in% columns) {
     cli::cli_abort("Weight column {.val {weight_var}} is missing from `.data`.")
   }
 
-  flags <- c(principal = ".nis_dx_principal",
-    secondary_only = ".nis_dx_secondary_only", any = ".nis_dx_any")
-  add_position_flags <- function(data) {
-    nis_flag_dx_position(data, code, name = ".nis_dx", system = system)
-  }
-  data <- add_position_flags(dplyr::ungroup(.data))
+  flags <- dx_position_names(".nis_dx")
+  flags[] <- nis_internal_names(.data, columns, unname(flags))
+  data <- dx_add_position_flags(dplyr::ungroup(.data), columns, code, system, flags)
 
   summary_flags <- dx_summary_names(nis_names(data), flags) # nolint: object_usage_linter
   summary_exprs <- dx_summary_exprs(flags, outcomes, weight_var, summary_flags)
@@ -108,18 +116,18 @@ dx_validate_weight <- function(weight_var) {
   }
 }
 
-dx_validate_outcomes <- function(outcomes, data, supplied) {
+dx_validate_outcomes <- function(outcomes, columns, supplied) {
   if (!is.character(outcomes) || anyNA(outcomes) || any(!nzchar(outcomes)) ||
       anyDuplicated(outcomes)) {
     cli::cli_abort("`outcomes` must be a character vector of unique column names.",
       call = rlang::caller_call())
   }
-  absent <- setdiff(outcomes, nis_names(data)) # nolint: object_usage_linter
+  absent <- setdiff(outcomes, columns)
   if (supplied && length(absent) > 0L) {
     cli::cli_abort("Missing requested outcome column{?s}: {.val {absent}}.",
       call = rlang::caller_call())
   }
-  outcomes
+  intersect(outcomes, columns)
 }
 
 dx_summary_names <- function(columns, flags) {

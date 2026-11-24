@@ -25,5 +25,3 @@
 ^_pkgdown\.yml$
 ^_site($|[/\\])
 ^\.githooks($|[/\\])
-
-^codemeta\.json$

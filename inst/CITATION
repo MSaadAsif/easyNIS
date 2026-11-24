@@ -1,12 +1,20 @@
+package_authors <- eval(parse(text = meta[["Authors@R"]]))
+package_authors <- package_authors[vapply(package_authors, function(author) {
+  "aut" %in% author$role
+}, logical(1))]
+author_names <- vapply(package_authors, function(author) {
+  paste(author$given, author$family)
+}, character(1))
+citation_authors <- do.call(c, lapply(package_authors, function(author) {
+  person(author$given, author$family, comment = author$comment["ORCID"])
+}))
+
 bibentry(
   bibtype = "Manual",
-  title = "easyNIS: Tidy Workflows for the National Inpatient Sample",
-  author = c(
-    person("Muhammad", "Saad", comment = c(ORCID = "0000-0002-1792-2357")),
-    person("Ali", "Salman", comment = c(ORCID = "0009-0001-1102-226X"))
-  ),
+  title = paste0(meta$Package, ": ", meta$Title),
+  author = citation_authors,
   year = "2026",
-  note = paste("R package version", meta$Version,
-    "(maintained by Muhammad Saad and Ali Salman; annual NIS files from 2012 onward)"),
-  url = "https://github.com/MSaadAsif/easyNIS"
+  note = paste("R package version", meta$Version, paste0("(maintained by ",
+    paste(author_names, collapse = " and "), "; annual NIS files from 2012 onward)")),
+  url = trimws(strsplit(meta$URL, ",", fixed = TRUE)[[1L]][[1L]])
 )

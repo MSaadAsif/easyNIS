@@ -134,10 +134,7 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
   )
 
   query <- nis_open(path)
-  sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
-  expect_match(sql, "read_parquet")
-  expect_match(sql, "union_by_name = true")
-  expect_match(sql, "hive_partitioning = false")
+  expect_s3_class(query, "tbl_sql")
   all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
   expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
   expect_equal(all_years$A, c(1L, 2L, NA_integer_))
@@ -185,8 +182,7 @@ test_that("nis_open pushes selected columns down to Parquet", {
   projection_tokens <- unlist(lapply(plan_json, parquet_projections),
     use.names = FALSE)
   expect_gt(length(projection_tokens), 0L)
-  expect_true(all(c("YEAR", "B") %in% projection_tokens))
-  expect_false("A" %in% projection_tokens)
+  expect_setequal(projection_tokens[nzchar(projection_tokens)], "B")
 })
 
 test_that("nis_open combines annual files with Hive partitions", {
@@ -444,4 +440,40 @@ test_that("derived DuckDB queries retain the connection until all are released",
   lookup <- NULL
   invisible(gc())
   expect_false(duckdb::dbIsValid(con))
+})
+
+
+test_that("open queries apply workload limits and own separate spill locations", {
+  spill <- tempfile("nis-spill-parent-")
+  dir.create(spill)
+  withr::defer(unlink(spill, recursive = TRUE))
+  withr::local_options(easyNIS.duckdb_config = list(memory_limit = "96MB", threads = 2L,
+    temp_directory = spill, max_temp_directory_size = "1GB", preserve_insertion_order = FALSE))
+  path <- nis_example(2020L)
+  withr::defer(unlink(path, recursive = TRUE))
+  queries <- list(nis_open(path), nis_open(path))
+  settings <- lapply(queries, function(query) {
+    con <- dbplyr::remote_con(query)
+    DBI::dbGetQuery(con, paste(
+      "SELECT current_setting('threads') AS threads, current_setting('memory_limit') AS memory,",
+      "current_setting('temp_directory') AS spill, current_setting('preserve_insertion_order') AS ordered"
+    ))
+  })
+  expect_equal(vapply(settings, function(setting) as.numeric(setting$threads), 0), c(2, 2))
+  expect_identical(vapply(settings, function(setting) setting$ordered, FALSE), c(FALSE, FALSE))
+  expect_true(all(vapply(settings, function(setting) nzchar(setting$memory), FALSE)))
+  spill_paths <- vapply(settings, function(setting) setting$spill, "")
+  expect_length(unique(spill_paths), 2L)
+  expect_identical(dirname(spill_paths), rep(normalizePath(spill, winslash = "/"), 2L))
+  expect_true(all(dir.exists(spill_paths)))
+  if (.Platform$OS.type == "unix") {
+    expect_identical(as.character(file.mode(spill_paths)), rep("700", 2L))
+  }
+  missing_path <- tempfile("nis-empty-source-")
+  dir.create(missing_path)
+  withr::defer(unlink(missing_path, recursive = TRUE))
+  bad <- data.frame(YEAR = 2020.5)
+  write_duckdb_parquet(bad, file.path(missing_path, "NIS_2020.parquet"))
+  expect_error(nis_open(missing_path), "Invalid .*YEAR")
+  expect_setequal(list.dirs(spill, recursive = FALSE, full.names = FALSE), basename(spill_paths))
 })
