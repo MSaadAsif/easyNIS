@@ -33,6 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           study_parent="$(mktemp -d)"
+          trap 'rm -rf -- "$study_parent"' EXIT
           export STUDY_PATH="${study_parent}/study"
           export EXAMPLE_PATH="${study_parent}/nis-example"
 

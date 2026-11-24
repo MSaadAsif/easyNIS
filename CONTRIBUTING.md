@@ -18,6 +18,25 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 - Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.
 - Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.
 
+## Where changes belong
+
+R loads package source from the flat `R/` directory. Use the domain in the
+filename and put focused tests next to that domain's other tests in
+`tests/testthat/`.
+
+| To change | Start here |
+| --- | --- |
+| Annual and Hive discovery | `R/open.R` for part selection, `R/open-parquet.R` for scan planning and year validation, and `R/duckdb.R` for connections and spill storage |
+| Diagnosis or procedure selection | `R/code-layout.R` for slot names and code-system eligibility, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
+| Survey design or weights | `R/design.R` for input and cohort selection, `R/cohort-design.R` for the survey representation, and `R/reweight.R` for factor validation and application |
+| Disclosure | `R/disclosure-policy.R` for primary masks and hospital identity, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for format-specific behavior |
+| Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for cache inputs, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
+| Improvement probes | `tools/probe/` for commands, `quality-checks.R` for check definitions, `quality-receipts.R` for evidence, and `readiness-criteria.R` for decisions |
+
+Keep I/O and format-specific code at the entry points. Put a rule in a shared
+module when multiple callers need the same rule, and exercise it through the
+normal user-facing functions.
+
 ## Privacy and licensing
 
 Use invented fixtures and independently authored code compatible with the project's AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.

@@ -89,3 +89,57 @@ UTF-8 rather than writing bytes under the wrong encoding label.
 
 See [Cohort definitions](cohorts.html), [`nis_open()`](../reference/nis_open.html),
 and [`nis_example()`](../reference/nis_example.html).
+
+## Working with data larger than RAM
+
+DuckDB scans the Parquet files in place. Filter rows and select fields on the
+lazy query. Then collect a small summary, or write a large result directly to
+a private Parquet file. `nis_design()` still needs enough R memory for the
+selected cohort, retained variables, and survey design. Use a narrow `keep`
+to limit that cost. [DuckDB COPY statement](https://duckdb.org/docs/stable/sql/statements/copy)
+
+Set DuckDB options before calling `nis_open()`. This example uses a low thread
+count and places spill files on a private disk. Choose the memory and spill
+budgets for your machine and available disk space.
+
+```{r, eval=FALSE}
+options(easyNIS.duckdb_config = list(
+  memory_limit = "4GB",
+  threads = 2L,
+  temp_directory = tempdir(),
+  max_temp_directory_size = "40GB"
+))
+query <- nis_open(data_path, years = 2019:2022)
+query |>
+  dplyr::filter(AGE >= 18) |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(discharge_count = dplyr::n()) |>
+  dplyr::collect()
+```
+
+To write a result on disk, set `private_parquet_path` to a file in your private
+output directory and send the lazy query to DuckDB.
+
+```{r, eval=FALSE}
+projection <- query |>
+  dplyr::filter(AGE >= 18) |>
+  dplyr::select(YEAR, AGE)
+connection <- dbplyr::remote_con(projection)
+statement <- dbplyr::sql_render(projection)
+destination <- DBI::dbQuoteString(connection, private_parquet_path)
+DBI::dbExecute(connection,
+  paste0("COPY (", statement, ") TO ", destination, " (FORMAT PARQUET)"))
+```
+
+Use `preserve_insertion_order = FALSE` for memory-constrained scans or exports
+whose result order is immaterial. Use an explicit sort when you need a defined
+order. DuckDB's memory limit controls its buffer manager. R objects and some
+DuckDB operations can use additional memory. See the
+[DuckDB workload tuning guide](https://duckdb.org/docs/stable/guides/performance/how_to_tune_workloads).
+
+Reuse a query for related summaries so they share one connection. The memory
+and spill settings apply to each open connection. When an analysis finishes,
+discard the query and any lazy tables derived from it. Garbage collection
+releases the connection and removes its spill directory. In a loop that opens
+many datasets, release each completed query before opening the next one if
+disk or memory is tight.

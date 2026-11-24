@@ -68,8 +68,9 @@ totals or grouped subtotals, inspect them for complementary disclosure.
 ## Suppress a gtsummary table
 
 For a `gtsummary::tbl_svysummary()` object, `nis_suppress()` reads unweighted
-counts from the table's cards and counts distinct year-scoped `YEAR` and
-`HOSP_NIS` identities in the retained survey records. Hospital support is
+counts from the table cards and compares them with the matching survey records.
+It uses the smaller count for masking and counts distinct year-scoped `YEAR`
+and `HOSP_NIS` identities from those records. Hospital support is
 checked within the cohort and the displayed non-missing, category, and by-group
 cell. Cells at or below the discharge threshold or supported by fewer than two
 hospitals are marked; overall cells follow the same complementary masking

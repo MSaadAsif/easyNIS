@@ -24,18 +24,19 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::cyclocomp, any::lintr, any::jsonlite, any::goodpractice, local::.
+          extra-packages: any::cyclocomp, any::lintr, any::jsonlite, any::goodpractice, any::pkgload, local::.
           needs: check
       - name: Check improvement-loop tooling
         run: |
-          for (script in c("tools/check-public-text.R", "tools/probe/test-probe-helpers.R")) {
-            args <- if (grepl("check-public-text", script)) c(script, "--self-test") else script
-            status <- system2("Rscript", args)
-            if (status != 0L) quit(status = status)
-          }
-        shell: Rscript {0}
+          Rscript tools/check-public-text.R --self-test
+          Rscript tools/probe/test-probe-helpers.R
+          Rscript tools/probe/test-provenance.R
+          Rscript tools/probe/test-readiness-ci.R
+          Rscript tools/probe/test-privacy-guard.R
+          Rscript tools/probe/update-codemeta.R --check
       - name: Lint package
         run: |
+          pkgload::load_all(quiet = TRUE)
           lints <- lintr::lint_package()
           if (length(lints) > 0L) {
             print(lints)
