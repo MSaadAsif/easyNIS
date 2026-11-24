@@ -10,8 +10,8 @@ nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
 
 \item{years}{Optional years to open, 2012 or later. Defaults to every
-  matching year with Parquet parts. Explicitly requested years must each
-  have Parquet parts. Years before 2016 are experimental: they hold ICD-9-CM
+matching year with Parquet parts. Explicitly requested years must each
+have Parquet parts. Years before 2016 are experimental: they hold ICD-9-CM
 codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \code{\link[=nis_flag_dx]{nis_flag_dx()}}).}
 
@@ -68,6 +68,16 @@ through the optional \code{arrow} package. Arrow preserves the bytes; it does
 not detect or repair all invalid text, and downstream string operations
 may still fail on malformed values.
 }
+\section{Large data}{
+
+The query stays in DuckDB until you collect it. Filter, project, and summarize
+before collecting. Set the named list option \code{easyNIS.duckdb_config} before
+opening to tune \code{memory_limit}, \code{threads}, \code{temp_directory},
+\code{max_temp_directory_size}, or \code{preserve_insertion_order}. The package
+assigns each query its own spill location under the supplied private
+directory, or under the R session's temporary directory by default.
+}
+
 \examples{
 path <- nis_example(years = 2019:2020)
 nis <- nis_open(path)
@@ -80,16 +90,6 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 }
-\section{Large data}{
-
-The query stays in DuckDB until you collect it. Filter, project, and summarize
-before collecting. Set the named list option \code{easyNIS.duckdb_config} before
-opening to tune \code{memory_limit}, \code{threads}, \code{temp_directory},
-\code{max_temp_directory_size}, or \code{preserve_insertion_order}. The package
-assigns each query its own spill location under the supplied private
-directory, or under the R session's temporary directory by default.
-}
-
 \seealso{
 \href{articles/opening-data.html}{Opening NIS data}.
 
