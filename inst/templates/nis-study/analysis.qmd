@@ -38,8 +38,6 @@ codes <- list(
   principal_dx = c("I50"),
   exposure = c("Z515")
 )
-disclosure_limit <- 10L
-
 cohort <- rlang::expr(principal_dx & AGE >= 18)
 exposure <- "exposed"
 covariates <- c(
@@ -77,13 +75,6 @@ design_key <- rlang::hash(easyNIS:::nis_study_cache_key(
     adjust_domain_lonely = getOption("survey.adjust.domain.lonely")
   )
 ))
-report_key <- rlang::hash(easyNIS:::nis_study_report_cache_key(
-  design_key = design_key,
-  exposure = exposure,
-  covariates = covariates,
-  outcomes = outcomes,
-  output_format = knitr::is_html_output()
-))
 ```
 
 ```{r}
@@ -119,9 +110,19 @@ n_hospitals <- dplyr::n_distinct(
   study_design$variables$YEAR,
   study_design$variables$HOSP_NIS
 )
+disclosure_limit <- 10L
 study_cell_display <- function(n, value = format(n, big.mark = ",", trim = TRUE)) {
   dplyr::if_else(n >= 1L & n <= disclosure_limit, paste0("≤", disclosure_limit), value)
 }
+report_inputs <- easyNIS:::nis_study_report_cache_key(
+  design_key = design_key,
+  exposure = exposure,
+  covariates = covariates,
+  outcomes = outcomes,
+  output_format = knitr::is_html_output()
+)
+report_key <- rlang::hash(list(report_inputs, disclosure_limit,
+  formals(study_cell_display), body(study_cell_display)))
 weight_description <- if (annualize) {
   "DISCWT divided by the number of study years"
 } else {

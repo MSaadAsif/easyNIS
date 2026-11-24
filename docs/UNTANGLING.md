@@ -138,6 +138,9 @@ record the source layout at the start of this pass.
   in Methods even when cohort flow masks the same small cohort. Use the
   same disclosure display rule in both places. Check the rendered
   rare-cohort report and its supporting assets.
+- The cached trend display and the mask rule must change together. Hash
+  the rule with the report inputs so editing display policy refreshes the
+  report while reusing the survey design.
 
 ### Reuse a writer for each invented fixture
 
