@@ -15,13 +15,20 @@ nis_duckdb_open_data <- function() {
   }
   spill <- normalizePath(spill, winslash = "/", mustWork = TRUE)
   config$temp_directory <- spill
+  spill_limit <- config$max_temp_directory_size
+  config$max_temp_directory_size <- NULL
   con <- NULL
   release <- function() {
     on.exit(nis_remove_owned_directory(spill), add = TRUE)
     if (!is.null(con) && DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
   }
-  on.exit(if (is.null(con)) release(), add = TRUE)
+  on.exit(release(), add = TRUE)
   con <- nis_duckdb_connect(config)
+  if (!is.null(spill_limit)) {
+    # DuckDB 1.5.2 can report a startup cap without enforcing it during spill.
+    DBI::dbExecute(con, paste("SET max_temp_directory_size =", DBI::dbQuoteString(con, spill_limit)))
+  }
+  on.exit(NULL, add = FALSE)
   list(con = con, release = release)
 }
 
