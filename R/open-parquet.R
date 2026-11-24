@@ -1,3 +1,19 @@
+nis_open_plan_parquet <- function(parts, con, reader) {
+  sources <- Map(nis_open_scan, parts$path, parts$partition_year, seq_len(nrow(parts)),
+    MoreArgs = list(con = con, reader = reader))
+  scans <- nis_open_group_scans(sources, con)
+  for (scan in scans) nis_open_validate_partition(scan, con)
+  nis_open_check_year_values(scans, con)
+  projections <- vapply(scans, nis_open_project_year, character(1))
+  union <- paste(projections, collapse = " UNION ALL BY NAME ")
+  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
+  list(
+    query = query,
+    names = unlist(lapply(sources, function(source) source$schema$column_name), use.names = FALSE),
+    owners = Filter(Negate(is.null), lapply(sources, function(source) source$owner))
+  )
+}
+
 nis_open_scan <- function(path, partition_year, index, con, reader) {
   owner <- NULL
   if (reader == "arrow") {
@@ -8,7 +24,7 @@ nis_open_scan <- function(path, partition_year, index, con, reader) {
   } else {
     scan <- nis_parquet_scan(con, path)
   }
-  schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))
+  schema <- DBI::dbGetQuery(con, paste("DESCRIBE SELECT * FROM", scan))[c("column_name", "column_type")]
   year_index <- match("YEAR", toupper(schema$column_name))
   physical <- NULL
   if (!is.na(year_index)) {
@@ -25,22 +41,23 @@ nis_open_scan <- function(path, partition_year, index, con, reader) {
     physical = physical, owner = owner)
 }
 
-nis_open_validate_partition <- function(source, con) {
-  if (is.na(source$year) || is.null(source$physical)) return(invisible(NULL))
-  physical <- source$physical
+nis_open_validate_partition <- function(scan, con) {
+  if (is.na(scan$year) || is.null(scan$physical)) return(invisible(NULL))
+  physical <- scan$physical
   mismatch <- if (physical$integer) {
-    paste(physical$column, "<>", source$year)
+    paste(physical$column, "<>", scan$year)
   } else if (physical$numeric) {
     paste0(physical$column, " IS NOT NULL AND NOT isnan(", physical$double,
-      ") AND ", physical$double, " <> ", source$year)
+      ") AND ", physical$double, " <> ", scan$year)
   } else {
     paste0(physical$column, " IS NOT NULL AND TRY_CAST(", physical$column,
-      " AS BIGINT) IS DISTINCT FROM ", source$year)
+      " AS BIGINT) IS DISTINCT FROM ", scan$year)
   }
-  if (nis_open_invalid_year_rows(con, source$scan, mismatch)) {
+  path <- nis_open_invalid_paths(con, scan, mismatch, first = TRUE)
+  if (length(path)) {
     cli::cli_abort(paste0(
       "Non-missing physical `YEAR` values conflict with Hive partition ",
-      "{.val {paste0('YEAR=', source$year)}} in {.path {source$path}}."
+      "{.val {paste0('YEAR=', scan$year)}} in {.path {path}}."
     ))
   }
   invisible(NULL)
@@ -50,23 +67,52 @@ nis_open_invalid_year_rows <- function(con, scan, predicate) {
   nrow(DBI::dbGetQuery(con, paste("SELECT 1 FROM", scan, "WHERE", predicate, "LIMIT 1"))) > 0L
 }
 
+nis_open_invalid_paths <- function(con, scan, predicate, first = FALSE) {
+  if (!nis_open_invalid_year_rows(con, scan$scan, predicate)) return(character())
+  paths <- scan$paths
+  if (length(paths) == 1L) return(paths)
+
+  # Reopen individual parts only to attribute a failed grouped scan.
+  invalid <- logical(length(paths))
+  for (i in seq_along(paths)) {
+    part <- nis_parquet_scan(con, paths[[i]])
+    invalid[[i]] <- nis_open_invalid_year_rows(con, part, predicate)
+    if (first && invalid[[i]]) return(paths[[i]])
+  }
+  if (!any(invalid)) {
+    cli::cli_abort("No individual Parquet part reproduced the grouped `YEAR` validation failure in {.path {paths}}.")
+  }
+  paths[invalid]
+}
+
 nis_open_check_year_values <- function(sources, con) {
-  invalid <- Filter(function(source) {
-    physical <- source$physical
-    if (is.null(physical) || physical$small_integer) return(FALSE)
-    # Numeric Hive values already match the partition or are missing.
-    if (!is.na(source$year) && physical$numeric) return(FALSE)
-    year <- physical$double
-    predicate <- paste0(physical$column, " IS NOT NULL AND (", year,
-      " IS NULL OR (NOT isnan(", year, ") AND (", year, " <> floor(", year,
-      ") OR ", year, " < -2147483648 OR ", year, " > 2147483647)))")
-    nis_open_invalid_year_rows(con, source$scan, predicate)
-  }, sources)
-  if (length(invalid)) {
-    paths <- vapply(invalid, `[[`, character(1), "path") # nolint: object_usage_linter
+  invalid <- lapply(sources, function(source) {
+    predicate <- nis_open_year_range_predicate(source)
+    if (is.null(predicate)) return(character())
+    nis_open_invalid_paths(con, source, predicate)
+  })
+  paths <- unlist(invalid, use.names = FALSE)
+  if (length(paths)) {
     cli::cli_abort(paste0("Invalid `YEAR` values were found in {.path {paths}}; ",
       "values must be whole numbers within the integer range."))
   }
+}
+
+nis_open_year_range_predicate <- function(source) {
+  physical <- source$physical
+  if (is.null(physical) || physical$small_integer) return(NULL)
+  # Numeric Hive values already match the partition or are missing.
+  if (!is.na(source$year) && physical$numeric) return(NULL)
+  if (physical$integer) {
+    # A comparison on the native column lets Parquet skip valid row groups.
+    upper <- paste(physical$column, "> 2147483647")
+    if (startsWith(physical$type, "U")) return(upper)
+    return(paste(physical$column, "< -2147483648 OR", upper))
+  }
+  year <- physical$double
+  paste0(physical$column, " IS NOT NULL AND (", year,
+    " IS NULL OR (NOT isnan(", year, ") AND (", year, " <> floor(", year,
+    ") OR ", year, " < -2147483648 OR ", year, " > 2147483647)))")
 }
 
 nis_parquet_scan <- function(con, paths) {
@@ -78,24 +124,23 @@ nis_parquet_scan <- function(con, paths) {
   paste0("read_parquet(", argument, ", hive_partitioning = false)")
 }
 
-nis_open_project_sources <- function(sources, con) {
+nis_open_group_scans <- function(sources, con) {
   same_scan <- function(left, right) {
     is.null(left$owner) && is.null(right$owner) && identical(left$year, right$year) &&
-      identical(left$schema[c("column_name", "column_type")],
-        right$schema[c("column_name", "column_type")])
+      identical(left$schema, right$schema)
   }
   breaks <- vapply(seq_len(length(sources) - 1L), function(i) {
     !same_scan(sources[[i]], sources[[i + 1L]])
   }, logical(1))
   runs <- split(sources, cumsum(c(TRUE, breaks)))
-  vapply(runs, function(run) {
+  lapply(runs, function(run) {
     source <- run[[1L]]
+    source$paths <- vapply(run, "[[", character(1), "path")
     if (length(run) > 1L) {
-      paths <- vapply(run, "[[", character(1), "path")
-      source$scan <- nis_parquet_scan(con, paths)
+      source$scan <- nis_parquet_scan(con, source$paths)
     }
-    nis_open_project_year(source)
-  }, character(1))
+    source
+  })
 }
 
 nis_open_project_year <- function(source) {

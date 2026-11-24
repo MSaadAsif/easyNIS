@@ -140,3 +140,12 @@ test_that("nis_open source errors retain the full public call", {
   expect_identical(conditionCall(condition),
     quote(nis_open(path, years = 2012L)))
 })
+
+test_that("year arguments outside R's integer range are rejected without coercion warnings", {
+  path <- tempfile("nis-open-year-range-")
+  dir.create(file.path(path, "NIS_2020.parquet"), recursive = TRUE)
+  withr::defer(unlink(path, recursive = TRUE))
+
+  expect_no_warning(expect_error(nis_open(path, years = .Machine$integer.max + 1),
+    "non-empty vector of whole years"))
+})

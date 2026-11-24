@@ -1,34 +1,9 @@
-nis_validate_layout_years <- function(entries, found, years, error_call) {
-  paths <- normalizePath(entries, winslash = "/", mustWork = TRUE)
-  covered <- vapply(seq_along(entries), function(i) {
-    any(startsWith(paths[[i]], paste0(paths[found == found[[i]]], "/")))
-  }, logical(1))
-  entries <- entries[!covered]
-  found <- found[!covered]
-  annual <- grepl("^NIS_[0-9]{4}[.]parquet$", basename(entries))
-  annual_years <- found[annual]
-  hive_years <- found[!annual]
-  conflicting_years <- intersect(years, intersect(annual_years, hive_years))
-  if (length(conflicting_years) == 0L) return(invisible(NULL))
-
-  details <- vapply(conflicting_years, function(year) {
-    annual_path <- entries[annual & found == year]
-    hive_path <- entries[!annual & found == year]
-    paste0("Year ", year, ": annual ", paste(annual_path, collapse = ", "),
-      " and Hive ", paste(hive_path, collapse = ", "))
-  }, character(1))
-  cli::cli_abort(paste0(
-    "A year is present in both annual and Hive layouts.\n",
-    paste0("x Year is duplicated: ", details, collapse = "\n"),
-    "\ni Keep one layout per year."
-  ), call = error_call)
-}
-
 #' Open annual NIS Parquet files lazily
 #'
 #' @param path Directory containing `NIS_<year>.parquet` files or directories.
 #' @param years Optional years to open, 2012 or later. Defaults to every
-#'   matching year. Years before 2016 are experimental: they hold ICD-9-CM
+#'   matching year with Parquet parts. Explicitly requested years must each
+#'   have Parquet parts. Years before 2016 are experimental: they hold ICD-9-CM
 #'   codes in `DX*`/`PR*` slots, and 2015 holds both systems (see
 #'   [nis_flag_dx()]).
 #' @param reader Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is
@@ -106,88 +81,21 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow")) {
     cli::cli_abort("The {.val arrow} reader requires the optional {.pkg arrow} package.")
   }
   error_call <- rlang::current_call()
-  selected <- nis_open_select(path, years, error_call)
-  nis_open_notice(selected$years)
-  sources <- nis_open_sources(selected, error_call)
+  dataset <- nis_open_discover(path, years, error_call)
+  nis_open_notice(dataset$years)
   connection <- nis_duckdb_open_data()
   on.exit(connection$release(), add = TRUE)
-  con <- connection$con
-  sources <- Map(nis_open_scan, sources$path, sources$partition_year, seq_len(nrow(sources)),
-    MoreArgs = list(con = con, reader = reader))
-  lapply(sources, nis_open_validate_partition, con = con)
-  nis_open_check_year_values(sources, con)
-  projections <- nis_open_project_sources(sources, con)
-  union <- paste(projections, collapse = " UNION ALL BY NAME ")
-  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
-  source_names <- unlist(lapply(sources, function(source) source$schema$column_name),
-    use.names = FALSE)
-  query <- nis_open_normalize_names(query, source_names)
+  plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
+  query <- nis_open_normalize_names(plan$query, plan$names)
   nis_open_warn_2023(query)
-  result <- nis_duckdb_attach_finalizer(query, connection$release, Filter(Negate(is.null),
-    lapply(sources, function(source) source$owner)))
+  query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
+  result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)
   on.exit(NULL, add = FALSE)
   result
 }
 
-nis_open_select <- function(path, years, error_call) {
-  entries <- nis_open_entries(path, error_call)
-  years <- nis_open_years(entries$found, years, error_call)
-  nis_validate_layout_years(entries$entries, entries$found, years, error_call)
-  list(path = entries$path, entries = entries$entries, found = entries$found, years = years)
-}
-
-nis_open_entries <- function(path, error_call) {
-  if (!dir.exists(path)) {
-    cli::cli_abort("`path` must name an existing directory.", call = error_call)
-  }
-  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
-
-  entries <- list.files(path, pattern = "^NIS_[0-9]{4}[.]parquet$",
-    full.names = TRUE, recursive = FALSE)
-  hive_entries <- list.dirs(path, recursive = TRUE, full.names = TRUE)
-  hive_entries <- hive_entries[grepl("^YEAR=[0-9]{4}$", basename(hive_entries))]
-  entries <- unique(c(entries, hive_entries))
-  found <- as.integer(sub("^(NIS_|YEAR=)([0-9]{4})([.]parquet)?$", "\\2",
-    basename(entries)))
-  entries <- entries[!is.na(found)]
-  found <- found[!is.na(found)]
-  if (length(found) == 0L) {
-    cli::cli_abort("No `NIS_<year>.parquet` entries were found in `path`.", call = error_call)
-  }
-  list(path = path, entries = entries, found = found)
-}
-
-nis_open_years <- function(found, years, error_call) {
-  if (is.null(years)) {
-    years <- sort(found)
-  }
-  years <- nis_open_validate_years(years, error_call)
-  missing <- setdiff(years, found)
-  if (length(missing) > 0L) {
-    cli::cli_abort(
-      "No NIS Parquet entry was found for year{?s} {.val {missing}}.",
-      call = error_call
-    )
-  }
-  years
-}
-
-nis_open_validate_years <- function(years, error_call) {
-  if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
-    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
-  }
-  if (!nis_open_whole_years(years)) {
-    cli::cli_abort("`years` must be a non-empty vector of whole years.", call = error_call)
-  }
-  years <- unique(as.integer(years))
-  if (any(years < 2012L)) {
-    cli::cli_abort("NIS years before 2012 are not supported.", call = error_call)
-  }
-  years
-}
-
-nis_open_whole_years <- function(years) {
-  all(is.finite(years)) && all(years == as.integer(years))
+nis_open_source_paths <- function(query) {
+  query$src$.easyNIS_source_paths
 }
 
 nis_open_notice <- function(years) {
@@ -198,35 +106,6 @@ nis_open_notice <- function(years) {
     ), .frequency = "once", .frequency_id = "easyNIS_icd9_layout")
   }
   invisible(NULL)
-}
-
-nis_open_sources <- function(selection, error_call) {
-  year_entries <- selection$entries[selection$found %in% selection$years]
-  sources <- unlist(lapply(year_entries, function(entry) {
-    if (dir.exists(entry)) {
-      list.files(entry, pattern = "[.]parquet$", recursive = TRUE,
-        full.names = TRUE)
-    } else {
-      entry
-    }
-  }), use.names = FALSE)
-  parent <- paste0(sub("/$", "", dirname(selection$path)), "/")
-  relative <- substring(as.character(sources), nchar(parent) + 1L)
-  partitions <- vapply(relative, nis_hive_partition_year, integer(1))
-  selected <- is.na(partitions) | partitions %in% selection$years
-  if (!any(selected)) {
-    cli::cli_abort("The selected NIS entries contain no Parquet part files.",
-      call = error_call)
-  }
-  paths <- normalizePath(sources[selected], winslash = "/", mustWork = TRUE)
-  unique(data.frame(path = paths, partition_year = partitions[selected], row.names = NULL))
-}
-
-nis_hive_partition_year <- function(path) {
-  components <- strsplit(dirname(path), "/", fixed = TRUE)[[1L]]
-  partitions <- grep("^YEAR=[0-9]{4}$", components, value = TRUE)
-  if (!length(partitions)) return(NA_integer_)
-  as.integer(sub("^YEAR=", "", partitions[[length(partitions)]]))
 }
 
 nis_open_normalize_names <- function(query, source_names) {
