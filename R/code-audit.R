@@ -35,7 +35,7 @@
   }
 }
 
-.nis_audit_validate_weight_type <- function(.data, weight_var) {
+.nis_audit_weight_type <- function(.data, weight_var) {
   projection <- dplyr::select(.data, dplyr::all_of(weight_var))
   if (!is.numeric(nis_collect(utils::head(projection, 0L))[[weight_var]])) {
     cli::cli_abort("`weight_var` must be a numeric column.")
@@ -416,7 +416,7 @@ nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo)
-  .nis_audit_validate_weight_type(dplyr::ungroup(data), weight_var)
+  .nis_audit_weight_type(dplyr::ungroup(data), weight_var)
 
   if (output == "inventory") {
     return(.nis_audit_inventory(data, codes, type, system, weight_var, by, sparse_n))

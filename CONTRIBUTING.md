@@ -14,7 +14,11 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 - Keep each branch focused and describe the user-visible behavior in the pull request.
 - Add or update focused `testthat` coverage using invented fixtures. Do not create examples from licensed NIS inputs or record-derived output.
 - Regenerate documentation with `devtools::document()` when roxygen comments change, and include the generated `man/` and `NAMESPACE` changes.
-- Run relevant tests with `devtools::test()`, then run `devtools::check()` before requesting review. Run `lintr::lint_package()` for style changes and `pkgdown::check_pkgdown()` for pkgdown configuration changes.
+- Run relevant tests with `devtools::test()`. From the repository root, run
+  `Rscript --vanilla tools/check-package.R` after committing changes and before
+  requesting review. It runs `devtools::check()` on the exact commit, away
+  from the checkout's ignored data and working files. Run `lintr::lint_package()`
+  for style changes and `pkgdown::check_pkgdown()` for pkgdown configuration changes.
 - Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.
 - Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.
 

@@ -142,3 +142,11 @@ record the source layout at the start of this pass.
   writer, one temporary table at a time, and its destination until the
   annual files have been written successfully. Tests that write one Parquet
   part can still use the same writing operation.
+
+### Build the package check from committed source
+
+- On Windows, `R CMD build` can copy the checkout before applying
+  `.Rbuildignore`. A concurrent verification held an ignored evidence file
+  open and caused the build copy to fail. Run qualification from an exact
+  Git snapshot in temporary storage so local datasets and evidence never
+  enter the build copy.
