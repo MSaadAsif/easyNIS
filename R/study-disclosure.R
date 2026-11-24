@@ -63,8 +63,9 @@ nis_study_complete_cases <- function(formula, data, exposure) {
   if (is.null(frame)) return(NULL)
   rows <- match(rownames(frame), rownames(data))
   response <- stats::model.response(frame)
-  if (!exposure %in% names(frame) || anyNA(rows) || anyDuplicated(rows) ||
-      is.null(response) || !is.null(dim(response))) return(NULL)
+  valid <- c(exposure %in% names(frame), !anyNA(rows), anyDuplicated(rows) == 0L,
+    is.null(dim(response)), !is.null(response))
+  if (!all(valid)) return(NULL)
   list(frame = frame, data = data[rows, , drop = FALSE], response = response)
 }
 
