@@ -38,6 +38,7 @@ codes <- list(
   principal_dx = c("I50"),
   exposure = c("Z515")
 )
+disclosure_limit <- 10L
 
 cohort <- rlang::expr(principal_dx & AGE >= 18)
 exposure <- "exposed"
@@ -118,6 +119,9 @@ n_hospitals <- dplyr::n_distinct(
   study_design$variables$YEAR,
   study_design$variables$HOSP_NIS
 )
+study_cell_display <- function(n, value = format(n, big.mark = ",", trim = TRUE)) {
+  dplyr::if_else(n >= 1L & n <= disclosure_limit, paste0("≤", disclosure_limit), value)
+}
 weight_description <- if (annualize) {
   "DISCWT divided by the number of study years"
 } else {
@@ -130,10 +134,11 @@ weight_description <- if (annualize) {
 This study includes NIS years `r paste(params$years, collapse = ", ")`. The
 analysis cohort uses principal diagnosis prefix
 `r paste(codes$principal_dx, collapse = ", ")` and is defined by
-`r rlang::expr_text(cohort)`. It contains `r format(cohort_n, big.mark = ",")`
+`r rlang::expr_text(cohort)`. It contains `r study_cell_display(cohort_n)`
 discharges. The design uses year-specific HOSP_NIS clusters and NIS_STRATUM
-strata, with `r weight_description` weights, and includes `r n_hospitals`
-hospitals with cohort discharges. Cost and charges are adjusted to
+strata, with `r weight_description` weights, and includes
+`r study_cell_display(cohort_n, format(n_hospitals, big.mark = ","))` hospitals
+with cohort discharges. Cost and charges are adjusted to
 `r max(params$years)` USD using CPI-U. The report uses easyNIS
 `r as.character(utils::packageVersion("easyNIS"))`, R `r getRversion()`, survey
 `r as.character(utils::packageVersion("survey"))`, srvyr
@@ -146,7 +151,7 @@ hospitals with cohort discharges. Cost and charges are adjusted to
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
-**Cells based on ≤10 unweighted discharges are masked (with the overall cell in the same row); review tables for other derivable cells before sharing, per the HCUP Data Use Agreement.**
+**Cells based on ≤`r disclosure_limit` unweighted discharges are masked (with the overall cell in the same row); review tables for other derivable cells before sharing, per the HCUP Data Use Agreement.**
 
 ## Cohort flow
 
@@ -186,13 +191,9 @@ flow_raw <- dplyr::tibble(
 stopifnot(cohort_n <= flow_counts$cohort_n)
 flow_display <- flow_raw |>
   dplyr::mutate(
-    discharges = dplyr::if_else(
-      n >= 1 & n <= 10, "≤10", format(n, big.mark = ",", trim = TRUE)
-    ),
-    weighted_discharges = dplyr::if_else(
-      n >= 1 & n <= 10,
-      "≤10",
-      formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
+    discharges = study_cell_display(n),
+    weighted_discharges = study_cell_display(
+      n, formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
     )
   ) |>
   dplyr::select(step, discharges, weighted_discharges)
@@ -224,13 +225,13 @@ if (!has_cohort) {
     ) |>
       gtsummary::add_p() |>
       gtsummary::add_overall() |>
-      nis_suppress(threshold = 10)
+      nis_suppress(threshold = disclosure_limit)
   } else {
     gtsummary::tbl_svysummary(
       study_design,
       include = c(AGE, FEMALE, DIED, LOS, cost_adj)
     ) |>
-      nis_suppress(threshold = 10)
+      nis_suppress(threshold = disclosure_limit)
   }
 
   if (knitr::is_html_output()) {
@@ -258,7 +259,7 @@ if (!has_cohort) {
     include = c(DIED, LOS, cost_adj),
     statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
   ) |>
-    nis_suppress(threshold = 10)
+    nis_suppress(threshold = disclosure_limit)
 
   if (knitr::is_html_output()) {
     gtsummary::as_gt(outcome_table)
@@ -270,8 +271,8 @@ if (!has_cohort) {
 
 ## Trends by year
 
-The trend chart omits years with 10 or fewer cohort discharges. The table
-masks each displayed estimate and count for those years.
+The trend chart omits years with `r disclosure_limit` or fewer cohort
+discharges. The table masks each displayed estimate and count for those years.
 
 ```{r}
 #| label: trends
@@ -312,7 +313,7 @@ trend_long <- dplyr::bind_rows(
       n_unweighted
     )
 ) |>
-  dplyr::filter(n_unweighted > 10)
+  dplyr::filter(n_unweighted > disclosure_limit)
 
 ggplot2::ggplot(
   trend_long,
@@ -329,22 +330,10 @@ ggplot2::ggplot(
 trend_display <- trend |>
   dplyr::mutate(
     YEAR = as.character(YEAR),
-    discharges = dplyr::if_else(
-      n_unweighted <= 10, "≤10",
-      format(n_unweighted, big.mark = ",", trim = TRUE)
-    ),
-    weighted_N = dplyr::if_else(
-      n_unweighted <= 10, "≤10",
-      formatC(weighted_n, format = "f", digits = 1, big.mark = ",")
-    ),
-    mortality = dplyr::if_else(
-      n_unweighted <= 10, "≤10",
-      paste0(formatC(100 * mortality, format = "f", digits = 1), "%")
-    ),
-    mean_LOS = dplyr::if_else(
-      n_unweighted <= 10, "≤10",
-      formatC(mean_los, format = "f", digits = 2)
-    )
+    discharges = study_cell_display(n_unweighted),
+    weighted_N = study_cell_display(n_unweighted, formatC(weighted_n, format = "f", digits = 1, big.mark = ",")),
+    mortality = study_cell_display(n_unweighted, paste0(formatC(100 * mortality, format = "f", digits = 1), "%")),
+    mean_LOS = study_cell_display(n_unweighted, formatC(mean_los, format = "f", digits = 2))
   ) |>
   dplyr::select(
     `Discharge year` = YEAR, discharges, weighted_N, mortality, mean_LOS

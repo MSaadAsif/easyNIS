@@ -124,7 +124,8 @@ drive_disclosure <- function(scratch, evidence) {
 }
 
 drivers <- list(open = drive_open, cohort = drive_cohort, survey = drive_survey,
-  disclosure = drive_disclosure, study = drive_study, `study-ci` = drive_study_ci)
+  disclosure = drive_disclosure, study = drive_study, `study-ci` = drive_study_ci,
+  `study-small` = drive_study_small)
 args <- commandArgs(trailingOnly = TRUE)
 if (identical(args, "doctor")) {
   description <- read.dcf("DESCRIPTION", fields = c("Package", "Version"))

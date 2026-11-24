@@ -29,9 +29,13 @@ jobs:
           needs: check
       - name: Create and render a synthetic study
         run: Rscript --vanilla .agents/skills/verify/drive.R study-ci
+      - name: Verify rare-cohort disclosure in the report
+        run: Rscript --vanilla .agents/skills/verify/drive.R study-small
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: synthetic-study-render
-          path: local/loop/verification/*-study-ci-*/
+          path: |
+            local/loop/verification/*-study-ci-*/
+            local/loop/verification/*-study-small-*/
           retention-days: 14

@@ -134,6 +134,10 @@ record the source layout at the start of this pass.
   public study interface independently. Share the installed journey, keeping
   built-in inputs and explicit inputs as separate cases. Use rendered output
   to check the scaffold promises where tests currently match source text.
+- The independent render review found exact cohort and hospital counts
+  in Methods even when cohort flow masks the same small cohort. Use the
+  same disclosure display rule in both places. Check the rendered
+  rare-cohort report and its supporting assets.
 
 ### Reuse a writer for each invented fixture
 

@@ -18,6 +18,7 @@ Keep Quarto on PATH and install the package's suggested dependencies and
 ```sh
 Rscript --vanilla .agents/skills/verify/drive.R study
 Rscript --vanilla .agents/skills/verify/drive.R study-ci
+Rscript --vanilla .agents/skills/verify/drive.R study-small
 ```
 
 The `study` journey renders the default scaffold with built-in example
@@ -26,7 +27,9 @@ edits the cohort definition to include some discharges outside the principal
 diagnosis group. It renders HTML and Word and verifies the four HTML
 cohort-flow rows against the fixture.
 
-Both journeys check the rendered sections and the disclosure notice.
+The `study-small` journey selects a single invented discharge. It verifies
+that Methods and cohort flow mask the small cohort and its hospital count.
+All journeys check the rendered sections and the disclosure notice.
 `study-ci` also checks that the explicit input directory is absent from
 the HTML. Inspect the scaffold, render logs, and reports in the evidence
 directory. The CI journey records its fixture hashes and the expected and
