@@ -106,13 +106,50 @@ exposure_values <- if (has_cohort && exposure %in% names(study_design$variables)
 }
 exposure_levels <- unique(exposure_values[!is.na(exposure_values)])
 has_exposure_comparison <- length(exposure_levels) >= 2L
-n_hospitals <- dplyr::n_distinct(
-  study_design$variables$YEAR,
-  study_design$variables$HOSP_NIS
-)
 disclosure_limit <- 10L
-study_cell_display <- function(n, value = format(n, big.mark = ",", trim = TRUE)) {
-  dplyr::if_else(n >= 1L & n <= disclosure_limit, paste0("≤", disclosure_limit), value)
+records <- study_design$variables
+support <- easyNIS:::nis_study_support(records, disclosure_limit)
+trend_support <- if (has_cohort) easyNIS:::nis_study_trend_support(records, disclosure_limit)
+pooled_mask <- support$mask
+if (!nzchar(pooled_mask) && any(nzchar(trend_support$count_mask))) pooled_mask <- "Masked"
+outcome_ok <- c(
+  DIED = has_cohort && all(trend_support$mortality_ok),
+  LOS = has_cohort && all(trend_support$los_ok),
+  cost_adj = has_cohort && all(vapply(split(records, records$YEAR), function(rows) {
+    easyNIS:::nis_study_supported(rows[which(is.finite(rows$cost_adj)), ], disclosure_limit)
+  }, logical(1)))
+)
+arm_support <- lapply(split(records, exposure_values), easyNIS:::nis_study_support,
+  threshold = disclosure_limit)
+comparisons_safe <- has_exposure_comparison &&
+  all(vapply(arm_support, function(arm) !nzchar(arm$mask), logical(1)))
+study_cell_display <- function(mask, value) {
+  ifelse(nzchar(mask), mask, value)
+}
+study_header <- function(table) {
+  metadata <- table$table_styling$header
+  header <- list(stat_0 = paste0("**N = ", format(cohort_n, big.mark = ","), "**"))
+  if (has_exposure_comparison && "stat_1" %in% names(table$table_body)) {
+    columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
+    for (column in columns) {
+      row <- match(column, metadata$column)
+      label <- as.character(metadata$modify_stat_level[[row]])
+      n <- arm_support[[label]]$n
+      if (is.null(n)) stop("Cannot match a report header to its exposure arm.")
+      header[[column]] <- paste0("**", label, "**\nN = ", format(n, big.mark = ","))
+    }
+  }
+  gtsummary::modify_header(table, !!!header)
+}
+study_mask_p <- function(table) {
+  if (!"p.value" %in% names(table$table_body)) return(table)
+  gtsummary::modify_table_body(table, function(body) {
+    stat <- grep("^stat_[1-9][0-9]*$", names(body), value = TRUE)
+    masks <- c(paste0("\u2264", disclosure_limit), "<2 hospitals", "Masked")
+    masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
+    body$p.value[masked] <- NA_real_
+    body
+  })
 }
 report_inputs <- easyNIS:::nis_study_report_cache_key(
   design_key = design_key,
@@ -122,7 +159,8 @@ report_inputs <- easyNIS:::nis_study_report_cache_key(
   output_format = knitr::is_html_output()
 )
 report_key <- rlang::hash(list(report_inputs, disclosure_limit,
-  formals(study_cell_display), body(study_cell_display)))
+  study_cell_display, study_header, study_mask_p, easyNIS:::nis_study_mask,
+  easyNIS:::nis_study_model_disclosure))
 weight_description <- if (annualize) {
   "DISCWT divided by the number of study years"
 } else {
@@ -135,10 +173,10 @@ weight_description <- if (annualize) {
 This study includes NIS years `r paste(params$years, collapse = ", ")`. The
 analysis cohort uses principal diagnosis prefix
 `r paste(codes$principal_dx, collapse = ", ")` and is defined by
-`r rlang::expr_text(cohort)`. It contains `r study_cell_display(cohort_n)`
+`r rlang::expr_text(cohort)`. It contains `r study_cell_display(pooled_mask, format(cohort_n, big.mark = ","))`
 discharges. The design uses year-specific HOSP_NIS clusters and NIS_STRATUM
 strata, with `r weight_description` weights, and includes
-`r study_cell_display(cohort_n, format(n_hospitals, big.mark = ","))` hospitals
+`r study_cell_display(sub(" hospitals$", "", pooled_mask), format(support$hospitals, big.mark = ","))` hospitals
 with cohort discharges. Cost and charges are adjusted to
 `r max(params$years)` USD using CPI-U. The report uses easyNIS
 `r as.character(utils::packageVersion("easyNIS"))`, R `r getRversion()`, survey
@@ -147,12 +185,12 @@ with cohort discharges. Cost and charges are adjusted to
 `r as.character(utils::packageVersion("dplyr"))`, and gtsummary
 `r as.character(utils::packageVersion("gtsummary"))`.
 
-`r if (!has_cohort) "Cohort-dependent summaries and models are unavailable because the cohort has no rows in the survey design." else if (!has_exposure_comparison) paste0("The exposure comparison is unavailable because ", exposure, " has fewer than two observed levels in the cohort.") else "The cohort has at least two observed exposure levels; comparative summaries and models will be evaluated."`
+`r if (!has_cohort) "Cohort-dependent summaries and models are unavailable because the cohort has no rows in the survey design." else if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe)) "Some cohort summaries are withheld under the study disclosure policy." else if (!has_exposure_comparison) paste0("The exposure comparison is unavailable because ", exposure, " has fewer than two observed levels in the cohort.") else "The cohort has at least two observed exposure levels; comparative summaries and models will be evaluated."`
 
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
-**Cells based on ≤`r disclosure_limit` unweighted discharges are masked (with the overall cell in the same row); review tables for other derivable cells before sharing, per the HCUP Data Use Agreement.**
+**Cells based on ≤`r disclosure_limit` unweighted discharges are masked. The report also masks cells with fewer than two contributing hospitals and may mask related figures. Review tables for other derivable cells before sharing under the HCUP Data Use Agreement.**
 
 ## Cohort flow
 
@@ -166,18 +204,26 @@ flow_counts <- nis_data |>
   dplyr::transmute(
     cohort_match = !!cohort,
     principal_match = principal_dx,
-    weight = DISCWT
+    weight = DISCWT,
+    hospital = dbplyr::sql(paste0(
+      'CASE WHEN "YEAR" > 0 AND isfinite(CAST("YEAR" AS DOUBLE)) ',
+      'AND "HOSP_NIS" > 0 AND isfinite(CAST("HOSP_NIS" AS DOUBLE)) ',
+      'THEN struct_pack(year_id := "YEAR", hospital_id := "HOSP_NIS") END'
+    ))
   ) |>
   dplyr::summarise(
     all_n = dplyr::n(),
+    all_hospitals = dplyr::n_distinct(hospital),
     all_weight = sum(weight, na.rm = TRUE),
     principal_n = dplyr::coalesce(
       sum(dplyr::if_else(principal_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
     ),
+    principal_hospitals = dplyr::n_distinct(dplyr::if_else(principal_match, hospital, NA)),
     principal_weight = sum(dplyr::if_else(principal_match, weight, NA), na.rm = TRUE),
     cohort_n = dplyr::coalesce(
       sum(dplyr::if_else(cohort_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
     ),
+    cohort_hospitals = dplyr::n_distinct(dplyr::if_else(cohort_match, hospital, NA)),
     cohort_weight = sum(dplyr::if_else(cohort_match, weight, NA), na.rm = TRUE)
   ) |>
   dplyr::collect()
@@ -186,15 +232,20 @@ flow_raw <- dplyr::tibble(
   step = c("All discharges", "Principal diagnosis prefix", "Cohort definition",
     "Analysis cohort (valid survey design)"),
   n = c(flow_counts$all_n, flow_counts$principal_n, flow_counts$cohort_n, cohort_n),
+  hospitals = c(flow_counts$all_hospitals, flow_counts$principal_hospitals,
+    flow_counts$cohort_hospitals, support$hospitals),
   weighted_discharges = c(flow_counts$all_weight, flow_counts$principal_weight,
     flow_counts$cohort_weight, sum(study_design$variables$DISCWT))
 )
 stopifnot(cohort_n <= flow_counts$cohort_n)
+flow_mask <- easyNIS:::nis_study_mask(flow_raw$n, flow_raw$hospitals, disclosure_limit)
+flow_mask[[4L]] <- pooled_mask
+if (any(nzchar(flow_mask))) flow_mask[!nzchar(flow_mask) & flow_raw$n > 0] <- "Masked"
 flow_display <- flow_raw |>
   dplyr::mutate(
-    discharges = study_cell_display(n),
+    discharges = study_cell_display(flow_mask, format(n, big.mark = ",", trim = TRUE)),
     weighted_discharges = study_cell_display(
-      n, formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
+      flow_mask, formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
     )
   ) |>
   dplyr::select(step, discharges, weighted_discharges)
@@ -217,12 +268,16 @@ if (!has_cohort) {
   knitr::asis_output(
     "Table 1 is unavailable because the cohort has no rows in the survey design."
   )
+} else if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe)) {
+  knitr::asis_output("Table 1 is withheld under the study disclosure policy.")
 } else {
+  variables <- c("AGE", "FEMALE", names(outcome_ok)[outcome_ok])
   table_one <- if (has_exposure_comparison) {
     gtsummary::tbl_svysummary(
       study_design,
-      by = exposed,
-      include = c(AGE, FEMALE, DIED, LOS, cost_adj)
+      by = dplyr::all_of(exposure),
+      include = dplyr::all_of(variables),
+      type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       gtsummary::add_p() |>
       gtsummary::add_overall() |>
@@ -230,11 +285,13 @@ if (!has_cohort) {
   } else {
     gtsummary::tbl_svysummary(
       study_design,
-      include = c(AGE, FEMALE, DIED, LOS, cost_adj)
+      include = dplyr::all_of(variables),
+      type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       nis_suppress(threshold = disclosure_limit)
   }
 
+  table_one <- study_header(study_mask_p(table_one))
   if (knitr::is_html_output()) {
     gtsummary::as_gt(table_one)
   } else {
@@ -254,14 +311,18 @@ if (!has_cohort) {
   knitr::asis_output(
     "Outcome summaries are unavailable because the cohort has no rows in the survey design."
   )
+} else if (nzchar(pooled_mask) || !any(outcome_ok)) {
+  knitr::asis_output("Outcome summaries are withheld under the study disclosure policy.")
 } else {
   outcome_table <- gtsummary::tbl_svysummary(
     study_design,
-    include = c(DIED, LOS, cost_adj),
+    include = dplyr::all_of(names(outcome_ok)[outcome_ok]),
+    type = list(dplyr::any_of(c("LOS", "cost_adj")) ~ "continuous"),
     statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
   ) |>
     nis_suppress(threshold = disclosure_limit)
 
+  outcome_table <- study_header(outcome_table)
   if (knitr::is_html_output()) {
     gtsummary::as_gt(outcome_table)
   } else {
@@ -272,8 +333,8 @@ if (!has_cohort) {
 
 ## Trends by year
 
-The trend chart omits years with `r disclosure_limit` or fewer cohort
-discharges. The table masks each displayed estimate and count for those years.
+The chart and table mask yearly figures with insufficient discharge or hospital
+support. Mortality and length of stay also require support for each estimate.
 
 ```{r}
 #| label: trends
@@ -298,25 +359,26 @@ trend <- study_design |>
     weighted_n = srvyr::survey_total(.one, vartype = NULL),
     .groups = "drop"
   ) |>
-  dplyr::ungroup()
+  dplyr::ungroup() |>
+  dplyr::left_join(trend_support, by = "YEAR")
 
 trend_long <- dplyr::bind_rows(
   trend |>
     dplyr::transmute(
       YEAR, measure = "In-hospital mortality",
       estimate = mortality, lower = mortality_low, upper = mortality_upp,
-      n_unweighted
+      visible = !nzchar(count_mask) & mortality_ok
     ),
   trend |>
     dplyr::transmute(
       YEAR, measure = "Mean length of stay",
       estimate = mean_los, lower = mean_los_low, upper = mean_los_upp,
-      n_unweighted
+      visible = !nzchar(count_mask) & los_ok
     )
 ) |>
-  dplyr::filter(n_unweighted > disclosure_limit)
+  dplyr::filter(visible)
 
-ggplot2::ggplot(
+if (nrow(trend_long)) print(ggplot2::ggplot(
   trend_long,
   ggplot2::aes(x = YEAR, y = estimate, ymin = lower, ymax = upper, group = 1)
 ) +
@@ -326,15 +388,21 @@ ggplot2::ggplot(
   ggplot2::facet_wrap(~measure, scales = "free_y") +
   ggplot2::scale_x_continuous(breaks = params$years) +
   ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
-  ggplot2::theme_minimal()
+  ggplot2::theme_minimal())
 
 trend_display <- trend |>
   dplyr::mutate(
     YEAR = as.character(YEAR),
-    discharges = study_cell_display(n_unweighted),
-    weighted_N = study_cell_display(n_unweighted, formatC(weighted_n, format = "f", digits = 1, big.mark = ",")),
-    mortality = study_cell_display(n_unweighted, paste0(formatC(100 * mortality, format = "f", digits = 1), "%")),
-    mean_LOS = study_cell_display(n_unweighted, formatC(mean_los, format = "f", digits = 2))
+    discharges = study_cell_display(count_mask, format(n_unweighted, big.mark = ",", trim = TRUE)),
+    weighted_N = study_cell_display(count_mask, formatC(weighted_n, format = "f", digits = 1, big.mark = ",")),
+    mortality = study_cell_display(
+      ifelse(!nzchar(count_mask) & !mortality_ok, "Masked", count_mask),
+      paste0(formatC(100 * mortality, format = "f", digits = 1), "%")
+    ),
+    mean_LOS = study_cell_display(
+      ifelse(!nzchar(count_mask) & !los_ok, "Masked", count_mask),
+      formatC(mean_los, format = "f", digits = 2)
+    )
   ) |>
   dplyr::select(
     `Discharge year` = YEAR, discharges, weighted_N, mortality, mean_LOS
@@ -363,6 +431,10 @@ not changed to make a model fit.
 #| cache.extra: !expr report_key
 model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
+  if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe) ||
+      identical(outcome_ok[[current$outcome[[1L]]]], FALSE)) {
+    return(easyNIS:::nis_study_withheld_model())
+  }
   model_family <- switch(
     current$family[[1L]],
     quasibinomial = stats::quasibinomial(),
@@ -372,12 +444,13 @@ model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
     c(exposure, covariates),
     response = current$outcome[[1L]]
   )
-  easyNIS:::nis_study_fit_model(
+  easyNIS:::nis_study_fit_report_model(
     formula,
     design = study_design,
     family = model_family,
     outcome = current$outcome[[1L]],
-    exposure = exposure
+    exposure = exposure,
+    disclosure_limit = disclosure_limit
   )
 })
 

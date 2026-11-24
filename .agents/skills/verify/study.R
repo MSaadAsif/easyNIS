@@ -11,6 +11,22 @@ drive_study <- function(scratch, evidence) {
 
 drive_study_small <- function(scratch, evidence) {
   verify_study(scratch, evidence, "html", small_cohort = TRUE)
+  cases <- list(
+    one_year = list(sizes = c(10L, 11L, 144L), masks = "\u226410"),
+    two_years = list(sizes = c(1L, 3L, 144L), masks = rep("\u226410", 2L)),
+    one_hospital = list(sizes = c(12L, 144L), masks = "<2 hospitals"),
+    small_arm = list(sizes = rep(144L, 2L), small_arm = TRUE),
+    supported = list(sizes = rep(144L, 2L), supported = TRUE)
+  )
+  for (name in names(cases)) {
+    directory <- file.path(scratch, name)
+    results <- file.path(evidence, name)
+    stopifnot(dir.create(directory), dir.create(results))
+    case <- cases[[name]]
+    fixture <- study_disclosure_fixture(directory, case, one_hospital = name == "one_hospital")
+    verify_study(directory, results, "html", fixture$input,
+      disclosure_case = c(case, fixture[c("years", "weights")]))
+  }
 }
 
 drive_study_ci <- function(scratch, evidence) {
@@ -49,7 +65,32 @@ study_fixture_expectations <- function(input, evidence) {
   )
 }
 
-verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort = FALSE) {
+study_disclosure_fixture <- function(scratch, case, one_hospital) {
+  input <- file.path(scratch, "fixture")
+  stopifnot(dir.create(input))
+  years <- seq.int(2017L, length.out = length(case$sizes))
+  weights <- numeric(length(years))
+  con <- DBI::dbConnect(duckdb::duckdb(config = list(threads = "1")))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  for (i in seq_along(years)) {
+    position <- seq_len(case$sizes[[i]])
+    hospital <- if (one_hospital && i == 1L) rep(1L, length(position)) else (position - 1L) %% 12L + 1L
+    exposed <- if (isTRUE(case$small_arm)) i == 1L & position <= 3L else position %% 5L < 2L
+    records <- data.frame(
+      YEAR = years[[i]], HOSP_NIS = hospital, NIS_STRATUM = (hospital - 1L) %/% 4L + 1L,
+      DISCWT = 101.25 + 13 * i, CCR_NIS = 0.3, TOTCHG = 2000 + 17 * position + position %% 7L,
+      LOS = 1L + (position * 7L + i) %% 19L, DIED = as.integer(position %% 7L < 3L),
+      AGE = 41L + position %% 37L, FEMALE = position %% 3L == 0L,
+      I10_DX1 = "I5022", I10_DX2 = ifelse(exposed, "Z515", "E119")
+    )
+    weights[[i]] <- sum(records$DISCWT)
+    destination <- file.path(input, sprintf("NIS_%d.parquet", years[[i]]))
+    easyNIS:::nis_duckdb_write_parquet(records, destination, con)
+  }
+  list(input = input, years = years, weights = weights)
+}
+
+verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort = FALSE, disclosure_case = NULL) {
   quarto <- Sys.which("quarto")
   if (!nzchar(quarto)) stop("Quarto must be on PATH to drive the study feature.")
   version <- system2(quarto, "--version", stdout = TRUE)
@@ -62,18 +103,26 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
 
   expected <- NULL
   cohort_code <- NULL
-  if (!is.null(input)) {
+  if (!is.null(input) && is.null(disclosure_case)) {
     expected <- study_fixture_expectations(input, evidence)
     cohort_code <- "dplyr::if_else(AGE >= 50, TRUE, NA)"
   } else if (small_cohort) {
     cohort_code <- "YEAR == 2017L & HOSP_NIS == 1L & AGE == 28"
   }
-  if (!is.null(cohort_code)) {
+  if (!is.null(cohort_code) || !is.null(disclosure_case)) {
     analysis <- file.path(path, "analysis.qmd")
     definition <- readLines(analysis, encoding = "UTF-8")
-    cohort_line <- grepl("^cohort <- ", definition)
-    stopifnot(sum(cohort_line) == 1L)
-    definition[cohort_line] <- paste0("cohort <- rlang::expr(", cohort_code, ")")
+    if (!is.null(cohort_code)) {
+      cohort_line <- grepl("^cohort <- ", definition)
+      stopifnot(sum(cohort_line) == 1L)
+      definition[cohort_line] <- paste0("cohort <- rlang::expr(", cohort_code, ")")
+    }
+    if (!is.null(disclosure_case)) {
+      definition[grepl("^  years:", definition)] <-
+        paste0("  years: [", paste(disclosure_case$years, collapse = ", "), "]")
+      definition <- c(definition, "", "```{r}", "#| include: false",
+        'dput(trend_long, file = "trend-plot-data.R")', "```")
+    }
     writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
   }
   stopifnot(all(file.copy(file.path(path, scaffold_files), evidence)))
@@ -85,6 +134,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
   for (format in formats) {
     report <- render_study(quarto, format, input, evidence)
     validate_study_report(report, format, input, expected, evidence, small_cohort)
+    if (!is.null(disclosure_case)) verify_study_disclosure(report, disclosure_case)
   }
 }
 
@@ -118,6 +168,13 @@ validate_study_report <- function(report, format, input, expected, evidence, sma
         grepl("includes \u226410 hospitals", methods, fixed = TRUE))
     }
     validate_study_flow(document, expected, evidence, small_cohort)
+    if (small_cohort) {
+      for (id in c("table-1", "outcomes", "multivariable-models")) {
+        section <- study_report_section(document, id)
+        stopifnot(!length(xml2::xml_find_all(section, ".//table")),
+          grepl("under the study disclosure policy", xml2::xml_text(section), fixed = TRUE))
+      }
+    }
     assets <- xml2::xml_text(xml2::xml_find_all(document,
       "//script/@src | //img/@src | //link[@rel='stylesheet']/@href"))
     stopifnot(all(grepl("^(data:|https?://|#)", assets)))
@@ -156,4 +213,55 @@ validate_study_flow <- function(document, expected, evidence, small_cohort) {
   stopifnot(identical(observed$step, expected$step),
     all(observed$discharges == expected$discharges),
     isTRUE(all.equal(observed$weighted_discharges, expected$weighted_discharges)))
+}
+
+study_report_section <- function(document, id) {
+  section <- xml2::xml_find_first(document, sprintf("//section[@id='%s']", id))
+  stopifnot(!inherits(section, "xml_missing"))
+  section
+}
+
+verify_study_disclosure <- function(report, case) {
+  document <- xml2::read_html(report)
+  trends <- study_report_section(document, "trends-by-year")
+  plot_data <- dget("trend-plot-data.R")
+  stopifnot(all(plot_data$visible), any(plot_data$YEAR == tail(case$years, 1L)),
+    length(xml2::xml_find_all(trends, ".//img[starts-with(@src, 'data:image/')]")) == 1L)
+  models <- study_report_section(document, "multivariable-models")
+  published_models <- xml2::xml_find_all(models, ".//table")
+  if (isTRUE(case$supported)) {
+    table_one <- study_report_section(document, "table-1")
+    outcomes <- study_report_section(document, "outcomes")
+    headers <- xml2::xml_text(xml2::xml_find_all(outcomes, ".//thead//th"))
+    stopifnot(any(grepl(paste0("N = ", sum(case$sizes)), headers, fixed = TRUE)),
+      length(xml2::xml_find_all(table_one, ".//table")) == 1L)
+    stopifnot(length(published_models) > 0L,
+      grepl(as.character(tail(case$years, 1L)), xml2::xml_text(published_models), fixed = TRUE))
+    return(invisible(NULL))
+  }
+  stopifnot(!length(published_models), grepl("Withheld under the study disclosure policy.",
+    xml2::xml_text(models), fixed = TRUE))
+  table_one <- study_report_section(document, "table-1")
+  stopifnot(!length(xml2::xml_find_all(table_one, ".//table")))
+  if (is.null(case$masks)) return(invisible(NULL))
+
+  rows <- xml2::xml_find_all(trends, ".//tbody/tr")
+  cells <- do.call(rbind, lapply(rows, function(row) {
+    xml2::xml_text(xml2::xml_find_all(row, "./td"), trim = TRUE)
+  }))
+  n_masked <- length(case$masks)
+  stopifnot(!any(plot_data$YEAR %in% head(case$years, n_masked)),
+    identical(cells[seq_len(n_masked), 2L], case$masks),
+    identical(cells[seq_len(n_masked), 3L], case$masks),
+    cells[nrow(cells), 2L] == as.character(tail(case$sizes, 1L)))
+  methods <- study_report_section(document, "methods")
+  outcomes <- study_report_section(document, "outcomes")
+  flow <- study_report_section(document, "cohort-flow")
+  stopifnot(!length(xml2::xml_find_all(outcomes, ".//table")),
+    grepl("contains Masked discharges", gsub("[[:space:]]+", " ", xml2::xml_text(methods)), fixed = TRUE),
+    all(xml2::xml_text(xml2::xml_find_all(flow, ".//tbody/tr[last()]/td[position() > 1]")) == "Masked"))
+  protected <- formatC(c(case$weights[seq_len(n_masked)], sum(case$weights)),
+    format = "f", digits = 1L, big.mark = ",")
+  main <- xml2::xml_text(xml2::xml_find_first(document, "//main"))
+  stopifnot(!any(vapply(protected, grepl, logical(1), x = main, fixed = TRUE)))
 }

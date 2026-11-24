@@ -201,7 +201,7 @@
 
 .nis_audit_slot_names <- function(data_names, slots, system) {
   stem <- nis_code_stem(slots, system)
-  slot_names <- names(nis_code_slots(data_names, stem))
+  slot_names <- names(nis_code_slots(data_names, stem, canonical = FALSE))
   if (length(slot_names) == 0L) {
     cli::cli_abort(paste(
       "No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} {slots} columns",

@@ -151,3 +151,29 @@ test_that("study model preflight uses the factor levels present in complete case
   expect_null(actual$status)
   expect_equal(stats::coef(actual$model), stats::coef(expected))
 })
+test_that("study model disclosure uses complete cases and categorical support before fitting", {
+  records <- expand.grid(YEAR = 2020:2021, HOSP_NIS = 1:3, exposed = c(FALSE, TRUE),
+    row = seq_len(12L))
+  records$outcome <- records$row + records$HOSP_NIS
+  records$event <- records$row %% 2L == 0L
+  threshold <- 10L
+  formula <- outcome ~ exposed + factor(YEAR)
+  family <- stats::gaussian()
+  expect_true(nis_study_model_disclosure(formula, records, family, "exposed", threshold))
+
+  missing <- records
+  missing$outcome[missing$YEAR == 2020L & missing$row > 1L] <- NA
+  fit <- function(...) stop("Suppressed model should never be fitted")
+  result <- nis_study_fit_report_model(formula, list(variables = missing), family, fit = fit,
+    outcome = "outcome", exposure = "exposed", disclosure_limit = threshold)
+  expect_null(result$model)
+  expect_identical(result$status, "Withheld under the study disclosure policy.")
+
+  interactions <- records[!(records$YEAR == 2020L & records$exposed & records$row > 1L), ]
+  expect_false(nis_study_model_disclosure(outcome ~ exposed * factor(YEAR),
+    interactions, family, "exposed", threshold))
+
+  records$event[records$YEAR == 2020L & records$HOSP_NIS != 1L] <- FALSE
+  expect_false(nis_study_model_disclosure(event ~ exposed + factor(YEAR),
+    records, stats::quasibinomial(), "exposed", threshold))
+})

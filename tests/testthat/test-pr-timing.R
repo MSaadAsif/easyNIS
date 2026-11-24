@@ -484,7 +484,7 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
 })
 
 
-test_that("procedure timing preserves requested flags and accepts only canonical slots", {
+test_that("procedure timing preserves requested flags with equivalent slot names", {
   frame <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "IX", I10_PR2 = "OUT",
     I10_PR01 = "OUT", PRDAY01 = 15L, PRDAY1 = 0L, PRDAY2 = 5L)
   output <- ".easyNIS_pr_timing_match_1"
@@ -495,7 +495,7 @@ test_that("procedure timing preserves requested flags and accepts only canonical
       expect_identical(collected[[output]], TRUE)
       expect_identical(names(collected), c(names(frame), output))
     }
-    expect_identical(nis_prday_completeness(data, "OUT")$matched_slots, c(0L, 1L))
+    expect_identical(nis_prday_completeness(data, "OUT")$matched_slots, c(0L, 1L, 1L))
   }
 })
 
@@ -506,4 +506,23 @@ test_that("empty PRDAY summaries retain the yearly output schema", {
     absent_prday_column = integer(), pct_known = double())
   expect_identical(nis_prday_completeness(frame, "IX"), expected)
   expect_identical(nis_prday_completeness(duckdb_query_fixture(frame), "IX"), expected)
+})
+test_that("procedure timing and completeness preserve numeric slot pairing", {
+  frame <- dplyr::tibble(YEAR = 2020L, I10_PR01 = "IX", I10_PR2 = "OUT",
+    PRDAY1 = 0L, PRDAY01 = 9L, PRDAY2 = 5L)
+  reversed <- dplyr::relocate(frame, PRDAY01, .before = PRDAY1)
+  padded_day <- dplyr::rename(dplyr::select(frame, -PRDAY01), I10_PR1 = I10_PR01, PRDAY01 = PRDAY1)
+  legacy <- dplyr::tibble(YEAR = 2014L, PR0 = "0123", PR1 = "9999", PRDAY00 = 0L, PRDAY1 = 1L)
+  for (copier in list(identity, duckdb_query_fixture)) {
+    timing <- function(data) {
+      dplyr::collect(nis_flag_pr_timing(copier(data), "IX", "OUT", name = "after"))$after
+    }
+    expect_true(timing(frame))
+    expect_false(timing(reversed))
+    expect_true(timing(padded_day))
+    completion <- nis_prday_completeness(copier(legacy), "0123", system = "icd9")
+    expect_identical(completion$slot, 0:1)
+    expect_identical(completion$known_day, c(1L, 0L))
+    expect_error(nis_flag_pr(copier(frame), matched = "IX", position = "principal"), "No ICD-10")
+  }
 })

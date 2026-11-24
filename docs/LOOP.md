@@ -5,7 +5,7 @@
 - The orchestrator probes, files findings, plans work, and reviews completed
   changes.
 - Workers implement assigned issues in separate worktrees under
-  `$USERPROFILE\.t3\worktrees\easyNIS`. Use no more than four workers at
+  `$USERPROFILE\.t3\worktrees\easyNIS\`. Use no more than four workers at
   once, and assign disjoint files.
 - A max-effort reviewer independently reviews each proposed change.
 
@@ -88,7 +88,9 @@ another fixture, plus a description of the problem in general terms. The
 public-text scanner is a backstop, not publication clearance. Use judgment and
 remove all real-run output before submitting any public text.
 
-Use the configured Git identity, as described in [AGENTS.md](../AGENTS.md).
+Set commit author and committer to `Muhammad Saad
+<168359874+MSaadAsif@users.noreply.github.com>`. Do not add co-authors or AI
+attribution in commits, PRs, issues, documentation, or code comments.
 
 ## Owner decisions and stopping
 

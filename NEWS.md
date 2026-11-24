@@ -6,12 +6,17 @@
   threads, and spill storage before opening with `easyNIS.duckdb_config`.
 
 - Procedure timing, PRDAY completeness, and code-transition inventory use
-  canonical numbered slots. Empty PRDAY summaries retain their typed columns.
+  shared slot discovery and continue to accept zero-padded slots.
+  Empty PRDAY summaries retain their typed columns.
   Procedure timing and diagnosis sensitivity avoid scratch-name collisions.
   DuckDB code inventory filters prefixes before expanding discharge code lists.
 
 - Survey suppression rejects malformed count cards that report multiple,
   negative, or fractional discharge counts.
+
+- New study reports apply discharge and hospital disclosure checks to summary
+  headers, annual trends, and model output. Related totals are withheld when
+  they could reveal masked figures.
 
 - The staged-file privacy guard checks the content recorded in the Git index.
   Probe execution, receipt validation, and readiness reporting are separate.

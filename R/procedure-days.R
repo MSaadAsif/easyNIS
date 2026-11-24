@@ -1,14 +1,15 @@
 nis_procedure_slots <- function(columns, system, error_call) {
   stem <- nis_code_stem("PR", system)
-  slots <- nis_code_slots(columns, stem)
+  slots <- nis_code_slots(columns, stem, canonical = FALSE)
   if (!length(slots)) {
     cli::cli_abort(paste0("No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} PR columns (",
       stem, "<n>) were found."), call = error_call)
   }
-  slots <- slots[order(nchar(slots), slots)]
-  days <- nis_code_slots(columns, "PRDAY")
-  list(procedure = names(slots), slot = unname(slots),
-    day = as.character(names(days))[match(slots, days)],
+  positions <- order(as.integer(slots), seq_along(slots))
+  slot <- as.integer(slots[positions])
+  days <- nis_code_slots(columns, "PRDAY", canonical = FALSE)
+  list(procedure = names(slots)[positions], slot = slot,
+    day = as.character(names(days))[match(slot, as.integer(days))],
     has_days = length(days) > 0L)
 }
 

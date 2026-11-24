@@ -541,3 +541,13 @@ test_that("code inventory respects the code system and validates arguments", {
   expect_equal(nrow(nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
     cohort = FALSE, output = "inventory")), 0L)
 })
+test_that("code inventory accepts padded procedure and diagnosis columns", {
+  data <- dplyr::tibble(YEAR = 2020L, DISCWT = 5, I10_PR02 = "02UG0JZ", I10_DX01 = "I501")
+  for (source in list(data, duckdb_query_fixture(data))) {
+    pr <- nis_audit_code_transition(source, c(index = "02UG"), output = "inventory")
+    dx <- nis_audit_code_transition(source, c(index = "I50"), type = "dx", output = "inventory")
+    expect_equal(pr$n_unweighted, 1)
+    expect_equal(dx$n_unweighted, 1)
+    expect_error(nis_flag_dx(source, matched = "I50"), "No ICD-10")
+  }
+})

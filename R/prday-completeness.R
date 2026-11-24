@@ -83,7 +83,7 @@ nis_prday_completeness <- function(.data, pr,
     "sentinel_invalid_day", "absent_prday_column")
   summaries <- lapply(seq_along(slots), function(i) {
     suffix <- paste0("__", i)
-    summary <- data.frame(YEAR = wide$YEAR, slot = rep(as.integer(slots[[i]]), nrow(wide)))
+    summary <- data.frame(YEAR = wide$YEAR, slot = rep(slots[[i]], nrow(wide)))
     for (metric in metrics) {
       summary[[metric]] <- as.integer(wide[[paste0(metric, suffix)]])
     }

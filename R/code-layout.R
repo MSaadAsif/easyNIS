@@ -2,14 +2,16 @@ nis_code_stem <- function(type, system) {
   paste0(if (system == "icd10") "I10_", type)
 }
 
-nis_code_slots <- function(columns, stem) {
-  names <- grep(paste0("^", stem, "[1-9][0-9]*$"), columns, value = TRUE)
+nis_code_slots <- function(columns, stem, canonical = TRUE) {
+  suffix <- if (canonical) "[1-9][0-9]*" else "[0-9]+"
+  names <- grep(paste0("^", stem, suffix, "$"), columns, value = TRUE)
   stats::setNames(substring(names, nchar(stem) + 1L), names)
 }
 
 nis_diagnosis_fields <- function(data) {
   columns <- nis_names(data)
-  slots <- c(nis_code_slots(columns, "I10_DX"), nis_code_slots(columns, "DXPOA"))
+  slots <- c(nis_code_slots(columns, "I10_DX", canonical = FALSE),
+    nis_code_slots(columns, "DXPOA", canonical = FALSE))
   intersect(columns, names(slots))
 }
 
