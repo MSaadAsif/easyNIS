@@ -41,6 +41,9 @@ Keep I/O and format-specific code at the entry points. Put a rule in a shared
 module when multiple callers need the same rule, and exercise it through the
 normal user-facing functions.
 
+When changing Parquet scan planning or DuckDB workload settings, run the
+[bounded scan check and spill benchmark](.agents/skills/duckdb-parquet-scans/SKILL.md).
+
 ## Privacy and licensing
 
 Use invented fixtures and independently authored code compatible with the project's AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.
