@@ -119,17 +119,26 @@ outcome_ok <- c(
     easyNIS:::nis_study_supported(rows[which(is.finite(rows$cost_adj)), ], disclosure_limit)
   }, logical(1)))
 )
-arm_support <- lapply(split(records, exposure_values), easyNIS:::nis_study_support,
-  threshold = disclosure_limit)
+arm_support <- if (has_exposure_comparison) {
+  lapply(split(records, exposure_values), easyNIS:::nis_study_support,
+    threshold = disclosure_limit)
+} else {
+  list()
+}
+missing_exposure <- is.na(exposure_values)
 comparisons_safe <- has_exposure_comparison &&
-  all(vapply(arm_support, function(arm) !nzchar(arm$mask), logical(1)))
+  all(vapply(arm_support, function(arm) arm$n > 0L && !nzchar(arm$mask), logical(1))) &&
+  (!any(missing_exposure) || easyNIS:::nis_study_supported(
+    records[missing_exposure, , drop = FALSE], disclosure_limit))
 study_cell_display <- function(mask, value) {
   ifelse(nzchar(mask), mask, value)
 }
 study_header <- function(table) {
   metadata <- table$table_styling$header
-  header <- list(stat_0 = paste0("**N = ", format(cohort_n, big.mark = ","), "**"))
-  if (has_exposure_comparison && "stat_1" %in% names(table$table_body)) {
+  grouped <- "stat_1" %in% names(table$table_body)
+  total <- if (grouped) sum(!missing_exposure) else cohort_n
+  header <- list(stat_0 = paste0("**N = ", format(total, big.mark = ","), "**"))
+  if (grouped) {
     columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
     for (column in columns) {
       row <- match(column, metadata$column)
@@ -147,7 +156,7 @@ study_mask_p <- function(table) {
     stat <- grep("^stat_[1-9][0-9]*$", names(body), value = TRUE)
     masks <- c(paste0("\u2264", disclosure_limit), "<2 hospitals", "Masked")
     masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
-    body$p.value[masked] <- NA_real_
+    body$p.value[body$variable %in% body$variable[masked]] <- NA_real_
     body
   })
 }
@@ -158,9 +167,7 @@ report_inputs <- easyNIS:::nis_study_report_cache_key(
   outcomes = outcomes,
   output_format = knitr::is_html_output()
 )
-report_key <- rlang::hash(list(report_inputs, disclosure_limit,
-  study_cell_display, study_header, study_mask_p, easyNIS:::nis_study_mask,
-  easyNIS:::nis_study_model_disclosure))
+report_key <- rlang::hash(list(report_inputs, knitr::knit_code$get("design-summary")))
 weight_description <- if (annualize) {
   "DISCWT divided by the number of study years"
 } else {
@@ -213,18 +220,18 @@ flow_counts <- nis_data |>
   ) |>
   dplyr::summarise(
     all_n = dplyr::n(),
-    all_hospitals = dplyr::n_distinct(hospital),
+    all_hospitals = dplyr::n_distinct(hospital, na.rm = TRUE),
     all_weight = sum(weight, na.rm = TRUE),
     principal_n = dplyr::coalesce(
       sum(dplyr::if_else(principal_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
     ),
-    principal_hospitals = dplyr::n_distinct(dplyr::if_else(principal_match, hospital, NA)),
-    principal_weight = sum(dplyr::if_else(principal_match, weight, NA), na.rm = TRUE),
+    principal_hospitals = dplyr::n_distinct(dplyr::if_else(principal_match, hospital, NA), na.rm = TRUE),
+    principal_weight = dplyr::coalesce(sum(dplyr::if_else(principal_match, weight, NA), na.rm = TRUE), 0),
     cohort_n = dplyr::coalesce(
       sum(dplyr::if_else(cohort_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
     ),
-    cohort_hospitals = dplyr::n_distinct(dplyr::if_else(cohort_match, hospital, NA)),
-    cohort_weight = sum(dplyr::if_else(cohort_match, weight, NA), na.rm = TRUE)
+    cohort_hospitals = dplyr::n_distinct(dplyr::if_else(cohort_match, hospital, NA), na.rm = TRUE),
+    cohort_weight = dplyr::coalesce(sum(dplyr::if_else(cohort_match, weight, NA), na.rm = TRUE), 0)
   ) |>
   dplyr::collect()
 
@@ -431,10 +438,9 @@ not changed to make a model fit.
 #| cache.extra: !expr report_key
 model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
-  if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe) ||
-      isFALSE(outcome_ok[current$outcome[[1L]]])) {
-    return(easyNIS:::nis_study_withheld_model())
-  }
+  outcome <- current$outcome[[1L]]
+  report_supported <- !nzchar(pooled_mask) &&
+    (!has_exposure_comparison || comparisons_safe) && !isFALSE(outcome_ok[outcome])
   model_family <- switch(
     current$family[[1L]],
     quasibinomial = stats::quasibinomial(),
@@ -442,15 +448,16 @@ model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   )
   formula <- stats::reformulate(
     c(exposure, covariates),
-    response = current$outcome[[1L]]
+    response = outcome
   )
   easyNIS:::nis_study_fit_report_model(
     formula,
     design = study_design,
     family = model_family,
-    outcome = current$outcome[[1L]],
+    outcome = outcome,
     exposure = exposure,
-    disclosure_limit = disclosure_limit
+    disclosure_limit = disclosure_limit,
+    report_supported = report_supported
   )
 })
 

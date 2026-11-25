@@ -12,6 +12,21 @@ drive_study <- function(scratch, evidence) {
 drive_study_small <- function(scratch, evidence) {
   verify_study(scratch, evidence, "html", small_cohort = TRUE)
   cases <- list(
+    flow_one_hospital = list(sizes = rep(144L, 2L), flow_one_hospital = TRUE,
+      setup = 'cohort <- rlang::expr(FALSE)'),
+    missing_exposure = list(sizes = rep(144L, 2L), missing_exposure = TRUE,
+      setup = 'exposure <- "not_kept"'),
+    missing_arm = list(sizes = rep(144L, 2L),
+      setup = 'study_design$variables$exposed[seq_len(5L)] <- NA'),
+    unused_arm = list(sizes = rep(144L, 2L),
+      setup = 'study_design$variables$exposed <- factor(study_design$variables$exposed, levels = c(FALSE, TRUE, "Unused"))'),
+    masked_p = list(sizes = rep(144L, 2L), masked_p = TRUE, setup = c(
+      'study_design$variables$exposed[seq_len(24L)] <- NA',
+      'arm <- which(study_design$variables$exposed %in% TRUE)',
+      'female <- seq_len(nrow(study_design$variables)) %% 2L == 0L',
+      'female[arm] <- seq_along(arm) <= 5L',
+      'study_design$variables$FEMALE <- factor(ifelse(female, "A", "B"))'
+    )),
     one_year = list(sizes = c(10L, 11L, 144L), masks = "\u226410"),
     two_years = list(sizes = c(1L, 3L, 144L), masks = rep("\u226410", 2L)),
     one_hospital = list(sizes = c(12L, 144L), masks = "<2 hospitals"),
@@ -76,12 +91,18 @@ study_disclosure_fixture <- function(scratch, case, one_hospital) {
     position <- seq_len(case$sizes[[i]])
     hospital <- if (one_hospital && i == 1L) rep(1L, length(position)) else (position - 1L) %% 12L + 1L
     exposed <- if (isTRUE(case$small_arm)) i == 1L & position <= 3L else position %% 5L < 2L
+    principal <- rep("I5022", length(position))
+    if (isTRUE(case$flow_one_hospital)) {
+      matching <- i == 1L & position <= 15L
+      hospital[matching] <- 1L
+      principal[!matching] <- "E119"
+    }
     records <- data.frame(
       YEAR = years[[i]], HOSP_NIS = hospital, NIS_STRATUM = (hospital - 1L) %/% 4L + 1L,
       DISCWT = 101.25 + 13 * i, CCR_NIS = 0.3, TOTCHG = 2000 + 17 * position + position %% 7L,
       LOS = 1L + (position * 7L + i) %% 19L, DIED = as.integer(position %% 7L < 3L),
       AGE = 41L + position %% 37L, FEMALE = position %% 3L == 0L,
-      I10_DX1 = "I5022", I10_DX2 = ifelse(exposed, "Z515", "E119")
+      I10_DX1 = principal, I10_DX2 = ifelse(exposed, "Z515", "E119")
     )
     weights[[i]] <- sum(records$DISCWT)
     destination <- file.path(input, sprintf("NIS_%d.parquet", years[[i]]))
@@ -125,11 +146,25 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
         stopifnot(length(flags_line) == 1L)
         definition <- append(definition, c(
           'outcomes <- dplyr::add_row(outcomes, outcome = "TOTCHG", family = "gaussian", exponentiate = FALSE)',
+          'outcomes <- dplyr::add_row(outcomes, outcome = "not_kept_outcome", family = "gaussian", exponentiate = FALSE)',
           ""
         ), after = flags_line - 1L)
       }
-      definition <- c(definition, "", "```{r}", "#| include: false",
-        'dput(trend_long, file = "trend-plot-data.R")', "```")
+      setup <- disclosure_case$setup
+      if (isTRUE(disclosure_case$flow_one_hospital) || isTRUE(disclosure_case$missing_exposure)) {
+        field <- if (isTRUE(disclosure_case$flow_one_hospital)) "cohort" else "exposure"
+        line <- grep(paste0("^", field, " <- "), definition)
+        stopifnot(length(line) == 1L)
+        definition[line] <- setup
+      } else if (length(setup)) {
+        line <- which(definition == "#| label: design-summary")
+        stopifnot(length(line) == 1L)
+        definition <- append(definition, setup, after = line)
+      }
+      if (!isTRUE(disclosure_case$flow_one_hospital)) {
+        definition <- c(definition, "", "```{r}", "#| include: false",
+          'dput(trend_long, file = "trend-plot-data.R")', "```")
+      }
     }
     writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
   }
@@ -231,26 +266,47 @@ study_report_section <- function(document, id) {
 
 verify_study_disclosure <- function(report, case) {
   document <- xml2::read_html(report)
+  table_one <- study_report_section(document, "table-1")
+  models <- study_report_section(document, "multivariable-models")
+  if (isTRUE(case$flow_one_hospital)) {
+    flow <- study_report_section(document, "cohort-flow")
+    cells <- xml2::xml_text(xml2::xml_find_all(flow, ".//tbody/tr[2]/td[position() > 1]"), trim = TRUE)
+    stopifnot(identical(cells, rep("<2 hospitals", 2L)),
+      grepl("The cohort has no rows", xml2::xml_text(models), fixed = TRUE))
+    return(invisible(NULL))
+  }
+  if (isTRUE(case$missing_exposure)) {
+    stopifnot(length(xml2::xml_find_all(table_one, ".//table")) == 1L,
+      grepl("The model data are missing not_kept", xml2::xml_text(models), fixed = TRUE))
+    return(invisible(NULL))
+  }
+  if (isTRUE(case$masked_p)) {
+    headers <- xml2::xml_text(xml2::xml_find_all(table_one, ".//thead//th"))
+    label <- xml2::xml_find_first(table_one, ".//tbody/tr[td[normalize-space(.)='FEMALE']]")
+    p <- xml2::xml_text(xml2::xml_find_all(label, "./td[@headers='p.value']"), trim = TRUE)
+    stopifnot(any(grepl("N = 264", headers, fixed = TRUE)),
+      grepl("\u226410", xml2::xml_text(table_one), fixed = TRUE),
+      length(p) == 1L, !grepl("[0-9]", p))
+    return(invisible(NULL))
+  }
   trends <- study_report_section(document, "trends-by-year")
   plot_data <- dget("trend-plot-data.R")
   stopifnot(all(plot_data$visible), any(plot_data$YEAR == tail(case$years, 1L)),
     length(xml2::xml_find_all(trends, ".//img[starts-with(@src, 'data:image/')]")) == 1L)
-  models <- study_report_section(document, "multivariable-models")
   published_models <- xml2::xml_find_all(models, ".//table")
   if (isTRUE(case$supported)) {
-    table_one <- study_report_section(document, "table-1")
     outcomes <- study_report_section(document, "outcomes")
     headers <- xml2::xml_text(xml2::xml_find_all(outcomes, ".//thead//th"))
     stopifnot(any(grepl(paste0("N = ", sum(case$sizes)), headers, fixed = TRUE)),
       length(xml2::xml_find_all(table_one, ".//table")) == 1L,
       any(grepl("TOTCHG", xml2::xml_text(published_models), fixed = TRUE)))
     stopifnot(length(published_models) > 0L,
-      grepl(as.character(tail(case$years, 1L)), xml2::xml_text(published_models), fixed = TRUE))
+      grepl(as.character(tail(case$years, 1L)), xml2::xml_text(published_models), fixed = TRUE),
+      grepl("The model data are missing not_kept_outcome", xml2::xml_text(models), fixed = TRUE))
     return(invisible(NULL))
   }
   stopifnot(!length(published_models), grepl("Withheld under the study disclosure policy.",
     xml2::xml_text(models), fixed = TRUE))
-  table_one <- study_report_section(document, "table-1")
   stopifnot(!length(xml2::xml_find_all(table_one, ".//table")))
   if (is.null(case$masks)) return(invisible(NULL))
 

@@ -27,8 +27,11 @@ edits the cohort definition to include some discharges outside the principal
 diagnosis group. It renders HTML and Word and verifies the four HTML
 cohort-flow rows against the fixture.
 
-The `study-small` journey selects a single invented discharge. It verifies
-that Methods and cohort flow mask the small cohort and its hospital count.
+The `study-small` journey checks disclosure in rendered reports for small
+cohorts, single-hospital groups, masked years, and unsupported exposure arms.
+It also checks the reported sample size and p-value when a comparison has
+missing exposure values and a masked categorical cell. Empty cohorts and
+missing exposure columns render with a diagnostic.
 All journeys check the rendered sections and the disclosure notice.
 `study-ci` also checks that the explicit input directory is absent from
 the HTML. Inspect the scaffold, render logs, and reports in the evidence

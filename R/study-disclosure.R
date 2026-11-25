@@ -91,8 +91,14 @@ nis_study_withheld_model <- function() {
   list(model = NULL, status = "Withheld under the study disclosure policy.", warnings = character())
 }
 
-nis_study_fit_report_model <- function(formula, design, family, outcome, exposure, disclosure_limit, ...) {
-  if (!nis_study_model_disclosure(formula, design$variables, family, exposure, disclosure_limit)) {
+nis_study_fit_report_model <- function(formula, design, family, outcome, exposure, disclosure_limit,
+                                       report_supported = TRUE, ...) {
+  status <- nis_study_model_input_status(design$variables, outcome, exposure)
+  if (!is.null(status)) {
+    return(list(model = NULL, status = status, warnings = character()))
+  }
+  if (!report_supported ||
+      !nis_study_model_disclosure(formula, design$variables, family, exposure, disclosure_limit)) {
     return(nis_study_withheld_model())
   }
   nis_study_fit_model(formula, design, family, outcome = outcome, exposure = exposure, ...)
