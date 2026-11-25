@@ -110,3 +110,11 @@ test_that("aliases preserve adjusted-cost sources before costs are recomputed", 
     expect_identical(nis_cost_provenance(design), nis_cost_provenance(reference))
   }
 })
+
+
+test_that("DuckDB input cannot shadow a reserved design field by case", {
+  frame <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = 1L, NIS_STRATUM = 1L,
+    DISCWT = 1, .NIS_COHORT = TRUE)
+  expect_error(nis_design(duckdb_query_fixture(frame), .NIS_COHORT, keep = YEAR),
+    "internal design names are reserved")
+})

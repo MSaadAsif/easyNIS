@@ -26,10 +26,17 @@ test_that("suppression thresholds preserve scalar validation", {
     matrix_length_two = FALSE, raw = FALSE, max_fraction = FALSE
   )
 
-  expect_identical(
-    vapply(inputs, easyNIS:::is_valid_suppress_threshold, logical(1)),
-    expected
-  )
+  data <- data.frame(n = 1L, estimate = 40)
+  for (name in names(inputs)) {
+    if (expected[[name]]) {
+      result <- nis_suppress(data, threshold = inputs[[name]], count_col = "n")
+      label <- if (inputs[[name]] == 0) "1" else paste0("\u2264", inputs[[name]])
+      expect_identical(result$n, label, info = name)
+    } else {
+      expect_error(nis_suppress(data, threshold = inputs[[name]], count_col = "n"),
+        "non-negative whole number", info = name)
+    }
+  }
 })
 
 test_that("nis_suppress validates inputs without survey summary cards", {
@@ -210,44 +217,6 @@ test_that("nis_cell_counts uses year-scoped hospital identities", {
   )
   expect_identical(masked$n, c("14", "\u226410"))
   expect_identical(masked$hospitals, c("3", "\u226410"))
-})
-
-test_that("survey cell hospital mapping uses raw levels, groups, and cohort records", {
-  data <- data.frame(
-    YEAR = c(2020, 2020, 2021, 2020, 2020),
-    HOSP_NIS = c(1, 2, 1, 3, 4),
-    group = factor(c("A", "A", "B", "B", "B")),
-    category = factor(c("raw", "raw", "raw", "other", "raw")),
-    value = c(1, NA, 3, 4, 5), .in_cohort = c(TRUE, TRUE, TRUE, TRUE, FALSE)
-  )
-  data$weight <- 1
-  x <- gtsummary::tbl_svysummary(
-    survey::svydesign(ids = ~1, weights = ~weight, data = data), by = group,
-    include = c(category, value), label = list(category ~ "Pretty label")
-  )
-  level_spec <- list(variable = "category", context = "categorical",
-    stat_name = "n_unweighted", level_value = "raw")
-  cards <- easyNIS:::survey_suppress_cards(x)
-  card_levels <- easyNIS:::survey_variable_levels(cards)
-  matches <- which(cards$variable == "category" &
-    cards$context == "categorical" & cards$stat_name == "n_unweighted" &
-    card_levels == "raw")
-  a <- easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1", level_spec)
-  overall <- easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_0", level_spec)
-  expect_equal(nrow(a), 2L)
-  expect_equal(nrow(overall), 3L) # ID 1 in two years is two hospitals.
-  missing_spec <- list(variable = "value", context = "missing", stat_name = "N_miss_unweighted")
-  expect_equal(nrow(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1", missing_spec)), 1L)
-  continuous_spec <- list(variable = "value", context = "missing", stat_name = "N_nonmiss_unweighted")
-  expect_equal(nrow(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_2", continuous_spec)), 2L)
-  expect_error(easyNIS:::survey_cell_hospitals(x, cards, matches, "stat_1",
-    list(variable = "category", context = "categorical", stat_name = "n_unweighted")), "raw card level")
-  bad <- x
-  bad$inputs$data$variables$HOSP_NIS[[1L]] <- NA_real_
-  expect_error(easyNIS:::survey_cell_hospitals(bad, cards, matches, "stat_1", level_spec), "finite positive")
-  empty <- x
-  empty$inputs$data$variables$.in_cohort[] <- FALSE
-  expect_equal(nrow(easyNIS:::survey_cell_hospitals(empty, cards, matches, "stat_1", level_spec)), 0L)
 })
 
 test_that("nis_cell_counts excludes zero-domain placeholder rows", {
@@ -836,4 +805,29 @@ test_that("nis_suppress validation errors retain the public call", {
   expect_true(all(vapply(column_errors, function(error) {
     identical(rlang::call_name(conditionCall(error)), "nis_suppress")
   }, logical(1))))
+})
+
+
+test_that("malformed survey count cards fail closed", {
+  skip_if_not_installed("gtsummary")
+  frame <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = rep(1:2, each = 8L),
+    NIS_STRATUM = 1L, DISCWT = 1, category = rep(rep(c("small", "large"), c(2L, 6L)), 2L),
+    eligible = TRUE)
+  design <- nis_design(frame, eligible, keep = category)
+  summary <- gtsummary::tbl_svysummary(design, include = category,
+    type = category ~ "categorical")
+  cards <- summary$cards$tbl_svysummary
+  count_row <- which(cards$variable == "category" & cards$stat_name == "n_unweighted" &
+    vapply(cards$variable_level, identical, logical(1), "small"))
+  expect_length(count_row, 1L)
+  expect_true("\u226410" %in% nis_suppress(summary)$table_body$stat_0)
+
+  for (count in list(c(12, 4), -1, 12.5)) {
+    malformed <- summary
+    malformed$cards$tbl_svysummary$stat[[count_row]] <- count
+    expect_error(nis_suppress(malformed), "Cannot verify the unweighted count")
+  }
+  forged <- summary
+  forged$cards$tbl_svysummary$stat[[count_row]] <- 12L
+  expect_true("\u226410" %in% nis_suppress(forged)$table_body$stat_0)
 })

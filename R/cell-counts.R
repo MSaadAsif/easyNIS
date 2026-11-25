@@ -1,14 +1,45 @@
 .nis_cell_count_records <- function(.data) {
   if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
-    .data <- .data$variables
-    if (".in_cohort" %in% nis_names(.data)) { # nolint: object_usage_linter
-      .data <- dplyr::filter(.data, .in_cohort)
-    }
+    .data <- nis_cohort_records(.data$variables)
   }
-  if (!is.data.frame(.data)) {
-    cli::cli_abort("`.data` must be a record-level data frame or `nis_design()` result.")
+  if (!is.data.frame(.data) && !(inherits(.data, "tbl_sql") &&
+      inherits(dbplyr::remote_con(.data), "duckdb_connection"))) {
+    cli::cli_abort("`.data` must be a record-level data frame, a DuckDB query, or a `nis_design()` result.")
   }
   .data
+}
+
+nis_hospital_count_query <- function(data, by) {
+  schema <- data |>
+    dplyr::ungroup() |>
+    dplyr::select(dplyr::all_of(.nis_hospital_fields)) |>
+    utils::head(0L) |>
+    nis_collect()
+  if (!all(vapply(schema, is.numeric, logical(1)))) nis_invalid_hospital_ids()
+
+  invalid <- reduce_or(lapply(.nis_hospital_fields, function(field) {
+    finite <- nis_is_finite_expr(data, field)
+    rlang::expr(!dplyr::coalesce(!!finite & !!rlang::sym(field) > 0, FALSE))
+  }))
+  keys <- union(by, .nis_hospital_fields)
+  aliases <- nis_internal_names(data, keys, c("n", "hospitals", ".nis_invalid_hospital", ".nis_discharges"))
+  discharges <- rlang::sym(aliases[[4L]])
+  hospital_groups <- data |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
+    dplyr::summarise(!!discharges := dplyr::n(), .groups = "drop")
+  counts <- hospital_groups |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(by))) |>
+    dplyr::summarise(
+      !!aliases[[1L]] := dplyr::coalesce(sum(!!discharges, na.rm = TRUE), 0L),
+      !!aliases[[2L]] := dplyr::n(),
+      !!aliases[[3L]] := any(!!invalid, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    nis_collect()
+  if (any(counts[[aliases[[3L]]]], na.rm = TRUE)) nis_invalid_hospital_ids()
+  counts[[aliases[[3L]]]] <- NULL
+  names(counts)[match(aliases[1:2], names(counts))] <- c("n", "hospitals")
+  dplyr::arrange(counts, dplyr::across(dplyr::all_of(by)))
 }
 
 .nis_cell_count_validate_by <- function(by) {
@@ -21,43 +52,16 @@
   }
 }
 
-.nis_cell_count_validate_cols <- function(.data, by) {
-  required <- c("YEAR", "HOSP_NIS", by)
-  absent <- setdiff(required, nis_names(.data)) # nolint: object_usage_linter
-  if (length(absent)) {
-    cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
-  }
-}
-
-.nis_cell_count_valid_id <- function(value) {
-  is.numeric(value) && !anyNA(value) && all(is.finite(value)) && all(value > 0)
-}
-
-.nis_cell_count_validate_ids <- function(.data) {
-  year <- .data[["YEAR"]]
-  hospital <- .data[["HOSP_NIS"]]
-  if (!.nis_cell_count_valid_id(year) || !.nis_cell_count_valid_id(hospital)) {
-    cli::cli_abort("`YEAR` and `HOSP_NIS` must contain finite positive values.")
-  }
-}
-
-.nis_cell_count_group <- function(.data, by) {
-  if (length(by)) {
-    dplyr::group_by(.data, dplyr::across(dplyr::all_of(by)))
-  } else {
-    dplyr::group_by(.data)
-  }
-}
-
 #' Count discharges and contributing hospitals by cell
 #'
 #' Produces the unweighted discharge and distinct hospital counts used by
 #' [nis_suppress()]. Hospital identity is the year-scoped pair `YEAR` and
-#' `HOSP_NIS`, matching [nis_design()]. The input can be a record-level data
-#' frame or the result of [nis_design()]. Rows with invalid hospital identity
-#' are rejected so counts cannot silently understate disclosure risk.
+#' `HOSP_NIS`, matching [nis_design()]. Rows with invalid hospital identity
+#' are rejected so counts cannot silently understate disclosure risk. For
+#' DuckDB queries, the database counts discharges and hospitals and returns
+#' only the grouped summary.
 #'
-#' @param .data Record-level data frame or result of [nis_design()].
+#' @param .data Record-level data frame, lazy DuckDB query, or result of [nis_design()].
 #' @param by Character vector of cell-defining columns. The summary names `n`
 #'   and `hospitals` are reserved and cannot be used as cell-defining columns.
 #'
@@ -74,9 +78,10 @@
 nis_cell_counts <- function(.data, by) {
   .data <- .nis_cell_count_records(.data)
   .nis_cell_count_validate_by(by)
-  .nis_cell_count_validate_cols(.data, by)
-  .nis_cell_count_validate_ids(.data)
-  grouped <- .nis_cell_count_group(.data, by)
+  nis_validate_hospital_columns(.data, by)
+  if (inherits(.data, "tbl_sql")) return(nis_hospital_count_query(.data, by))
+  nis_validate_hospital_ids(.data)
+  grouped <- dplyr::group_by(.data, dplyr::across(dplyr::all_of(by)))
   dplyr::summarise(
     grouped,
     n = dplyr::n(),

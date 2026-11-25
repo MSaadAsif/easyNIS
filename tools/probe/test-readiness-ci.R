@@ -9,10 +9,7 @@ main_run <- list(
 )
 synthetic_response <- jsonlite::toJSON(list(main_run), auto_unbox = TRUE)
 
-stopifnot(identical(ci_run_list_args(commit = synthetic_commit),
-  c("run", "list", "--commit", synthetic_commit,
-    "--json", "name,status,conclusion,headSha", "--limit", "100")),
-  ci_runs_succeeded(synthetic_response, synthetic_commit),
+stopifnot(ci_runs_succeeded(synthetic_response, synthetic_commit),
   !ci_runs_succeeded(synthetic_response, "different-commit"))
 
 for (field in c("name", "status", "conclusion", "headSha")) {
@@ -25,6 +22,16 @@ for (field in c("name", "status", "conclusion", "headSha")) {
   altered_response <- jsonlite::toJSON(list(altered_run), auto_unbox = TRUE)
   stopifnot(!ci_runs_succeeded(altered_response, synthetic_commit))
 }
+
+similar_workflow <- main_run
+similar_workflow$name <- "backup R-CMD-check"
+stopifnot(!ci_runs_succeeded(jsonlite::toJSON(list(similar_workflow), auto_unbox = TRUE),
+  synthetic_commit))
+
+suffix_only <- stats::setNames(main_run, paste0(names(main_run), "_other"))
+duplicate <- '{"name":"R-CMD-check","headSha":"synthetic-commit","status":"completed","conclusion":"success","conclusion":"failure"}'
+stopifnot(!ci_runs_succeeded(jsonlite::toJSON(list(suffix_only), auto_unbox = TRUE), synthetic_commit),
+  !ci_runs_succeeded(paste0("[", duplicate, "]"), synthetic_commit))
 
 failed_response <- structure(synthetic_response, status = 1L)
 stopifnot(!ci_runs_succeeded(failed_response, synthetic_commit),

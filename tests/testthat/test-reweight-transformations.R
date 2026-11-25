@@ -127,3 +127,19 @@ test_that("reweight rejects narrowed or unsupported survey structures", {
   unsupported$fpc$sampsize[, ] <- 1000L
   expect_error(nis_reweight(unsupported, rep(1, nrow(design$variables))), "cannot be safely rebuilt")
 })
+
+
+test_that("integer64 discharge weights and factors retain a numeric survey design", {
+  skip_if_not_installed("bit64")
+  frame <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = rep(1:4, each = 2L),
+    NIS_STRATUM = 1L, DISCWT = c(2, 3, 2, 3, 2, 3, 2, 3), eligible = HOSP_NIS < 4L)
+  weighted <- dplyr::mutate(frame, DISCWT = bit64::as.integer64(DISCWT))
+  baseline <- nis_design(frame, eligible, keep = YEAR)
+  design <- nis_design(weighted, eligible, keep = YEAR)
+  factor <- bit64::as.integer64(2:7)
+  actual <- nis_reweight(design, factor)
+  expected <- nis_reweight(baseline, 2:7)
+  expect_equal(unname(stats::weights(actual)), unname(stats::weights(expected)))
+  expect_error(nis_reweight(design, rep(.Machine$double.xmax, 6L)), "finite weights")
+  expect_error(nis_reweight(design, rep(1e-310, 6L)), "finite weights")
+})

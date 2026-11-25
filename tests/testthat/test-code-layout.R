@@ -9,12 +9,14 @@ test_that("lazy probe column discovery keeps diagnosis and POA fields", {
     I10_DX1 = "I210",
     I10_DX2 = "E119",
     DXPOA1 = "Y",
-    DXPOA2 = "N"
+    DXPOA2 = "N",
+    I10_DX03 = "E119",
+    DXPOA0 = "Y"
   )
   query <- duckdb_query_fixture(data)
 
-  diagnosis_fields <- easyNIS:::probe_diagnosis_columns(query)
-  expected_fields <- c("I10_DX1", "I10_DX2", "DXPOA1", "DXPOA2")
+  diagnosis_fields <- easyNIS:::nis_diagnosis_fields(query)
+  expected_fields <- c("I10_DX1", "I10_DX2", "DXPOA1", "DXPOA2", "I10_DX03", "DXPOA0")
   expect_setequal(diagnosis_fields, expected_fields)
 
   design <- query |>

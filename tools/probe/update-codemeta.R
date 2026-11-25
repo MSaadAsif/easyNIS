@@ -5,6 +5,10 @@ field <- function(name) {
 }
 
 authors <- eval(parse(text = field("Authors@R")), envir = globalenv())
+author_id <- function(author) {
+  orcid <- author$comment[["ORCID"]]
+  if (length(orcid)) paste0("https://orcid.org/", orcid) else NULL
+}
 person_metadata <- function(author) {
   author <- unclass(author)[[1L]]
   has_value <- function(value) length(value) > 0L && !is.na(value[[1L]]) && nzchar(value[[1L]])
@@ -27,11 +31,8 @@ dependencies <- unlist(lapply(c("Depends", "Imports", "Suggests", "LinkingTo"), 
 maintainers <- unname(lapply(authors[vapply(authors, function(author) {
   "cre" %in% author$role || identical(author$comment[["project_role"]], "co-maintainer")
 }, logical(1))], function(author) {
-  if (!is.null(author$comment) && "ORCID" %in% names(author$comment)) {
-    paste0("https://orcid.org/", author$comment[["ORCID"]])
-  } else {
-    paste(author$given, author$family)
-  }
+  id <- author_id(author)
+  if (is.null(id)) paste(author$given, author$family) else id
 }))
 
 license <- sub(" \\+ file LICENSE$", "", field("License"))
@@ -54,4 +55,14 @@ metadata <- list(
   "runtimePlatform" = dependencies[grepl("^R( |$)", dependencies)]
 )
 metadata <- metadata[!vapply(metadata, is.null, logical(1))]
-jsonlite::write_json(metadata, file.path(root, "codemeta.json"), auto_unbox = TRUE, pretty = TRUE)
+path <- file.path(root, "codemeta.json")
+output <- as.character(jsonlite::toJSON(metadata, auto_unbox = TRUE, pretty = TRUE))
+args <- commandArgs(trailingOnly = TRUE)
+if (identical(args, "--check")) {
+  current <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  if (!identical(current, output)) stop("Run tools/probe/update-codemeta.R to refresh CodeMeta.", call. = FALSE)
+} else if (!length(args)) {
+  writeLines(output, path, useBytes = TRUE)
+} else {
+  stop("Usage: Rscript tools/probe/update-codemeta.R [--check]", call. = FALSE)
+}

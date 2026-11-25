@@ -49,60 +49,48 @@ nis_flag_pr_timing <- function(.data, index_pr, outcome_pr,
   relation <- match.arg(relation)
   missing_day <- match.arg(missing_day)
   system <- match.arg(system)
-  if (missing(window)) window <- NULL
-  arguments <- timing_validate_args(.data, index_pr, outcome_pr, name,
-    relation, window, missing_day, system, error_call)
-  relation <- arguments$relation
-  missing_day <- arguments$missing_day
-  system <- arguments$system
-  index_pr <- arguments$index_pr
-  outcome_pr <- arguments$outcome_pr
-  data_names <- arguments$data_names
-  window <- arguments$window
-  layout <- timing_layout(data_names, system, error_call)
-  matched <- timing_matches(.data, layout$procedure_names, index_pr, outcome_pr,
-    data_names)
+  data_names <- nis_names(.data)
+  name <- timing_validate_name(name, .data, data_names, error_call)
+  timing_validate_window(relation, window, error_call)
+  if (relation == "within_days") window <- as.integer(window)
+  index_pr <- normalize_prefixes(index_pr, "index_pr")
+  outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr")
+  layout <- nis_procedure_slots(data_names, system, error_call)
+  if (!layout$has_days) {
+    cli::cli_abort("No PRDAY<n> columns were found for procedure timing.", call = error_call)
+  }
+
+  reserved <- c(data_names, name)
+  matched <- timing_matches(.data, layout$procedure, index_pr, outcome_pr, reserved)
   .data <- matched$data
-  temporary_names <- matched$temporary_names
+  decoded <- lapply(layout$day, nis_procedure_day, data = .data)
+  days <- lapply(decoded, function(day) {
+    if (missing_day == "assume_same_day") rlang::expr(dplyr::coalesce(!!day$usable, 0)) else day$usable
+  })
   index_matches <- matched$index_matches
   outcome_matches <- matched$outcome_matches
-  days <- timing_days(.data, layout$slots, layout$day_by_slot)
-  day_missing <- timing_day_missing(.data, days, layout$slots,
-    layout$day_by_slot)
-  index <- timing_index_days(.data, days, day_missing, index_matches,
-    missing_day, data_names, temporary_names)
+  index <- timing_index_days(.data, days, index_matches, reserved, matched$temporary_names)
   .data <- index$data
   temporary_names <- index$temporary_names
-  result <- timing_result(days, day_missing, index_matches, outcome_matches,
+  result <- timing_result(days, decoded, index_matches, outcome_matches,
     index$index_day, relation, window, missing_day)
   eligibility <- code_system_filter(.data, data_names, "PR", system) # nolint: object_usage_linter
-  if (!is.null(eligibility)) result <- nis_and_expr(eligibility, result) # nolint: object_usage_linter
+  result <- nis_in_code_system(result, eligibility)
   .data <- dplyr::mutate(.data, !!name := !!result)
   dplyr::select(.data, -dplyr::all_of(temporary_names))
 }
 
-timing_validate_args <- function(.data, index_pr, outcome_pr, name, relation,
-                                 window, missing_day, system, error_call) {
-  data_names <- nis_names(.data) # nolint: object_usage_linter
-  timing_validate_name(name, data_names, error_call)
-  timing_validate_window(relation, window, error_call)
-  if (relation == "within_days") window <- as.integer(window)
-  index_pr <- normalize_prefixes(index_pr, "index_pr") # nolint: object_usage_linter
-  outcome_pr <- normalize_prefixes(outcome_pr, "outcome_pr") # nolint: object_usage_linter
-  list(relation = relation, missing_day = missing_day, system = system,
-    index_pr = index_pr, outcome_pr = outcome_pr, data_names = data_names,
-    window = window)
-}
-
-timing_validate_name <- function(name, data_names, error_call) {
+timing_validate_name <- function(name, data, data_names, error_call) {
   if (!is.character(name) || length(name) != 1L || is.na(name) || !nzchar(name)) {
     cli::cli_abort("name must be a single non-empty column name.",
       call = error_call)
   }
-  if (name %in% data_names) {
+  name <- as.character(name)
+  if (!identical(name, nis_internal_names(data, data_names, name))) {
     cli::cli_abort("name must not replace an existing column.",
       call = error_call)
   }
+  name
 }
 
 timing_validate_window <- function(relation, window, error_call) {
@@ -127,133 +115,58 @@ timing_window_range <- function(window) {
   window >= 0 && window <= .Machine$integer.max
 }
 
-timing_layout <- function(data_names, system, error_call) {
-  stem <- if (system == "icd10") "I10_PR" else "PR"
-  procedure_names <- grep(paste0("^", stem, "[0-9]+$"), data_names, value = TRUE)
-  day_names <- grep("^PRDAY[0-9]+$", data_names, value = TRUE)
-  timing_validate_layout(procedure_names, day_names, stem, system, error_call)
-  slots <- as.integer(sub(paste0("^", stem), "", procedure_names))
-  order_slots <- order(slots)
-  procedure_names <- procedure_names[order_slots]
-  slots <- slots[order_slots]
-  day_by_slot <- stats::setNames(day_names,
-    as.character(as.integer(sub("^PRDAY", "", day_names))))
-  list(procedure_names = procedure_names, slots = slots,
-    day_by_slot = day_by_slot)
-}
-
-timing_validate_layout <- function(procedure_names, day_names, stem, system,
-                                   error_call) {
-  if (length(procedure_names) == 0L) {
-    cli::cli_abort(paste0("No {if (system == 'icd10') 'ICD-10' else 'ICD-9'} PR columns (",
-      stem, "<n>) were found."),
-      call = error_call)
-  }
-  if (length(day_names) == 0L) {
-    cli::cli_abort("No PRDAY<n> columns were found for procedure timing.",
-      call = error_call)
-  }
-}
-
 timing_matches <- function(data, procedure_names, index_pr, outcome_pr,
                            data_names) {
-  is_frame <- is.data.frame(data)
-  match_slot <- if (is_frame) frame_match else nis_sql_match # nolint: object_usage_linter
-  index <- lapply(procedure_names, match_slot, prefix = index_pr)
-  outcome <- lapply(procedure_names, match_slot, prefix = outcome_pr)
+  index <- lapply(procedure_names, function(column) {
+    nis_code_match(nis_prefix_rule(index_pr), data, column)
+  })
+  outcome <- lapply(procedure_names, function(column) {
+    nis_code_match(nis_prefix_rule(outcome_pr), data, column)
+  })
   count <- length(index) + length(outcome)
-  names <- make.unique(c(data_names, paste0(".easyNIS_pr_timing_match_", seq_len(count))))
-  names <- names[length(data_names) + seq_len(count)]
+  names <- nis_internal_names(data, data_names, paste0(".easyNIS_pr_timing_match_", seq_len(count)))
   data <- dplyr::mutate(data, !!!stats::setNames(c(index, outcome), names))
   list(data = data, temporary_names = names,
     index_matches = rlang::syms(names[seq_along(index)]),
     outcome_matches = rlang::syms(names[length(index) + seq_along(outcome)]))
 }
 
-timing_days <- function(data, slots, day_by_slot) {
-  lapply(slots, function(slot) {
-    day_name <- unname(day_by_slot[as.character(slot)])
-    if (length(day_name) == 0L || is.na(day_name)) return(rlang::expr(NA_real_))
-    if (is.data.frame(data) && is.factor(data[[day_name]])) {
-      return(rlang::expr(as.double(as.character(!!rlang::sym(day_name)))))
-    }
-    nis_numeric_value_expr(day_name) # nolint: object_usage_linter
-  })
-}
-
-timing_day_missing <- function(data, days, slots, day_by_slot) {
-  lapply(seq_along(slots), function(index) {
-    slot <- slots[[index]]
-    day_name <- unname(day_by_slot[as.character(slot)])
-    if (length(day_name) == 0L || is.na(day_name)) return(rlang::expr(TRUE))
-    if (inherits(data, "tbl_sql")) {
-      identifier <- as.character(DBI::dbQuoteIdentifier(data$src$con,
-        day_name))
-      value <- paste0("TRY_CAST(", identifier, " AS DOUBLE)")
-      return(dbplyr::sql(paste0("(", value, " IS NULL OR isnan(",
-        value, "))")))
-    }
-    rlang::expr(is.na(!!days[[index]]))
-  })
-}
-
-timing_valid_day <- function(day, missing) {
-  rlang::expr(dplyr::if_else(!!missing, NA_real_,
-    dplyr::if_else(!!day >= 0, !!day, NA_real_)))
-}
-
-timing_index_days <- function(data, days, day_missing, index_matches,
-                              missing_day, data_names, temporary_names) {
-  index_days <- Map(function(day, missing, matched) {
-    day <- timing_valid_day(day, missing)
-    if (missing_day == "assume_same_day") {
-      rlang::expr(dplyr::if_else(!!matched, dplyr::coalesce(!!day, 0), NA_real_))
-    } else {
-      rlang::expr(dplyr::if_else(!!matched, !!day, NA_real_))
-    }
-  }, days, day_missing, index_matches)
+timing_index_days <- function(data, days, index_matches, data_names, temporary_names) {
+  index_days <- Map(function(day, matched) {
+    rlang::expr(dplyr::if_else(!!matched, !!day, NA_real_))
+  }, days, index_matches)
   index_candidates <- paste0(".easyNIS_pr_timing_index_day_", seq_along(index_days))
-  all_names <- make.unique(c(data_names, temporary_names, index_candidates))
-  index_names <- all_names[length(data_names) + length(temporary_names) +
-    seq_along(index_candidates)]
+  index_names <- nis_internal_names(data, c(data_names, temporary_names), index_candidates)
   data <- dplyr::mutate(data, !!!stats::setNames(index_days, index_names))
   index_symbols <- rlang::syms(index_names)
   valid <- timing_or_expr(lapply(index_symbols, function(day) rlang::expr(!is.na(!!day))))
   min_day <- rlang::expr(pmin(!!!index_symbols, na.rm = TRUE))
-  min_name <- make.unique(c(data_names, temporary_names, index_names,
-    ".easyNIS_pr_timing_min_index_day"))
-  min_name <- min_name[[length(min_name)]]
+  min_name <- nis_internal_names(data, c(data_names, temporary_names, index_names),
+    ".easyNIS_pr_timing_min_index_day")
   data <- dplyr::mutate(data, !!min_name := dplyr::if_else(!!valid, !!min_day, NA_real_))
   list(data = data, index_day = rlang::sym(min_name),
     temporary_names = c(temporary_names, index_names, min_name))
 }
 
-timing_result <- function(days, day_missing, index_matches, outcome_matches,
+timing_result <- function(days, decoded, index_matches, outcome_matches,
                           index_day, relation, window, missing_day) {
   index_present <- timing_or_expr(index_matches)
   outcome_present <- timing_or_expr(outcome_matches)
-  unknown <- function(day, missing, matched) {
-    rlang::expr(!!matched & (!!missing | !!day < 0))
-  }
-  missing_match <- timing_or_expr(c(
-    Map(unknown, days, day_missing, index_matches),
-    Map(unknown, days, day_missing, outcome_matches)
-  ))
-  checks <- lapply(seq_along(days), function(i) {
-    timing_relation_check(days[[i]], day_missing[[i]], outcome_matches[[i]],
-      index_day, relation, window, missing_day)
-  })
+  checks <- Map(function(day, matched) {
+    timing_relation_check(day, matched, index_day, relation, window)
+  }, days, outcome_matches)
   success <- timing_or_expr(checks)
-  timing_result_expr(index_present, outcome_present, success, missing_match,
-    missing_day)
+  if (missing_day == "indeterminate") {
+    unknown <- Map(function(day, index, outcome) {
+      rlang::expr((!!index | !!outcome) & (!!day$missing | !!day$sentinel))
+    }, decoded, index_matches, outcome_matches)
+    unknown <- timing_or_expr(unknown)
+    success <- rlang::expr(dplyr::if_else(!!success, TRUE, dplyr::if_else(!!unknown, NA, FALSE)))
+  }
+  rlang::expr(dplyr::if_else(!(!!index_present) | !(!!outcome_present), FALSE, !!success))
 }
 
-timing_relation_check <- function(day, missing, matched, index_day, relation,
-                                  window, missing_day) {
-  outcome_day <- timing_valid_day(day, missing)
-  if (missing_day == "assume_same_day") {
-    outcome_day <- rlang::expr(dplyr::coalesce(!!outcome_day, 0))
-  }
+timing_relation_check <- function(outcome_day, matched, index_day, relation, window) {
   comparison <- switch(relation,
     on_or_after = rlang::expr(!!outcome_day >= !!index_day),
     after = rlang::expr(!!outcome_day > !!index_day),
@@ -262,21 +175,6 @@ timing_relation_check <- function(day, missing, matched, index_day, relation,
     within_days = rlang::expr(!!outcome_day - !!index_day >= 0 &
       !!outcome_day - !!index_day <= !!window))
   rlang::expr(!!matched & !!comparison)
-}
-
-timing_result_expr <- function(index_present, outcome_present, success,
-                               missing_match, missing_day) {
-  if (missing_day == "indeterminate") {
-    return(rlang::expr(dplyr::if_else(
-      !(!!index_present) | !(!!outcome_present), FALSE,
-      dplyr::if_else(dplyr::coalesce(!!success, FALSE), TRUE,
-        dplyr::if_else(!!missing_match, NA, FALSE))
-    )))
-  }
-  rlang::expr(dplyr::if_else(
-    !(!!index_present) | !(!!outcome_present), FALSE,
-    dplyr::coalesce(!!success, FALSE)
-  ))
 }
 
 timing_or_expr <- function(terms) {

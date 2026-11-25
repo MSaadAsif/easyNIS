@@ -97,19 +97,16 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
                             prefix = "cmrb_") {
   rlang::check_installed("medicalcoder", version = "0.10.0",
                          reason = "to compute AHRQ Elixhauser comorbidities.")
-  nis_comorbidity_options(method, prefix)
-  if (inherits(.data, "tbl_svy")) {
-    .data$variables <- nis_comorbidity(.data$variables, method, prefix)
-    return(.data)
-  }
-  columns <- nis_comorbidity_validate_data(.data)
-  nis_comorbidity_score(.data, method, prefix, columns$slots,
-                        columns$slot_number)
-}
-
-nis_comorbidity_options <- function(method, prefix) {
   nis_comorbidity_method(method)
   nis_comorbidity_prefix(prefix)
+  design <- inherits(.data, "tbl_svy")
+  records <- if (design) .data$variables else .data
+  columns <- nis_comorbidity_validate_data(records)
+  result <- nis_comorbidity_score(records, method, prefix, columns$slots,
+    columns$slot_number)
+  if (!design) return(result)
+  .data$variables <- result
+  .data
 }
 
 nis_comorbidity_method <- function(method) {
@@ -132,14 +129,15 @@ nis_comorbidity_validate_data <- function(.data) {
     cli::cli_abort("`.data` must be a collected data frame or a {.cls tbl_svy}; call {.fn dplyr::collect} first.")
   }
 
-  slots <- grep("^I10_DX[1-9][0-9]*$", nis_names(.data), value = TRUE) # nolint: object_usage_linter
+  slot_ids <- nis_code_slots(names(.data), "I10_DX")
+  slots <- names(slot_ids)
   if (length(slots) == 0L) {
     cli::cli_abort(c(
       "`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).",
       i = "When using `nis_design()`, retain them with `keep = dplyr::starts_with('I10_DX')`."
     ))
   }
-  slot_number <- as.integer(sub("^I10_DX", "", slots))
+  slot_number <- unname(slot_ids)
   if (!"I10_DX1" %in% slots) {
     cli::cli_abort(c(
       "`I10_DX1` is required because it identifies the principal diagnosis.",

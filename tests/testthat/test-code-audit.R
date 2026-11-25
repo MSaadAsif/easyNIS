@@ -165,6 +165,21 @@ test_that("code transition audit validates weights only in the selected cohort",
   expect_equal(nis_audit_code_transition(grouped_query, c(a = "B"), cohort = KEEP)$n_weighted, 2)
 })
 
+test_that("audit weight validation includes rows without a matching code", {
+  data <- dplyr::tibble(YEAR = c(2020L, 2021L), I10_PR1 = c("A", "B"),
+    DISCWT = c(2, Inf), .NIS_AUDIT_INVALID_WEIGHT = "analyst field")
+  query <- duckdb_query_fixture(data)
+  for (source in list(data, query)) {
+    for (format in c("summary", "inventory")) {
+      expect_error(nis_audit_code_transition(source, c(target = "A"), output = format,
+        by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT")), "finite, non-missing")
+      result <- nis_audit_code_transition(source, c(target = "A"), output = format,
+        by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT"), cohort = YEAR == 2020L)
+      expect_equal(result$n_weighted, 2)
+    }
+  }
+})
+
 test_that("missing periods have no year-over-year percentage change", {
   data <- dplyr::tibble(
     YEAR = c(2019L, 2020L, NA_integer_),
@@ -525,4 +540,14 @@ test_that("code inventory respects the code system and validates arguments", {
     output = "inventory"), NA)
   expect_equal(nrow(nis_audit_code_transition(data, c(hf = "I50"), type = "dx",
     cohort = FALSE, output = "inventory")), 0L)
+})
+test_that("code inventory accepts padded procedure and diagnosis columns", {
+  data <- dplyr::tibble(YEAR = 2020L, DISCWT = 5, I10_PR02 = "02UG0JZ", I10_DX01 = "I501")
+  for (source in list(data, duckdb_query_fixture(data))) {
+    pr <- nis_audit_code_transition(source, c(index = "02UG"), output = "inventory")
+    dx <- nis_audit_code_transition(source, c(index = "I50"), type = "dx", output = "inventory")
+    expect_equal(pr$n_unweighted, 1)
+    expect_equal(dx$n_unweighted, 1)
+    expect_error(nis_flag_dx(source, matched = "I50"), "No ICD-10")
+  }
 })

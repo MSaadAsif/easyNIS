@@ -1,27 +1,15 @@
 root <- normalizePath(".", mustWork = TRUE)
-source(file.path("tools", "probe", "helpers.R"))
+source(file.path("tools", "probe", "probe-modules.R"))
 source(file.path("tools", "probe", "readiness-ci.R"))
-main_repo <- find_main_repo(root)
-read_main_renviron(main_repo)
-loop_dir <- resolve_loop_dir(main_repo)
+source(file.path("tools", "probe", "quality-checks.R"))
+source(file.path("tools", "probe", "readiness-criteria.R"))
+loop_dir <- probe_workspace(root)
 quality_files <- list.files(loop_dir, pattern = "^quality[.]jsonl$", recursive = TRUE, full.names = TRUE)
 quality_files <- quality_files[order(file.info(quality_files)$mtime)]
 quality <- load_quality_evidence(quality_files)
 current_evidence <- git_evidence()
 current_commit <- current_evidence$commit
 current_tree_clean <- current_evidence$working_tree_clean
-quality_by_step <- merge_quality_evidence(quality, current_commit)
-record <- function(criterion, status, evidence) data.frame(criterion, status, evidence, stringsAsFactors = FALSE)
-check_pass <- function(name) {
-  item <- quality_by_step[[name]]
-  !is.null(item) && identical(item$status, "completed") &&
-    identical(item$pass, TRUE) && quality_evidence_valid(item, current_commit, current_tree_clean)
-}
-coverage <- quality_by_step[["coverage_percent"]]
-coverage_value <- if (is.null(coverage)) NA_real_ else coverage_percent_value(coverage)
-export_docs <- exported_example_status(root)
-exports <- export_docs$exports
-man_examples <- export_docs$has_examples
 ci_files <- list.files(".github/workflows", pattern = "[.]ya?ml$", full.names = TRUE)
 ci_text <- paste(unlist(lapply(ci_files, readLines, warn = FALSE)), collapse = "\n")
 reference_studies <- load_reference_studies(file.path(root, "tools", "probe", "reference-studies.yml"))
@@ -39,14 +27,9 @@ query_open_issues <- function(label) {
   parse_open_issue_query(result, status = if (is.null(query_status)) 0L else query_status)
 }
 issue_queries <- lapply(c("P0", "P1"), query_open_issues)
-issues_clean <- length(issue_queries) == 2L &&
-  all(vapply(issue_queries, `[[`, logical(1), "ok")) &&
-  all(vapply(issue_queries, `[[`, integer(1), "count") == 0L)
 ci_configured <- grepl("--as-cran", ci_text, fixed = TRUE)
 ci_runs <- if (ci_configured) tryCatch(system2("gh", ci_run_list_args(current_commit),
   stdout = TRUE, stderr = FALSE), error = identity) else character()
-ci_runs_ok <- ci_configured && !inherits(ci_runs, "error") &&
-  ci_runs_succeeded(ci_runs, current_commit)
 doc_files <- c("README.md", list.files("vignettes", pattern = "[.](Rmd|qmd|md)$",
   recursive = TRUE, full.names = TRUE))
 doc_text <- paste(unlist(lapply(doc_files[file.exists(doc_files)], readLines, warn = FALSE)), collapse = "\n")
@@ -54,34 +37,6 @@ workflow_topics <- c("nis_open", "nis_flag_dx", "nis_design", "survey_mean", "sv
   "nis_suppress", "nis_cost")
 workflow_documented <- length(workflow_topics) > 0L &&
   all(vapply(workflow_topics, grepl, logical(1), x = doc_text, fixed = TRUE))
-manual <- quality_by_step[["ropensci_manual_subset"]]
-pkgcheck <- quality_by_step[["pkgcheck"]]
-manual_pass <- check_pass("ropensci_manual_subset")
-pkgcheck_available <- !is.null(pkgcheck) && !identical(pkgcheck$status, "skipped_not_installed")
-pkgcheck_pass <- pkgcheck_available && check_pass("pkgcheck") && manual_pass
-coverage_ready <- is.finite(coverage_value) && coverage_value >= 90 &&
-  check_pass("coverage_percent")
-examples_ready <- all(man_examples) && check_pass("R CMD check --as-cran")
-pkgdown_ready <- check_pass("pkgdown::check_pkgdown") && workflow_documented
-local_as_cran_ready <- check_pass("R CMD check --as-cran")
-as_cran_status <- function(ci_pass, local_pass) {
-  if (ci_pass && local_pass) return("ready")
-  "not met"
-}
-as_cran_evidence <- function() {
-  if (!ci_configured) return("No CI workflow runs --as-cran")
-  if (!current_tree_clean) return("Working tree is dirty; clean evidence is required")
-  if (inherits(ci_runs, "error")) return("Unable to query CI run status")
-  paste("Requires successful CI and local zero-error/warning/note evidence for", current_commit)
-}
-criteria <- rbind(
-  record("R CMD check --as-cran: 0/0/0 on CI", as_cran_status(ci_runs_ok, local_as_cran_ready), as_cran_evidence()),
-  record("rOpenSci packaging-guide conformance", if (pkgcheck_pass) "ready" else if (!pkgcheck_available) "not verified" else "not met", if (!pkgcheck_available) "pkgcheck is unavailable; manual checklist alone cannot establish conformance" else "Requires passing pkgcheck and the passing manual subset from a clean current commit"),
-  record("Test coverage >= 90%", if (coverage_ready) "ready" else if (!is.finite(coverage_value)) "not measured" else "not met", if (!is.finite(coverage_value)) "Latest covr run unavailable" else paste("Latest covr percentage:", coverage_value, "on commit", if (identical(coverage$commit, current_commit)) current_commit else "unknown")),
-  record("Every export has runnable examples", if (examples_ready) "ready" else "not met", paste(sum(man_examples), "of", length(exports), "exports have examples; a clean current-commit package check is required")),
-  record("pkgdown documents the full workflow", if (pkgdown_ready) "ready" else "not met", paste("pkgdown check on current commit:", check_pass("pkgdown::check_pkgdown"), "; full workflow topics documented:", workflow_documented)),
-  record("Cyclomatic complexity <= 15 per function", if (check_pass("cyclocomp_linter(15)")) "ready" else "not met", "Requires a passing cyclocomp_linter(15) result for the current commit"),
-  record("Reproduces headline estimates of 3 published NIS studies within stated tolerance", if (headline_pass) "ready" else "not verified", "Requires three listed studies and passing local receipts matched to HEAD; only pass/fail is printed"),
-  record("No open P0/P1 issues", if (issues_clean) "ready" else "not met", "GitHub open issue query using P0 and P1 labels")
-)
+criteria <- evaluate_readiness(current_evidence, quality, exported_example_status(root),
+  workflow_documented, headline_pass, issue_queries, ci_configured, ci_runs)
 print(criteria, row.names = FALSE)

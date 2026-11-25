@@ -42,6 +42,10 @@ standard errors. Empty cohort hospital-years are retained as zero-domain
 placeholder rows so domain variance uses the full sampled structure. This
 placeholder strategy is experimental.
 
+For lazy inputs, DuckDB computes hospital-year strata, invalid-field counts,
+and annualization coverage in one sample scan. The separate cohort scan
+collects the selected columns needed to build the survey design in R.
+
 ## Choose a pooling convention
 
 Without annualization, pooled-year weights represent the combined included

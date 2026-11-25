@@ -10,7 +10,7 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
   data$stratum <- paste(data$YEAR, data$NIS_STRATUM, sep = "::")
   data$weight <- data$DISCWT / 2
 
-  con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE))
+  con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   lazy <- dplyr::copy_to(con, data, "invented_grouping", temporary = TRUE)
   groupings <- list("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS",
@@ -35,7 +35,7 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
     reference <- full[in_cohort, ]
     for (input in inputs) {
       actual <- nis_design(input,
-        if (aggregate_cohort) eligible & LOS > mean(LOS) else TRUE,
+        if (aggregate_cohort) eligible & LOS > mean(LOS, na.rm = TRUE) else TRUE,
         keep = LOS, annualize = TRUE)
       expect_equal(nrow(actual$variables), sum(in_cohort))
       expect_equal(sort(actual$variables$LOS), sort(data$LOS[in_cohort]))

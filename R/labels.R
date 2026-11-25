@@ -172,13 +172,13 @@ nis_label <- function(data) {
   }
   for (variable in nis_names(data)) { # nolint: object_usage_linter
     if (startsWith(variable, ".")) next
-    data[[variable]] <- label_one(data, variable)
+    data[[variable]] <- label_one(data[[variable]], variable)
   }
   data
 }
 
-label_one <- function(data, variable) {
-  x <- data[[variable]]
+label_one <- function(x, variable) {
+  old_label <- attr(x, "label", exact = TRUE)
   definition <- .hcup_labels[.hcup_labels$variable == variable, , drop = FALSE]
   value_rows <- !is.na(definition$code)
   binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
@@ -190,7 +190,6 @@ label_one <- function(data, variable) {
     x <- factor(ifelse(is.na(x), NA_character_, ifelse(x, "Yes", "No")),
       levels = c("No", "Yes"))
   }
-  old_label <- attr(data[[variable]], "label", exact = TRUE)
   variable_label <- if (nrow(definition) > 0L) {
     definition$variable_label[[1L]]
   } else {
@@ -207,23 +206,29 @@ label_coded <- function(x, definition, value_rows, binary_comorbidity,
     as.character(definition$code[value_rows])
   values <- if (binary_comorbidity) c("No", "Yes") else
     definition$value_label[value_rows]
+  raw <- label_displayed_codes(x)
+  if (labelled_factor(x, raw, codes, values)) return(x)
+  label_raw_codes(raw, codes, values, variable, call)
+}
+
+label_displayed_codes <- function(x) {
   raw <- as.character(x)
-  class <- attr(x, "class", exact = TRUE)
+  plain_numeric <- is.double(x) && !is.object(x)
   haven_numeric <- inherits(x, "haven_labelled") &&
     typeof(unclass(x)) == "double" && !inherits(x, "integer64")
-  if ((is.double(x) && is.null(class)) || haven_numeric) {
-    raw[is.nan(unclass(x))] <- NA_character_
-  }
+  if (plain_numeric || haven_numeric) raw[is.nan(unclass(x))] <- NA_character_
+  raw
+}
+
+labelled_factor <- function(x, raw, codes, values) {
+  if (!is.factor(x)) return(FALSE)
   already_labelled <- !is.na(raw) &
     (raw %in% values | startsWith(raw, "Code "))
-  raw_code_levels <- is.factor(x) && any(levels(x) %in% codes)
+  raw_code_levels <- any(levels(x) %in% codes)
   observed_value_labels <- any(!is.na(raw) & raw %in% values)
   ambiguous_bare_code <- any(!is.na(raw) & raw == "Code ")
-  if (is.factor(x) && all(is.na(raw) | already_labelled) &&
-      (!raw_code_levels || observed_value_labels || !ambiguous_bare_code)) {
-    return(x)
-  }
-  label_raw_codes(raw, codes, values, variable, call)
+  all(is.na(raw) | already_labelled) &&
+    (!raw_code_levels || observed_value_labels || !ambiguous_bare_code)
 }
 
 label_raw_codes <- function(raw, codes, values, variable, call) {

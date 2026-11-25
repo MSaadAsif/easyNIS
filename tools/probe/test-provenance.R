@@ -1,5 +1,6 @@
 source("tools/probe/provenance.R")
-source("tools/probe/helpers.R")
+source("tools/probe/quality-checks.R")
+source("tools/probe/probe-modules.R")
 local({
   scratch <- tempfile("quality-fixture-")
   dir.create(scratch)
@@ -62,16 +63,7 @@ stopifnot(identical(provenance_pass(FALSE, "nested_unverified"), FALSE),
   identical(provenance_pass(TRUE, "isolated_namespace_verified"), TRUE),
   is.na(provenance_pass(NA, "isolated_namespace_verified")))
 cat("Provenance behavior tests passed\n")
-# Exercise the production receipt reducer without executing the probe entry point.
-source("tools/probe/helpers.R")
-probe <- parse("tools/probe/probe-quality.R")
-for (expression in probe) {
-  if (is.call(expression) && identical(expression[[1L]], as.name("<-")) &&
-      is.symbol(expression[[2L]]) &&
-      as.character(expression[[2L]]) %in% c("pkgcheck_pass", "check_counts_for",
-        "quality_step_pass", "quality_step_status", "lint_detail",
-        "quality_step_detail", "quality_record")) eval(expression)
-}
+source("tools/probe/quality-result.R")
 evidence <- list(commit = "invented", working_tree_clean = TRUE)
 synthetic_hits <- c(1, 0)
 synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")

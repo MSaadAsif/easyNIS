@@ -115,22 +115,21 @@ test_that("source spelling proposals preserve promoted normalization values", {
 })
 
 test_that("canonical rename proposals that share a target stay unchanged", {
-  con <- nis_duckdb_connect()
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  query <- dplyr::tbl(con, dbplyr::sql(
-    'SELECT 1 AS "a\u00e9", 2 AS "a\u00c9"'
-  ))
-  attr(query, "easyNIS_source_names") <- c("a\u00e9", "A\u00e9",
-    "a\u00c9", "A\u00c9")
+  path <- tempfile("nis-shared-canonical-target-")
+  dir.create(path)
+  withr::defer(unlink(path, recursive = TRUE))
+  first <- stats::setNames(data.frame(2019L, 1L, 2L), c("YEAR", "a\u00e9", "a\u00c9"))
+  second <- stats::setNames(data.frame(2020L, 3L, 4L), c("YEAR", "A\u00e9", "A\u00c9"))
+  write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open_normalize_names(query) |>
-    dplyr::collect()
-  expect_setequal(names(actual), c("a\u00e9", "a\u00c9"))
-  expect_identical(actual[["a\u00e9"]], 1L)
-  expect_identical(actual[["a\u00c9"]], 2L)
+  actual <- nis_open(path) |> dplyr::arrange(YEAR) |> dplyr::collect()
+  expect_setequal(names(actual), c("YEAR", "a\u00e9", "a\u00c9"))
+  expect_identical(actual[["a\u00e9"]], c(1L, 3L))
+  expect_identical(actual[["a\u00c9"]], c(2L, 4L))
 })
 
-test_that("wide Unicode naming collisions use no DuckDB identifier probes", {
+test_that("wide sources keep separate Unicode columns and values", {
   path <- tempfile("nis-unicode-wide-name-collisions-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -147,29 +146,15 @@ test_that("wide Unicode naming collisions use no DuckDB identifier probes", {
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  identifier_probes <- 0L
-  dbi_original_db_get_query <- DBI::dbGetQuery
-  testthat::local_mocked_bindings(
-    dbGetQuery = function(conn, statement, ...) {
-      if (grepl("easyNIS_identifier_probe", statement, fixed = TRUE)) {
-        identifier_probes <<- identifier_probes + 1L
-      }
-      dbi_original_db_get_query(conn, statement, ...)
-    },
-    .package = "DBI"
-  )
   actual <- nis_open(path) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
 
-  expect_identical(identifier_probes, 0L)
   expect_setequal(names(actual), c("YEAR", lower_names, upper_names))
   expect_identical(unname(as.matrix(actual[lower_names])),
     rbind(as.integer(seq_len(12L)), as.integer(100L + seq_len(12L))))
   expect_identical(unname(as.matrix(actual[upper_names])),
     rbind(as.integer(12L + seq_len(12L)), as.integer(112L + seq_len(12L))))
-  expect_true(nis_open_identifier_equivalent("a\u00e9", "A\u00e9"))
-  expect_false(nis_open_identifier_equivalent("a\u00e9", "A\u00c9"))
 })
 
 test_that("lowercase Greek sigma spellings remain separate columns", {
@@ -223,15 +208,6 @@ test_that("pooled canonical recognition is independent of source order", {
     expect_identical(actual$analyst_note, c("note-1", "note-2"))
     expect_identical(actual[['analyst"tag']], c("tag-1", "tag-2"))
 
-    sources <- list.files(path, full.names = TRUE)
-    con <- nis_duckdb_connect()
-    reversed <- nis_duckdb_query_from_parquet(con, rev(sources)) |>
-      nis_open_normalize_names() |>
-      dplyr::select(dplyr::all_of(names(actual))) |>
-      dplyr::arrange(YEAR) |>
-      dplyr::collect()
-    DBI::dbDisconnect(con, shutdown = TRUE)
-    expect_identical(reversed, actual)
   }
 })
 

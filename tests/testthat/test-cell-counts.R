@@ -22,6 +22,23 @@ test_that("nis_cell_counts rejects reserved summary names in cell keys", {
   }
 })
 
+test_that("Parquet cell counts retain year scope and reject invalid identities", {
+  records <- data.frame(
+    YEAR = c(2020L, 2020L, 2021L, 2020L), HOSP_NIS = c(1, 1, 1, Inf),
+    N = c("one", "one", "one", NA_character_)
+  )
+  path <- tempfile("nis-cells-")
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  write_duckdb_parquet(records, file.path(path, "NIS_2020.parquet"))
+  query <- nis_open(path)
+  valid <- dplyr::filter(query, is.finite(HOSP_NIS))
+  expect_error(nis_cell_counts(query, "N"), "finite positive")
+  expect_equal(nis_cell_counts(valid, "N"), nis_cell_counts(records[1:3, ], "N"))
+  expect_equal(nis_cell_counts(valid, character())$hospitals, 2)
+  expect_equal(nis_cell_counts(dplyr::filter(query, FALSE), character())$n, 0)
+  expect_error(nis_cell_counts(dplyr::mutate(query, HOSP_NIS = "1"), "N"), "finite positive")
+})
+
 test_that("nis_cell_counts retains ordinary multi-key identities and counts", {
   records <- data.frame(
     YEAR = c(2020, 2020, 2021, 2020, 2020, 2020),

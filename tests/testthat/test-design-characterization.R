@@ -97,3 +97,66 @@ test_that("nis_design reports invalid design years and defaults cost dollars", {
 
   expect_identical(nis_cost_provenance(design)$base_year, 2020L)
 })
+
+test_that("sample diagnostics count defects separately from valid quarter coverage", {
+  valid <- dplyr::tibble(
+    YEAR = rep(2015:2016, each = 8L),
+    HOSP_NIS = rep(rep(1:2, each = 4L), 2L),
+    NIS_STRATUM = 1L,
+    DQTR = c(rep(1:4, 2L), rep(c(1, 3, 7, Inf), 2L)),
+    DISCWT = seq(2, 17),
+    AGE = seq(41, 56),
+    eligible = c(rep(c(FALSE, FALSE, FALSE, TRUE), 2L), rep(TRUE, 8L))
+  )
+  invalid <- dplyr::tibble(
+    YEAR = c(2015L, 2016L, 2016L, NA_integer_),
+    HOSP_NIS = c(901L, 902L, -903L, 904L),
+    NIS_STRATUM = c(1L, 1L, 1L, -1L),
+    DQTR = c(1L, 2L, 4L, 3L),
+    DISCWT = c(-1, -1, 0, 3),
+    AGE = 90,
+    eligible = TRUE
+  )
+  input <- dplyr::bind_rows(valid, invalid)
+  reference <- survey::svydesign(
+    ids = ~interaction(YEAR, HOSP_NIS), strata = ~YEAR,
+    weights = ~I(DISCWT / 2), nest = TRUE, data = valid
+  ) |>
+    subset(eligible)
+  factor_quarters <- dplyr::mutate(input, DQTR = factor(DQTR))
+  query <- duckdb_query_fixture(input)
+  for (data in list(input, factor_quarters, query)) {
+    warnings <- character()
+    design <- withCallingHandlers(
+      nis_design(data, eligible, keep = AGE, annualize = TRUE),
+      warning = function(condition) {
+        warnings <<- c(warnings, conditionMessage(condition))
+        invokeRestart("muffleWarning")
+      }
+    )
+    expect_length(warnings, 3L)
+    expect_match(warnings[[1L]], "Affected valid years: 2015: 1, 2016: 2", fixed = TRUE)
+    expect_match(warnings[[2L]], "2016 (Q1, Q3)", fixed = TRUE)
+    expect_match(warnings[[3L]], "only ICD-10-coded 2015 discharges", fixed = TRUE)
+    excluded <- attr(design, "nis_excluded")
+    expect_equal(excluded$total, 4)
+    expect_equal(excluded$by_field, c(YEAR = 1, HOSP_NIS = 1, NIS_STRATUM = 1, DISCWT = 3))
+    expect_equal(excluded$by_year, dplyr::tibble(YEAR = 2015:2016, n = c(1, 2)))
+    expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
+    expect_equal(survey::SE(survey::svytotal(~AGE, design)),
+      survey::SE(survey::svytotal(~AGE, reference)))
+  }
+})
+
+test_that("a nonannual DuckDB design does not evaluate unselected quarter data", {
+  data <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = rep(1:2, each = 4L),
+    NIS_STRATUM = 1L, DISCWT = 1, AGE = 41:48)
+  query <- duckdb_query_fixture(data)
+  query <- dplyr::mutate(query, DQTR = dbplyr::sql(
+    "CAST(error('unneeded quarter must not be evaluated') AS INTEGER)"
+  ))
+  expect_message(design <- nis_design(query,
+    dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE),
+    "Treated 2 missing cohort values")
+  expect_equal(nrow(design$variables), 6L)
+})

@@ -25,34 +25,17 @@ jobs:
       - uses: quarto-dev/quarto-actions/setup@v2
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          extra-packages: any::xml2
           needs: check
-      - name: Install easyNIS
-        run: R CMD INSTALL .
       - name: Create and render a synthetic study
-        shell: bash
-        run: |
-          set -euo pipefail
-          study_parent="$(mktemp -d)"
-          export STUDY_PATH="${study_parent}/study"
-          export EXAMPLE_PATH="${study_parent}/nis-example"
-
-          Rscript - <<'RS'
-          easyNIS::nis_new_study(Sys.getenv("STUDY_PATH"))
-          example_path <- easyNIS::nis_example()
-          target_path <- Sys.getenv("EXAMPLE_PATH")
-          if (!dir.create(target_path)) {
-            stop("Could not create the invented data directory.")
-          }
-          example_files <- list.files(example_path, full.names = TRUE)
-          if (!length(example_files) ||
-              !all(file.copy(example_files, target_path, recursive = TRUE))) {
-            stop("Could not copy the invented nis_example() dataset.")
-          }
-          unlink(example_path, recursive = TRUE)
-          RS
-
-          cd "$STUDY_PATH"
-          quarto render analysis.qmd --to html -P "data_path:${EXAMPLE_PATH}"
-          quarto render analysis.qmd --to docx -P "data_path:${EXAMPLE_PATH}"
-          test -s docs/analysis.html
-          test -s docs/analysis.docx
+        run: Rscript --vanilla .agents/skills/verify/drive.R study-ci
+      - name: Verify rare-cohort disclosure in the report
+        run: Rscript --vanilla .agents/skills/verify/drive.R study-small
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-study-render
+          path: |
+            local/loop/verification/*-study-ci-*/
+            local/loop/verification/*-study-small-*/
+          retention-days: 14
