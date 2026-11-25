@@ -19,10 +19,11 @@ drive_study_small <- function(scratch, evidence) {
     missing_arm = list(sizes = rep(144L, 2L),
       setup = 'study_design$variables$exposed[seq_len(5L)] <- NA'),
     unused_arm = list(sizes = rep(144L, 2L),
-      setup = 'study_design$variables$exposed <- factor(study_design$variables$exposed, levels = c(FALSE, TRUE, "Unused"))'),
+      setup = paste0('study_design$variables$exposed <- factor(study_design$variables$exposed, ',
+        'levels = c("No", "Yes", "Unused"))')),
     masked_p = list(sizes = rep(144L, 2L), masked_p = TRUE, setup = c(
       'study_design$variables$exposed[seq_len(24L)] <- NA',
-      'arm <- which(study_design$variables$exposed %in% TRUE)',
+      'arm <- which(study_design$variables$exposed %in% "Yes")',
       'female <- seq_len(nrow(study_design$variables)) %% 2L == 0L',
       'female[arm] <- seq_along(arm) <= 5L',
       'study_design$variables$FEMALE <- factor(ifelse(female, "A", "B"))'
@@ -284,8 +285,9 @@ verify_study_disclosure <- function(report, case) {
     headers <- xml2::xml_text(xml2::xml_find_all(table_one, ".//thead//th"))
     label <- xml2::xml_find_first(table_one, ".//tbody/tr[td[normalize-space(.)='FEMALE']]")
     p <- xml2::xml_text(xml2::xml_find_all(label, "./td[@headers='p.value']"), trim = TRUE)
+    levels <- xml2::xml_find_all(label, "following-sibling::tr[position() <= 2]/td")
     stopifnot(any(grepl("N = 264", headers, fixed = TRUE)),
-      grepl("\u226410", xml2::xml_text(table_one), fixed = TRUE),
+      "\u226410" %in% xml2::xml_text(levels, trim = TRUE),
       length(p) == 1L, !grepl("[0-9]", p))
     return(invisible(NULL))
   }
