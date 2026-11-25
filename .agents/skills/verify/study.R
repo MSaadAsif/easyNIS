@@ -283,7 +283,8 @@ verify_study_disclosure <- function(report, case) {
   }
   if (isTRUE(case$masked_p)) {
     headers <- xml2::xml_text(xml2::xml_find_all(table_one, ".//thead//th"))
-    label <- xml2::xml_find_first(table_one, ".//tbody/tr[td[normalize-space(.)='FEMALE']]")
+    label <- xml2::xml_find_first(table_one,
+      ".//tbody/tr[td[@headers='label' and starts-with(normalize-space(.), 'FEMALE')]]")
     p <- xml2::xml_text(xml2::xml_find_all(label, "./td[@headers='p.value']"), trim = TRUE)
     levels <- xml2::xml_find_all(label, "following-sibling::tr[position() <= 2]/td")
     stopifnot(any(grepl("N = 264", headers, fixed = TRUE)),
