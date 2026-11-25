@@ -16,8 +16,9 @@ nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
 
 - years:
 
-  Optional years to open, 2012 or later. Defaults to every matching
-  year. Years before 2016 are experimental: they hold ICD-9-CM codes in
+  Optional years to open, 2012 or later. Defaults to every matching year
+  with Parquet parts. Explicitly requested years must each have Parquet
+  parts. Years before 2016 are experimental: they hold ICD-9-CM codes in
   `DX*`/`PR*` slots, and 2015 holds both systems (see
   [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)).
 
@@ -79,6 +80,16 @@ optional `arrow` package. Arrow preserves the bytes; it does not detect
 or repair all invalid text, and downstream string operations may still
 fail on malformed values.
 
+## Large data
+
+The query stays in DuckDB until you collect it. Filter, project, and
+summarize before collecting. Set the named list option
+`easyNIS.duckdb_config` before opening to tune `memory_limit`,
+`threads`, `temp_directory`, `max_temp_directory_size`, or
+`preserve_insertion_order`. The package assigns each query its own spill
+location under the supplied private directory, or under the R session's
+temporary directory by default.
+
 ## See also
 
 [Opening NIS
@@ -93,15 +104,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -110,7 +113,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -131,7 +134,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

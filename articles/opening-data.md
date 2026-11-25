@@ -11,15 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1QALzq/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1QALzq/duckdb
+#> ℹ /tmp/RtmpXD5YkT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -28,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1QALzq/duckdb
+#> ℹ /tmp/RtmpXD5YkT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -74,7 +66,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1QALzq/duckdb
+#> ℹ /tmp/RtmpXD5YkT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -109,7 +101,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1QALzq/duckdb
+#> ℹ /tmp/RtmpXD5YkT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -153,3 +145,64 @@ definitions](https://msaadasif.github.io/easyNIS/articles/cohorts.md),
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
 and
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md).
+
+## Working with data larger than RAM
+
+DuckDB scans the Parquet files in place. Filter rows and select fields
+on the lazy query. Then collect a small summary, or write a large result
+directly to a private Parquet file.
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+still needs enough R memory for the selected cohort, retained variables,
+and survey design. Use a narrow `keep` to limit that cost. [DuckDB COPY
+statement](https://duckdb.org/docs/stable/sql/statements/copy)
+
+Set DuckDB options before calling
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
+This example uses a low thread count and places spill files on a private
+disk. Choose the memory and spill budgets for your machine and available
+disk space.
+
+``` r
+
+options(easyNIS.duckdb_config = list(
+  memory_limit = "4GB",
+  threads = 2L,
+  temp_directory = tempdir(),
+  max_temp_directory_size = "40GB"
+))
+query <- nis_open(data_path, years = 2019:2022)
+query |>
+  dplyr::filter(AGE >= 18) |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(discharge_count = dplyr::n()) |>
+  dplyr::collect()
+```
+
+To write a result on disk, set `private_parquet_path` to a file in your
+private output directory and send the lazy query to DuckDB.
+
+``` r
+
+projection <- query |>
+  dplyr::filter(AGE >= 18) |>
+  dplyr::select(YEAR, AGE)
+connection <- dbplyr::remote_con(projection)
+statement <- dbplyr::sql_render(projection)
+destination <- DBI::dbQuoteString(connection, private_parquet_path)
+DBI::dbExecute(connection,
+  paste0("COPY (", statement, ") TO ", destination, " (FORMAT PARQUET)"))
+```
+
+Use `preserve_insertion_order = FALSE` for memory-constrained scans or
+exports whose result order is immaterial. Use an explicit sort when you
+need a defined order. DuckDB’s memory limit controls its buffer manager.
+R objects and some DuckDB operations can use additional memory. See the
+[DuckDB workload tuning
+guide](https://duckdb.org/docs/stable/guides/performance/how_to_tune_workloads).
+
+Reuse a query for related summaries so they share one connection. The
+memory and spill settings apply to each open connection. When an
+analysis finishes, discard the query and any lazy tables derived from
+it. Garbage collection releases the connection and removes its spill
+directory. In a loop that opens many datasets, release each completed
+query before opening the next one if disk or memory is tight.

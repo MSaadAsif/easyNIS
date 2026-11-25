@@ -67,10 +67,36 @@
 <ul><li>Keep each branch focused and describe the user-visible behavior in the pull request.</li>
 <li>Add or update focused <code>testthat</code> coverage using invented fixtures. Do not create examples from licensed NIS inputs or record-derived output.</li>
 <li>Regenerate documentation with <code>devtools::document()</code> when roxygen comments change, and include the generated <code>man/</code> and <code>NAMESPACE</code> changes.</li>
-<li>Run relevant tests with <code>devtools::test()</code>, then run <code>devtools::check()</code> before requesting review. Run <code>lintr::lint_package()</code> for style changes and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
+<li>Run relevant tests with <code>devtools::test()</code>. From the repository root, run <code>Rscript --vanilla tools/check-package.R</code> after committing changes and before requesting review. It runs <code>devtools::check()</code> on the exact commit, away from the checkout’s ignored data and working files. Run <code>lintr::lint_package()</code> for style changes and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
 <li>Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.</li>
 <li>Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.</li>
 </ul></div>
+<div class="section level2">
+<h2 id="where-changes-belong">Where changes belong<a class="anchor" aria-label="anchor" href="#where-changes-belong"></a></h2>
+<p>R loads package source from the flat <code>R/</code> directory. Use the domain in the filename and put focused tests next to that domain’s other tests in <code>tests/testthat/</code>.</p>
+<table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>To change</th>
+<th>Start here</th>
+</tr></thead><tbody><tr><td>Annual and Hive discovery</td>
+<td>
+<code>R/open-discovery.R</code> for part ownership, <code>R/open-parquet.R</code> for scan planning and year validation, and <code>R/duckdb.R</code> for connections and spill storage</td>
+</tr><tr><td>Diagnosis or procedure selection</td>
+<td>
+<code>R/code-layout.R</code> for slot names and code-system eligibility, <code>R/code-flags.R</code> for matching, and <code>R/procedure-days.R</code> for PRDAY decoding</td>
+</tr><tr><td>Survey design or weights</td>
+<td>
+<code>R/design.R</code> for input selection, <code>R/design-sample.R</code> for sample and cohort scans, <code>R/cohort-design.R</code> for survey objects, and <code>R/reweight.R</code> for factor validation and application</td>
+</tr><tr><td>Disclosure</td>
+<td>
+<code>R/disclosure-policy.R</code> for primary masks and hospital identity, <code>R/cell-counts.R</code> for cell summaries, and <code>R/suppress-survey.R</code> or <code>R/suppress-data-frame.R</code> for format-specific masking</td>
+</tr><tr><td>Generated studies</td>
+<td>
+<code>R/study-scaffold.R</code> for files, <code>R/study-cache.R</code> for cache inputs, <code>R/study-model.R</code> for fit diagnostics, and <code>inst/templates/nis-study/</code> for the report</td>
+</tr><tr><td>Improvement probes</td>
+<td>
+<code>tools/probe/</code> for commands, <code>quality-checks.R</code> for check definitions, <code>quality-receipts.R</code> for evidence, and <code>readiness-criteria.R</code> for decisions</td>
+</tr></tbody></table><p>Keep I/O and format-specific code at the entry points. Put a rule in a shared module when multiple callers need the same rule, and exercise it through the normal user-facing functions.</p>
+<p>When changing Parquet scan planning or DuckDB workload settings, run the <a href=".agents/skills/duckdb-parquet-scans/SKILL.html">bounded scan check and spill benchmark</a>.</p>
+</div>
 <div class="section level2">
 <h2 id="privacy-and-licensing">Privacy and licensing<a class="anchor" aria-label="anchor" href="#privacy-and-licensing"></a></h2>
 <p>Use invented fixtures and independently authored code compatible with the project’s AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.</p>

@@ -3,16 +3,15 @@
 For a
 [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
 result, replaces displayed statistics when their corresponding
-unweighted count is at or below `threshold`. Counts come from the
-`cards` computed by
-[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
-Continuous2 statistic rows use the non-missing count for their
-corresponding output column. If that count is absent, ambiguous, or
-non-finite for a displayed statistic, the function errors; blank
-statistic cells do not require a count. When a by-group cell is masked,
-the overall cell (`stat_0`) in the same row is marked `Masked`, unless
-its own count is at or below the threshold. Other derivable cells still
-need analyst review before sharing. For survey summaries, hospital
+unweighted count is at or below `threshold`. The count is the smaller of
+the summary card count and the number of matching records in the
+supplied survey design. Continuous2 statistic rows use the non-missing
+count for their corresponding output column. If that count is absent,
+ambiguous, or non-finite for a displayed statistic, the function errors;
+blank statistic cells do not require a count. When a by-group cell is
+masked, the overall cell (`stat_0`) in the same row is marked `Masked`,
+unless its own count is at or below the threshold. Other derivable cells
+still need analyst review before sharing. For survey summaries, hospital
 support is counted from retained records using year-scoped `YEAR` and
 `HOSP_NIS` identities, within the cohort, non-missing/category, and
 by-group cells represented by the table. The rule is applied only when
@@ -104,7 +103,7 @@ Other disclosure:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -112,15 +111,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

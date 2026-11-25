@@ -54,7 +54,12 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="easynis-development-version">easyNIS (development version)<a class="anchor" aria-label="anchor" href="#easynis-development-version"></a></h2>
-<ul><li><p><code><a href="../reference/nis_cost.html">nis_cost()</a></code> now treats negative, missing, and non-finite charges as invalid, reports their count, and retains zero charges.</p></li>
+<ul><li><p>Parquet opening assigns nested Hive parts to the nearest partition year and inspects each source schema once. Compatible files share a native DuckDB scan, and integer year filters can use Parquet statistics. Configure memory, threads, and spill storage before opening with <code>easyNIS.duckdb_config</code>.</p></li>
+<li><p>Procedure timing, PRDAY completeness, and code-transition inventory use shared slot discovery and continue to accept zero-padded slots. Empty PRDAY summaries retain their typed columns. Procedure timing and diagnosis sensitivity avoid scratch-name collisions. DuckDB code inventory filters prefixes before expanding discharge code lists.</p></li>
+<li><p>Survey suppression rejects malformed count cards that report multiple, negative, or fractional discharge counts.</p></li>
+<li><p>New study reports apply discharge and hospital disclosure checks to summary headers, annual trends, and model output. Related totals are withheld when they could reveal masked figures.</p></li>
+<li><p>The staged-file privacy guard checks the content recorded in the Git index. Probe execution, receipt validation, and readiness reporting are separate.</p></li>
+<li><p><code><a href="../reference/nis_cost.html">nis_cost()</a></code> now treats negative, missing, and non-finite charges as invalid, reports their count, and retains zero charges.</p></li>
 <li><p><code><a href="../reference/nis_prday_completeness.html">nis_prday_completeness()</a></code> classifies factor PRDAY values from their labels and counts <code>NaN</code> or unparseable day values as missing, matching character, numeric, and DuckDB inputs and <code><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code>.</p></li>
 <li><p><code><a href="../reference/nis_design.html">nis_design()</a></code> counts and excludes missing logical cohorts consistently on data frames and DuckDB, including literal <code>NA</code> and flags initialized with <code>NA</code>. Typed numeric and character cohorts remain invalid, even when all missing.</p></li>
 <li><p><code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> and <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> ignore malformed slot suffixes; principal flags use the canonical slot with suffix 1.</p></li>

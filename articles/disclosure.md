@@ -73,8 +73,9 @@ For a
 [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
 object,
 [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-reads unweighted counts from the table’s cards and counts distinct
-year-scoped `YEAR` and `HOSP_NIS` identities in the retained survey
+reads unweighted counts from the table cards and compares them with the
+matching survey records. It uses the smaller count for masking and
+counts distinct year-scoped `YEAR` and `HOSP_NIS` identities from those
 records. Hospital support is checked within the cohort and the displayed
 non-missing, category, and by-group cell. Cells at or below the
 discharge threshold or supported by fewer than two hospitals are marked;
@@ -87,7 +88,7 @@ cell, the function errors.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpXp8BfY/duckdb
+#> ℹ /tmp/Rtmpf1DBKF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -95,7 +96,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpXp8BfY/duckdb
+#> ℹ /tmp/Rtmpf1DBKF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

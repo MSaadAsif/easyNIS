@@ -5,10 +5,9 @@ Produces the unweighted discharge and distinct hospital counts used by
 Hospital identity is the year-scoped pair `YEAR` and `HOSP_NIS`,
 matching
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-The input can be a record-level data frame or the result of
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 Rows with invalid hospital identity are rejected so counts cannot
-silently understate disclosure risk.
+silently understate disclosure risk. For DuckDB queries, the database
+counts discharges and hospitals and returns only the grouped summary.
 
 ## Usage
 
@@ -20,7 +19,7 @@ nis_cell_counts(.data, by)
 
 - .data:
 
-  Record-level data frame or result of
+  Record-level data frame, lazy DuckDB query, or result of
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 
 - by:

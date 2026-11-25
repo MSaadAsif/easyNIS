@@ -23,8 +23,10 @@ documented limitations.
 - Regenerate documentation with `devtools::document()` when roxygen
   comments change, and include the generated `man/` and `NAMESPACE`
   changes.
-- Run relevant tests with `devtools::test()`, then run
-  `devtools::check()` before requesting review. Run
+- Run relevant tests with `devtools::test()`. From the repository root,
+  run `Rscript --vanilla tools/check-package.R` after committing changes
+  and before requesting review. It runs `devtools::check()` on the exact
+  commit, away from the checkout’s ignored data and working files. Run
   `lintr::lint_package()` for style changes and
   [`pkgdown::check_pkgdown()`](https://pkgdown.r-lib.org/reference/check_pkgdown.html)
   for pkgdown configuration changes.
@@ -33,6 +35,29 @@ documented limitations.
   experimental behavior. CI runs package checks, lint, and coverage.
 - Work on a branch. An independent reviewer reviews the diff; merge only
   after review and checks pass.
+
+## Where changes belong
+
+R loads package source from the flat `R/` directory. Use the domain in
+the filename and put focused tests next to that domain’s other tests in
+`tests/testthat/`.
+
+| To change | Start here |
+|----|----|
+| Annual and Hive discovery | `R/open-discovery.R` for part ownership, `R/open-parquet.R` for scan planning and year validation, and `R/duckdb.R` for connections and spill storage |
+| Diagnosis or procedure selection | `R/code-layout.R` for slot names and code-system eligibility, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
+| Survey design or weights | `R/design.R` for input selection, `R/design-sample.R` for sample and cohort scans, `R/cohort-design.R` for survey objects, and `R/reweight.R` for factor validation and application |
+| Disclosure | `R/disclosure-policy.R` for primary masks and hospital identity, `R/cell-counts.R` for cell summaries, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for format-specific masking |
+| Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for cache inputs, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
+| Improvement probes | `tools/probe/` for commands, `quality-checks.R` for check definitions, `quality-receipts.R` for evidence, and `readiness-criteria.R` for decisions |
+
+Keep I/O and format-specific code at the entry points. Put a rule in a
+shared module when multiple callers need the same rule, and exercise it
+through the normal user-facing functions.
+
+When changing Parquet scan planning or DuckDB workload settings, run the
+[bounded scan check and spill
+benchmark](https://msaadasif.github.io/easyNIS/.agents/skills/duckdb-parquet-scans/SKILL.md).
 
 ## Privacy and licensing
 

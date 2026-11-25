@@ -2,6 +2,29 @@
 
 ## easyNIS (development version)
 
+- Parquet opening assigns nested Hive parts to the nearest partition
+  year and inspects each source schema once. Compatible files share a
+  native DuckDB scan, and integer year filters can use Parquet
+  statistics. Configure memory, threads, and spill storage before
+  opening with `easyNIS.duckdb_config`.
+
+- Procedure timing, PRDAY completeness, and code-transition inventory
+  use shared slot discovery and continue to accept zero-padded slots.
+  Empty PRDAY summaries retain their typed columns. Procedure timing and
+  diagnosis sensitivity avoid scratch-name collisions. DuckDB code
+  inventory filters prefixes before expanding discharge code lists.
+
+- Survey suppression rejects malformed count cards that report multiple,
+  negative, or fractional discharge counts.
+
+- New study reports apply discharge and hospital disclosure checks to
+  summary headers, annual trends, and model output. Related totals are
+  withheld when they could reveal masked figures.
+
+- The staged-file privacy guard checks the content recorded in the Git
+  index. Probe execution, receipt validation, and readiness reporting
+  are separate.
+
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   now treats negative, missing, and non-finite charges as invalid,
   reports their count, and retains zero charges.

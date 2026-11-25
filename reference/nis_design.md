@@ -107,10 +107,10 @@ returned design has a `nis_excluded` attribute containing aggregate
 exclusions when the year is itself valid. A discharge can fail more than
 one field.
 
-The query is scanned twice for design validation and cohort collection.
-When annualizing and `DQTR` is present, quarter coverage requires an
-additional summary scan. The cohort expression is evaluated once over
-the full data.
+A lazy query is scanned twice. The sample scan summarises design fields,
+exclusion counts, and quarter coverage when annualizing. The cohort scan
+evaluates the cohort expression once over the full data and collects the
+retained analysis columns.
 
 ## See also
 
@@ -126,7 +126,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -134,15 +134,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpetFgOE/duckdb
+#> ℹ /tmp/RtmpgCZEFD/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
