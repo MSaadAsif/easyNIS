@@ -3,10 +3,8 @@ test_that("nis_cost validates each input boundary", {
 
   expect_error(nis_cost(list(), 2020), "collected data frame")
   expect_error(nis_cost(valid, 2020, charges = character()), "single column name")
-  expect_error(nis_cost(valid, 2020, charges = c("TOTCHG", "OTHER")),
-    "single column name")
-  expect_error(nis_cost(valid, 2020, charges = NA_character_),
-    "single column name")
+  expect_error(nis_cost(valid, 2020, charges = c("TOTCHG", "OTHER")), "single column name")
+  expect_error(nis_cost(valid, 2020, charges = NA_character_), "single column name")
   expect_error(nis_cost(valid, NA_real_), "one year from 2012 through 2024")
   expect_error(nis_cost(valid, 2020.5), "one year from 2012 through 2024")
   expect_error(nis_cost(valid, c(2020, 2021)), "one year from 2012 through 2024")

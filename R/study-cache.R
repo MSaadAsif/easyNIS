@@ -41,8 +41,7 @@ nis_study_cache_key <- function(
     paste(deparse(get(name, envir = namespace, inherits = FALSE)), collapse = "\n")
   })
   names(package_code) <- function_names
-  dependency_names <- c("DBI", "dbplyr", "dplyr", "duckdb", "rlang",
-    "srvyr", "survey", "tidyselect")
+  dependency_names <- c("DBI", "dbplyr", "dplyr", "duckdb", "rlang", "srvyr", "survey", "tidyselect")
   dependency_versions <- vapply(
     dependency_names,
     function(name) as.character(utils::packageVersion(name)),
@@ -71,18 +70,29 @@ nis_study_cache_key <- function(
 # upgrading one changes the cache key instead of silently reusing old output.
 nis_study_report_packages <- function() {
   c(
-    "broom.helpers", "cardx", "cards", "flextable", "ggplot2", "gt",
-    "gtsummary", "knitr", "purrr"
+    "broom.helpers",
+    "cardx",
+    "cards",
+    "flextable",
+    "ggplot2",
+    "gt",
+    "gtsummary",
+    "knitr",
+    "purrr"
   )
 }
 
 nis_study_package_versions <- function(packages) {
-  vapply(packages, function(name) {
-    if (!requireNamespace(name, quietly = TRUE)) {
-      return("<not-installed>")
-    }
-    as.character(utils::packageVersion(name))
-  }, character(1))
+  vapply(
+    packages,
+    function(name) {
+      if (!requireNamespace(name, quietly = TRUE)) {
+        return("<not-installed>")
+      }
+      as.character(utils::packageVersion(name))
+    },
+    character(1)
+  )
 }
 
 nis_study_report_cache_key <- function(

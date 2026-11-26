@@ -8,11 +8,15 @@ check_committed_package <- function() {
   cat("CHECK_COMMIT ", commit, "\n", sep = "")
   temp <- normalizePath(tempdir(), winslash = "/", mustWork = TRUE)
   scratch <- tempfile("easynis-package-check-", tmpdir = temp)
-  if (!dir.create(scratch, mode = "0700")) stop("Could not create the check workspace.")
+  if (!dir.create(scratch, mode = "0700")) {
+    stop("Could not create the check workspace.")
+  }
   scratch <- normalizePath(scratch, winslash = "/", mustWork = TRUE)
   on.exit({
-    if (identical(dirname(scratch), temp) &&
-        identical(normalizePath(scratch, winslash = "/", mustWork = TRUE), scratch)) {
+    if (
+      identical(dirname(scratch), temp) &&
+        identical(normalizePath(scratch, winslash = "/", mustWork = TRUE), scratch)
+    ) {
       unlink(scratch, recursive = TRUE)
     }
     if (file.exists(scratch)) stop("Could not remove the check workspace.")
@@ -20,7 +24,9 @@ check_committed_package <- function() {
 
   archive <- file.path(scratch, "source.zip")
   status <- system2("git", c("archive", "--format=zip", "-o", shQuote(archive), commit))
-  if (status != 0L) stop("Could not archive the committed source.")
+  if (status != 0L) {
+    stop("Could not archive the committed source.")
+  }
   source <- file.path(scratch, "easyNIS")
   utils::unzip(archive, exdir = source)
   unlink(archive)

@@ -4,8 +4,7 @@ nis_study_valid_path <- function(path) {
 
 nis_study_path_exists <- function(path) {
   link <- Sys.readlink(path)
-  file.exists(path) || dir.exists(path) ||
-    (length(link) == 1L && !is.na(link) && nzchar(link))
+  file.exists(path) || dir.exists(path) || (length(link) == 1L && !is.na(link) && nzchar(link))
 }
 
 nis_study_check_path <- function(path, call) {
@@ -22,8 +21,10 @@ nis_study_check_path <- function(path, call) {
 
 nis_study_create_path <- function(path, call) {
   parent <- dirname(path)
-  if (!dir.exists(parent) &&
-      !dir.create(parent, recursive = TRUE, showWarnings = FALSE)) {
+  if (
+    !dir.exists(parent) &&
+      !dir.create(parent, recursive = TRUE, showWarnings = FALSE)
+  ) {
     cli::cli_abort("Could not create the parent directory for the study.", call = call)
   }
   if (nis_study_path_exists(path) || !dir.create(path, showWarnings = FALSE)) {
@@ -38,8 +39,7 @@ nis_study_copy_template <- function(path, call) {
   }
 
   files <- list.files(template, full.names = TRUE, no.. = TRUE)
-  if (!length(files) || any(dir.exists(files)) ||
-      !all(file.copy(files, path, overwrite = FALSE))) {
+  if (!length(files) || any(dir.exists(files)) || !all(file.copy(files, path, overwrite = FALSE))) {
     cli::cli_abort("Could not copy the packaged NIS study template.", call = call)
   }
 

@@ -1,15 +1,22 @@
 find_main_repo <- function(start = ".") {
   start <- normalizePath(start, mustWork = TRUE)
-  common_dir <- tryCatch(suppressWarnings(system2("git",
-    c("-C", shQuote(start), "rev-parse", "--git-common-dir"), stdout = TRUE, stderr = FALSE)),
-    error = function(e) character())
+  common_dir <- tryCatch(
+    suppressWarnings(system2(
+      "git",
+      c("-C", shQuote(start), "rev-parse", "--git-common-dir"),
+      stdout = TRUE,
+      stderr = FALSE
+    )),
+    error = function(e) character()
+  )
   status <- attr(common_dir, "status")
   if (!length(common_dir) || (length(status) && status != 0L)) {
     return(normalizePath(start, mustWork = TRUE))
   }
   common_path <- common_dir[[1L]]
   is_absolute <- grepl("^[A-Za-z]:[/\\\\]", common_path) ||
-    startsWith(common_path, "/") || startsWith(common_path, "\\\\")
+    startsWith(common_path, "/") ||
+    startsWith(common_path, "\\\\")
   if (!is_absolute) {
     common_path <- file.path(start, common_path)
   }
@@ -40,31 +47,41 @@ canonical_loop_path <- function(path) {
     return(normalizePath(path, winslash = "/", mustWork = TRUE))
   }
   parent <- dirname(path)
-  if (identical(parent, path)) stop("Could not resolve the local loop path.", call. = FALSE)
+  if (identical(parent, path)) {
+    stop("Could not resolve the local loop path.", call. = FALSE)
+  }
   parent <- canonical_loop_path(parent)
   component <- basename(path)
-  if (component == "..") return(dirname(parent))
-  if (component == ".") return(parent)
+  if (component == "..") {
+    return(dirname(parent))
+  }
+  if (component == ".") {
+    return(parent)
+  }
   file.path(parent, component)
 }
 
 resolve_loop_dir <- function(main_repo, requested = Sys.getenv("EASYNIS_LOOP_DIR", unset = "")) {
   main_repo <- normalizePath(main_repo, winslash = "/", mustWork = TRUE)
   expected_root <- file.path(main_repo, "local", "loop")
-  if (!nzchar(requested)) requested <- expected_root
+  if (!nzchar(requested)) {
+    requested <- expected_root
+  }
   if (!grepl("^(?:[A-Za-z]:[/\\\\]|/|\\\\\\\\)", requested)) {
     requested <- file.path(main_repo, requested)
   }
   candidate <- canonical_loop_path(requested)
   check_location <- function(path) {
     if (!path_is_within(path, expected_root)) {
-      stop("EASYNIS_LOOP_DIR must resolve inside the main checkout's ignored local loop directory.",
-        call. = FALSE)
+      stop("EASYNIS_LOOP_DIR must resolve inside the main checkout's ignored local loop directory.", call. = FALSE)
     }
     relative <- substring(path, nchar(main_repo) + 2L)
-    ignored <- suppressWarnings(system2("git",
+    ignored <- suppressWarnings(system2(
+      "git",
       c("-C", shQuote(main_repo), "check-ignore", "--quiet", "--", shQuote(relative)),
-      stdout = FALSE, stderr = FALSE))
+      stdout = FALSE,
+      stderr = FALSE
+    ))
     if (!identical(ignored, 0L)) {
       stop("The local loop output directory must be ignored by Git.", call. = FALSE)
     }
@@ -87,6 +104,8 @@ probe_workspace <- function(root = ".") {
 probe_run_directory <- function(loop_dir, producer) {
   stamp <- format(Sys.time(), "%Y%m%dT%H%M%S")
   path <- tempfile(paste0(stamp, "-", producer, "-"), tmpdir = loop_dir)
-  if (!dir.create(path)) stop("Could not create a probe run directory.", call. = FALSE)
+  if (!dir.create(path)) {
+    stop("Could not create a probe run directory.", call. = FALSE)
+  }
   path
 }

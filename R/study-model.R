@@ -19,41 +19,58 @@ nis_study_formula_status <- function(data, formula) {
     error = function(error) error
   )
   if (inherits(model_frame, "error")) {
-    return(list(status = paste("The declared model specification fails on complete-case rows:",
-                 conditionMessage(model_frame),
-                 "Review covariate levels and missingness; no terms were removed.")))
+    return(list(
+      status = paste(
+        "The declared model specification fails on complete-case rows:",
+        conditionMessage(model_frame),
+        "Review covariate levels and missingness; no terms were removed."
+      )
+    ))
   }
   if (nrow(model_frame) == 0L) {
     return(list(status = "The declared model has no complete-case rows after applying its covariates."))
   }
   outcome_values <- stats::model.response(model_frame)
-  model_matrix <- tryCatch(stats::model.matrix(formula, data = model_frame),
-                           error = function(error) error)
+  model_matrix <- tryCatch(stats::model.matrix(formula, data = model_frame), error = function(error) error)
   if (inherits(model_matrix, "error")) {
-    return(list(status = paste("The declared model specification fails on complete-case rows:",
-                 conditionMessage(model_matrix),
-                 "Review covariate levels and missingness; no terms were removed.")))
+    return(list(
+      status = paste(
+        "The declared model specification fails on complete-case rows:",
+        conditionMessage(model_matrix),
+        "Review covariate levels and missingness; no terms were removed."
+      )
+    ))
   }
   if (any(!is.finite(model_matrix))) {
-    return(list(status = paste("The declared model matrix contains non-finite values on complete-case rows.",
-                 "Review numeric covariates for Inf or NaN; no terms were removed.")))
+    return(list(
+      status = paste(
+        "The declared model matrix contains non-finite values on complete-case rows.",
+        "Review numeric covariates for Inf or NaN; no terms were removed."
+      )
+    ))
   }
   matrix_rank <- tryCatch(qr(model_matrix)$rank, error = function(error) error)
   if (inherits(matrix_rank, "error")) {
-    return(list(status = paste("The declared model matrix rank could not be evaluated on complete-case rows:",
-                 conditionMessage(matrix_rank),
-                 "Review covariate values and collinearity; no terms were removed.")))
+    return(list(
+      status = paste(
+        "The declared model matrix rank could not be evaluated on complete-case rows:",
+        conditionMessage(matrix_rank),
+        "Review covariate values and collinearity; no terms were removed."
+      )
+    ))
   }
   if (matrix_rank < ncol(model_matrix)) {
-    return(list(status = paste("The declared model matrix is rank-deficient on complete-case rows.",
-                 "Review covariate variation, missingness, and collinearity; no terms were removed.")))
+    return(list(
+      status = paste(
+        "The declared model matrix is rank-deficient on complete-case rows.",
+        "Review covariate variation, missingness, and collinearity; no terms were removed."
+      )
+    ))
   }
-  list(status = NULL, model_frame = model_frame,
-       outcome_values = outcome_values)
+  list(status = NULL, model_frame = model_frame, outcome_values = outcome_values)
 }
 
-nis_study_variable_status <- function(model_frame, outcome_values, outcome,
-                                      exposure, suffix) {
+nis_study_variable_status <- function(model_frame, outcome_values, outcome, exposure, suffix) {
   exposure_values <- model_frame[[exposure]]
   exposure_values <- exposure_values[!is.na(exposure_values)]
   if (is.numeric(exposure_values) && any(!is.finite(exposure_values))) {
@@ -113,11 +130,11 @@ nis_study_warning_status <- function(warnings) {
       "fitted probabilities.*(0 or 1|numerically)|non[- ]finite|nonfinite|",
       "NaNs? produced|perfect separation"
     ),
-    warnings, ignore.case = TRUE
+    warnings,
+    ignore.case = TRUE
   )
   if (any(material_warning)) {
-    return(paste("The model fit is unstable:",
-                 paste(unique(warnings[material_warning]), collapse = "; ")))
+    return(paste("The model fit is unstable:", paste(unique(warnings[material_warning]), collapse = "; ")))
   }
   NULL
 }
@@ -134,8 +151,7 @@ nis_study_estimate_status <- function(model) {
   NULL
 }
 
-nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
-                                outcome = NULL, exposure = NULL) {
+nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm, outcome = NULL, exposure = NULL) {
   if (!is.null(outcome) || !is.null(exposure)) {
     status <- nis_study_model_data_status(design$variables, outcome, exposure, formula)
     if (!is.null(status)) {
@@ -146,8 +162,7 @@ nis_study_fit_model <- function(formula, design, family, fit = survey::svyglm,
   model <- result$model
   warnings <- result$warnings
   if (inherits(model, "error")) {
-    return(list(model = NULL, status = paste("Model fit failed:", conditionMessage(model)),
-                warnings = warnings))
+    return(list(model = NULL, status = paste("Model fit failed:", conditionMessage(model)), warnings = warnings))
   }
   if (identical(model$converged, FALSE)) {
     return(list(model = NULL, status = "The model did not converge.", warnings = warnings))

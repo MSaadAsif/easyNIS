@@ -1,8 +1,11 @@
 check_suppress_columns <- function(columns, arg, x, error_call) {
-  if (is.null(columns)) return(character())
+  if (is.null(columns)) {
+    return(character())
+  }
   if (!is.character(columns) || anyNA(columns)) {
     cli::cli_abort(
-      "`{arg}` must be a character vector of column names.", call = error_call
+      "`{arg}` must be a character vector of column names.",
+      call = error_call
     )
   }
   absent <- setdiff(columns, names(x))
@@ -19,8 +22,7 @@ validate_suppress_counts <- function(counts, arg, error_call) {
   if (!is.numeric(counts)) {
     cli::cli_abort("`{arg}` must refer to a numeric column.", call = error_call)
   }
-  invalid <- anyNA(counts) || any(!is.finite(counts)) || any(counts < 0) ||
-    any(counts != floor(counts))
+  invalid <- anyNA(counts) || any(!is.finite(counts)) || any(counts < 0) || any(counts != floor(counts))
   if (invalid) {
     cli::cli_abort(
       "`{arg}` must contain finite, non-negative whole counts without missing values.",
@@ -30,15 +32,30 @@ validate_suppress_counts <- function(counts, arg, error_call) {
 }
 
 validate_df_suppress_args <- function(
-    x, count_col, weighted_cols, by, secondary, hospital_col,
-    missing_count_col, error_call) {
+  x,
+  count_col,
+  weighted_cols,
+  by,
+  secondary,
+  hospital_col,
+  missing_count_col,
+  error_call
+) {
   validate_dataframe_count_col(count_col, missing_count_col, error_call)
   validate_secondary_option(secondary, error_call)
   columns <- validate_dataframe_columns(
-    x, count_col, weighted_cols, by, hospital_col, error_call
+    x,
+    count_col,
+    weighted_cols,
+    by,
+    hospital_col,
+    error_call
   )
   counts <- validate_df_count_columns(
-    x, columns$count_col, columns$hospital_col, error_call
+    x,
+    columns$count_col,
+    columns$hospital_col,
+    error_call
   )
   list(
     count_col = columns$count_col,
@@ -52,8 +69,11 @@ validate_df_suppress_args <- function(
 }
 
 validate_dataframe_count_col <- function(count_col, missing_count_col, error_call) {
-  invalid <- missing_count_col || length(count_col) != 1L ||
-    !is.character(count_col) || is.na(count_col) || !nzchar(count_col)
+  invalid <- missing_count_col ||
+    length(count_col) != 1L ||
+    !is.character(count_col) ||
+    is.na(count_col) ||
+    !nzchar(count_col)
   if (invalid) {
     cli::cli_abort("`count_col` must name the unweighted-count column.", call = error_call)
   }
@@ -65,15 +85,27 @@ validate_secondary_option <- function(secondary, error_call) {
 }
 
 validate_dataframe_columns <- function(
-    x, count_col, weighted_cols, by, hospital_col, error_call) {
+  x,
+  count_col,
+  weighted_cols,
+  by,
+  hospital_col,
+  error_call
+) {
   columns <- list(
     count_col = check_suppress_columns(count_col, "count_col", x, error_call),
     weighted_cols = check_suppress_columns(
-      weighted_cols, "weighted_cols", x, error_call
+      weighted_cols,
+      "weighted_cols",
+      x,
+      error_call
     ),
     by = check_suppress_columns(by, "by", x, error_call),
     hospital_col = check_suppress_columns(
-      hospital_col, "hospital_col", x, error_call
+      hospital_col,
+      "hospital_col",
+      x,
+      error_call
     )
   )
   if (length(columns$hospital_col) > 1L) {
@@ -95,11 +127,15 @@ validate_df_count_columns <- function(x, count_col, hospital_col, error_call) {
 
 complementary_suppress_rows <- function(x, counts, primary, by) {
   secondary_rows <- rep(FALSE, nrow(x))
-  if (!any(primary)) return(secondary_rows)
+  if (!any(primary)) {
+    return(secondary_rows)
+  }
   groups <- dplyr::group_by(x, dplyr::across(dplyr::all_of(by)))
   for (rows in dplyr::group_rows(groups)) {
     masked <- rows[primary[rows]]
-    if (length(masked) != 1L || length(rows) < 2L) next
+    if (length(masked) != 1L || length(rows) < 2L) {
+      next
+    }
     candidates <- rows[!primary[rows] & counts[rows] > 0]
     if (length(candidates)) {
       secondary_rows[candidates[[which.min(counts[candidates])]]] <- TRUE
@@ -109,7 +145,13 @@ complementary_suppress_rows <- function(x, counts, primary, by) {
 }
 
 apply_dataframe_suppression <- function(
-    x, columns, count_primary, hospital_primary, secondary_rows, threshold) {
+  x,
+  columns,
+  count_primary,
+  hospital_primary,
+  secondary_rows,
+  threshold
+) {
   for (column in columns) {
     values <- as.character(x[[column]])
     values[count_primary] <- paste0("\u2264", threshold)
@@ -121,11 +163,25 @@ apply_dataframe_suppression <- function(
 }
 
 suppress_dataframe <- function(
-    x, threshold, count_col, weighted_cols, by, secondary, hospital_col,
-    missing_count_col, error_call) {
+  x,
+  threshold,
+  count_col,
+  weighted_cols,
+  by,
+  secondary,
+  hospital_col,
+  missing_count_col,
+  error_call
+) {
   args <- validate_df_suppress_args(
-    x, count_col, weighted_cols, by, secondary, hospital_col,
-    missing_count_col, error_call
+    x,
+    count_col,
+    weighted_cols,
+    by,
+    secondary,
+    hospital_col,
+    missing_count_col,
+    error_call
   )
   masks <- nis_disclosure_masks(args$counts, args$hospital_counts, threshold)
   primary <- masks$count | masks$hospital
@@ -135,6 +191,11 @@ suppress_dataframe <- function(
   }
   columns <- unique(c(args$count_col, args$weighted_cols, args$hospital_col))
   apply_dataframe_suppression(
-    x, columns, masks$count, masks$hospital, secondary_rows, threshold
+    x,
+    columns,
+    masks$count,
+    masks$hospital,
+    secondary_rows,
+    threshold
   )
 }

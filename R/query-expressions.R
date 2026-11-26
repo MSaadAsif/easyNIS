@@ -7,9 +7,14 @@ nis_and_expr <- function(left, right) {
 }
 
 nis_is_nonnegative_integer <- function(threshold) {
-  if (!identical(length(threshold), 1L) || !is.numeric(threshold)) return(FALSE)
-  !is.na(threshold) && is.finite(threshold) && threshold >= 0 &&
-    threshold <= .Machine$integer.max && threshold == as.integer(threshold)
+  if (!identical(length(threshold), 1L) || !is.numeric(threshold)) {
+    return(FALSE)
+  }
+  !is.na(threshold) &&
+    is.finite(threshold) &&
+    threshold >= 0 &&
+    threshold <= .Machine$integer.max &&
+    threshold == as.integer(threshold)
 }
 
 nis_names <- function(data) {
@@ -18,8 +23,10 @@ nis_names <- function(data) {
 
 nis_is_finite_expr <- function(data, column) {
   if (inherits(data, "tbl_sql")) {
-    return(dbplyr::sql_expr(isfinite(!!dbplyr::ident(column)), # nolint: object_usage_linter
-      con = data$src$con))
+    return(dbplyr::sql_expr(
+      isfinite(!!dbplyr::ident(column)), # nolint: object_usage_linter
+      con = data$src$con
+    ))
   }
   rlang::expr(is.finite(!!rlang::sym(column)))
 }
@@ -27,15 +34,35 @@ nis_is_finite_expr <- function(data, column) {
 nis_is_missing_expr <- function(data, column) {
   value <- rlang::sym(column)
   if (inherits(data, "tbl_sql")) {
-    numeric_types <- c("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT",
-      "UTINYINT", "USMALLINT", "UINTEGER", "UBIGINT", "UHUGEINT",
-      "FLOAT", "REAL", "DOUBLE", "DECIMAL")
+    numeric_types <- c(
+      "TINYINT",
+      "SMALLINT",
+      "INTEGER",
+      "BIGINT",
+      "HUGEINT",
+      "UTINYINT",
+      "USMALLINT",
+      "UINTEGER",
+      "UBIGINT",
+      "UHUGEINT",
+      "FLOAT",
+      "REAL",
+      "DOUBLE",
+      "DECIMAL"
+    )
     identifier <- as.character(DBI::dbQuoteIdentifier(data$src$con, column))
-    types <- paste(as.character(DBI::dbQuoteString(data$src$con, numeric_types)),
-      collapse = ", ")
-    return(dbplyr::sql(paste0("(", identifier, " IS NULL OR (typeof(",
-      identifier, ") IN (", types, ") AND isnan(TRY_CAST(", identifier,
-      " AS DOUBLE))))")))
+    types <- paste(as.character(DBI::dbQuoteString(data$src$con, numeric_types)), collapse = ", ")
+    return(dbplyr::sql(paste0(
+      "(",
+      identifier,
+      " IS NULL OR (typeof(",
+      identifier,
+      ") IN (",
+      types,
+      ") AND isnan(TRY_CAST(",
+      identifier,
+      " AS DOUBLE))))"
+    )))
   }
   rlang::expr(is.na(!!value))
 }
@@ -56,20 +83,24 @@ nis_sql_identifier_key <- function(names) {
 }
 
 nis_collect <- function(x) {
-  if (is.data.frame(x)) return(x)
+  if (is.data.frame(x)) {
+    return(x)
+  }
   tryCatch(
     dplyr::collect(x),
     error = function(error) {
-      if (grepl("invalid string encoding|invalid UTF-8",
-        conditionMessage(error), ignore.case = TRUE)) {
-        cli::cli_abort(c(
-          "A string column in the Parquet input is not valid UTF-8.",
-          i = paste0(
-            "This usually happens when converting HCUP ASCII files without ",
-            "declaring their source encoding.",
-            " Re-convert with the correct encoding, for example Latin-1 to UTF-8."
-          )
-        ), parent = error)
+      if (grepl("invalid string encoding|invalid UTF-8", conditionMessage(error), ignore.case = TRUE)) {
+        cli::cli_abort(
+          c(
+            "A string column in the Parquet input is not valid UTF-8.",
+            i = paste0(
+              "This usually happens when converting HCUP ASCII files without ",
+              "declaring their source encoding.",
+              " Re-convert with the correct encoding, for example Latin-1 to UTF-8."
+            )
+          ),
+          parent = error
+        )
       }
       stop(error)
     }

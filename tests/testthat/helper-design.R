@@ -1,5 +1,4 @@
-comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE,
-                               annualize = FALSE, invalid_rows = FALSE) {
+comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE, annualize = FALSE, invalid_rows = FALSE) {
   path <- nis_example(years)
   query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
@@ -9,17 +8,36 @@ comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE,
   if (invalid_rows) {
     data$DISCWT[1L] <- -1
   }
-  valid <- with(data, is.finite(YEAR) & YEAR > 0 & is.finite(HOSP_NIS) &
-    HOSP_NIS > 0 & is.finite(NIS_STRATUM) & NIS_STRATUM > 0 &
-    is.finite(DISCWT) & DISCWT > 0)
+  valid <- with(
+    data,
+    is.finite(YEAR) &
+      YEAR > 0 &
+      is.finite(HOSP_NIS) &
+      HOSP_NIS > 0 &
+      is.finite(NIS_STRATUM) &
+      NIS_STRATUM > 0 &
+      is.finite(DISCWT) &
+      DISCWT > 0
+  )
   cohort <- dplyr::coalesce(data$heart_failure, FALSE)
-  if (partial_2015) cohort <- cohort & (data$YEAR != 2015L | data$DQTR == 4L)
+  if (partial_2015) {
+    cohort <- cohort & (data$YEAR != 2015L | data$DQTR == 4L)
+  }
   year_count <- length(unique(data$YEAR[valid]))
   full_data <- data[valid, , drop = FALSE] |>
     dplyr::mutate(.in_cohort = cohort[valid]) |>
     dplyr::select(
-      YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, .in_cohort,
-      AGE, DIED, LOS, FEMALE, RACE, PAY1 # nolint
+      YEAR,
+      HOSP_NIS,
+      NIS_STRATUM,
+      DISCWT,
+      .in_cohort,
+      AGE,
+      DIED,
+      LOS,
+      FEMALE,
+      RACE,
+      PAY1 # nolint
     ) |>
     dplyr::collect()
   full_data$.nis_psu <- paste(full_data$YEAR, full_data$HOSP_NIS, sep = "::")

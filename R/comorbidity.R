@@ -93,25 +93,23 @@
 #'   dplyr::collect()
 #' comorbid <- nis_comorbidity(discharges)
 #' comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
-nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10",
-                            prefix = "cmrb_") {
-  rlang::check_installed("medicalcoder", version = "0.10.0",
-                         reason = "to compute AHRQ Elixhauser comorbidities.")
+nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_") {
+  rlang::check_installed("medicalcoder", version = "0.10.0", reason = "to compute AHRQ Elixhauser comorbidities.")
   nis_comorbidity_method(method)
   nis_comorbidity_prefix(prefix)
   design <- inherits(.data, "tbl_svy")
   records <- if (design) .data$variables else .data
   columns <- nis_comorbidity_validate_data(records)
-  result <- nis_comorbidity_score(records, method, prefix, columns$slots,
-    columns$slot_number)
-  if (!design) return(result)
+  result <- nis_comorbidity_score(records, method, prefix, columns$slots, columns$slot_number)
+  if (!design) {
+    return(result)
+  }
   .data$variables <- result
   .data
 }
 
 nis_comorbidity_method <- function(method) {
-  valid <- is.character(method) && length(method) == 1L && !is.na(method) &&
-    startsWith(method, "elixhauser_")
+  valid <- is.character(method) && length(method) == 1L && !is.na(method) && startsWith(method, "elixhauser_")
   if (!valid) {
     cli::cli_abort("`method` must be one Elixhauser method name, such as {.val elixhauser_ahrq_icd10}.")
   }
@@ -153,8 +151,14 @@ nis_comorbidity_score <- function(.data, method, prefix, slots, slot_number) {
   long <- long[!is.na(long$code) & nzchar(long$code), , drop = FALSE]
 
   result <- medicalcoder::comorbidities(
-    long, icd.codes = "code", id.vars = ".row", method = method,
-    icdv = 10L, dx = 1L, poa.var = "poa", primarydx.var = "primary"
+    long,
+    icd.codes = "code",
+    id.vars = ".row",
+    method = method,
+    icdv = 10L,
+    dx = 1L,
+    poa.var = "poa",
+    primarydx.var = "primary"
   )
   added <- nis_comorbidity_columns(result, n, long$.row, prefix)
   clash <- intersect(names(added), names(.data))
@@ -176,21 +180,29 @@ nis_comorbidity_long <- function(.data, slots, slot_number, n) {
   if (length(missing_poa) > 0L) {
     missing_slots <- paste(sub("DXPOA", "I10_DX", missing_poa), collapse = ", ")
     cli::cli_warn(c(
-      paste0("No matching POA column for ", length(missing_poa),
-        " diagnosis slots: ", missing_slots, ". Assuming present."),
+      paste0(
+        "No matching POA column for ",
+        length(missing_poa),
+        " diagnosis slots: ",
+        missing_slots,
+        ". Assuming present."
+      ),
       i = "POA-dependent comorbidities may include conditions acquired in hospital."
     ))
   }
-  poa <- unlist(lapply(seq_along(slot_number), function(i) {
-    field <- poa_fields[[i]]
-    if (!field %in% names(.data)) {
-      return(rep(1L, n))
-    }
-    value <- as.character(.data[[field]])
-    value[!validUTF8(value)] <- NA_character_
-    value <- toupper(value)
-    unname(c(N = 0L, U = 0L, W = 1L, Y = 1L)[value])
-  }), use.names = FALSE)
+  poa <- unlist(
+    lapply(seq_along(slot_number), function(i) {
+      field <- poa_fields[[i]]
+      if (!field %in% names(.data)) {
+        return(rep(1L, n))
+      }
+      value <- as.character(.data[[field]])
+      value[!validUTF8(value)] <- NA_character_
+      value <- toupper(value)
+      unname(c(N = 0L, U = 0L, W = 1L, Y = 1L)[value])
+    }),
+    use.names = FALSE
+  )
   data.frame(
     .row = rep(seq_len(n), times = length(slots)),
     code = toupper(gsub("[.[:space:]]", "", codes)),
@@ -218,7 +230,9 @@ nis_comorbidity_columns <- function(result, n, usable_rows, prefix) {
     value[!usable] <- NA
     if (column %in% counts) as.integer(value) else value == 1L
   })
-  names(added) <- paste0(prefix, ifelse(columns == "num_cmrb", "n",
-    ifelse(columns == "cmrb_flag", "any", tolower(columns))))
+  names(added) <- paste0(
+    prefix,
+    ifelse(columns == "num_cmrb", "n", ifelse(columns == "cmrb_flag", "any", tolower(columns)))
+  )
   added
 }

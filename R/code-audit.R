@@ -2,18 +2,23 @@
   is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
 }
 
-.nis_audit_summary_names <- c("code_group", "n_cohort_unweighted", "n_unweighted",
-  "n_weighted", "pct_within_year", "yoy_pct_change")
-.nis_audit_inventory_names <- c("code_group", "code", "n_cohort_unweighted",
-  "n_unweighted", "n_weighted", "status")
+.nis_audit_summary_names <- c(
+  "code_group",
+  "n_cohort_unweighted",
+  "n_unweighted",
+  "n_weighted",
+  "pct_within_year",
+  "yoy_pct_change"
+)
+.nis_audit_inventory_names <- c("code_group", "code", "n_cohort_unweighted", "n_unweighted", "n_weighted", "status")
 
 .nis_audit_valid_by <- function(by) {
-  is.character(by) && length(by) > 0L && !anyNA(by) && all(nzchar(by)) &&
-    !anyDuplicated(by)
+  is.character(by) && length(by) > 0L && !anyNA(by) && all(nzchar(by)) && !anyDuplicated(by)
 }
 
 .nis_audit_validate_by <- function(.data, by, output) {
-  if (!.nis_audit_valid_by(by) || !all(by %in% nis_names(.data))) { # nolint: object_usage_linter
+  if (!.nis_audit_valid_by(by) || !all(by %in% nis_names(.data))) {
+    # nolint: object_usage_linter
     cli::cli_abort("`by` must name one or more unique existing columns.")
   }
   reserved <- if (output == "inventory") .nis_audit_inventory_names else .nis_audit_summary_names
@@ -23,14 +28,18 @@
 }
 
 .nis_audit_validate_sparse_n <- function(sparse_n) {
-  if (!nis_is_nonnegative_integer(sparse_n)) { # nolint: object_usage_linter
+  if (!nis_is_nonnegative_integer(sparse_n)) {
+    # nolint: object_usage_linter
     cli::cli_abort("`sparse_n` must be one non-negative whole number.")
   }
 }
 
 .nis_audit_validate_weight <- function(.data, weight_var) {
-  if (!.nis_audit_is_column_name(weight_var) ||
-      !weight_var %in% nis_names(.data)) { # nolint: object_usage_linter
+  if (
+    !.nis_audit_is_column_name(weight_var) ||
+      !weight_var %in% nis_names(.data)
+  ) {
+    # nolint: object_usage_linter
     cli::cli_abort("`weight_var` must be the name of one existing column.")
   }
 }
@@ -44,8 +53,7 @@
 
 .nis_audit_valid_group_names <- function(codes) {
   code_names <- names(codes)
-  !is.null(code_names) && !anyNA(code_names) && all(nzchar(code_names)) &&
-    !anyDuplicated(code_names)
+  !is.null(code_names) && !anyNA(code_names) && all(nzchar(code_names)) && !anyDuplicated(code_names)
 }
 
 .nis_audit_has_valid_prefixes <- function(prefixes) {
@@ -65,7 +73,9 @@
 }
 
 .nis_audit_filter_cohort <- function(data, cohort_quo) {
-  if (rlang::quo_is_null(cohort_quo)) return(data)
+  if (rlang::quo_is_null(cohort_quo)) {
+    return(data)
+  }
   dplyr::filter(data, !!cohort_quo)
 }
 
@@ -79,15 +89,15 @@
   nis_internal_names(data, input_names, candidates)
 }
 
-.nis_audit_summary_expressions <- function(flag_names, count_names, weight_names,
-                                           weight_var, cohort_count_name) {
+.nis_audit_summary_expressions <- function(flag_names, count_names, weight_names, weight_var, cohort_count_name) {
   expressions <- list()
   expressions[[cohort_count_name]] <- rlang::expr(dplyr::n())
   for (i in seq_along(flag_names)) {
     flag <- rlang::sym(flag_names[[i]])
     expressions[[count_names[[i]]]] <- rlang::expr(sum(as.integer(!!flag), na.rm = TRUE))
     expressions[[weight_names[[i]]]] <- rlang::expr(sum(
-      dplyr::if_else(!!flag, !!rlang::sym(weight_var), 0), na.rm = TRUE
+      dplyr::if_else(!!flag, !!rlang::sym(weight_var), 0),
+      na.rm = TRUE
     ))
   }
   expressions
@@ -107,15 +117,21 @@
 .nis_audit_empty_output <- function(by, summary, output) {
   columns <- if (output == "inventory") {
     dplyr::tibble(
-      code_group = character(), code = character(),
-      n_cohort_unweighted = integer(), n_unweighted = integer(),
-      n_weighted = double(), status = character()
+      code_group = character(),
+      code = character(),
+      n_cohort_unweighted = integer(),
+      n_unweighted = integer(),
+      n_weighted = double(),
+      status = character()
     )
   } else {
     dplyr::tibble(
-      code_group = character(), n_cohort_unweighted = integer(),
-      n_unweighted = integer(), n_weighted = double(),
-      pct_within_year = double(), yoy_pct_change = double()
+      code_group = character(),
+      n_cohort_unweighted = integer(),
+      n_unweighted = integer(),
+      n_weighted = double(),
+      pct_within_year = double(),
+      yoy_pct_change = double()
     )
   }
   columns[by] <- summary[by]
@@ -146,7 +162,9 @@
     cli::cli_abort("`weight_var` must contain only finite, non-missing numeric values in the selected cohort.")
   }
   summary[[invalid]] <- NULL
-  if (nrow(summary) == 0L) return(summary)
+  if (nrow(summary) == 0L) {
+    return(summary)
+  }
   .nis_audit_order_periods(summary, by)
 }
 
@@ -154,10 +172,11 @@
 # quarters of one year or the boundary between two other components.
 .nis_audit_yoy_change <- function(pct, summary, by) {
   change <- rep(NA_real_, length(pct))
-  if (length(by) > 1L) return(change)
+  if (length(by) > 1L) {
+    return(change)
+  }
   previous <- c(NA_real_, pct[-length(pct)])
-  change <- ifelse(is.na(previous) | previous == 0, NA_real_,
-    100 * (pct - previous) / previous)
+  change <- ifelse(is.na(previous) | previous == 0, NA_real_, 100 * (pct - previous) / previous)
   change[!stats::complete.cases(summary[by])] <- NA_real_
   change
 }
@@ -191,11 +210,24 @@
   flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
   data <- do.call(flag_function, c(list(.data = data), codes, list(system = system)))
   expressions <- .nis_audit_summary_expressions(
-    temp$flag, temp$count, temp$weight, weight_var, temp$cohort)
+    temp$flag,
+    temp$count,
+    temp$weight,
+    weight_var,
+    temp$cohort
+  )
   summary <- .nis_audit_period_summary(data, expressions, by, weight_var)
-  if (nrow(summary) == 0L) return(.nis_audit_empty_output(by, summary, "summary"))
-  pieces <- lapply(seq_along(codes), .nis_audit_group_piece,
-    summary = summary, code_groups = code_groups, temp = temp, by = by)
+  if (nrow(summary) == 0L) {
+    return(.nis_audit_empty_output(by, summary, "summary"))
+  }
+  pieces <- lapply(
+    seq_along(codes),
+    .nis_audit_group_piece,
+    summary = summary,
+    code_groups = code_groups,
+    temp = temp,
+    by = by
+  )
   .nis_audit_bind_periods(pieces, summary, by)
 }
 
@@ -212,8 +244,7 @@
 }
 
 .nis_audit_inventory_temp <- function(data, input_names) {
-  candidates <- c(".nis_audit_code", ".nis_audit_weight", ".nis_audit_cohort",
-    ".nis_audit_n", ".nis_audit_w")
+  candidates <- c(".nis_audit_code", ".nis_audit_weight", ".nis_audit_cohort", ".nis_audit_n", ".nis_audit_w")
   unique_names <- nis_internal_names(data, input_names, candidates)
   stats::setNames(as.list(unique_names), c("code", "weight", "cohort", "count", "total"))
 }
@@ -243,8 +274,7 @@
   literals <- DBI::dbQuoteString(con, prefixes)
   eligible <- paste0("starts_with(code_value, ", literals, ")", collapse = " OR ")
   lambda <- if (utils::packageVersion("duckdb") < "1.3.0") "code_value -> " else "lambda code_value : "
-  codes <- dbplyr::sql(paste0("UNNEST(list_filter(list_distinct([", slots,
-    "]), ", lambda, eligible, "))"))
+  codes <- dbplyr::sql(paste0("UNNEST(list_filter(list_distinct([", slots, "]), ", lambda, eligible, "))"))
   data |>
     dplyr::mutate(!!temp$weight := !!rlang::sym(weight_var)) |>
     dplyr::mutate(!!temp$code := !!codes) |>
@@ -263,7 +293,9 @@
 }
 
 .nis_audit_code_counts <- function(data, eligibility, slot_names, prefixes, temp, weight_var, by) {
-  if (!is.null(eligibility)) data <- dplyr::filter(data, !!eligibility)
+  if (!is.null(eligibility)) {
+    data <- dplyr::filter(data, !!eligibility)
+  }
   long <- if (inherits(data, "tbl_sql")) {
     .nis_audit_lazy_codes(data, slot_names, prefixes, temp, weight_var, by)
   } else {
@@ -305,7 +337,9 @@
 
   cohort_expression <- stats::setNames(list(rlang::expr(dplyr::n())), temp$cohort)
   periods <- .nis_audit_period_summary(data, cohort_expression, by, weight_var)
-  if (nrow(periods) == 0L) return(.nis_audit_empty_output(by, periods, "inventory"))
+  if (nrow(periods) == 0L) {
+    return(.nis_audit_empty_output(by, periods, "inventory"))
+  }
 
   prefixes <- unique(unlist(codes, use.names = FALSE))
   counts <- .nis_audit_code_counts(data, eligibility, slot_names, prefixes, temp, weight_var, by)
@@ -398,12 +432,17 @@
 #' toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
 #' nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
 #'   by = c("YEAR", "DQTR"))
-nis_audit_code_transition <- function(.data, codes, cohort = NULL, by = "YEAR",
-                                      type = c("pr", "dx"),
-                                      system = c("icd10", "icd9"),
-                                      weight_var = "DISCWT",
-                                      output = c("summary", "inventory"),
-                                      sparse_n = 10L) {
+nis_audit_code_transition <- function(
+  .data,
+  codes,
+  cohort = NULL,
+  by = "YEAR",
+  type = c("pr", "dx"),
+  system = c("icd10", "icd9"),
+  weight_var = "DISCWT",
+  output = c("summary", "inventory"),
+  sparse_n = 10L
+) {
   type <- match.arg(type)
   system <- match.arg(system)
   output <- match.arg(output)

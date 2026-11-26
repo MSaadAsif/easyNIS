@@ -1,6 +1,5 @@
 .nis_design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
-.nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields),
-  .nis_design_fields)
+.nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields), .nis_design_fields)
 
 nis_design_sample <- function(data, cohort, selected, quarter_prototype, annualize, call) {
   cohort_quo <- nis_design_cohort_expr(cohort, call)
@@ -10,9 +9,15 @@ nis_design_sample <- function(data, cohort, selected, quarter_prototype, annuali
   check_transition <- !is.null(quarters) && 2015L %in% summary$years
   collected_fields <- if (check_transition) union(selected, "DQTR") else selected
   collected <- nis_design_collect_cohort(prepared, collected_fields, call)
-  if (annualize) nis_sample_annual_warnings(summary, collected)
-  list(cohort_rows = collected[selected], hospital_rows = summary$hospital_rows,
-    years = summary$years, excluded = summary$excluded)
+  if (annualize) {
+    nis_sample_annual_warnings(summary, collected)
+  }
+  list(
+    cohort_rows = collected[selected],
+    hospital_rows = summary$hospital_rows,
+    years = summary$years,
+    excluded = summary$excluded
+  )
 }
 
 nis_sample_fields <- function(data, cohort_quo) {
@@ -23,14 +28,12 @@ nis_sample_fields <- function(data, cohort_quo) {
   })
   names(invalid) <- unname(.nis_design_invalid_fields)
   any_invalid <- reduce_or(rlang::syms(names(invalid)))
-  dplyr::mutate(data, .nis_cohort = !!cohort_quo,
-    !!!invalid, .nis_valid = !(!!any_invalid))
+  dplyr::mutate(data, .nis_cohort = !!cohort_quo, !!!invalid, .nis_valid = !(!!any_invalid))
 }
 
 nis_sample_summary <- function(prepared, quarter_prototype, call) {
   invalid_year <- rlang::sym(.nis_design_invalid_fields[["YEAR"]])
-  keys <- c(".nis_valid", unname(.nis_design_invalid_fields),
-    setdiff(.nis_design_fields, "DISCWT"))
+  keys <- c(".nis_valid", unname(.nis_design_invalid_fields), setdiff(.nis_design_fields, "DISCWT"))
   quarter_flags <- nis_sample_quarter_flags(quarter_prototype)
   # Invalid discharges need only their defect flags and, when valid, their year.
   # Keeping their raw hospital and stratum IDs can make the summary as large as the input.
@@ -61,20 +64,20 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
     cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
   }
   years <- sort(unique(hospital_rows$YEAR))
-  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags),
-    quarter_prototype)
+  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags), quarter_prototype)
   list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage)
 }
 
 nis_sample_quarter_flags <- function(prototype) {
-  if (is.null(prototype)) return(list())
+  if (is.null(prototype)) {
+    return(list())
+  }
   factor_quarters <- is.factor(prototype)
   quarter_field <- if (factor_quarters) rlang::expr(as.character(DQTR)) else rlang::sym("DQTR") # nolint: object_usage_linter
   quarters <- if (factor_quarters) as.character(1:4) else 1:4
   flags <- if (factor_quarters || is.numeric(prototype) || is.logical(prototype)) {
     lapply(quarters, function(quarter) {
-      rlang::expr(any(.nis_valid & dplyr::coalesce(!!quarter_field == !!quarter, FALSE),
-        na.rm = TRUE)) # nolint: object_usage_linter
+      rlang::expr(any(.nis_valid & dplyr::coalesce(!!quarter_field == !!quarter, FALSE), na.rm = TRUE)) # nolint: object_usage_linter
     })
   } else {
     rep(list(rlang::expr(FALSE)), 4L)
@@ -83,7 +86,9 @@ nis_sample_quarter_flags <- function(prototype) {
 }
 
 nis_sample_quarter_coverage <- function(summary, years, flags, prototype) {
-  if (!length(flags)) return(NULL)
+  if (!length(flags)) {
+    return(NULL)
+  }
   labels <- if (is.logical(prototype)) rep(TRUE, 4L) else 1:4
   lapply(years, function(year) {
     matches <- summary[summary$YEAR == year, flags, drop = FALSE]
@@ -93,19 +98,21 @@ nis_sample_quarter_coverage <- function(summary, years, flags, prototype) {
 
 nis_sample_exclusions <- function(design_groups) {
   excluded_count <- sum(design_groups$n[!design_groups$.nis_valid])
-  excluded_by_field <- vapply(.nis_design_invalid_fields, function(column) {
-    as.integer(sum(design_groups$n[design_groups[[column]]]))
-  }, integer(1))
+  excluded_by_field <- vapply(
+    .nis_design_invalid_fields,
+    function(column) {
+      as.integer(sum(design_groups$n[design_groups[[column]]]))
+    },
+    integer(1)
+  )
   year_counts <- design_groups |>
     dplyr::filter(!.nis_valid, !is.na(YEAR)) |>
     dplyr::group_by(YEAR) |>
     dplyr::summarise(n = sum(!!rlang::sym("n")), .groups = "drop") |>
     dplyr::arrange(YEAR)
-  excluded <- list(total = excluded_count, by_field = excluded_by_field,
-    by_year = year_counts)
+  excluded <- list(total = excluded_count, by_field = excluded_by_field, by_year = year_counts)
   if (excluded_count > 0L) {
-    by_field_text <- paste0(names(excluded_by_field), ": ", excluded_by_field,
-      collapse = ", ")
+    by_field_text <- paste0(names(excluded_by_field), ": ", excluded_by_field, collapse = ", ")
     year_text <- if (nrow(year_counts) > 1L) {
       paste0(" Affected valid years: ", paste0(year_counts$YEAR, ": ", year_counts$n, collapse = ", "), ".")
     } else {
@@ -113,7 +120,8 @@ nis_sample_exclusions <- function(design_groups) {
     }
     cli::cli_warn(paste0(
       "Excluded {excluded_count} discharge{?s} with invalid design fields (",
-      by_field_text, "); a discharge can fail more than one field. Exclusion happens before cohort filtering.",
+      by_field_text,
+      "); a discharge can fail more than one field. Exclusion happens before cohort filtering.",
       year_text
     ))
   }
@@ -122,16 +130,17 @@ nis_sample_exclusions <- function(design_groups) {
 
 nis_design_cohort_expr <- function(cohort_quo, call) {
   cohort_expr <- rlang::get_expr(cohort_quo)
-  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr) &&
-    !inherits(cohort_expr, "sql")) {
+  if (rlang::is_atomic(cohort_expr) && !is.logical(cohort_expr) && !inherits(cohort_expr, "sql")) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }
   cohort_quo
 }
 
 nis_design_cohort_type <- function(prepared, call) {
-  if (inherits(prepared, "tbl_sql") &&
-    inherits(dbplyr::remote_con(prepared), "duckdb_connection")) {
+  if (
+    inherits(prepared, "tbl_sql") &&
+      inherits(dbplyr::remote_con(prepared), "duckdb_connection")
+  ) {
     # LIMIT 0 inspects the expression's bound SQL type without reading rows.
     # Collection alone loses the distinction between SQL NULL and typed NA.
     query <- paste0(
@@ -141,8 +150,7 @@ nis_design_cohort_type <- function(prepared, call) {
     )
     type <- DBI::dbGetQuery(dbplyr::remote_con(prepared), query)$cohort_type
     if (identical(type, "\"NULL\"")) {
-      return(dplyr::mutate(prepared,
-        .nis_cohort = as.logical(!!rlang::sym(".nis_cohort"))))
+      return(dplyr::mutate(prepared, .nis_cohort = as.logical(!!rlang::sym(".nis_cohort"))))
     }
     logical_cohort <- identical(type, "BOOLEAN")
   } else if (is.data.frame(prepared)) {
@@ -170,7 +178,9 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   if (!is.logical(collected$.nis_cohort)) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }
-  if (inherits(collected$DISCWT, "integer64")) collected$DISCWT <- as.double(collected$DISCWT)
+  if (inherits(collected$DISCWT, "integer64")) {
+    collected$DISCWT <- as.double(collected$DISCWT)
+  }
   missing <- which(is.na(collected$.nis_cohort))
   missing_count <- length(missing)
   if (missing_count > 0L) {
@@ -195,14 +205,21 @@ nis_sample_annual_warnings <- function(summary, collected) {
 nis_design_quarter_warning <- function(quarter_coverage, design_years) {
   partial <- lengths(quarter_coverage) < 4L
   if (any(partial)) {
-    coverage_text <- vapply(which(partial), function(i) {
-      quarters <- quarter_coverage[[i]]
-      present <- if (length(quarters)) paste0("Q", quarters, collapse = ", ") else "none"
-      paste0(design_years[[i]], " (", present, ")")
-    }, character(1))
+    coverage_text <- vapply(
+      which(partial),
+      function(i) {
+        quarters <- quarter_coverage[[i]]
+        present <- if (length(quarters)) paste0("Q", quarters, collapse = ", ") else "none"
+        paste0(design_years[[i]], " (", present, ")")
+      },
+      character(1)
+    )
     cli::cli_warn(c(
-      paste0("Annualization includes year(s) with incomplete data-quarter coverage: ",
-        paste(coverage_text, collapse = "; "), "."),
+      paste0(
+        "Annualization includes year(s) with incomplete data-quarter coverage: ",
+        paste(coverage_text, collapse = "; "),
+        "."
+      ),
       i = paste0(
         "Each listed year still counts as one whole year. Exclude partial ",
         "years or set `annualize = FALSE` and apply a fractional-year ",

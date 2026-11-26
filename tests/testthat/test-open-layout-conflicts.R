@@ -34,12 +34,9 @@ for (annual_type in c("file", "directory")) {
       annual
     }
     write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L), annual_part)
-    write_duckdb_parquet(data.frame(id = 2L),
-      file.path(path, "YEAR=2020", "part.parquet"))
-    write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L),
-      file.path(path, "NIS_2019.parquet"))
-    write_duckdb_parquet(data.frame(id = 3L),
-      file.path(path, "YEAR=2021", "part.parquet"))
+    write_duckdb_parquet(data.frame(id = 2L), file.path(path, "YEAR=2020", "part.parquet"))
+    write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L), file.path(path, "NIS_2019.parquet"))
+    write_duckdb_parquet(data.frame(id = 3L), file.path(path, "YEAR=2021", "part.parquet"))
 
     expect_error(nis_open(path, years = c(2019L, 2020L)), "both annual and Hive layouts")
     annual_result <- dplyr::collect(nis_open(path, years = 2019L))
@@ -60,10 +57,8 @@ test_that("nis_open reads all parts of a valid annual directory", {
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   annual <- file.path(path, "NIS_2020.parquet")
-  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 1L),
-    file.path(annual, "part-1.parquet"))
-  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L),
-    file.path(annual, "nested", "part-2.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 1L), file.path(annual, "part-1.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L), file.path(annual, "nested", "part-2.parquet"))
 
   for (years in list(NULL, 2020L)) {
     result <- dplyr::collect(nis_open(path, years = years))
@@ -77,12 +72,9 @@ test_that("nis_open combines annual files, directories and Hive in different yea
   path <- tempfile("nis-mixed-layouts-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L),
-    file.path(path, "NIS_2019.parquet"))
-  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L),
-    file.path(path, "NIS_2020.parquet", "part.parquet"))
-  write_duckdb_parquet(data.frame(id = 3L),
-    file.path(path, "YEAR=2021", "part.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L), file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L), file.path(path, "NIS_2020.parquet", "part.parquet"))
+  write_duckdb_parquet(data.frame(id = 3L), file.path(path, "YEAR=2021", "part.parquet"))
 
   result <- dplyr::collect(nis_open(path))
   result <- result[order(result$id), ]
@@ -127,8 +119,7 @@ test_that("the selected query reports exactly its Parquet parts", {
 
   query <- nis_open(path, years = c(2019L, 2021L)) |>
     dplyr::select(YEAR, id)
-  expect_identical(nis_open_source_paths(query),
-    normalizePath(c(annual, inner), winslash = "/"))
+  expect_identical(nis_open_source_paths(query), normalizePath(c(annual, inner), winslash = "/"))
   expect_identical(nis_open_available_years(path), 2019:2021)
   expect_identical(sort(dplyr::collect(nis_open(path))$id), 1:3)
 })
@@ -137,8 +128,7 @@ test_that("an explicitly selected empty year is reported with other years presen
   path <- tempfile("nis-empty-year-")
   dir.create(file.path(path, "NIS_2020.parquet"), recursive = TRUE)
   withr::defer(unlink(path, recursive = TRUE))
-  write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L),
-    file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L), file.path(path, "NIS_2019.parquet"))
 
   expect_error(nis_open(path, years = 2019:2020), "no Parquet part files.*2020")
   expect_identical(dplyr::collect(nis_open(path))$YEAR, 2019L)
@@ -172,10 +162,8 @@ test_that("a physical year conflict identifies the offending part of a Hive scan
   path <- tempfile("nis-grouped-hive-year-")
   withr::defer(unlink(path, recursive = TRUE))
   hive <- file.path(path, "YEAR=2020")
-  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 1L),
-    file.path(hive, "part1.parquet"))
-  write_duckdb_parquet(data.frame(YEAR = 2021L, id = 2L),
-    file.path(hive, "part[2].parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020L, id = 1L), file.path(hive, "part1.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2021L, id = 2L), file.path(hive, "part[2].parquet"))
 
   expect_error(nis_open(path), "physical .*YEAR.* conflict.*part\\[2\\][.]parquet")
 })
@@ -184,12 +172,9 @@ test_that("invalid annual years identify every offending part of a scan", {
   path <- tempfile("nis-grouped-annual-year-")
   withr::defer(unlink(path, recursive = TRUE))
   annual <- file.path(path, "NIS_2020.parquet")
-  write_duckdb_parquet(data.frame(YEAR = 2020, id = 1L),
-    file.path(annual, "part1.parquet"))
-  write_duckdb_parquet(data.frame(YEAR = 2020.5, id = 2L),
-    file.path(annual, "part[2].parquet"))
-  write_duckdb_parquet(data.frame(YEAR = 2147483648, id = 3L),
-    file.path(annual, "part3.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020, id = 1L), file.path(annual, "part1.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020.5, id = 2L), file.path(annual, "part[2].parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2147483648, id = 3L), file.path(annual, "part3.parquet"))
 
   error <- tryCatch(nis_open(path), error = identity)
   expect_s3_class(error, "rlang_error")
@@ -212,8 +197,13 @@ for (type in c("BIGINT", "UBIGINT")) {
     write_years <- function(years, name) {
       values <- paste0("(", years, "::", type, ")", collapse = ", ")
       destination <- DBI::dbQuoteString(con, file.path(annual, name))
-      statement <- paste0("COPY (SELECT * FROM (VALUES ", values,
-        ") AS t(\"YEAR\")) TO ", destination, " (FORMAT PARQUET)")
+      statement <- paste0(
+        "COPY (SELECT * FROM (VALUES ",
+        values,
+        ") AS t(\"YEAR\")) TO ",
+        destination,
+        " (FORMAT PARQUET)"
+      )
       DBI::dbExecute(con, statement)
     }
 
@@ -256,7 +246,6 @@ test_that("non-scalar physical Hive years cannot pass partition validation", {
   con <- DBI::dbConnect(duckdb::duckdb())
   withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
   destination <- DBI::dbQuoteString(con, file.path(hive, "part.parquet"))
-  DBI::dbExecute(con, paste0("COPY (SELECT [2020]::INTEGER[] AS YEAR, 1 AS id) TO ",
-    destination, " (FORMAT PARQUET)"))
+  DBI::dbExecute(con, paste0("COPY (SELECT [2020]::INTEGER[] AS YEAR, 1 AS id) TO ", destination, " (FORMAT PARQUET)"))
   expect_error(nis_open(path), "physical .*YEAR.* conflict")
 })

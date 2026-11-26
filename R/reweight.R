@@ -80,8 +80,7 @@ nis_reweight <- function(design, weights) {
     label <- attr(variables[[name]], "label", exact = TRUE)
     if (!is.null(label)) attr(combined[[name]], "label") <- label
   }
-  reweighted <- nis_cohort_design(combined, attr(design, "nis_excluded", exact = TRUE),
-    nis_cost_provenance(design))
+  reweighted <- nis_cohort_design(combined, attr(design, "nis_excluded", exact = TRUE), nis_cost_provenance(design))
   nis_cohort_check_rebuild(design, reweighted, call)
   reweighted
 }

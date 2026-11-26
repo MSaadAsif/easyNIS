@@ -34,8 +34,7 @@
 #'   PRDAY1 = c(0L, -99L, 1L), PRDAY2 = c(1L, NA_integer_, -88L)
 #' )
 #' nis_prday_completeness(toy, c("02UG0", "0JH60"))
-nis_prday_completeness <- function(.data, pr,
-                                   system = c("icd10", "icd9")) {
+nis_prday_completeness <- function(.data, pr, system = c("icd10", "icd9")) {
   system <- match.arg(system)
   pr <- normalize_prefixes(pr, "pr") # nolint: object_usage_linter
   columns <- nis_names(.data) # nolint: object_usage_linter
@@ -67,11 +66,14 @@ nis_prday_completeness <- function(.data, pr,
     } else {
       decoded <- nis_procedure_day(day_name, .data)
       counts[[paste0("known_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & (!!decoded$known)), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$known)), na.rm = TRUE)
+      )
       counts[[paste0("missing_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & (!!decoded$missing)), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$missing)), na.rm = TRUE)
+      )
       counts[[paste0("sentinel_invalid_day", suffix)]] <- rlang::expr(
-        sum(as.integer(!!match & (!!decoded$sentinel)), na.rm = TRUE))
+        sum(as.integer(!!match & (!!decoded$sentinel)), na.rm = TRUE)
+      )
       counts[[paste0("absent_prday_column", suffix)]] <- rlang::expr(0L)
     }
   }
@@ -79,8 +81,7 @@ nis_prday_completeness <- function(.data, pr,
     dplyr::group_by(YEAR) |>
     dplyr::summarise(!!!counts, .groups = "drop") |>
     nis_collect()
-  metrics <- c("matched_slots", "known_day", "missing_day",
-    "sentinel_invalid_day", "absent_prday_column")
+  metrics <- c("matched_slots", "known_day", "missing_day", "sentinel_invalid_day", "absent_prday_column")
   summaries <- lapply(seq_along(slots), function(i) {
     suffix <- paste0("__", i)
     summary <- data.frame(YEAR = wide$YEAR, slot = rep(slots[[i]], nrow(wide)))
@@ -90,10 +91,23 @@ nis_prday_completeness <- function(.data, pr,
     dplyr::as_tibble(summary)
   })
   output <- dplyr::bind_rows(summaries) |>
-    dplyr::mutate(pct_known = dplyr::if_else(matched_slots == 0L, NA_real_, # nolint: object_usage_linter
-      100 * known_day / matched_slots)) |> # nolint: object_usage_linter
-    dplyr::select(YEAR, slot, matched_slots, known_day, missing_day, # nolint: object_usage_linter
-      sentinel_invalid_day, absent_prday_column, pct_known) |> # nolint: object_usage_linter
+    dplyr::mutate(
+      pct_known = dplyr::if_else(
+        matched_slots == 0L,
+        NA_real_, # nolint: object_usage_linter
+        100 * known_day / matched_slots
+      )
+    ) |> # nolint: object_usage_linter
+    dplyr::select(
+      YEAR,
+      slot,
+      matched_slots,
+      known_day,
+      missing_day, # nolint: object_usage_linter
+      sentinel_invalid_day,
+      absent_prday_column,
+      pct_known
+    ) |> # nolint: object_usage_linter
     dplyr::arrange(YEAR, slot)
   output
 }

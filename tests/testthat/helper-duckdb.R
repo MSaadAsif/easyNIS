@@ -6,12 +6,14 @@ write_duckdb_parquet <- function(data, path) {
 }
 
 open_duckdb_dataset <- function(path) {
-  sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE,
-    full.names = TRUE)
+  sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE)
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   quoted <- DBI::dbQuoteString(con, normalizePath(sources, winslash = "/", mustWork = TRUE))
-  parquet <- paste0("read_parquet([", paste(quoted, collapse = ", "),
-    "], union_by_name = true, hive_partitioning = false)")
+  parquet <- paste0(
+    "read_parquet([",
+    paste(quoted, collapse = ", "),
+    "], union_by_name = true, hive_partitioning = false)"
+  )
   query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
   nis_duckdb_attach_finalizer(query, function() {
     if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)

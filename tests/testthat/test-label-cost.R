@@ -1,14 +1,12 @@
 test_that("labels require collected data", {
   error <- tryCatch(nis_label(list(AGE = 40)), error = identity)
-  expect_identical(conditionMessage(error),
-    "`data` must be a collected data frame.")
+  expect_identical(conditionMessage(error), "`data` must be a collected data frame.")
   expect_true(inherits(error, "rlang_error"))
   expect_identical(conditionCall(error)[[1L]], quote(nis_label))
 })
 
 test_that("cost adjustment validates inputs and preserves missing amounts", {
-  data <- data.frame(YEAR = 2020, TOTCHG = c(NA_real_, 1000),
-    CCR_NIS = c(0.25, NA_real_))
+  data <- data.frame(YEAR = 2020, TOTCHG = c(NA_real_, 1000), CCR_NIS = c(0.25, NA_real_))
   adjusted <- nis_cost(data, dollars = 2020)
   expect_true(all(is.na(adjusted$cost_adj)))
   expect_equal(as.numeric(adjusted$charges_adj), c(NA_real_, 1000))
@@ -45,10 +43,14 @@ test_that("nis_label maps common codes and preserves existing labels", {
   expect_identical(levels(labelled$FEMALE), c("Male", "Female"))
   expect_identical(levels(labelled$RACE)[[1L]], "White")
   expect_identical(levels(labelled$PAY1)[[1L]], "Medicare")
-  expect_identical(as.character(labelled$DISPUNIFORM), c(
-    "Died in hospital", "Code 21",
-    "Alive, destination unknown"
-  ))
+  expect_identical(
+    as.character(labelled$DISPUNIFORM),
+    c(
+      "Died in hospital",
+      "Code 21",
+      "Alive, destination unknown"
+    )
+  )
   # 2023-only fields have no audited labels, so they pass through untouched.
   expect_identical(labelled$PL_NCHS2, data$PL_NCHS2)
   expect_identical(labelled$TOTCHG_2023, data$TOTCHG_2023)
@@ -88,12 +90,22 @@ test_that("nis_label retains unknown codes and warns once per variable", {
   expect_length(warnings, 2L)
   expect_match(warnings[[1L]], "PAY1")
   expect_match(warnings[[2L]], "H_CONTRL")
-  expect_identical(as.character(labelled$PAY1), c(
-    "Medicare", "Code 7", "Code 8"
-  ))
-  expect_identical(as.character(labelled$H_CONTRL), c(
-    "Government, non-federal", "Code 4", "Code 5"
-  ))
+  expect_identical(
+    as.character(labelled$PAY1),
+    c(
+      "Medicare",
+      "Code 7",
+      "Code 8"
+    )
+  )
+  expect_identical(
+    as.character(labelled$H_CONTRL),
+    c(
+      "Government, non-federal",
+      "Code 4",
+      "Code 5"
+    )
+  )
   expect_identical(nis_label(labelled), labelled)
 })
 
@@ -113,30 +125,37 @@ test_that("nis_label applies audited labels without guessing unsupported codes",
   )
 
   labelled <- nis_label(data)
-  expect_identical(as.character(labelled$I10_INJURY)[1:3], c(
-    "No injury", "Injury, first-listed", "Injury, other than first-listed"
-  ))
+  expect_identical(
+    as.character(labelled$I10_INJURY)[1:3],
+    c(
+      "No injury",
+      "Injury, first-listed",
+      "Injury, other than first-listed"
+    )
+  )
   expect_equal(as.numeric(labelled$I10_BIRTH), c(0:3, 0))
   expect_identical(attr(labelled$I10_BIRTH, "label"), "ICD-10-CM birth indicator")
   expect_type(labelled$I10_SERVICELINE, "integer")
   expect_equal(as.numeric(labelled$I10_SERVICELINE), 1:5)
-  expect_identical(attr(labelled$I10_SERVICELINE, "label"),
-    "ICD-10-CM/PCS service line indicator")
-  expect_identical(levels(labelled$APRDRG_RISK_MORTALITY)[[1L]],
-    "No class specified")
-  expect_identical(levels(labelled$APRDRG_SEVERITY)[[1L]],
-    "No class specified")
-  expect_identical(as.character(labelled$GRPCI), c(
-    "No comorbidities", "One comorbidity", "Two or more comorbidities",
-    "No comorbidities", "One comorbidity"
-  ))
+  expect_identical(attr(labelled$I10_SERVICELINE, "label"), "ICD-10-CM/PCS service line indicator")
+  expect_identical(levels(labelled$APRDRG_RISK_MORTALITY)[[1L]], "No class specified")
+  expect_identical(levels(labelled$APRDRG_SEVERITY)[[1L]], "No class specified")
+  expect_identical(
+    as.character(labelled$GRPCI),
+    c(
+      "No comorbidities",
+      "One comorbidity",
+      "Two or more comorbidities",
+      "No comorbidities",
+      "One comorbidity"
+    )
+  )
   expect_identical(as.character(labelled$ynel3), c("No", "Yes", "No", "Yes", "No"))
   expect_identical(as.character(labelled$ynch2), c("Yes", "No", "Yes", "No", "Yes"))
   expect_identical(attr(labelled$ynel3, "label"), "Existing Elixhauser label")
   expect_identical(attr(labelled$ynch2, "label"), "Existing Charlson label")
   expect_identical(attr(labelled$PAY1, "label"), "Expected primary payer")
-  expect_identical(attr(labelled$ZIPINC_QRTL, "label"),
-    "Median household income national quartile (patient ZIP)")
+  expect_identical(attr(labelled$ZIPINC_QRTL, "label"), "Median household income national quartile (patient ZIP)")
   expect_identical(attr(labelled$H_CONTRL, "label"), "Hospital control/ownership")
 })
 
@@ -147,12 +166,14 @@ test_that("nis_cost applies CPI-U adjustments and labels the results", {
     CCR_NIS = c(0.25, 0.30)
   )
   adjusted <- nis_cost(data, dollars = 2022)
-  expect_equal(as.numeric(adjusted$charges_adj), c(
-    1000 * 292.655 / 251.107,
-    2000 * 292.655 / 258.811
-  ))
-  expect_equal(as.numeric(adjusted$cost_adj),
-    as.numeric(adjusted$charges_adj) * data$CCR_NIS)
+  expect_equal(
+    as.numeric(adjusted$charges_adj),
+    c(
+      1000 * 292.655 / 251.107,
+      2000 * 292.655 / 258.811
+    )
+  )
+  expect_equal(as.numeric(adjusted$cost_adj), as.numeric(adjusted$charges_adj) * data$CCR_NIS)
   expect_identical(attr(adjusted$cost_adj, "label"), "Hospital cost (2022 USD)")
   expect_identical(attr(adjusted$charges_adj, "label"), "Total charges (2022 USD)")
   expect_error(nis_cost(data, dollars = 2025), "2012 through 2024")
@@ -182,20 +203,30 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
       invokeRestart("muffleMessage")
     }
   )
-  expect_identical(informs, paste0(
-    "4 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
-  ))
+  expect_identical(
+    informs,
+    paste0(
+      "4 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
+    )
+  )
 
-  expect_equal(as.numeric(adjusted$charges_adj[1:2]), c(
-    1000 * 292.655 / 258.811,
-    2000
-  ))
-  expect_equal(as.numeric(adjusted$cost_adj[1:2]), c(
-    1000 * 0.25 * 292.655 / 258.811,
-    2000 * 0.5
-  ))
+  expect_equal(
+    as.numeric(adjusted$charges_adj[1:2]),
+    c(
+      1000 * 292.655 / 258.811,
+      2000
+    )
+  )
+  expect_equal(
+    as.numeric(adjusted$cost_adj[1:2]),
+    c(
+      1000 * 0.25 * 292.655 / 258.811,
+      2000 * 0.5
+    )
+  )
   expect_true(all(is.na(adjusted$cost_adj[3:6])))
-  expect_equal(as.numeric(adjusted$charges_adj[3:6]),
+  expect_equal(
+    as.numeric(adjusted$charges_adj[3:6]),
     c(
       3000 * 292.655 / 255.657,
       4000 * 292.655 / 270.970,
@@ -211,16 +242,22 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
   expect_match(provenance$inflation_index, "CPI-U")
   expect_match(provenance$inflation_index_source, "Bureau of Labor Statistics")
   expect_identical(provenance$base_year, 2022L)
-  expect_equal(provenance$multipliers$multiplier[
-    provenance$multipliers$year == 2020
-  ], 292.655 / 258.811)
+  expect_equal(
+    provenance$multipliers$multiplier[
+      provenance$multipliers$year == 2020
+    ],
+    292.655 / 258.811
+  )
   expect_equal(provenance$rows_missing_or_invalid_ccr, 4L)
   expect_identical(provenance$multipliers$year, sort(unique(data$YEAR)))
   expect_match(provenance$ccr_treatment, "produce NA cost_adj")
-  expect_identical(provenance$output_types, c(
-    charges_adj = "Inflation-adjusted charges",
-    cost_adj = "Estimated cost via CCR_NIS"
-  ))
+  expect_identical(
+    provenance$output_types,
+    c(
+      charges_adj = "Inflation-adjusted charges",
+      cost_adj = "Estimated cost via CCR_NIS"
+    )
+  )
 })
 
 test_that("nis_cost records non-finite charges and makes both outputs missing", {
@@ -240,7 +277,8 @@ test_that("nis_cost records non-finite charges and makes both outputs missing", 
 
 test_that("nis_cost rejects negative and non-finite charges but retains zero", {
   data <- dplyr::tibble(
-    YEAR = rep(2020, 5), TOTCHG = c(-1, 0, NA_real_, NaN, Inf),
+    YEAR = rep(2020, 5),
+    TOTCHG = c(-1, 0, NA_real_, NaN, Inf),
     CCR_NIS = rep(0.25, 5)
   )
   adjusted <- nis_cost(data, dollars = 2020)
@@ -255,8 +293,7 @@ test_that("nis_cost rejects negative and non-finite charges but retains zero", {
     dplyr::collect()
   design_data$test_row <- seq_len(nrow(design_data))
   design_data$TOTCHG[1:5] <- c(-1, 0, NA_real_, NaN, Inf)
-  design <- nis_design(design_data, cohort = TRUE, keep = c(TOTCHG, CCR_NIS, test_row),
-    dollars = 2020)
+  design <- nis_design(design_data, cohort = TRUE, keep = c(TOTCHG, CCR_NIS, test_row), dollars = 2020)
   variables <- design$variables
   invalid <- variables[variables$test_row %in% c(1L, 3:5), ]
   zero <- variables[variables$test_row == 2L, ]
@@ -270,14 +307,17 @@ test_that("nis_cost rejects negative and non-finite charges but retains zero", {
 
 test_that("common labels and cost adjustment work in experimental ICD-9 years", {
   data <- dplyr::tibble(
-    YEAR = 2012:2015, PAY1 = rep(1L, 4L), DIED = c(0L, 1L, 0L, 1L),
-    DX1 = rep("12345", 4L), TOTCHG = rep(1000, 4L), CCR_NIS = rep(0.25, 4L)
+    YEAR = 2012:2015,
+    PAY1 = rep(1L, 4L),
+    DIED = c(0L, 1L, 0L, 1L),
+    DX1 = rep("12345", 4L),
+    TOTCHG = rep(1000, 4L),
+    CCR_NIS = rep(0.25, 4L)
   )
   labelled <- nis_label(data)
   expect_identical(as.character(labelled$PAY1), rep("Medicare", 4L))
   expect_identical(as.character(labelled$DIED), c("No", "Yes", "No", "Yes"))
   expect_identical(labelled$DX1, data$DX1)
   adjusted <- nis_cost(data, dollars = 2024)
-  expect_equal(as.numeric(adjusted$cost_adj),
-    250 * 313.689 / c(229.594, 232.957, 236.736, 237.017))
+  expect_equal(as.numeric(adjusted$cost_adj), 250 * 313.689 / c(229.594, 232.957, 236.736, 237.017))
 })

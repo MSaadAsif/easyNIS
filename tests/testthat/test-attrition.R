@@ -6,10 +6,7 @@ test_that("nis_attrition reports ordered cumulative counts and drops", {
     YEAR = rep(2020L, 5)
   )
 
-  result <- nis_attrition(toy_nis,
-    adult = AGE >= 18,
-    elective = ELECTIVE == 1
-  )
+  result <- nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
 
   expect_identical(result$step, 0:2)
   expect_identical(result$criterion, c("All discharges", "adult", "elective"))
@@ -18,10 +15,11 @@ test_that("nis_attrition reports ordered cumulative counts and drops", {
   expect_equal(result$n_weighted, c(25.1, 20.1, 15.3))
   expect_equal(result$n_dropped_weighted, c(NA_real_, 5, 4.8))
   expect_equal(result$pct_retained, c(100, 80, 60))
-  expect_equal(result$n_unweighted[-1L] + result$n_dropped_unweighted[-1L],
-    result$n_unweighted[-length(result$n_unweighted)])
-  expect_equal(result$n_weighted[-1L] + result$n_dropped_weighted[-1L],
-    result$n_weighted[-length(result$n_weighted)])
+  expect_equal(
+    result$n_unweighted[-1L] + result$n_dropped_unweighted[-1L],
+    result$n_unweighted[-length(result$n_unweighted)]
+  )
+  expect_equal(result$n_weighted[-1L] + result$n_dropped_weighted[-1L], result$n_weighted[-length(result$n_weighted)])
 
   unnamed <- nis_attrition(toy_nis, AGE >= 18)
   expect_identical(unnamed$criterion[[2L]], "AGE >= 18")
@@ -65,8 +63,7 @@ test_that("nis_attrition stratifies by year and preserves overall totals", {
   expect_equal(sum(annual$n_weighted[annual$step == 0L]), overall$n_weighted[[1L]])
   expect_equal(sum(annual$n_weighted[annual$step == 1L]), overall$n_weighted[[2L]])
   expect_error(nis_attrition(data["keep"], keep, by_year = TRUE), "YEAR")
-  expect_error(nis_attrition(dplyr::mutate(data, YEAR = NA_integer_), keep,
-    by_year = TRUE), "YEAR")
+  expect_error(nis_attrition(dplyr::mutate(data, YEAR = NA_integer_), keep, by_year = TRUE), "YEAR")
 })
 
 test_that("nis_attrition lazily aggregates DuckDB datasets without collecting rows", {
@@ -116,8 +113,19 @@ test_that("nis_attrition returns an empty annual summary for empty input", {
   data <- dplyr::tibble(YEAR = integer(), weight = double(), keep = logical())
   result <- nis_attrition(data, keep, by_year = TRUE, weight_var = "weight")
 
-  expect_named(result, c("YEAR", "step", "criterion", "n_unweighted",
-    "n_dropped_unweighted", "n_weighted", "n_dropped_weighted", "pct_retained"))
+  expect_named(
+    result,
+    c(
+      "YEAR",
+      "step",
+      "criterion",
+      "n_unweighted",
+      "n_dropped_unweighted",
+      "n_weighted",
+      "n_dropped_weighted",
+      "pct_retained"
+    )
+  )
   expect_equal(nrow(result), 0L)
   expect_type(result$YEAR, "integer")
   expect_type(result$n_unweighted, "integer")

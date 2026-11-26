@@ -13,16 +13,16 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
   con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   lazy <- dplyr::copy_to(con, data, "invented_grouping", temporary = TRUE)
-  groupings <- list("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS",
-    c("YEAR", "LOS"), "unused_group")
-  inputs <- c(list(data, lazy, dplyr::rowwise(data),
-    dplyr::rowwise(data, YEAR)),
+  groupings <- list("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS", c("YEAR", "LOS"), "unused_group")
+  inputs <- c(
+    list(data, lazy, dplyr::rowwise(data), dplyr::rowwise(data, YEAR)),
     lapply(groupings, function(fields) {
       dplyr::group_by(data, dplyr::across(dplyr::all_of(fields)))
     }),
     lapply(groupings, function(fields) {
       dplyr::group_by(lazy, dplyr::across(dplyr::all_of(fields)))
-    }))
+    })
+  )
 
   for (aggregate_cohort in c(FALSE, TRUE)) {
     in_cohort <- if (aggregate_cohort) {
@@ -30,18 +30,21 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
     } else {
       rep(TRUE, nrow(data))
     }
-    full <- survey::svydesign(~psu, strata = ~stratum, weights = ~weight,
-      data = data, nest = TRUE)
+    full <- survey::svydesign(~psu, strata = ~stratum, weights = ~weight, data = data, nest = TRUE)
     reference <- full[in_cohort, ]
     for (input in inputs) {
-      actual <- nis_design(input,
+      actual <- nis_design(
+        input,
         if (aggregate_cohort) eligible & LOS > mean(LOS, na.rm = TRUE) else TRUE,
-        keep = LOS, annualize = TRUE)
+        keep = LOS,
+        annualize = TRUE
+      )
       expect_equal(nrow(actual$variables), sum(in_cohort))
       expect_equal(sort(actual$variables$LOS), sort(data$LOS[in_cohort]))
-      expect_setequal(names(actual$variables), c("YEAR", "HOSP_NIS",
-        "NIS_STRATUM", "DISCWT", "LOS", ".in_cohort", ".nis_psu",
-        ".nis_stratum", ".nis_weight"))
+      expect_setequal(
+        names(actual$variables),
+        c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS", ".in_cohort", ".nis_psu", ".nis_stratum", ".nis_weight")
+      )
       expect_length(dplyr::group_vars(actual), 0L)
       expect_equal(survey::degf(actual), survey::degf(reference))
       for (estimate in list(survey::svymean, survey::svytotal)) {
@@ -52,8 +55,7 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
       }
       grouped <- dplyr::group_by(actual, YEAR)
       expect_identical(dplyr::group_vars(grouped), "YEAR")
-      expect_equal(nrow(srvyr::summarise(grouped,
-        total = srvyr::survey_total())), 2L)
+      expect_equal(nrow(srvyr::summarise(grouped, total = srvyr::survey_total())), 2L)
     }
   }
 })

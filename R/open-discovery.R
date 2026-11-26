@@ -9,8 +9,7 @@ nis_open_discover <- function(path, years, call) {
   parts <- nis_open_parts(entries, years)
   empty <- setdiff(years, parts$year)
   if (!nrow(parts) || (explicit && length(empty))) {
-    cli::cli_abort("The selected NIS entries contain no Parquet part files for year{?s} {.val {empty}}.",
-      call = call)
+    cli::cli_abort("The selected NIS entries contain no Parquet part files for year{?s} {.val {empty}}.", call = call)
   }
   list(years = years, parts = unique(parts[c("path", "partition_year")]))
 }
@@ -38,7 +37,9 @@ nis_open_entries <- function(path, call) {
 }
 
 nis_open_select_years <- function(found, years, call) {
-  if (is.null(years)) years <- sort(found)
+  if (is.null(years)) {
+    years <- sort(found)
+  }
   if (!nis_open_whole_years(years)) {
     cli::cli_abort("`years` must be a non-empty vector of whole years.", call = call)
   }
@@ -54,29 +55,46 @@ nis_open_select_years <- function(found, years, call) {
 }
 
 nis_open_whole_years <- function(years) {
-  is.numeric(years) && length(years) > 0L && all(is.finite(years)) &&
+  is.numeric(years) &&
+    length(years) > 0L &&
+    all(is.finite(years)) &&
     all(abs(years) <= .Machine$integer.max & years == floor(years))
 }
 
 nis_open_validate_layout <- function(entries, years, call) {
   mixed <- intersect(years, intersect(entries$year[entries$annual], entries$year[!entries$annual]))
-  if (!length(mixed)) return(invisible(NULL))
+  if (!length(mixed)) {
+    return(invisible(NULL))
+  }
 
   details <- lapply(mixed, function(year) {
     same_year <- entries[entries$year == year, , drop = FALSE]
     paths <- normalizePath(same_year$path, winslash = "/", mustWork = TRUE)
     roots <- same_year[nis_open_uncovered_entries(paths), , drop = FALSE]
-    if (all(roots$annual) || !any(roots$annual)) return(NULL)
-    paste0("Year ", year, ": annual ", paste(roots$path[roots$annual], collapse = ", "),
-      " and Hive ", paste(roots$path[!roots$annual], collapse = ", "))
+    if (all(roots$annual) || !any(roots$annual)) {
+      return(NULL)
+    }
+    paste0(
+      "Year ",
+      year,
+      ": annual ",
+      paste(roots$path[roots$annual], collapse = ", "),
+      " and Hive ",
+      paste(roots$path[!roots$annual], collapse = ", ")
+    )
   })
   details <- unlist(details, use.names = FALSE)
-  if (!length(details)) return(invisible(NULL))
-  cli::cli_abort(paste0(
-    "A year is present in both annual and Hive layouts.\n",
-    paste0("x Year is duplicated: ", details, collapse = "\n"),
-    "\ni Keep one layout per year."
-  ), call = call)
+  if (!length(details)) {
+    return(invisible(NULL))
+  }
+  cli::cli_abort(
+    paste0(
+      "A year is present in both annual and Hive layouts.\n",
+      paste0("x Year is duplicated: ", details, collapse = "\n"),
+      "\ni Keep one layout per year."
+    ),
+    call = call
+  )
 }
 
 nis_open_uncovered_entries <- function(paths, through_hidden = TRUE) {
@@ -84,7 +102,9 @@ nis_open_uncovered_entries <- function(paths, through_hidden = TRUE) {
   child <- paths
   pending <- seq_along(paths)
   while (length(pending)) {
-    if (!through_hidden) pending <- pending[!startsWith(basename(child[pending]), ".")]
+    if (!through_hidden) {
+      pending <- pending[!startsWith(basename(child[pending]), ".")]
+    }
     parent <- dirname(child[pending])
     higher <- parent != child[pending]
     pending <- pending[higher]
@@ -99,28 +119,36 @@ nis_open_uncovered_entries <- function(paths, through_hidden = TRUE) {
 nis_open_parts <- function(entries, years) {
   selected <- entries[entries$year %in% years, , drop = FALSE]
   # list.files() skips hidden directories unless used as traversal roots.
-  roots <- selected[nis_open_uncovered_entries(selected$path, through_hidden = FALSE),
-    , drop = FALSE]
-  files <- Map(function(path, directory) {
-    if (directory) {
-      return(list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE))
-    }
-    path
-  }, roots$path, roots$directory)
+  roots <- selected[nis_open_uncovered_entries(selected$path, through_hidden = FALSE), , drop = FALSE]
+  files <- Map(
+    function(path, directory) {
+      if (directory) {
+        return(list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE))
+      }
+      path
+    },
+    roots$path,
+    roots$directory
+  )
   paths <- as.character(unlist(files, use.names = FALSE))
   years_by_part <- rep(roots$year, lengths(files))
   partition_year <- nis_open_partition_year(paths, entries$path[!entries$annual])
   hive <- !is.na(partition_year)
   years_by_part[hive] <- partition_year[hive]
   keep <- years_by_part %in% years
-  data.frame(path = normalizePath(paths[keep], winslash = "/", mustWork = TRUE),
-    partition_year = partition_year[keep], year = years_by_part[keep])
+  data.frame(
+    path = normalizePath(paths[keep], winslash = "/", mustWork = TRUE),
+    partition_year = partition_year[keep],
+    year = years_by_part[keep]
+  )
 }
 
 nis_open_partition_year <- function(paths, hive_dirs) {
   # Ownership is lexical. A symlink's target does not change its partition.
   year <- rep(NA_integer_, length(paths))
-  if (!length(paths) || !length(hive_dirs)) return(year)
+  if (!length(paths) || !length(hive_dirs)) {
+    return(year)
+  }
   # Greedy matching finds the deepest partition component. Paths above the
   # supplied directory are absent from the discovered Hive directories.
   pattern <- "(?s)^(.*/YEAR=([0-9]{4}))(?:/.*)?$"

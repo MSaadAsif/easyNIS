@@ -27,8 +27,11 @@ nis_design_fields <- function(.data, keep_quo, call) {
   keep_expr <- rlang::get_expr(keep_quo)
   keep_symbol <- rlang::is_symbol(keep_expr)
   keep_symbol_name <- if (keep_symbol) rlang::as_string(keep_expr) else NULL
-  keep_value <- if (keep_symbol && !(keep_symbol_name %in% data_names) &&
-    rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)) {
+  keep_value <- if (
+    keep_symbol &&
+      !(keep_symbol_name %in% data_names) &&
+      rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
+  ) {
     rlang::env_get(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
   } else {
     keep_expr
@@ -38,8 +41,7 @@ nis_design_fields <- function(.data, keep_quo, call) {
     if (length(absent_keep)) {
       cli::cli_abort("`keep` references missing column{?s} {.val {absent_keep}}.", call = call)
     }
-    tidyselect::eval_select(rlang::expr(tidyselect::all_of(!!keep_value)),
-      data = select_data)
+    tidyselect::eval_select(rlang::expr(tidyselect::all_of(!!keep_value)), data = select_data)
   } else {
     tidyselect::eval_select(keep_quo, data = select_data)
   }
@@ -165,20 +167,17 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'   discharges = srvyr::survey_total(),
 #'   mean_age = srvyr::survey_mean(AGE)
 #' )
-nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
-                       charges = "TOTCHG") {
+nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, charges = "TOTCHG") {
   call <- rlang::current_call()
   .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
-  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected,
-    fields$quarter_prototype, annualize, call)
+  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
   hospital_rows <- sample$hospital_rows
   cohort_rows <- sample$cohort_rows
   cohort_rows$.in_cohort <- rep(TRUE, nrow(cohort_rows))
   cohort_hospitals <- unique(cohort_rows[c("YEAR", "HOSP_NIS")])
-  empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals,
-    by = c("YEAR", "HOSP_NIS"))
+  empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals, by = c("YEAR", "HOSP_NIS"))
 
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
   if (length(no_cohort_years) > 0L) {
@@ -191,7 +190,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   combined <- cohort_rows
   if (nrow(empty_hospitals) > 0L) {
     placeholders <- cohort_rows[rep(NA_integer_, nrow(empty_hospitals)), , drop = FALSE]
-    for (field in .nis_design_fields) placeholders[[field]] <- empty_hospitals[[field]]
+    for (field in .nis_design_fields) {
+      placeholders[[field]] <- empty_hospitals[[field]]
+    }
     placeholders$.in_cohort <- FALSE
     combined <- dplyr::bind_rows(cohort_rows, placeholders)
   }
@@ -210,9 +211,13 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   if (has_cost_inputs) {
     cost_fields <- c(charges, "CCR_NIS", "charges_adj", "cost_adj")
     charge_years <- unique(cohort_rows$YEAR)
-    missing_charge_years <- charge_years[vapply(charge_years, function(year) {
-      all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
-    }, logical(1))]
+    missing_charge_years <- charge_years[vapply(
+      charge_years,
+      function(year) {
+        all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
+      },
+      logical(1)
+    )]
     if (length(missing_charge_years) > 0L) {
       cli::cli_warn(c(
         paste0(
@@ -223,9 +228,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
         i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
       ))
     }
-    if (is.null(dollars)) dollars <- max(sample$years)
-    combined <- nis_adjust_costs(combined, dollars, charges, call,
-      population = combined$.in_cohort)
+    if (is.null(dollars)) {
+      dollars <- max(sample$years)
+    }
+    combined <- nis_adjust_costs(combined, dollars, charges, call, population = combined$.in_cohort)
     cost_provenance <- nis_cost_provenance(combined)
   } else {
     cost_fields <- NULL
