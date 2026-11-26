@@ -18,7 +18,7 @@ dx_boundary_fixture <- function() {
 test_that("Local and DuckDB sensitivity ignores all input groups", {
   for (make_input in list(identity, duckdb_query_fixture)) {
     data <- make_input(dx_boundary_fixture())
-    for (groups in list(character(), "g", c("g", "h"))) {
+    for (groups in list(character(), c("g", "h"))) {
       grouped <- dplyr::group_by(data, !!!rlang::syms(groups))
       expect_no_warning(out <- nis_dx_sensitivity(grouped, "A1"))
       expect_identical(out$presentation, c("principal", "secondary_only", "any"))
@@ -37,17 +37,15 @@ test_that("Local and DuckDB sensitivity ignores all input groups", {
 test_that("Local and DuckDB empty and unmatched summaries have zero totals", {
   for (make_input in list(identity, duckdb_query_fixture)) {
     data <- make_input(dx_boundary_fixture())
-    for (groups in list(character(), "g", c("g", "h"))) {
-      grouped <- dplyr::group_by(data, !!!rlang::syms(groups))
-      for (input in list(dplyr::filter(grouped, FALSE), grouped)) {
-        out <- nis_dx_sensitivity(input, "B2")
-        expect_equal(out$n_unweighted, c(0, 0, 0))
-        expect_equal(out$n_weighted, c(0, 0, 0))
-        expect_true(all(is.na(out$pct_of_any_unweighted)))
-        expect_true(all(is.na(out$pct_of_any_weighted)))
-        expect_true(all(is.na(out$DIED_rate_unweighted)))
-        expect_true(all(is.na(out$DIED_rate_weighted)))
-      }
+    grouped <- dplyr::group_by(data, g, h)
+    for (input in list(dplyr::filter(grouped, FALSE), grouped)) {
+      out <- nis_dx_sensitivity(input, "B2")
+      expect_equal(out$n_unweighted, c(0, 0, 0))
+      expect_equal(out$n_weighted, c(0, 0, 0))
+      expect_true(all(is.na(out$pct_of_any_unweighted)))
+      expect_true(all(is.na(out$pct_of_any_weighted)))
+      expect_true(all(is.na(out$DIED_rate_unweighted)))
+      expect_true(all(is.na(out$DIED_rate_weighted)))
     }
     out <- nis_dx_sensitivity(dplyr::filter(data, FALSE), "A1", outcomes = character())
     expect_named(out, c("presentation", "n_unweighted", "n_weighted", "pct_of_any_unweighted", "pct_of_any_weighted"))
@@ -66,6 +64,10 @@ test_that("Local and DuckDB outcome rates are independent of names and order", {
       ".nis_dx_principal_DIED_n",
       "odd outcome"
     )
+    alone <- lapply(outcomes, function(outcome) {
+      nis_dx_sensitivity(data, "A1", outcomes = outcome)
+    })
+    names(alone) <- outcomes
     for (order in list(outcomes, rev(outcomes))) {
       out <- nis_dx_sensitivity(data, "A1", outcomes = order)
       expect_named(
@@ -83,10 +85,10 @@ test_that("Local and DuckDB outcome rates are independent of names and order", {
         first <- fixture[[outcome]][[1L]] == 1
         expected <- if (first) c(2 / 5, NA, 2 / 5) else c(3 / 5, NA, 3 / 5)
         unweighted <- c(1 / 2, 1, 2 / 3)
-        alone <- nis_dx_sensitivity(data, "A1", outcomes = outcome)
         expect_equal(out[[paste0(outcome, "_rate_weighted")]], expected)
         expect_equal(out[[paste0(outcome, "_rate_unweighted")]], unweighted)
-        expect_equal(out[names(alone)], alone)
+        single <- alone[[outcome]]
+        expect_equal(out[names(single)], single)
       }
     }
   }

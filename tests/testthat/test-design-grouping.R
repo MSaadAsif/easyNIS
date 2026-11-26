@@ -13,16 +13,10 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
   con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   lazy <- dplyr::copy_to(con, data, "invented_grouping", temporary = TRUE)
-  groupings <- list("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS", c("YEAR", "LOS"), "unused_group")
-  inputs <- c(
-    list(data, lazy, dplyr::rowwise(data), dplyr::rowwise(data, YEAR)),
-    lapply(groupings, function(fields) {
-      dplyr::group_by(data, dplyr::across(dplyr::all_of(fields)))
-    }),
-    lapply(groupings, function(fields) {
-      dplyr::group_by(lazy, dplyr::across(dplyr::all_of(fields)))
-    })
-  )
+  group_inputs <- function(input) {
+    dplyr::group_by(input, YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, LOS, unused_group)
+  }
+  inputs <- list(data, lazy, dplyr::rowwise(data), dplyr::rowwise(data, YEAR), group_inputs(data), group_inputs(lazy))
 
   for (aggregate_cohort in c(FALSE, TRUE)) {
     in_cohort <- if (aggregate_cohort) {

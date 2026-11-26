@@ -68,11 +68,14 @@ check_lint <- function() {
 args <- commandArgs(trailingOnly = TRUE)
 status <- if (length(args) == 0L) {
   check_committed_package()
+} else if (identical(args, "--full")) {
+  Sys.setenv(EASYNIS_FULL_TESTS = "true")
+  check_committed_package()
 } else if (identical(args, "--lint")) {
   check_lint()
 } else if (identical(args, "--complexity")) {
   check_complexity()
 } else {
-  stop("Usage: Rscript --vanilla tools/check-package.R [--lint | --complexity]", call. = FALSE)
+  stop("Usage: Rscript --vanilla tools/check-package.R [--full | --lint | --complexity]", call. = FALSE)
 }
 quit(status = status)

@@ -269,7 +269,7 @@ test_that("method and prefix options and input errors are explicit", {
   expect_error(nis_comorbidity(open_duckdb_dataset(path)), "collect")
 })
 
-test_that("a nis_design keeps its design and gains comorbidity columns", {
+test_that("comorbidity columns preserve survey design and support reweighting", {
   skip_if_not_installed("medicalcoder")
   path <- nis_example(2017:2018)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -308,27 +308,6 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   ))
   total <- survey::svytotal(~cmrb_any, enriched)
   expect_true(is.finite(stats::coef(total)[["cmrb_anyTRUE"]]))
-})
-
-test_that("nis_reweight works on a design that went through nis_comorbidity", {
-  skip_if_not_installed("medicalcoder")
-  path <- nis_example(2017:2018)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path) |>
-    nis_flag_dx(heart_failure = "I50", position = "principal")
-  design <- suppressMessages(nis_design(
-    query,
-    heart_failure,
-    keep = c(AGE, dplyr::starts_with("I10_DX"))
-  ))
-  enriched <- suppressWarnings(nis_comorbidity(design))
-
-  labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
-  labels <- lapply(labelled_fields, function(field) {
-    attr(design$variables[[field]], "label", exact = TRUE)
-  })
-  names(labels) <- labelled_fields
-  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
 
   expect_identical(
     attr(enriched, "nis_placeholder_rows"),

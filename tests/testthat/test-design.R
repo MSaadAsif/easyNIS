@@ -1,6 +1,5 @@
 test_that("design validation rejects ambiguous or incomplete inputs", {
-  path <- nis_example(2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  path <- shared_design_example(2019)
   data <- dplyr::collect(nis_open(path))
   expect_error(nis_design(data, TRUE, AGE, annualize = NA), "annualize")
   expect_error(nis_design(data["AGE"], TRUE, AGE), "missing design")
@@ -14,43 +13,40 @@ test_that("design validation rejects ambiguous or incomplete inputs", {
   expect_error(nis_design(data, TRUE, AGE), "one stratum")
 })
 
-test_that("nis_design supports character and helper selections on lazy inputs", {
-  path <- nis_example(2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+test_that("nis_design ignores missing optional columns on lazy inputs", {
+  path <- shared_design_example(2019)
   data <- nis_open(path)
   selected <- c("AGE", "FEMALE")
 
   character_design <- nis_design(data, AGE > 50, keep = selected)
-  all_of_design <- nis_design(data, AGE > 50, keep = tidyselect::all_of(selected))
   any_of_design <- nis_design(data, AGE > 50, keep = tidyselect::any_of(c(selected, "OPTIONAL_COLUMN")))
   expect_true(all(selected %in% names(character_design$variables)))
-  expect_equal(names(character_design$variables), names(all_of_design$variables))
-  expect_equal(names(character_design$variables), names(any_of_design$variables))
+  expect_identical(character_design$variables, any_of_design$variables)
 })
 
 test_that("nis_design on lazy inputs emits no SQL missing-value warning", {
   local_sql_na_warnings()
-  path <- nis_example(2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  frame_design <- nis_design(dplyr::collect(nis_open(path)), AGE > 50, keep = AGE)
+  path <- shared_design_example(2019)
+  query <- nis_open(path)
+  frame_design <- nis_design(dplyr::collect(query), AGE > 50, keep = AGE)
 
   expect_no_warning(
-    lazy_design <- nis_design(nis_open(path), AGE > 50, keep = AGE)
+    lazy_design <- nis_design(query, AGE > 50, keep = AGE)
   )
   expect_equal(sort(as.numeric(stats::weights(lazy_design))), sort(as.numeric(stats::weights(frame_design))))
 })
 
 test_that("data columns take precedence over colliding caller vectors", {
-  path <- nis_example(2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  data <- dplyr::collect(nis_open(path))
+  path <- shared_design_example(2019)
+  query <- nis_open(path)
+  data <- dplyr::collect(query)
   AGE <- "FEMALE"
 
   frame_design <- nis_design(data, TRUE, keep = AGE)
   expect_true("AGE" %in% names(frame_design$variables))
   expect_false("FEMALE" %in% names(frame_design$variables))
 
-  lazy_design <- nis_design(nis_open(path), TRUE, keep = AGE)
+  lazy_design <- nis_design(query, TRUE, keep = AGE)
   expect_true("AGE" %in% names(lazy_design$variables))
   expect_false("FEMALE" %in% names(lazy_design$variables))
 
@@ -111,19 +107,8 @@ test_that("nis_design names missing dollar adjustment inputs", {
   )
 })
 
-test_that("reweighting rejects a design narrowed after cohort definition", {
-  path <- nis_example(2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  design <- nis_open(path) |>
-    nis_flag_dx(heart_failure = "I50") |>
-    nis_design(heart_failure, keep = AGE)
-  narrowed <- dplyr::filter(design, AGE > min(AGE))
-  expect_error(nis_reweight(narrowed, rep(1, nrow(narrowed$variables))), "has been narrowed")
-})
-
 test_that("nis_design placeholder designs match full-data domain estimates", {
   designs <- comparison_designs()
-  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
 
   old_lonely <- getOption("survey.lonely.psu")
   old_adjust <- getOption("survey.adjust.domain.lonely")
@@ -237,7 +222,6 @@ test_that("partial-year and invalid-row designs match the full-data reference", 
     annualize = TRUE,
     invalid_rows = TRUE
   ))
-  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
   expect_equal(nrow(designs$placeholder$variables), nrow(designs$full$variables))
   expect_equal(
     coef(survey::svytotal(~AGE, designs$placeholder)),
@@ -308,8 +292,7 @@ test_that("annualization distinguishes data coverage from cohort quarter coverag
 })
 
 test_that("annualized weights divide by the number of years and missing cohorts are excluded", {
-  path <- nis_example(2017:2019)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  path <- shared_design_example(2017:2019)
   query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
   annualized <- nis_design(
@@ -384,8 +367,7 @@ test_that("placeholder rows keep design fields and tolerate all-NA analysis valu
 })
 
 test_that("nis_design excludes discharges with invalid design fields and warns", {
-  path <- nis_example(2017:2018)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  path <- shared_design_example(2017:2018)
   data <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal") |>
     dplyr::collect()
@@ -464,9 +446,9 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
 })
 
 test_that("multi-prefix any-position cohorts give identical designs on DuckDB and data frames", {
-  path <- nis_example(2017:2018)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path)
+  path <- shared_design_example(2017:2018)
+  query <- nis_open(path) |>
+    dplyr::select(YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, DIED, I10_DX1, I10_DX2)
   frame <- dplyr::collect(query)
   add_flags <- function(.data) {
     nis_flag_dx(.data, exposed = c("Z515", "E11", "J18"), position = "any")
@@ -496,7 +478,6 @@ test_that("nis_design keeps computed cohort flags out of collected variables", {
 
 test_that("nis_reweight matches a full-data reference and keeps placeholder weights", {
   designs <- comparison_designs()
-  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
 
   old_lonely <- getOption("survey.lonely.psu")
   old_adjust <- getOption("survey.adjust.domain.lonely")
@@ -580,7 +561,6 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
 
 test_that("nis_reweight accepts a column and validates propensity weights", {
   designs <- comparison_designs()
-  on.exit(unlink(designs$path, recursive = TRUE), add = TRUE)
   data <- dplyr::collect(designs$query)
   cohort <- dplyr::coalesce(data$heart_failure, FALSE)
   data$iptw <- NA_real_

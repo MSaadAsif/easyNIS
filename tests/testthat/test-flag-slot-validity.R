@@ -15,23 +15,24 @@ test_that("malformed flag slots cannot set flags in canonical positions", {
   for (case in flag_slot_cases()) {
     flag <- case$flag
     system <- case$system
-    slots <- case$slots
     positions <- case$positions
     stem <- case$stem
-    for (suffix in c("0", "01", "02", "00", "-1", "1x", "1.0")) {
-      data <- data.frame(id = 1L)
-      data[[paste0(stem, "1")]] <- NA_character_
-      data[[paste0(stem, "12")]] <- NA_character_
-      data[[paste0(stem, suffix)]] <- "TOKEN"
-      query <- duckdb_query_fixture(data)
-      for (position in positions) {
-        local <- flag(data, hit = "TOKEN", position = position, system = system)
-        lazy <- flag(query, hit = "TOKEN", position = position, system = system)
-        expect_s3_class(lazy, "tbl_sql")
-        expect_identical(local$hit, FALSE)
-        expect_identical(local[names(data)], data)
-        expect_equal(dplyr::collect(lazy), dplyr::as_tibble(local))
-      }
+    suffixes <- c("0", "01", "02", "00", "-1", "1x", "1.0")
+    data <- data.frame(id = seq_along(suffixes))
+    data[[paste0(stem, "1")]] <- NA_character_
+    data[[paste0(stem, "12")]] <- NA_character_
+    # Each row has a match in exactly one of the malformed columns.
+    for (i in seq_along(suffixes)) {
+      data[[paste0(stem, suffixes[[i]])]] <- ifelse(data$id == i, "TOKEN", NA_character_)
+    }
+    query <- duckdb_query_fixture(data)
+    for (position in positions) {
+      local <- flag(data, hit = "TOKEN", position = position, system = system)
+      lazy <- flag(query, hit = "TOKEN", position = position, system = system)
+      expect_s3_class(lazy, "tbl_sql")
+      expect_identical(local$hit, rep(FALSE, nrow(data)))
+      expect_identical(local[names(data)], data)
+      expect_equal(dplyr::collect(dplyr::arrange(lazy, id)), dplyr::as_tibble(local))
     }
   }
 })

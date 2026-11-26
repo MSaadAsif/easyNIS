@@ -96,20 +96,14 @@ test_that("decoded factor missing and invalid days obey each policy", {
     indeterminate = c(NA, NA, NA)
   )
 
-  for (policy in names(expected)) {
-    actual_values <- logical(length(cases))
-    for (case in seq_along(cases)) {
-      data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY2 = cases[[case]])
+  for (case in seq_along(cases)) {
+    data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY2 = cases[[case]])
+    query <- duckdb_query_fixture(data)
+    for (policy in names(expected)) {
       local <- nis_flag_pr_timing(data, "IX", "OUT", missing_day = policy)
-      actual_values[[case]] <- local$outcome_post_index
-      query <- duckdb_query_fixture(data)
+      expect_identical(local$outcome_post_index, expected[[policy]][[case]], info = paste(names(cases)[[case]], policy))
       actual <- dplyr::collect(nis_flag_pr_timing(query, "IX", "OUT", missing_day = policy))
       expect_identical(actual$outcome_post_index, local$outcome_post_index, info = paste(names(cases)[[case]], policy))
-      con <- query$src$con
-      query <- NULL
-      invisible(gc())
-      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
     }
-    expect_identical(actual_values, expected[[policy]], info = policy)
   }
 })

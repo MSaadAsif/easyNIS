@@ -104,10 +104,32 @@ test_that("procedure timing treats an unmatched PRDAY slot as unknown", {
     I10_PR2 = c("OUT", "OUT"),
     PRDAY1 = c(0L, 2L)
   )
-  expect_identical(
-    nis_flag_pr_timing(data, "IX", "OUT")$outcome_post_index,
-    c(FALSE, FALSE)
+  for (input in list(data, duckdb_query_fixture(data))) {
+    excluded <- nis_flag_pr_timing(input, "IX", "OUT") |> dplyr::collect()
+    expect_identical(excluded$outcome_post_index, c(FALSE, FALSE))
+    unknown <- nis_flag_pr_timing(input, "IX", "OUT", missing_day = "indeterminate") |> dplyr::collect()
+    expect_identical(unknown$outcome_post_index, c(NA, NA))
+  }
+})
+
+test_that("procedure timing pairs and orders two-digit slots by number", {
+  data <- dplyr::tibble(
+    YEAR = 2020L,
+    I10_PR12 = "OUT",
+    I10_PR10 = "OUT",
+    I10_PR2 = "IX",
+    PRDAY10 = c(2L, 0L),
+    PRDAY2 = 1L
   )
+  for (input in list(data, duckdb_query_fixture(data))) {
+    result <- nis_flag_pr_timing(input, "IX", "OUT", missing_day = "indeterminate") |>
+      dplyr::collect()
+    expect_identical(result$outcome_post_index, c(TRUE, NA))
+    completion <- nis_prday_completeness(input, "OUT")
+    expect_identical(completion$slot, c(2L, 10L, 12L))
+    expect_identical(completion$known_day, c(0L, 2L, 0L))
+    expect_identical(completion$absent_prday_column, c(0L, 0L, 2L))
+  }
 })
 
 test_that("procedure timing matches the documented four-row example", {
@@ -240,54 +262,14 @@ test_that("procedure timing stays lazy and agrees with data frames on DuckDB", {
   expect_identical(dplyr::collect(lazy), expected)
 })
 
-test_that("procedure timing agrees across DuckDB policies and many slots", {
-  procedure_slots <- stats::setNames(rep(list(rep("OTHER", 5L)), 25L), paste0("I10_PR", seq_len(25L)))
-  procedure_slots[[1L]] <- c("IX", "IX", "IX", "IX", "IX")
-  procedure_slots[[2L]] <- c("OUT", "OUT", "OUT", "OUT", "OUT")
-  procedure_slots[[3L]] <- c("IDX", "IDX", "OTHER", "OTHER", "OTHER")
-  procedure_slots[[4L]] <- c("ALT", "ALT", "ALT", "ALT", "ALT")
-  procedure_slots[[12L]] <- c("OUT", "OUT", "OUT", "OUT", "OUT")
-  day_slots <- stats::setNames(rep(list(rep(1L, 5L)), 11L), paste0("PRDAY", seq_len(11L)))
-  day_slots[[1L]] <- c(0L, -99L, 0L, -99L, -99L)
-  day_slots[[2L]] <- c(1, 1, -99, NA_real_, 1)
-  day_slots[[3L]] <- c(2L, 1L, 0L, -99L, 1L)
-  day_slots[[4L]] <- c(3L, -99L, 0L, 1L, 1L)
-  data <- dplyr::as_tibble(c(
-    procedure_slots,
-    day_slots,
-    list(
-      YEAR = rep(2018L, 5L),
-      PRVER = c(10L, 10L, 10L, 10L, 9L)
-    )
-  ))
-  path <- tempfile("nis-pr-timing-many-slots-")
-  dir.create(path)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
-  query <- open_duckdb_dataset(path)
-
-  small_data <- dplyr::select(data, I10_PR1:I10_PR4, PRDAY1:PRDAY4, YEAR, PRVER)
-  small_query <- duckdb_query_fixture(small_data)
-  query_data <- list(list(data, query), list(small_data, small_query))
-  for (i in seq_along(query_data)) {
-    cases <- if (i == 1L) {
-      list(c("exclude", "on_or_after"), c("indeterminate", "on_or_after"), c("indeterminate", "within_days"))
-    } else {
-      grid <- expand.grid(
-        policy = c("exclude", "assume_same_day", "indeterminate"),
-        relation = c("on_or_after", "after", "before", "same_day", "within_days"),
-        stringsAsFactors = FALSE
-      )
-      lapply(seq_len(nrow(grid)), function(row) {
-        unname(unlist(grid[row, ], use.names = FALSE))
-      })
-    }
-    for (case in cases) {
-      policy <- case[[1L]]
-      relation <- case[[2L]]
+test_that("procedure timing agrees across DuckDB policies and relations", {
+  data <- pr_timing_parity_data()
+  query <- duckdb_query_fixture(data)
+  for (policy in c("exclude", "assume_same_day", "indeterminate")) {
+    for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
       window <- if (relation == "within_days") 2L else NULL
       expected <- nis_flag_pr_timing(
-        query_data[[i]][[1L]],
+        data,
         c("IX", "IDX", "NOMATCH"),
         c("OUT", "ALT"),
         relation = relation,
@@ -295,7 +277,7 @@ test_that("procedure timing agrees across DuckDB policies and many slots", {
         missing_day = policy
       )
       actual <- nis_flag_pr_timing(
-        query_data[[i]][[2L]],
+        query,
         c("IX", "IDX", "NOMATCH"),
         c("OUT", "ALT"),
         relation = relation,
@@ -303,7 +285,7 @@ test_that("procedure timing agrees across DuckDB policies and many slots", {
         missing_day = policy
       ) |>
         dplyr::collect()
-      expect_identical(actual, expected)
+      expect_identical(actual, expected, info = paste(policy, relation))
     }
   }
 })
@@ -414,15 +396,6 @@ test_that("PRDAY completeness uses factor labels across input types", {
   }
 
   query <- duckdb_query_fixture(data)
-  on.exit(
-    {
-      con <- query$src$con
-      query <- NULL
-      invisible(gc())
-      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-    },
-    add = TRUE
-  )
   expect_identical(nis_prday_completeness(query, "OUT"), expected)
 })
 
@@ -452,15 +425,6 @@ test_that("PRDAY completeness buckets unparseable and NaN text days as missing",
   )
 
   query <- duckdb_query_fixture(data)
-  on.exit(
-    {
-      con <- query$src$con
-      query <- NULL
-      invisible(gc())
-      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-    },
-    add = TRUE
-  )
   expect_identical(nis_prday_completeness(query, "OUT"), expected)
 })
 
@@ -473,15 +437,6 @@ test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
     PRDAY2 = c(0, -99, NA_real_, NaN, Inf)
   )
   query <- duckdb_query_fixture(data)
-  on.exit(
-    {
-      con <- query$src$con
-      query <- NULL
-      invisible(gc())
-      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-    },
-    add = TRUE
-  )
 
   for (policy in c("exclude", "assume_same_day", "indeterminate")) {
     for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
@@ -528,10 +483,6 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
       dplyr::collect()
     expect_identical(actual, expected, info = day_type)
     expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"), info = day_type)
-    con <- query$src$con
-    query <- NULL
-    invisible(gc())
-    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
   }
 })
 

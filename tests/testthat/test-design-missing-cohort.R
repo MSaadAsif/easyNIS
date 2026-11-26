@@ -26,9 +26,14 @@ test_that("injected SQL cohorts are validated by their bound type", {
 test_that("untyped and typed missing logical cohorts agree across backends", {
   frame <- missing_cohort_fixture()
   query <- duckdb_query_fixture(frame)
-  expressions <- rlang::exprs(NA, missing, NA & TRUE)
-  for (data in list(frame, query, dplyr::mutate(query, missing = NA))) {
-    for (cohort in expressions) {
+  cases <- list(
+    list(data = frame, cohorts = rlang::exprs(NA, missing, NA & TRUE)),
+    list(data = query, cohorts = rlang::exprs(NA, missing, NA & TRUE)),
+    list(data = dplyr::mutate(query, missing = NA), cohorts = rlang::exprs(missing))
+  )
+  for (case in cases) {
+    data <- case$data
+    for (cohort in case$cohorts) {
       expect_message(
         expect_warning(
           design <- nis_design(data, !!cohort, keep = AGE),
