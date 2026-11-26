@@ -7,7 +7,10 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 1. Fork the repository and create a branch for your change.
 2. Open the repository root in RStudio or set it as your working directory.
 3. Install development dependencies with `pak::pak(".", dependencies = TRUE)`.
-4. For documentation changes, install `roxygen2` and `pkgdown`; for lint checks, install `lintr`.
+4. For documentation changes, install `roxygen2` and `pkgdown`. For local
+   checks, install `callr` and `cyclocomp` in R and put
+   [Air 0.13.0](https://posit-dev.github.io/air/cli.html) and
+   [Jarl 0.7.1](https://jarl.etiennebacher.com/#installation) on your PATH.
 
 ## Change and verify
 
@@ -17,8 +20,11 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 - Run relevant tests with `devtools::test()`. From the repository root, run
   `Rscript --vanilla tools/check-package.R` after committing changes and before
   requesting review. It runs `devtools::check()` on the exact commit, away
-  from the checkout's ignored data and working files. Run `lintr::lint_package()`
-  for style changes and `pkgdown::check_pkgdown()` for pkgdown configuration changes.
+  from the checkout's ignored data and working files. Before committing, run
+  `Rscript --vanilla tools/check-package.R --lint` to check Air formatting,
+  Jarl findings, and the installed package's cyclomatic complexity limit of 15.
+  Use `air format .` to apply formatting and `pkgdown::check_pkgdown()` for
+  pkgdown configuration changes.
 - Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.
 - Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.
 

@@ -119,7 +119,7 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   if (anyDuplicated(names(definitions))) {
     cli::cli_abort("Flag names must be unique.")
   }
-  data_names <- nis_names(.data) # nolint: object_usage_linter
+  data_names <- nis_names(.data)
   if (!identical(names(definitions), nis_internal_names(.data, data_names, names(definitions)))) {
     cli::cli_abort("Flag names must not replace existing columns.")
   }
@@ -204,11 +204,11 @@ normalize_flag_exclusions <- function(value) {
 }
 
 validate_flag_regex <- function(patterns) {
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  con <- nis_duckdb_connect()
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   for (pattern in patterns) {
     tryCatch(
-      DBI::dbGetQuery(con, "SELECT regexp_full_match('', ?) AS valid", params = list(pattern)), # nolint: object_usage_linter
+      DBI::dbGetQuery(con, "SELECT regexp_full_match('', ?) AS valid", params = list(pattern)),
       error = function(error) {
         cli::cli_abort("Invalid or unsupported DuckDB regular expression {.val {pattern}}.")
       }
@@ -219,7 +219,7 @@ validate_flag_regex <- function(patterns) {
 
 nis_sql_regex_match <- function(patterns, column) {
   per_pattern <- lapply(patterns, function(pattern) {
-    rlang::expr(regexp_full_match(as.character(!!rlang::sym(column)), !!pattern)) # nolint: object_usage_linter
+    rlang::expr(regexp_full_match(as.character(!!rlang::sym(column)), !!pattern))
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_pattern), FALSE))
 }
@@ -232,7 +232,7 @@ normalize_prefixes <- function(value, arg = NULL) {
     cli::cli_abort("{arg} must be non-missing character prefixes.")
   }
   value <- toupper(gsub("[.[:space:]]", "", value))
-  if (any(!grepl("^[A-Z0-9]+$", value))) {
+  if (!all(grepl("^[A-Z0-9]+$", value))) {
     cli::cli_abort("Code prefixes may contain only letters and numbers.")
   }
   unique(value)
@@ -280,7 +280,7 @@ nis_frame_regex_match <- function(values, patterns) {
   if (length(values) == 0L) {
     return(logical())
   }
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  con <- nis_duckdb_connect()
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   DBI::dbWriteTable(
     con,
@@ -304,6 +304,7 @@ nis_frame_regex_match <- function(values, patterns) {
 
 nis_sql_match <- function(prefix, column) {
   per_prefix <- lapply(prefix, function(code) {
+    # jarl-ignore string_boundary: Keep the existing SQL SUBSTR translation.
     rlang::expr(substr(!!rlang::sym(column), 1L, !!nchar(code)) == !!code)
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_prefix), FALSE))

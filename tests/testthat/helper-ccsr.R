@@ -21,7 +21,7 @@ write_ccsr_xlsx <- function(
     "Inpatient Default CCSR (Y/N/X)"
   )
 ) {
-  skip_if_not_installed("zip") # nolint
+  skip_if_not_installed("zip")
   cell <- function(ref, text) {
     sprintf('<c r="%s" t="inlineStr"><is><t>%s</t></is></c>', ref, text)
   }

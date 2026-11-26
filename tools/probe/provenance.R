@@ -60,8 +60,12 @@ provenance_pass <- function(passed, provenance) {
   passed
 }
 
+namespace_complexity <- function(root) {
+  with_verified_source(root, function(root, package) cyclocomp::cyclocomp_package(package))
+}
+
 namespace_complexity_pass <- function(value) {
-  if (!is.data.frame(value) || !is.numeric(value$cyclocomp) || !nrow(value) || any(!is.finite(value$cyclocomp))) {
+  if (!is.data.frame(value) || !is.numeric(value$cyclocomp) || !nrow(value) || !all(is.finite(value$cyclocomp))) {
     return(NA)
   }
   all(value$cyclocomp <= 15)

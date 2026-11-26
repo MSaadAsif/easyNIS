@@ -37,7 +37,7 @@ comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE, annualiz
       LOS,
       FEMALE,
       RACE,
-      PAY1 # nolint
+      PAY1
     ) |>
     dplyr::collect()
   full_data$.nis_psu <- paste(full_data$YEAR, full_data$HOSP_NIS, sep = "::")
@@ -68,8 +68,8 @@ comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE, annualiz
 
   placeholder_design <- nis_design(
     data,
-    if (partial_2015) heart_failure & (YEAR != 2015L | DQTR == 4L) else heart_failure, # nolint
-    keep = c(AGE, DIED, LOS, FEMALE, RACE, PAY1, YEAR, DQTR), # nolint
+    if (partial_2015) heart_failure & (YEAR != 2015L | DQTR == 4L) else heart_failure,
+    keep = c(AGE, DIED, LOS, FEMALE, RACE, PAY1, YEAR, DQTR),
     annualize = annualize
   )
 

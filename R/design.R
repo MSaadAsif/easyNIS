@@ -13,7 +13,7 @@ nis_design_validate <- function(.data, charges, annualize, call) {
 
 nis_design_fields <- function(.data, keep_quo, call) {
   design_fields <- .nis_design_fields
-  data_names <- nis_names(.data) # nolint: object_usage_linter
+  data_names <- nis_names(.data)
   absent <- setdiff(design_fields, data_names)
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
@@ -205,7 +205,6 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
-  # nolint next: object_usage_linter. Function is defined in this package.
   combined <- nis_label(combined)
   alias_sources <- combined[unique(fields$keep_names)]
   if (has_cost_inputs) {
@@ -238,9 +237,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
     cost_provenance <- NULL
   }
 
-  # nolint next: object_usage_linter. Used by cli interpolation below.
   hospitals <- nrow(cohort_hospitals)
-  # nolint next: object_usage_linter. Used by cli interpolation below.
   weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
   cli::cli_inform(paste0(
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",

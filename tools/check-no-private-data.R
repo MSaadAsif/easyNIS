@@ -8,7 +8,7 @@ read_git_index <- function(file) {
   entries <- Map(function(start, end) rawToChar(bytes[start:(end - 1L)]), starts, ends)
   pattern <- "^([0-7]{6}) ([0-9a-f]+) ([0-3])\t"
   entries <- unlist(entries, use.names = FALSE)
-  if (length(entries) && any(!grepl(pattern, entries))) {
+  if (length(entries) && !all(grepl(pattern, entries))) {
     stop("Could not parse the Git index.")
   }
   header_end <- regexpr("\t", entries, fixed = TRUE)
@@ -45,7 +45,7 @@ staged_blob_sizes <- function(ids, input, output) {
   if (
     !identical(unname(entries[, 1L]), ids) ||
       any(entries[, 2L] != "blob") ||
-      any(!is.finite(sizes))
+      !all(is.finite(sizes))
   ) {
     stop("Could not verify staged blob sizes.", call. = FALSE)
   }

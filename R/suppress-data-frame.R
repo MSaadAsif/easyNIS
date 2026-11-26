@@ -22,7 +22,7 @@ validate_suppress_counts <- function(counts, arg, error_call) {
   if (!is.numeric(counts)) {
     cli::cli_abort("`{arg}` must refer to a numeric column.", call = error_call)
   }
-  invalid <- anyNA(counts) || any(!is.finite(counts)) || any(counts < 0) || any(counts != floor(counts))
+  invalid <- anyNA(counts) || !all(is.finite(counts)) || any(counts < 0) || any(counts != floor(counts))
   if (invalid) {
     cli::cli_abort(
       "`{arg}` must contain finite, non-negative whole counts without missing values.",

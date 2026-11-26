@@ -11,7 +11,7 @@
 }
 
 .nis_attrition_validate_cols <- function(.data, by_year, weight_var) {
-  absent <- setdiff(c(weight_var, if (by_year) "YEAR"), nis_names(.data)) # nolint: object_usage_linter
+  absent <- setdiff(c(weight_var, if (by_year) "YEAR"), nis_names(.data))
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing required column{?s} {.val {absent}}.")
   }
@@ -148,7 +148,7 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   keep_names <- .nis_attrition_keep_names(.data, length(criteria))
   keep_exprs <- .nis_attrition_keep_exprs(criteria, keep_names)
   prepared <- dplyr::mutate(dplyr::ungroup(.data), !!!keep_exprs)
-  missing_weight <- nis_is_missing_expr(prepared, weight_var) # nolint: object_usage_linter
+  missing_weight <- nis_is_missing_expr(prepared, weight_var)
   weight <- rlang::expr(dplyr::if_else(
     !!missing_weight,
     0,

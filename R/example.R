@@ -2,7 +2,7 @@
   if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
     cli::cli_abort("`years` must contain whole years from 2012 through 2024.", call = rlang::caller_call())
   }
-  if (any(!is.finite(years)) || any(years != as.integer(years))) {
+  if (!all(is.finite(years)) || any(years != as.integer(years))) {
     cli::cli_abort("`years` must contain whole years from 2012 through 2024.", call = rlang::caller_call())
   }
   if (any(years < 2012L) || any(years > 2024L)) {

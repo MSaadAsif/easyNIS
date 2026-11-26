@@ -8,7 +8,7 @@ nis_disclosure_masks <- function(counts, hospitals, threshold) {
 
 nis_validate_hospital_columns <- function(.data, by = character()) {
   required <- c(.nis_hospital_fields, by)
-  absent <- setdiff(required, nis_names(.data)) # nolint: object_usage_linter
+  absent <- setdiff(required, nis_names(.data))
   if (length(absent)) {
     cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
   }

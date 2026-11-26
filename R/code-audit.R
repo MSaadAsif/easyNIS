@@ -18,7 +18,6 @@
 
 .nis_audit_validate_by <- function(.data, by, output) {
   if (!.nis_audit_valid_by(by) || !all(by %in% nis_names(.data))) {
-    # nolint: object_usage_linter
     cli::cli_abort("`by` must name one or more unique existing columns.")
   }
   reserved <- if (output == "inventory") .nis_audit_inventory_names else .nis_audit_summary_names
@@ -29,7 +28,6 @@
 
 .nis_audit_validate_sparse_n <- function(sparse_n) {
   if (!nis_is_nonnegative_integer(sparse_n)) {
-    # nolint: object_usage_linter
     cli::cli_abort("`sparse_n` must be one non-negative whole number.")
   }
 }
@@ -39,7 +37,6 @@
     !.nis_audit_is_column_name(weight_var) ||
       !weight_var %in% nis_names(.data)
   ) {
-    # nolint: object_usage_linter
     cli::cli_abort("`weight_var` must be the name of one existing column.")
   }
 }
@@ -204,7 +201,7 @@
 }
 
 .nis_audit_flag_summary <- function(data, codes, type, system, weight_var, by) {
-  temp <- .nis_audit_names(data, nis_names(data), length(codes)) # nolint: object_usage_linter
+  temp <- .nis_audit_names(data, nis_names(data), length(codes))
   code_groups <- names(codes)
   names(codes) <- temp$flag
   flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
@@ -308,7 +305,7 @@
   long |>
     dplyr::group_by(!!!rlang::syms(c(by, temp$code))) |>
     dplyr::summarise(!!!expressions, .groups = "drop") |>
-    nis_collect() # nolint: object_usage_linter
+    nis_collect()
 }
 
 .nis_audit_inventory_grid <- function(periods, pairs, counts, temp, by, sparse_n) {
@@ -329,10 +326,10 @@
 
 .nis_audit_inventory <- function(data, codes, type, system, weight_var, by, sparse_n) {
   data <- dplyr::ungroup(data)
-  data_names <- nis_names(data) # nolint: object_usage_linter
+  data_names <- nis_names(data)
   slots <- if (type == "pr") "PR" else "DX"
   slot_names <- .nis_audit_slot_names(data_names, slots, system)
-  eligibility <- code_system_filter(data, data_names, slots, system) # nolint: object_usage_linter
+  eligibility <- code_system_filter(data, data_names, slots, system)
   temp <- .nis_audit_inventory_temp(data, data_names)
 
   cohort_expression <- stats::setNames(list(rlang::expr(dplyr::n())), temp$cohort)

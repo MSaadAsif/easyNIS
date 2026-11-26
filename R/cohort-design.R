@@ -4,7 +4,6 @@
 # design, filtered to the cohort. The placeholders and the cohort row count
 # stay on the result so `nis_reweight()` can rebuild the design.
 nis_cohort_design <- function(combined, excluded, cost_provenance) {
-  # nolint start: object_usage_linter. srvyr/dplyr data-masked fields.
   design <- srvyr::as_survey_design(
     combined,
     ids = .nis_psu,
@@ -13,7 +12,6 @@ nis_cohort_design <- function(combined, excluded, cost_provenance) {
     nest = TRUE
   ) |>
     dplyr::filter(.in_cohort)
-  # nolint end
   attr(design, "nis_placeholder_rows") <- combined[!combined$.in_cohort, , drop = FALSE]
   attr(design, "nis_cohort_rows") <- sum(combined$.in_cohort)
   attr(design, "nis_excluded") <- excluded
@@ -60,7 +58,7 @@ nis_cohort_design_restore <- function(design, call) {
   stratum <- as.character(design$strata[[1L]])
   psu <- as.character(design$cluster[[1L]])
   prefix <- paste0(stratum, ".")
-  if (any(!startsWith(psu, prefix))) {
+  if (!all(startsWith(psu, prefix))) {
     cli::cli_abort("`design` has unsupported PSU identities for reweighting.", call = call)
   }
   variables <- design$variables

@@ -685,7 +685,7 @@ local({
   manual <- baseline
   manual$step <- "ropensci_manual_subset"
   complexity <- baseline
-  complexity$step <- "cyclocomp_linter(15)"
+  complexity$step <- "installed_namespace_complexity"
   synthetic_reference <- list(
     id = "synthetic-isolation",
     doi = "10.1234/synthetic-isolation",
@@ -757,7 +757,7 @@ local({
     identical(unname(vapply(raw_lines, rawToChar, character(1))), unname(boundary_text)),
     identical(
       vapply(boundary_evidence, `[[`, character(1), "step"),
-      c("coverage_percent", "pkgcheck", "ropensci_manual_subset", "cyclocomp_linter(15)")
+      c("coverage_percent", "pkgcheck", "ropensci_manual_subset", "installed_namespace_complexity")
     )
   )
   study <- synthetic_reference
@@ -834,9 +834,9 @@ local({
   }
   malformed <- c(
     '{"INVENTED_PRIVATE_MARKER":',
-    '7',
-    'null',
-    '[]',
+    "7",
+    "null",
+    "[]",
     '{"step":["coverage_percent"],"commit":"invented-old"}'
   )
   stopifnot(coverage_is_ready(run_readiness(malformed)))

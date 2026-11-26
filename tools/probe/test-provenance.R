@@ -29,7 +29,7 @@ local({
   dir.create(library)
   make_package(older, 'marker <- function() "older"')
   make_package(requested, 'marker <- function(x = TRUE) { if (x) "requested" else "other" }')
-  make_package(broken, 'marker <- function( {')
+  make_package(broken, "marker <- function( {")
   callr::rcmd("INSTALL", c(paste0("--library=", library), older), fail_on_status = TRUE)
   previous <- .libPaths()
   on.exit(.libPaths(previous), add = TRUE)

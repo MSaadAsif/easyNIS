@@ -19,9 +19,8 @@ real NIS results.
 5. **Workflow documentation:** pkgdown documents the full analyst workflow.
    See `pkgdown documents the full workflow`.
 6. **Complexity:** cyclomatic complexity is at most 15 for every function.
-   The source linter and installed-namespace probe both check this threshold.
-   The readiness report requires current passing evidence for its complexity
-   criterion.
+   CI and the quality probe measure the installed namespace with `cyclocomp`.
+   The readiness report requires a passing receipt for the current commit.
 7. **Published-study verification:** reproduce headline estimates from three
    published NIS studies within a stated tolerance. Run verification locally
    against licensed data; publicly record only pass/fail and tolerance, never

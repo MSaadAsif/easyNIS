@@ -104,7 +104,7 @@ nis_dx_sensitivity <- function(
   flags[] <- nis_internal_names(.data, columns, unname(flags))
   data <- dx_add_position_flags(dplyr::ungroup(.data), columns, code, system, flags)
 
-  summary_flags <- dx_summary_names(nis_names(data), flags) # nolint: object_usage_linter
+  summary_flags <- dx_summary_names(nis_names(data), flags)
   summary_exprs <- dx_summary_exprs(data, flags, outcomes, weight_var, summary_flags)
   summary <- dplyr::summarise(data, !!!summary_exprs) |>
     nis_collect() |>
@@ -119,7 +119,7 @@ dx_validate_weight <- function(weight_var) {
 }
 
 dx_validate_outcomes <- function(outcomes, columns, supplied) {
-  if (!is.character(outcomes) || anyNA(outcomes) || any(!nzchar(outcomes)) || anyDuplicated(outcomes)) {
+  if (!is.character(outcomes) || anyNA(outcomes) || !all(nzchar(outcomes)) || anyDuplicated(outcomes)) {
     cli::cli_abort("`outcomes` must be a character vector of unique column names.", call = rlang::caller_call())
   }
   absent <- setdiff(outcomes, columns)

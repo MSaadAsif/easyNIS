@@ -42,8 +42,8 @@ code_system_valid_year <- function(data) {
   if (!is.numeric(schema$YEAR)) {
     return(rlang::expr(TRUE))
   }
-  finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
-  rlang::expr(!!finite_year & YEAR == floor(YEAR)) # nolint: object_usage_linter
+  finite_year <- nis_is_finite_expr(data, "YEAR")
+  rlang::expr(!!finite_year & YEAR == floor(YEAR))
 }
 
 code_system_filter <- function(data, columns, slots, system) {
@@ -52,7 +52,7 @@ code_system_filter <- function(data, columns, slots, system) {
   version <- if (system == "icd9") 9L else 10L
   if (version_name %in% columns) {
     field <- rlang::sym(version_name)
-    missing_version <- nis_is_missing_expr(data, version_name) # nolint: object_usage_linter
+    missing_version <- nis_is_missing_expr(data, version_name)
     conditions <- c(
       conditions,
       list(rlang::expr(
@@ -61,7 +61,7 @@ code_system_filter <- function(data, columns, slots, system) {
     )
   }
   if ("YEAR" %in% columns) {
-    missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
+    missing_year <- nis_is_missing_expr(data, "YEAR")
     valid_year <- code_system_valid_year(data)
     year_range <- if (system == "icd9") {
       rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
@@ -77,7 +77,7 @@ code_system_filter <- function(data, columns, slots, system) {
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
-      missing_quarter <- nis_is_missing_expr(data, "DQTR") # nolint: object_usage_linter
+      missing_quarter <- nis_is_missing_expr(data, "DQTR")
       conditions <- c(
         conditions,
         list(rlang::expr(
@@ -89,7 +89,7 @@ code_system_filter <- function(data, columns, slots, system) {
   if (length(conditions) == 0L) {
     return(NULL)
   }
-  Reduce(nis_and_expr, conditions) # nolint: object_usage_linter
+  Reduce(nis_and_expr, conditions)
 }
 
 nis_in_code_system <- function(value, eligibility) {

@@ -36,8 +36,8 @@
 #' nis_prday_completeness(toy, c("02UG0", "0JH60"))
 nis_prday_completeness <- function(.data, pr, system = c("icd10", "icd9")) {
   system <- match.arg(system)
-  pr <- normalize_prefixes(pr, "pr") # nolint: object_usage_linter
-  columns <- nis_names(.data) # nolint: object_usage_linter
+  pr <- normalize_prefixes(pr, "pr")
+  columns <- nis_names(.data)
   if (!"YEAR" %in% columns) {
     cli::cli_abort("`.data` must contain a `YEAR` column.")
   }
@@ -47,7 +47,7 @@ nis_prday_completeness <- function(.data, pr, system = c("icd10", "icd9")) {
   matches <- lapply(layout$procedure, function(column) {
     nis_code_match(nis_prefix_rule(pr), .data, column)
   })
-  eligibility <- code_system_filter(.data, columns, "PR", system) # nolint: object_usage_linter
+  eligibility <- code_system_filter(.data, columns, "PR", system)
   matches <- lapply(matches, nis_in_code_system, eligibility = eligibility)
 
   counts <- list()
@@ -94,20 +94,20 @@ nis_prday_completeness <- function(.data, pr, system = c("icd10", "icd9")) {
     dplyr::mutate(
       pct_known = dplyr::if_else(
         matched_slots == 0L,
-        NA_real_, # nolint: object_usage_linter
+        NA_real_,
         100 * known_day / matched_slots
       )
-    ) |> # nolint: object_usage_linter
+    ) |>
     dplyr::select(
       YEAR,
       slot,
       matched_slots,
       known_day,
-      missing_day, # nolint: object_usage_linter
+      missing_day,
       sentinel_invalid_day,
       absent_prday_column,
       pct_known
-    ) |> # nolint: object_usage_linter
+    ) |>
     dplyr::arrange(YEAR, slot)
   output
 }

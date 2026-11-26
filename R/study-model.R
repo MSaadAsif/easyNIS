@@ -41,7 +41,7 @@ nis_study_formula_status <- function(data, formula) {
       )
     ))
   }
-  if (any(!is.finite(model_matrix))) {
+  if (!all(is.finite(model_matrix))) {
     return(list(
       status = paste(
         "The declared model matrix contains non-finite values on complete-case rows.",
@@ -73,14 +73,14 @@ nis_study_formula_status <- function(data, formula) {
 nis_study_variable_status <- function(model_frame, outcome_values, outcome, exposure, suffix) {
   exposure_values <- model_frame[[exposure]]
   exposure_values <- exposure_values[!is.na(exposure_values)]
-  if (is.numeric(exposure_values) && any(!is.finite(exposure_values))) {
+  if (is.numeric(exposure_values) && !all(is.finite(exposure_values))) {
     return(paste0("The exposure ", exposure, " contains non-finite values", suffix))
   }
   if (length(unique(exposure_values)) < 2L) {
     return(paste0("The exposure ", exposure, " has fewer than two observed levels", suffix))
   }
   outcome_values <- outcome_values[!is.na(outcome_values)]
-  if (is.numeric(outcome_values) && any(!is.finite(outcome_values))) {
+  if (is.numeric(outcome_values) && !all(is.finite(outcome_values))) {
     return(paste0("The outcome ", outcome, " contains non-finite values", suffix))
   }
   if (length(unique(outcome_values)) < 2L) {
@@ -141,11 +141,11 @@ nis_study_warning_status <- function(warnings) {
 
 nis_study_estimate_status <- function(model) {
   coefficients <- tryCatch(stats::coef(model), error = function(error) NULL)
-  if (is.null(coefficients) || length(coefficients) == 0L || any(!is.finite(coefficients))) {
+  if (is.null(coefficients) || length(coefficients) == 0L || !all(is.finite(coefficients))) {
     return("The model returned missing or non-finite coefficients.")
   }
   covariance <- tryCatch(stats::vcov(model), error = function(error) NULL)
-  if (is.null(covariance) || length(covariance) == 0L || any(!is.finite(covariance))) {
+  if (is.null(covariance) || length(covariance) == 0L || !all(is.finite(covariance))) {
     return("The model returned missing or non-finite covariance estimates.")
   }
   NULL
