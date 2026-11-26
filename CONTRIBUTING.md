@@ -28,6 +28,19 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 - Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.
 - Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.
 
+### Resource-intensive tests
+
+The regular suite includes the DuckDB workload-settings and connection-cleanup
+checks and exercises every procedure timing policy and relation. The full tier
+also checks procedure timing on a 25-slot Parquet fixture and sorts a million
+invented rows to check enforcement and cleanup of the DuckDB spill limit.
+These two tests are skipped unless `EASYNIS_FULL_TESTS=true`.
+
+Run the full suite with `Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()`
+or run the committed package check with
+`Rscript --vanilla tools/check-package.R --full`. The latter is the command for
+scheduled or manually triggered full checks.
+
 ## Where changes belong
 
 R loads package source from the flat `R/` directory. Use the domain in the
