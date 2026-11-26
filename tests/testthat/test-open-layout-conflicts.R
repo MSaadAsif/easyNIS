@@ -155,7 +155,8 @@ test_that("native Parquet parts are read at their literal paths", {
   hive <- file.path(path, "YEAR=2020")
   write_duckdb_parquet(data.frame(id = 1L), file.path(hive, "part[1].parquet"))
   write_duckdb_parquet(data.frame(id = 2L), file.path(hive, "part1.parquet"))
-  expect_identical(sort(dplyr::collect(nis_open(path))$id), 1:2)
+  expect_no_warning(query <- nis_open(path))
+  expect_identical(sort(dplyr::collect(query)$id), 1:2)
 })
 
 test_that("a physical year conflict identifies the offending part of a Hive scan", {

@@ -51,10 +51,14 @@
 #' published discharge count for a year is present. Counts must match exactly,
 #' and the weight sum can differ by half a discharge plus a small allowance
 #' for floating-point arithmetic because HCUP rounds the published weight sum
-#' to a whole discharge. When the fields are present, missing `YEAR`, `YEAR`
+#' to a whole discharge. Only finite, positive hospital IDs count, and
+#' optional totals are compared only when every part for a year has the
+#' corresponding column.
+#' Parquet files with zero discharges across an entire opened year warn.
+#' When the fields are present, missing `YEAR`, `YEAR`
 #' outside the opened years, and `NIS_STRATUM` values of zero or less warn
-#' regardless of extract size or reference coverage. A warning leaves the
-#' lazy query available for use.
+#' regardless of extract size or reference coverage. If the check cannot
+#' run, it warns with the reason. The lazy query remains available for use.
 #'
 #' @section Large data:
 #' The query stays in DuckDB until you collect it. Filter, project, and summarize
@@ -106,8 +110,8 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),
   on.exit(connection$release(), add = TRUE)
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
-  if (check_release) nis_open_check_release(plan$query, dataset$years)
-  query <- nis_open_normalize_names(plan$query, plan$names)
+  if (check_release) nis_open_check_release(plan, dataset)
+  query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)

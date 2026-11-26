@@ -15,20 +15,38 @@ nis_release_reference <- data.frame(
   hospitals = c(4378, 4363, 4411, 4573, 4575, 4584, 4550, 4568, 4580, 4558, 4544, 4181, 4061)
 )
 
-nis_open_check_release <- function(query, years) {
-  fields <- nis_sql_identifier_key(colnames(query))
+nis_open_check_release <- function(plan, dataset) {
+  years <- dataset$years
+  fields <- nis_sql_identifier_key(colnames(plan$query))
   has_year <- "year" %in% fields
-  if (!has_year && !"nis_stratum" %in% fields) return(invisible(NULL))
 
   expected <- nis_release_reference[nis_release_reference$year %in% years, ]
-  observed <- nis_release_totals(query, years, fields, compare = has_year && nrow(expected) > 0L)
+  result <- tryCatch(nis_explain_invalid_utf8(list(
+    empty = nis_release_empty_years(dbplyr::remote_con(plan$query), dataset$parts),
+    observed = nis_release_totals(plan$query, years, fields, compare = has_year && nrow(expected) > 0L)
+  )), error = identity)
+  if (inherits(result, "error")) {
+    cli::cli_warn(c(
+      "NIS annual release check could not run.",
+      i = "{conditionMessage(result)}"
+    ), class = "easynis_release_check_failed")
+    return(invisible(NULL))
+  }
+
+  observed <- result$observed
+  fields_by_year <- split(lapply(plan$names_by_part, nis_sql_identifier_key), dataset$parts$year)
   references <- match(observed$release_year, expected$year)
   eligible <- which(observed$rows >= expected$rows[references] / 2)
   details <- vapply(eligible, function(i) {
-    mismatches <- nis_release_mismatches(expected[references[[i]], ], observed[i, ])
+    year <- observed$release_year[[i]]
+    annual_fields <- Reduce(intersect, fields_by_year[[as.character(year)]])
+    mismatches <- nis_release_mismatches(expected[references[[i]], ], observed[i, ], annual_fields)
     if (!length(mismatches)) return("")
-    paste0(observed$release_year[[i]], ": ", paste(mismatches, collapse = ", "))
+    paste0(year, ": ", paste(mismatches, collapse = ", "))
   }, character(1))
+  details <- c(details, paste0(result$empty, ": 0 unweighted discharges in the opened Parquet files",
+    recycle0 = TRUE))
+  details <- details[order(c(observed$release_year[eligible], result$empty))]
   details <- c(details[nzchar(details)], nis_release_integrity_details(observed, years, has_year))
   if (length(details)) {
     cli::cli_warn(c(
@@ -38,6 +56,18 @@ nis_open_check_release <- function(query, years) {
     ), class = "easynis_release_mismatch")
   }
   invisible(NULL)
+}
+
+nis_release_empty_years <- function(con, parts) {
+  # File metadata can distinguish an empty year from rows whose YEAR is missing or wrong.
+  paths <- nis_parquet_paths(con, parts$path)
+  metadata <- DBI::dbGetQuery(con, paste0(
+    "SELECT file_name, num_rows FROM parquet_file_metadata(", paths, ")"
+  ))
+  files <- normalizePath(metadata$file_name, winslash = "/", mustWork = TRUE)
+  rows <- metadata$num_rows[match(parts$path, files)]
+  if (anyNA(rows)) stop("Could not determine the row count for every opened Parquet file.")
+  setdiff(parts$year, parts$year[rows > 0])
 }
 
 nis_release_integrity_details <- function(observed, years, has_year) {
@@ -57,26 +87,35 @@ nis_release_integrity_details <- function(observed, years, has_year) {
 }
 
 nis_release_totals <- function(query, years, fields, compare) {
+  if (!any(c("year", "nis_stratum") %in% fields)) return(data.frame())
+  con <- dbplyr::remote_con(query)
   year <- if ("year" %in% fields) "YEAR" else "NULL::INTEGER"
   weight <- if (compare && "discwt" %in% fields) "fsum(TRY_CAST(DISCWT AS DOUBLE))" else "NULL"
-  hospitals <- if (compare && "hosp_nis" %in% fields) "count(DISTINCT HOSP_NIS)" else "NULL"
+  hospitals <- if (compare && "hosp_nis" %in% fields) {
+    valid <- nis_is_positive_finite_expr(query, dbplyr::sql("TRY_CAST(HOSP_NIS AS DOUBLE)"))
+    predicate <- dbplyr::translate_sql(!!valid, con = con)
+    paste0("count(DISTINCT HOSP_NIS) FILTER (WHERE ", predicate, ")")
+  } else {
+    "NULL"
+  }
   strata <- if ("nis_stratum" %in% fields) "count_if(TRY_CAST(NIS_STRATUM AS DOUBLE) <= 0)" else "0"
   sql <- paste0(
     "SELECT CASE WHEN ", year, " IN (", paste(years, collapse = ", "), ") THEN ", year,
     " END AS release_year, min(", year, ") AS example_year, count(*) AS rows, ",
     weight, " AS weight, ", hospitals, " AS hospitals, ", strata, " AS invalid_strata ",
-    "FROM (", dbplyr::sql_render(query), ") GROUP BY 1"
+    "FROM (", dbplyr::sql_render(query), ") GROUP BY 1 ORDER BY 1"
   )
-  DBI::dbGetQuery(dbplyr::remote_con(query), sql)
+  DBI::dbGetQuery(con, sql)
 }
 
-nis_release_mismatches <- function(expected, observed) {
+nis_release_mismatches <- function(expected, observed, annual_fields) {
   fields <- c(rows = "unweighted discharges", weight = "sum of DISCWT", hospitals = "distinct HOSP_NIS")
   # HCUP's Core PDFs publish Sum of Weights rounded to the nearest whole
   # discharge. fsum compensates for floating-point error, and the extra
   # millionth covers arithmetic at the half-discharge boundary.
   tolerance <- c(rows = 0, weight = 0.500001, hospitals = 0)
-  details <- vapply(names(fields), function(field) {
+  available <- c(TRUE, c("discwt", "hosp_nis") %in% annual_fields)
+  details <- vapply(names(fields)[available], function(field) {
     target <- expected[[field]]
     actual <- as.numeric(observed[[field]])
     if (is.finite(actual) && abs(actual - target) <= tolerance[[field]]) return("")

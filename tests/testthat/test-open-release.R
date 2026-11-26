@@ -86,3 +86,60 @@ test_that("unreferenced years still get integrity checks", {
   expect_warning(nis_open(bad_path), class = "easynis_release_mismatch",
     regexp = "NIS_STRATUM <= 0: 1")
 })
+
+test_that("only finite positive hospital IDs count toward release totals", {
+  local_mocked_bindings(nis_release_reference = data.frame(
+    year = 2020L, rows = 8, weight = 40, hospitals = 7
+  ))
+  path <- withr::local_tempdir()
+  con <- nis_duckdb_connect()
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+  file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
+  # SQL keeps NaN distinct from NULL in the Parquet fixture.
+  DBI::dbExecute(con, paste(
+    "COPY (SELECT 2020::INTEGER AS YEAR, 5 AS DISCWT, id::DOUBLE AS HOSP_NIS",
+    "FROM (VALUES ('1'), ('2'), ('NaN'), ('Infinity'), ('-9'), ('-8'), ('0'), (NULL)) ids(id))",
+    "TO", file, "(FORMAT PARQUET)"
+  ))
+
+  expect_warning(nis_open(path), "HOSP_NIS 2", class = "easynis_release_mismatch")
+})
+
+test_that("release totals skip design fields absent from an annual schema", {
+  local_mocked_bindings(nis_release_reference = data.frame(
+    year = 2019:2020, rows = c(1, 2), weight = c(5, 10), hospitals = c(1, 2)
+  ))
+  path <- withr::local_tempdir()
+  write_duckdb_parquet(data.frame(YEAR = 2019L), file.path(path, "NIS_2019.parquet"))
+  write_duckdb_parquet(data.frame(DISCWT = 5, HOSP_NIS = 1L),
+    file.path(path, "YEAR=2020", "core.parquet"))
+  write_duckdb_parquet(data.frame(YEAR = 2020L),
+    file.path(path, "YEAR=2020", "projected.parquet"))
+
+  expect_no_warning(nis_open(path, years = 2019L))
+  expect_no_warning(nis_open(path))
+  write_duckdb_parquet(data.frame(YEAR = 2019L, DISCWT = NA_real_, HOSP_NIS = NA_integer_),
+    file.path(path, "NIS_2019.parquet"))
+  expect_warning(nis_open(path), class = "easynis_release_mismatch")
+})
+
+test_that("a schema-only annual file warns even without a physical YEAR column", {
+  path <- withr::local_tempdir()
+  write_duckdb_parquet(data.frame(DISCWT = numeric()), file.path(path, "NIS_2020.parquet"))
+  expect_warning(query <- nis_open(path), "2020.*0", class = "easynis_release_mismatch")
+  expect_equal(nrow(dplyr::collect(query)), 0L)
+})
+
+test_that("release discrepancies are reported in year order", {
+  local_mocked_bindings(nis_release_reference = data.frame(
+    year = 2019:2020, rows = 2, weight = 10, hospitals = 2
+  ))
+  withr::local_options(easyNIS.duckdb_config = list(threads = 1L))
+  path <- withr::local_tempdir()
+  write_duckdb_parquet(data.frame(YEAR = 2020L, HOSP_NIS = 1L),
+    file.path(path, "NIS_2020.parquet"))
+  write_duckdb_parquet(data.frame(HOSP_NIS = 1L), file.path(path, "YEAR=2019", "part.parquet"))
+
+  expect_warning(nis_open(path, years = 2020:2019), "(?s)2019:.*2020:",
+    class = "easynis_release_mismatch", perl = TRUE)
+})

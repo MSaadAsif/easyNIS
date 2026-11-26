@@ -85,10 +85,14 @@ for 2012 through 2024. Totals are compared only when at least half of the
 published discharge count for a year is present. Counts must match exactly,
 and the weight sum can differ by half a discharge plus a small allowance
 for floating-point arithmetic because HCUP rounds the published weight sum
-to a whole discharge. When the fields are present, missing \code{YEAR}, \code{YEAR}
+to a whole discharge. Only finite, positive hospital IDs count, and
+optional totals are compared only when every part for a year has the
+corresponding column.
+Parquet files with zero discharges across an entire opened year warn.
+When the fields are present, missing \code{YEAR}, \code{YEAR}
 outside the opened years, and \code{NIS_STRATUM} values of zero or less warn
-regardless of extract size or reference coverage. A warning leaves the
-lazy query available for use.
+regardless of extract size or reference coverage. If the check cannot
+run, it warns with the reason. The lazy query remains available for use.
 }
 
 \section{Large data}{
