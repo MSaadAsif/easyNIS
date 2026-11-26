@@ -1,35 +1,35 @@
 .cpi_u <- dplyr::tribble(
-  ~year , ~index  ,
-   2012 , 229.594 ,
-   2013 , 232.957 ,
-   2014 , 236.736 ,
-   2015 , 237.017 ,
-   2016 , 240.007 ,
-   2017 , 245.120 ,
-   2018 , 251.107 ,
-   2019 , 255.657 ,
-   2020 , 258.811 ,
-   2021 , 270.970 ,
-   2022 , 292.655 ,
-   2023 , 304.702 ,
-   2024 , 313.689
+  ~year, ~index,
+  2012, 229.594,
+  2013, 232.957,
+  2014, 236.736,
+  2015, 237.017,
+  2016, 240.007,
+  2017, 245.120,
+  2018, 251.107,
+  2019, 255.657,
+  2020, 258.811,
+  2021, 270.970,
+  2022, 292.655,
+  2023, 304.702,
+  2024, 313.689
 )
 attr(.cpi_u, "source") <- paste(
   "U.S. Bureau of Labor Statistics, CPI-U All items, U.S. city average,",
   "not seasonally adjusted, series CUUR0000SA0; annual averages"
 )
 
-nis_cost_report <- function(provenance, population) {
+nis_cost_report <- function(provenance, cohort) {
   messages <- c(
-    rows_missing_or_invalid_ccr = "missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows.",
-    rows_missing_charges = "missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
+    rows_missing_or_invalid_ccr =
+      "missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows.",
+    rows_missing_charges =
+      "missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
   )
   for (field in names(messages)) {
     count <- provenance[[field]]
-    if (count == 0L) {
-      next
-    }
-    noun <- if (is.null(population)) " row" else " cohort row"
+    if (count == 0L) next
+    noun <- if (cohort) " cohort row" else " row"
     verb <- if (count == 1L) " has " else "s have "
     cli::cli_inform(paste0(count, noun, verb, messages[[field]]))
   }
@@ -37,13 +37,17 @@ nis_cost_report <- function(provenance, population) {
 
 .nis_cost_validate_data <- function(data, call) {
   if (!is.data.frame(data)) {
-    cli::cli_abort("`data` must be a collected data frame.", call = call)
+    cli::cli_abort("`data` must be a collected data frame.",
+      call = call
+    )
   }
 }
 
 .nis_cost_validate_charge <- function(charges, call) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
-    cli::cli_abort("`charges` must be a single column name.", call = call)
+    cli::cli_abort("`charges` must be a single column name.",
+      call = call
+    )
   }
 }
 
@@ -51,31 +55,41 @@ nis_cost_report <- function(provenance, population) {
   required <- c("YEAR", charges, "CCR_NIS")
   missing <- setdiff(required, names(data))
   if (length(missing) > 0L) {
-    cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.", call = call)
+    cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.",
+      call = call
+    )
   }
 }
 
 .nis_cost_validate_dollars <- function(dollars, call) {
   if (length(dollars) != 1L || !is.numeric(dollars) || !dollars %in% .cpi_u$year) {
-    cli::cli_abort("`dollars` must be one year from 2012 through 2024.", call = call)
+    cli::cli_abort("`dollars` must be one year from 2012 through 2024.",
+      call = call
+    )
   }
 }
 
 .nis_cost_validate_numeric <- function(data, charges, call) {
-  if (!is.numeric(data$YEAR) || !is.numeric(data[[charges]]) || !is.numeric(data$CCR_NIS)) {
-    cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.", call = call)
+  if (!is.numeric(data$YEAR) || !is.numeric(data[[charges]]) ||
+      !is.numeric(data$CCR_NIS)) {
+    cli::cli_abort("`YEAR`, {.field {charges}}, and `CCR_NIS` must be numeric.",
+      call = call
+    )
   }
 }
 
 .nis_cost_year_index <- function(year, call) {
   index <- match(year, .cpi_u$year)
   if (anyNA(index)) {
-    cli::cli_abort("`YEAR` contains values without a CPI-U index (2012-2024).", call = call)
+    cli::cli_abort("`YEAR` contains values without a CPI-U index (2012-2024).",
+      call = call
+    )
   }
   index
 }
 
-.nis_cost_provenance <- function(charges, dollars, multipliers, invalid_ccr_count, missing_charges_count) {
+.nis_cost_provenance <- function(charges, dollars, multipliers,
+                                 invalid_ccr_count, missing_charges_count) {
   list(
     charge_field = charges,
     ccr_field = "CCR_NIS",
@@ -126,45 +140,44 @@ nis_cost <- function(data, dollars, charges = "TOTCHG") {
   nis_adjust_costs(data, dollars, charges, call = rlang::current_call())
 }
 
-nis_adjust_costs <- function(data, dollars, charges, call, population = NULL) {
+nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) {
   .nis_cost_validate_data(data, call)
   .nis_cost_validate_charge(charges, call)
   .nis_cost_validate_columns(data, charges, call)
   .nis_cost_validate_dollars(dollars, call)
   .nis_cost_validate_numeric(data, charges, call)
   index <- .nis_cost_year_index(data$YEAR, call)
+  years <- if (is.null(cohort_years)) unique(data$YEAR) else cohort_years
+  year_indices <- .nis_cost_year_index(sort(years), call)
 
   reference_index <- .cpi_u$index[match(as.integer(dollars), .cpi_u$year)]
   ccr <- data$CCR_NIS
   valid_ccr <- dplyr::coalesce(is.finite(ccr) & ccr > 0, FALSE)
   charges_value <- data[[charges]]
   valid_charges <- dplyr::coalesce(is.finite(charges_value) & charges_value >= 0, FALSE)
-  reported <- if (is.null(population)) seq_len(nrow(data)) else population
-  invalid_ccr_count <- sum(!valid_ccr[reported])
-  missing_charges_count <- sum(!valid_charges[reported])
-  data$cost_adj <- ifelse(
-    valid_ccr & valid_charges,
-    charges_value * ccr * reference_index / .cpi_u$index[index],
-    NA_real_
-  )
-  data$charges_adj <- ifelse(valid_charges, charges_value * reference_index / .cpi_u$index[index], NA_real_)
+  invalid_ccr_count <- sum(!valid_ccr)
+  missing_charges_count <- sum(!valid_charges)
+  if (!length(index) && !is.null(cohort_years)) {
+    data$cost_adj <- numeric()
+    data$charges_adj <- numeric()
+  } else {
+    data$cost_adj <- ifelse(valid_ccr & valid_charges,
+      charges_value * ccr * reference_index / .cpi_u$index[index], NA_real_)
+    data$charges_adj <- ifelse(valid_charges,
+      charges_value * reference_index / .cpi_u$index[index], NA_real_)
+  }
   attr(data$cost_adj, "label") <- paste0("Hospital cost (", dollars, " USD)")
   attr(data$charges_adj, "label") <- paste0("Total charges (", dollars, " USD)")
   multipliers <- data.frame(
-    year = .cpi_u$year[.cpi_u$year %in% unique(data$YEAR)],
-    multiplier = reference_index /
-      .cpi_u$index[.cpi_u$year %in% unique(data$YEAR)],
+    year = .cpi_u$year[year_indices],
+    multiplier = reference_index / .cpi_u$index[year_indices],
     stringsAsFactors = FALSE
   )
   provenance <- .nis_cost_provenance(
-    charges,
-    dollars,
-    multipliers,
-    invalid_ccr_count,
-    missing_charges_count
+    charges, dollars, multipliers, invalid_ccr_count, missing_charges_count
   )
   attr(data, "nis_cost_provenance") <- provenance
-  nis_cost_report(provenance, population)
+  nis_cost_report(provenance, !is.null(cohort_years))
   data
 }
 

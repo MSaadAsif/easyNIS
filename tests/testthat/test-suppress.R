@@ -284,7 +284,6 @@ test_that("nis_cell_counts excludes zero-domain placeholder rows", {
   expect_identical(counts$n, 2L)
   expect_identical(counts$hospitals, 2L)
   expect_equal(nrow(attr(design, "nis_placeholder_rows")), 1L)
-  expect_false(attr(design, "nis_placeholder_rows")$.in_cohort[[1L]])
 })
 
 test_that("nis_cell_counts handles an unstratified cell and validates its inputs", {

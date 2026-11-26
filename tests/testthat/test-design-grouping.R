@@ -35,10 +35,8 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
       )
       expect_equal(nrow(actual$variables), sum(in_cohort))
       expect_equal(sort(actual$variables$LOS), sort(data$LOS[in_cohort]))
-      expect_setequal(
-        names(actual$variables),
-        c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "LOS", ".in_cohort", ".nis_psu", ".nis_stratum", ".nis_weight")
-      )
+      expect_setequal(names(actual$variables), c("YEAR", "HOSP_NIS",
+        "NIS_STRATUM", "DISCWT", "LOS"))
       expect_length(dplyr::group_vars(actual), 0L)
       expect_equal(survey::degf(actual), survey::degf(reference))
       for (estimate in list(survey::svymean, survey::svytotal)) {

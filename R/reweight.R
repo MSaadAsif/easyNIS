@@ -1,7 +1,7 @@
 nis_reweight_data <- function(design, weights_quo, call) {
   rows <- nis_cohort_design_rows(design, call)
   variables <- rows$variables
-  placeholders <- rows$placeholders
+  placeholders <- rows$placeholders[.nis_cohort_structure_fields]
 
   weight_values <- rlang::eval_tidy(weights_quo, data = variables)
   if (!is.numeric(weight_values) || !is.null(dim(weight_values))) {
@@ -17,18 +17,18 @@ nis_reweight_data <- function(design, weights_quo, call) {
     cli::cli_abort("`weights` must be positive.", call = call)
   }
 
-  variables <- nis_cohort_design_restore(design, call)
-  aligned <- variables[rep(NA_integer_, nrow(placeholders)), , drop = FALSE]
-  for (field in .nis_cohort_structure_fields) {
-    aligned[[field]] <- placeholders[[field]]
-  }
-  variables$.nis_weight <- variables$.nis_weight * as.numeric(weight_values)
+  structure <- nis_cohort_design_restore(design, call)
+  structure$.nis_weight <- structure$.nis_weight * as.numeric(weight_values)
   # survey stores reciprocals of weights.
-  represented <- 1 / (1 / variables$.nis_weight)
+  represented <- 1 / (1 / structure$.nis_weight)
   if (any(!is.finite(represented) | represented <= 0)) {
     cli::cli_abort("The reweighted design must have finite weights greater than zero.", call = call)
   }
-  list(combined = dplyr::bind_rows(variables, aligned), variables = variables)
+  list(
+    structure = dplyr::bind_rows(structure, placeholders),
+    placeholders = placeholders,
+    variables = variables[setdiff(names(variables), c(.nis_cohort_structure_fields, ".in_cohort"))]
+  )
 }
 
 #' Reweight a cohort survey design
@@ -73,14 +73,8 @@ nis_reweight_data <- function(design, weights_quo, call) {
 nis_reweight <- function(design, weights) {
   call <- rlang::current_call()
   rows <- nis_reweight_data(design, rlang::enquo(weights), call)
-  variables <- rows$variables
-  combined <- rows$combined
-  # bind_rows() drops variable labels; restore them before rebuilding the design.
-  for (name in names(variables)) {
-    label <- attr(variables[[name]], "label", exact = TRUE)
-    if (!is.null(label)) attr(combined[[name]], "label") <- label
-  }
-  reweighted <- nis_cohort_design(combined, attr(design, "nis_excluded", exact = TRUE), nis_cost_provenance(design))
+  reweighted <- nis_cohort_design(rows$variables, rows$structure, rows$placeholders,
+    attr(design, "nis_excluded", exact = TRUE), nis_cost_provenance(design))
   nis_cohort_check_rebuild(design, reweighted, call)
   reweighted
 }
