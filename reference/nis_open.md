@@ -5,7 +5,12 @@ Open annual NIS Parquet files lazily
 ## Usage
 
 ``` r
-nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
+nis_open(
+  path,
+  years = NULL,
+  reader = c("duckdb", "arrow"),
+  check_release = TRUE
+)
 ```
 
 ## Arguments
@@ -28,6 +33,11 @@ nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
   optional dependency. Its reader preserves source bytes in strings,
   including malformed UTF-8; downstream string operations may still
   fail.
+
+- check_release:
+
+  Check annual release totals and design fields by default. Set to
+  `FALSE` to skip the check.
 
 ## Value
 
@@ -80,6 +90,27 @@ optional `arrow` package. Arrow preserves the bytes; it does not detect
 or repair all invalid text, and downstream string operations may still
 fail on malformed values.
 
+## Annual release check
+
+DuckDB checks the discharge count, sum of `DISCWT`, and distinct
+`HOSP_NIS` count against the [HCUP summary
+statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp) for
+each opened year from 2012 through 2024. Counts must match exactly, and
+the weight sum can differ by half a discharge plus a small allowance for
+floating-point arithmetic because HCUP rounds the published weight sum
+to a whole discharge. Only finite, positive hospital IDs count, and
+optional totals are compared only when every checked part for a year has
+the corresponding column. Files created by
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+are excluded from these totals. They still undergo the integrity checks
+below. Parquet files with zero discharges across an entire opened year
+warn. When the fields are present, missing `YEAR`, `YEAR` outside the
+opened years, and `NIS_STRATUM` values of zero or less warn even for
+years without published reference totals. If the check cannot run, it
+warns with the reason. The lazy query remains available for use. Cohort
+extracts are expected to differ from the published totals. Use
+`check_release = FALSE` to skip the check for an intentional extract.
+
 ## Large data
 
 The query stays in DuckDB until you collect it. Filter, project, and
@@ -104,7 +135,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpyIepQS/duckdb
+#> ℹ /tmp/RtmpzqiguU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -113,7 +144,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpyIepQS/duckdb
+#> ℹ /tmp/RtmpzqiguU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -134,7 +165,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpyIepQS/duckdb
+#> ℹ /tmp/RtmpzqiguU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

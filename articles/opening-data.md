@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgiuGLQ/duckdb
+#> ℹ /tmp/RtmpQCtlfw/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgiuGLQ/duckdb
+#> ℹ /tmp/RtmpQCtlfw/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -66,7 +66,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgiuGLQ/duckdb
+#> ℹ /tmp/RtmpQCtlfw/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -88,6 +88,23 @@ The preview contains only the requested variables from the synthetic
 2020 file. Mixed-case column names are normalized to upper case; already
 lower-case names remain unchanged.
 
+## Annual release checks
+
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+checks converted Core files by default. DuckDB compares the row count,
+sum of `DISCWT`, and distinct `HOSP_NIS` count for each year against
+HCUP’s Core Weighted and Hospital Weights summary statistics for
+2012–2024. [HCUP NIS summary
+statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
+
+When those fields are present, missing `YEAR`, `YEAR` outside the opened
+years, and nonpositive `NIS_STRATUM` values also warn. Warnings leave
+the lazy query available. Files from
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+still undergo these integrity checks and are excluded from the published
+totals. If you open an intentional extract, set `check_release = FALSE`
+to skip the check.
+
 ## Filter and project before collecting
 
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
@@ -101,7 +118,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgiuGLQ/duckdb
+#> ℹ /tmp/RtmpQCtlfw/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

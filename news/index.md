@@ -2,6 +2,16 @@
 
 ## easyNIS (development version)
 
+- [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+  checks annual Core files by default against HCUP’s published discharge
+  counts, weight sums, and hospital counts for each opened year in
+  2012–2024. Discrepancies warn and the lazy query stays available.
+  Files from
+  [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
+  skip the comparison and still receive integrity checks. Cohort
+  extracts are expected to differ. Set `check_release = FALSE` to skip
+  the check.
+
 - Parquet opening assigns nested Hive parts to the nearest partition
   year and inspects each source schema once. Compatible files share a
   native DuckDB scan, and integer year filters can use Parquet
