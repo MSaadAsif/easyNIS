@@ -18,13 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: posit-dev/setup-air@v1
+        with:
+          version: '0.13.0'
+      - name: Check Air formatting
+        run: air format . --check
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: release
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::cyclocomp, any::lintr, any::jsonlite, any::goodpractice, any::pkgload, local::.
+          extra-packages: any::cyclocomp, any::jsonlite, any::goodpractice, any::pkgload, local::.
           needs: check
       - name: Check improvement-loop tooling
         run: |
@@ -34,12 +39,3 @@ jobs:
           Rscript tools/probe/test-readiness-ci.R
           Rscript tools/probe/test-privacy-guard.R
           Rscript tools/probe/update-codemeta.R --check
-      - name: Lint package
-        run: |
-          pkgload::load_all(quiet = TRUE)
-          lints <- lintr::lint_package()
-          if (length(lints) > 0L) {
-            print(lints)
-            quit(status = 1L)
-          }
-        shell: Rscript {0}
