@@ -1,0 +1,8 @@
+"profile"	"call"	"path"	"repeat"	"status"	"exit_code"	"stage"	"design_key"	"build_s"	"call_s"	"process_s"	"build_peak_bytes"	"peak_bytes"	"temp_peak_bytes"	"residual_bytes"
+"minimum"	"mean"	"dbi"	"1"	"ok"	"0"	"build"	"dbi-full"	"2.35"	""	"4.532"	"288813056"	"289001472"	"0"	"0"
+"minimum"	"mean"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-full-los"	"5.19"	""	"6.81"	"287490048"	"287612928"	"0"	"0"
+"minimum"	"total"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-total"	"4.53"	""	"6.158"	"299139072"	"299245568"	"0"	"0"
+"minimum"	"adult_mean"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-adult-los"	"4.15"	""	"5.541"	"286720000"	"286720000"	"0"	"0"
+"minimum"	"hf_mean"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-hf_mean"	"3.36"	""	"4.877"	"295751680"	"295813120"	"0"	"0"
+"minimum"	"hf_glm"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-hf_glm"	"2.91"	""	"3.931"	"297508864"	"297562112"	"0"	"0"
+"minimum"	"glm"	"placeholder"	"1"	"ok"	"0"	"build"	"placeholder-glm"	"3.01"	""	"4.068"	"301105152"	"301223936"	"0"	"0"
