@@ -90,27 +90,5 @@ nis_collect <- function(x) {
   if (is.data.frame(x)) {
     return(x)
   }
-  nis_explain_invalid_utf8(dplyr::collect(x))
-}
-
-nis_explain_invalid_utf8 <- function(expr) {
-  tryCatch(
-    expr,
-    error = function(error) {
-      if (grepl("invalid string encoding|invalid UTF-8", conditionMessage(error), ignore.case = TRUE)) {
-        cli::cli_abort(
-          c(
-            "A string column in the Parquet input is not valid UTF-8.",
-            i = paste0(
-              "This usually happens when converting HCUP ASCII files without ",
-              "declaring their source encoding.",
-              " Re-convert with the correct encoding, for example Latin-1 to UTF-8."
-            )
-          ),
-          parent = error
-        )
-      }
-      stop(error)
-    }
-  )
+  nis_duckdb_translate_errors(dplyr::collect(x))
 }

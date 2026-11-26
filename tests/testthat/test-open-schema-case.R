@@ -14,17 +14,20 @@ schema_case_fixture <- function(spellings) {
   path
 }
 
-test_that("normalization collisions retain coalesced names and values", {
+test_that("Unicode projections retain names and values under the Windows C locale", {
+  skip_if_not(.Platform$OS.type == "windows", "Unicode case folding in the C locale differs by platform")
+  withr::local_locale(c(LC_CTYPE = "C"))
   path <- tempfile("nis-unicode-case-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  data <- data.frame(YEAR = 2019L, first = NA_integer_, second = 7L)
-  names(data)[2:3] <- c("A\u00e9", "A\u00c9")
+  data <- data.frame(YEAR = 2019L, first = NA_integer_, second = 7L, third = 8L)
+  names(data)[2:4] <- c("A\u00e9", "A\u00c9", "\u03c2")
   write_duckdb_parquet(data, file.path(path, "NIS_2019.parquet"))
   for (reader in c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")) {
     actual <- dplyr::collect(nis_open(path, reader = reader, check_release = FALSE))
-    expect_setequal(names(actual), c("YEAR", "A\u00c9"))
+    expect_setequal(names(actual), c("YEAR", "A\u00c9", "\u03c2"))
     expect_identical(actual[["A\u00c9"]], 7L)
+    expect_identical(actual[["\u03c2"]], 8L)
   }
 })
 

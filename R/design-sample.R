@@ -145,7 +145,9 @@ nis_design_cohort_type <- function(prepared, call) {
       dbplyr::sql_render(prepared),
       ") AS cohort_type LIMIT 0)) AS cohort_type"
     )
-    type <- DBI::dbGetQuery(dbplyr::remote_con(prepared), query)$cohort_type
+    type <- nis_duckdb_translate_errors(
+      DBI::dbGetQuery(dbplyr::remote_con(prepared), query)
+    )$cohort_type
     if (identical(type, "\"NULL\"")) {
       return(dplyr::mutate(prepared, .nis_cohort = as.logical(!!rlang::sym(".nis_cohort"))))
     }
