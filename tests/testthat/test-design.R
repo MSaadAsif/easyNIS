@@ -630,5 +630,5 @@ test_that("annualize divides by the distinct years, counting empty and partial y
   design <- suppressWarnings(suppressMessages(
     nis_design(data, eligible, keep = YEAR, annualize = TRUE)
   ))
-  expect_equal(design$variables$.nis_weight, c(3, 3))
+  expect_equal(as.numeric(stats::weights(design)), c(3, 3))
 })

@@ -31,8 +31,8 @@ test_that("nis_design preserves year-scoped domain estimates", {
     dplyr::filter(include)
 
   expect_equal(as.integer(design$variables$YEAR), 2020:2021)
-  expect_identical(design$variables$.nis_psu, c("2020::1", "2021::1"))
-  expect_identical(design$variables$.nis_stratum, c("2020::1", "2021::1"))
+  expect_identical(design$cluster[[1L]], reference$cluster[[1L]])
+  expect_identical(design$strata[[1L]], reference$strata[[1L]])
   expect_equal(as.numeric(stats::weights(design)), c(1, 3.5))
   expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
   expect_equal(survey::SE(survey::svytotal(~AGE, design)), survey::SE(survey::svytotal(~AGE, reference)))

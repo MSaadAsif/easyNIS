@@ -83,7 +83,6 @@ record_step("suppression", "nis_cell_counts + nis_suppress", year, function() {
 })
 record_step("cost", "nis_cost", year, function() {
   costs <- design$variables |>
-    dplyr::filter(.in_cohort) |>
     dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
     easyNIS::nis_cost(dollars = min(2024L, max(years)))
   list(data = costs, provenance = easyNIS::nis_cost_provenance(costs))
@@ -91,7 +90,6 @@ record_step("cost", "nis_cost", year, function() {
 record_step("comorbidity", "nis_comorbidity", year, function() {
   comorbidity_fields <- easyNIS:::nis_diagnosis_fields(design$variables)
   rows <- design$variables |>
-    dplyr::filter(.in_cohort) |>
     dplyr::select(dplyr::all_of(comorbidity_fields)) |>
     dplyr::collect()
   easyNIS::nis_comorbidity(rows)

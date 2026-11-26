@@ -53,7 +53,9 @@ analyses, or build a pooled column explicitly with
 calling; either choice mixes charge definitions across years.}
 }
 \value{
-A filtered \code{srvyr::tbl_svy} survey design.
+A filtered \code{srvyr::tbl_svy} survey design. The analysis data contains
+the required design fields, the columns selected by \code{keep}, and any
+computed cost columns. Use \code{\link[stats:weights]{stats::weights()}} for the survey weights.
 }
 \description{
 Collects cohort rows and one zero-domain placeholder per hospital-year with

@@ -29,7 +29,8 @@ Imports:
     duckdb,
     rlang,
     srvyr,
-    tidyselect
+    tidyselect,
+    vctrs
 Suggests:
     bit64,
     broom.helpers,

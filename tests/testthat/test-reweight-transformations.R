@@ -45,7 +45,7 @@ test_that("reweight restores selected design fields from intact survey metadata"
     expect_identical(actual$strata[[1L]], design$strata[[1L]])
     expect_identical(actual$fpc, design$fpc)
     expect_equal(as.numeric(stats::weights(actual)), as.numeric(stats::weights(selected)) * multipliers)
-    expect_setequal(names(actual$variables), c("AGE", ".nis_psu", ".nis_stratum", ".nis_weight", ".in_cohort"))
+    expect_identical(names(actual$variables), "AGE")
     expect_identical(attr(actual$variables$AGE, "label"), attr(selected$variables$AGE, "label"))
     expect_identical(attr(actual, "nis_excluded"), attr(selected, "nis_excluded"))
     expect_identical(attr(actual, "nis_cost_provenance"), attr(selected, "nis_cost_provenance"))
@@ -85,11 +85,7 @@ test_that("factor mutations, renames and new columns retain the current schema",
   expect_reweight_estimates(actual, reference, ~ age_group + new_age)
   expect_identical(actual$variables$age_group, transformed$variables$age_group)
   placeholders <- attr(actual, "nis_placeholder_rows")
-  expect_identical(names(placeholders), names(actual$variables))
-  expect_identical(levels(placeholders$age_group), levels(transformed$variables$age_group))
-  expect_true(is.ordered(placeholders$age_group))
-  expect_true(all(is.na(placeholders$age_group)))
-  expect_true(all(is.na(placeholders$new_age)))
+  expect_identical(placeholders, attr(design, "nis_placeholder_rows"))
   expect_false(any(c("AGE", "YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT") %in% names(actual$variables)))
 
   mutated <- dplyr::mutate(design, AGE = factor(AGE), YEAR = "analysis year", HOSP_NIS = factor(HOSP_NIS))
@@ -117,6 +113,22 @@ test_that("reweight handles no placeholders and an empty cohort", {
     expect_identical(actual$cluster[[1L]], design$cluster[[1L]])
     expect_identical(actual$strata[[1L]], design$strata[[1L]])
   }
+})
+
+test_that("a filter that retains every cohort row permits reweighting", {
+  data <- reweight_fixture("all")
+  data$DISCWT <- seq_len(nrow(data))
+  outside <- dplyr::mutate(data[1L, ], HOSP_NIS = 7L, NIS_STRATUM = 3L, eligible = FALSE)
+  whole <- nis_design(data, eligible, keep = AGE)
+  domain <- nis_design(dplyr::bind_rows(data, outside), eligible, keep = AGE)
+  factors <- rep(c(0.5, 1.2), length.out = nrow(data))
+
+  actual <- nis_reweight(dplyr::filter(whole, !is.na(AGE)), factors)
+  expected <- nis_reweight(domain, factors)
+  expect_reweight_estimates(actual, expected, ~AGE)
+  expect_identical(stats::weights(actual), stats::weights(expected))
+  expect_type(whole$variables$DISCWT, "double")
+  expect_identical(whole$variables$DISCWT, domain$variables$DISCWT)
 })
 
 test_that("reweight rejects narrowed or unsupported survey structures", {

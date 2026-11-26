@@ -5,7 +5,13 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.", call = call)
   }
-  reserved <- c(.nis_cohort_structure_fields, ".nis_cohort", ".nis_valid", unname(.nis_design_invalid_fields))
+  reserved <- c(
+    .nis_cohort_structure_fields,
+    ".in_cohort",
+    ".nis_cohort",
+    ".nis_valid",
+    unname(.nis_design_invalid_fields)
+  )
   if (!identical(reserved, nis_internal_names(.data, nis_names(.data), reserved))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
   }
@@ -149,7 +155,9 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'   `dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))` before
 #'   calling; either choice mixes charge definitions across years.
 #'
-#' @return A filtered `srvyr::tbl_svy` survey design.
+#' @return A filtered `srvyr::tbl_svy` survey design. The analysis data contains
+#'   the required design fields, the columns selected by `keep`, and any
+#'   computed cost columns. Use [stats::weights()] for the survey weights.
 #' @family survey-design
 #' @seealso [Survey design and weighting](articles/survey-design.html).
 #' @export
@@ -175,10 +183,6 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
   sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
   hospital_rows <- sample$hospital_rows
   cohort_rows <- sample$cohort_rows
-  cohort_rows$.in_cohort <- rep(TRUE, nrow(cohort_rows))
-  cohort_hospitals <- unique(cohort_rows[c("YEAR", "HOSP_NIS")])
-  empty_hospitals <- dplyr::anti_join(hospital_rows, cohort_hospitals, by = c("YEAR", "HOSP_NIS"))
-
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
   if (length(no_cohort_years) > 0L) {
     cli::cli_warn(c(
@@ -187,26 +191,23 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
     ))
   }
 
-  combined <- cohort_rows
-  if (nrow(empty_hospitals) > 0L) {
-    placeholders <- cohort_rows[rep(NA_integer_, nrow(empty_hospitals)), , drop = FALSE]
-    for (field in .nis_design_fields) {
-      placeholders[[field]] <- empty_hospitals[[field]]
-    }
-    placeholders$.in_cohort <- FALSE
-    combined <- dplyr::bind_rows(cohort_rows, placeholders)
-  }
-  combined$.nis_psu <- paste(combined$YEAR, combined$HOSP_NIS, sep = "::")
-  combined$.nis_stratum <- paste(combined$YEAR, combined$NIS_STRATUM, sep = "::")
   year_count <- length(sample$years)
-  combined$.nis_weight <- combined$DISCWT / if (annualize) year_count else 1
+  divisor <- if (annualize) year_count else 1
+  keys <- c("YEAR", "HOSP_NIS")
+  hospital_index <- vctrs::vec_match(cohort_rows[keys], hospital_rows[keys])
+  has_cohort <- tabulate(hospital_index, nrow(hospital_rows)) > 0L
+  empty <- which(!has_cohort)
+  if (!is.double(cohort_rows$DISCWT)) {
+    cohort_rows$DISCWT <- as.double(cohort_rows$DISCWT)
+  }
+  discharge_weights <- cohort_rows$DISCWT
 
   has_cost_inputs <- all(c(charges, "CCR_NIS") %in% fields$keep_names)
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
   }
-  combined <- nis_label(combined)
-  alias_sources <- combined[unique(fields$keep_names)]
+  cohort_rows <- nis_label(cohort_rows)
+  alias_sources <- cohort_rows[unique(fields$keep_names)]
   if (has_cost_inputs) {
     cost_fields <- c(charges, "CCR_NIS", "charges_adj", "cost_adj")
     charge_years <- unique(cohort_rows$YEAR)
@@ -230,19 +231,39 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
     if (is.null(dollars)) {
       dollars <- max(sample$years)
     }
-    combined <- nis_adjust_costs(combined, dollars, charges, call, population = combined$.in_cohort)
-    cost_provenance <- nis_cost_provenance(combined)
+    cohort_rows <- nis_adjust_costs(cohort_rows, dollars, charges, call, cohort_years = sample$years)
+    cost_provenance <- nis_cost_provenance(cohort_rows)
   } else {
     cost_fields <- NULL
     cost_provenance <- NULL
   }
 
-  hospitals <- nrow(cohort_hospitals)
-  weighted_n <- sum(cohort_rows$DISCWT) / if (annualize) year_count else 1
+  hospitals <- sum(has_cohort)
+  weighted_n <- sum(discharge_weights) / divisor
   cli::cli_inform(paste0(
     "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
     "{hospitals} hospitals across {year_count} years."
   ))
-  combined <- nis_design_aliases(combined, fields, cost_fields, alias_sources, call)
-  nis_cohort_design(combined, sample$excluded, cost_provenance)
+  cohort_rows <- nis_design_aliases(cohort_rows, fields, cost_fields, alias_sources, call)
+
+  # Form the nested labels once per hospital-year. Factor codes retain the
+  # original stratum and PSU ordering used by survey's variance calculation.
+  psu <- paste(hospital_rows$YEAR, hospital_rows$HOSP_NIS, sep = "::")
+  stratum <- paste(hospital_rows$YEAR, hospital_rows$NIS_STRATUM, sep = "::")
+  # survey requires nesting when the sample contains just one PSU.
+  nest <- nrow(hospital_rows) == 1L
+  cluster <- factor(if (nest) psu else paste(stratum, psu, sep = "."))
+  indices <- if (length(empty)) c(hospital_index, empty) else hospital_index
+  placeholders <- dplyr::tibble(
+    .nis_psu = psu[empty],
+    .nis_stratum = stratum[empty],
+    .nis_weight = hospital_rows$DISCWT[empty] / divisor
+  )
+  cohort_weights <- discharge_weights / divisor
+  structure <- dplyr::tibble(
+    .nis_psu = cluster[indices],
+    .nis_stratum = factor(stratum)[indices],
+    .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
+  )
+  nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
 }
