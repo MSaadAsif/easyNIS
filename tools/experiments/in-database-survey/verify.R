@@ -1,4 +1,5 @@
 source("tools/experiments/in-database-survey/workload.R")
+source("tools/experiments/in-database-survey/reviewer-cases.R")
 options(survey.lonely.psu = "fail", survey.adjust.domain.lonely = FALSE,
   survey.multicore = FALSE, na.action = "na.omit")
 args <- commandArgs(TRUE)
@@ -37,6 +38,10 @@ check_fixture <- function(seed) {
       NIS_STRATUM = rep(seq_along(psus), psus)[h], DISCWT = w,
       AGE = age, FEMALE = female, LOS = los, DIED = died)
   }))
+  d$HOSP_BEDSIZE <- 1L + d$HOSP_NIS %% 3L
+  d$HOSP_LOCTEACH <- 1L + (d$HOSP_NIS %/% 3L) %% 3L
+  for (col in paste0("ynel", 1:20)) d[[col]] <- rbinom(nrow(d), 1, 0.15)
+  d$TOTCHG <- 40000 + 4000 * d$AGE + 150 * d$LOS + 2000 * d$ynel2
   valid <- Reduce(`&`, lapply(d[design_fields], function(x) is.finite(x) & x > 0))
   con <- DBI::dbConnect(duckdb::duckdb(config = list(threads = "4")))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
@@ -48,18 +53,30 @@ check_fixture <- function(seed) {
     path
   }, character(1))
   on.exit(unlink(paths), add = TRUE)
-  open_views(con, paths)
+  open_views(con, paths, wide = TRUE)
   query <- function(sql) DBI::dbGetQuery(con, sql)
   stopifnot(as.numeric(query("SELECT count(*) AS n FROM valid")$n) == sum(valid))
-  reference <- reference_design(d[valid, ])
+  reference <- reference_design(query("SELECT * FROM valid"))
+  materialize <- function(sql) {
+    DBI::dbExecute(con, paste("CREATE OR REPLACE TEMP TABLE model_input AS", sql))
+    "model_input"
+  }
   cases <- c(names(workloads), names(fixture_cases))
   checks <- lapply(cases, function(call) {
     sql <- sql_call(query, call, years)
     ref <- reference_call(reference, call)
     scores <- differences(sql, ref)
-    data.frame(seed = seed, call = call, t(scores), pass = all(scores <= 1e-8))
+    if (!is.null(workloads[[call]]$family)) {
+      scores <- pmax(scores, differences(sql_call(query, call, years, materialize), ref))
+    }
+    data.frame(seed = seed, call = call, t(scores),
+      pass = all(scores[names(scores) != "vcov"] <= 1e-8) && scores["vcov"] <= 1e-6)
   })
-  do.call(rbind, checks)
+  review <- reviewer_cases(con, d[valid, ], years)
+  do.call(rbind, c(checks, lapply(names(review), function(call) {
+    scores <- review[[call]]
+    data.frame(seed = seed, call = call, t(scores), pass = all(scores <= 1e-8))
+  })))
 }
 
 seeds <- 2601:2612

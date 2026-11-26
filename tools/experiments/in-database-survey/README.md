@@ -7,16 +7,22 @@ commit `1d06879`. The prototype lives entirely in this directory.
 
 ## What DuckDB computes
 
-- Totals use weighted PSU sums. Means use ratio linearization with the same
-  complete-outcome rows in the numerator and denominator.
-- The sampled design uses year-scoped hospitals and strata, unscaled
-  `DISCWT`, and no finite population correction. The variance includes
+- Totals use weighted PSU sums. Means center each record on a first-pass
+  outcome mean before ratio linearization.
+- The sampled design uses year-scoped hospitals and strata and no finite
+  population correction. A trusted SQL weight expression defaults to
+  `DISCWT`. The variance includes
   zero contributions for PSUs outside the domain or group or without usable
   outcomes. It centers the PSU sums within each stratum and applies
-  `n / (n - 1)` to the centered cross-products.
+  `n / (n - 1)` to the centered cross-products. It reads `survey.lonely.psu`
+  and `survey.adjust.domain.lonely` from R options and supports `fail` and
+  `adjust`.
 - Gaussian identity, quasibinomial logit (0/1), and Poisson log models accept
   explicit SQL predictor columns, including year indicators. IRLS returns
   one row of compensated weighted cross-products and deviance per pass.
+  It rescales weights and uses the default GLM deviance tolerance. It halves
+  steps that produce non-finite deviance and rejects detected separation
+  or non-convergence. Gaussian reuses its fixed weighted system.
   The final query computes the variance of complete-case PSU score totals.
   The score uses the final residual with the last working weights, as in
   `survey:::svy.varcoef()`. Covariance is the design sandwich and requires
@@ -24,13 +30,12 @@ commit `1d06879`. The prototype lives entirely in this directory.
   number of complete-case PSUs minus the number of represented strata
   plus one minus model rank, matching `svyglm()`.
 
-The scope is full-rank models on the supplied fixtures and workloads,
-first-stage Taylor variance, and survey's default failure rule for a
-sampled singleton in an active stratum. The SQL interface assumes trusted
-expressions and small numeric groups. The normal equations use diagonal
-scaling and Cholesky. Rank-deficient fits, step halving, alternate lonely
-PSU policies, other link functions, and the R formula interface are outside
-the experiment.
+The SQL interface assumes trusted expressions and small numeric groups.
+Numeric expressions are projected as double precision, with NaN mapped to
+NULL. The normal equations use diagonal scaling and pivoted Cholesky to
+detect rank deficiency. The model rejects rank-deficient designs and
+numerically saturated quasibinomial fits. The pivoted Gram check can reject
+poorly conditioned inputs that a row-wise QR solver may handle.
 
 ## Invented data
 
@@ -50,8 +55,10 @@ differences and pass/fail. The cases vary PSU and stratum sizes, include a
 two-PSU stratum with zero or one in-domain PSU, reuse hospital identifiers
 across years, and exercise both values of `na.rm`. They also cover an empty
 domain, a domain with all outcomes missing, and missing grouping values.
-The model checks include the entire covariance matrix, residual degrees of
-freedom and IRLS iteration count.
+The model checks include dollar-scale outcomes, rescaled and reweighted
+weights, an infinite predictor outside the domain, numeric rank and
+separation failures, both SQL input paths, and wide models. The tolerance
+is `1e-8` for estimates and SEs and `1e-6` for covariance entries.
 
 ## Licensed data
 
@@ -66,13 +73,14 @@ pwsh -NoProfile -File tools/experiments/in-database-survey/run.ps1 -NisRoot $env
 
 The runner compares 2018–2020 and 2018–2022, using four threads and 4,800 MB
 in the minimum profile and eight threads and 60% of physical RAM in the
-reference profile. Each SQL measurement uses a new Rscript and builds its own
-views in that process. The timing table uses the
+reference profile. Each measurement uses a fresh Rscript. The SQL models
+compare Parquet views to a projected DuckDB temporary table. Materialization
+time is included in end-to-end time and recorded separately. The timing table uses the
 median end-to-end time, including interpreter startup. A separate column in
-the local summary isolates time inside the analysis. Three repeats run for a
-cell whose first trial finishes in less than a minute. Scale and profile
-order reverse on alternate repeats. The design-only audit and earlier
-workloads can warm the OS cache. The runner leaves the OS cache unmanaged.
+the local summary isolates time inside the analysis. Every cell runs at
+least three times. Scale, profile and path order reverse on alternate
+repeats. The R and DuckDB processes start cold in every trial. The audit and
+earlier workloads can warm the OS file cache, which the runner leaves unmanaged.
 
 Windows reports process peak working set and peak commit
 (`PeakWorkingSet64` and `PeakPagedMemorySize64`). The 8 GB threshold is
@@ -90,11 +98,13 @@ The runner checks for residual files after each process exits.
 | `glm` | Quasibinomial DIED model with age, sex and year |
 | `adult_glm` | That model for ages 65+ |
 | `gaussian`, `poisson` | LOS model with age, sex and year |
+| `wide_glm`, `wide_gaussian` | DIED and TOTCHG models with age, sex, hospital indicators, 20 existing numeric Elixhauser flags, and year |
 
 The three-year SQL trials compare individually with the corresponding
-in-memory reference. A fresh Rscript builds a single in-memory design and
-runs the reference calls sequentially as one correctness control. The
-five-year SQL trials compare across profiles.
+in-memory reference. Each reference call constructs its own design in a
+fresh Rscript and uses default `svyglm()` controls. Wide controls have an
+R vector-heap cap of 72% of physical RAM, rounded down to GiB. The five-year
+SQL trials compare across paths and profiles.
 Agreement is the maximum symmetric relative difference,
 using `max(abs(a), abs(b))` as the denominator for nonzero values and a
 tolerance of `1e-6`. The licensed Parquet query projects numeric fields.

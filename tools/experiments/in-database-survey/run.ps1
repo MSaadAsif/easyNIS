@@ -9,9 +9,15 @@ param(
     [ValidateSet('sql', 'survey', 'both')]
     [string] $Backend = 'both',
     [ValidateSet('mean', 'total', 'by', 'adult_mean', 'adult_by',
-        'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson')]
+        'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson', 'wide_glm', 'wide_gaussian')]
     [string[]] $Calls = @('mean', 'total', 'by', 'adult_mean', 'adult_by',
-        'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson'),
+        'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson', 'wide_glm', 'wide_gaussian'),
+    [ValidateSet('2020', '2022')]
+    [int[]] $Ends = @(2020, 2022),
+    [ValidateSet('minimum', 'reference')]
+    [string[]] $Profiles = @('minimum', 'reference'),
+    [ValidateSet('sql_view', 'sql_temp')]
+    [string[]] $ModelPaths = @('sql_view', 'sql_temp'),
     [string] $Evidence
 )
 
@@ -37,14 +43,19 @@ $run = (New-Item -ItemType Directory -Path $target -Force).FullName
 $metrics = Join-Path $run 'metrics.tsv'
 $env:LC_ALL = 'C'
 $workerScript = Join-Path $PSScriptRoot 'trial.R'
+$revision = git rev-parse HEAD
+if (git status --porcelain -- $PSScriptRoot) { throw 'Commit the experiment before measuring.' }
 
 [ordered]@{
     started_utc = $stamp
-    revision = (git rev-parse HEAD)
+    revision = $revision
     input = $NisRoot
     invocation = $MyInvocation.Line
     backend = $Backend
     calls = $Calls
+    ends = $Ends
+    profiles = $Profiles
+    model_paths = $ModelPaths
     rscript = $rscriptExe
     os = "$($os.Caption) $($os.Version)"
     physical_ram_bytes = $system.TotalPhysicalMemory
@@ -73,9 +84,12 @@ function Invoke-Trial([int] $End, [string] $Profile, [string] $Path, [string] $C
     $spill = Join-Path $trial 'spill'
     $argLine = '--vanilla "{0}" "{1}" "{2}" {3} {4} {5} {6} {7}' -f
         $workerScript, $trial, $NisRoot, $End, $threads, $mb, $Path, $Call
-    if ($Call -eq 'control_suite') { $argLine += " $($Calls -join ',')" }
+    $workerEnv = @{}
+    if ($Path -eq 'survey' -and $Call -like 'wide_*') {
+        $workerEnv.R_MAX_VSIZE = "$([int][Math]::Floor(0.72 * $system.TotalPhysicalMemory / 1GB))G"
+    }
     $launch = [Diagnostics.Stopwatch]::StartNew()
-    $process = Start-Process $rscriptExe -ArgumentList $argLine -PassThru -WindowStyle Hidden `
+    $process = Start-Process $rscriptExe -ArgumentList $argLine -PassThru -WindowStyle Hidden -Environment $workerEnv `
         -RedirectStandardOutput (Join-Path $trial 'stdout.log') `
         -RedirectStandardError (Join-Path $trial 'stderr.log')
     $pidFile = Join-Path $trial 'pid'
@@ -128,9 +142,13 @@ function Invoke-Trial([int] $End, [string] $Profile, [string] $Path, [string] $C
     $row = [pscustomobject]@{
         trial = $name; end_year = $End; profile = $Profile; backend = $Path
         call = $Call; repeat = $Repeat; status = $status
-        cache = 'OS cache unmanaged; warm eligible after audit'
+        cache = if ($Repeat -eq 1) { 'first trial; OS cache unmanaged after audit' }
+            else { 'repeat; OS cache warm eligible' }
         setup_s = if ($timings) { $timings[0] }
         call_s = if ($timings) { $timings[1] }
+        materialize_s = if (Test-Path -LiteralPath (Join-Path $trial 'materialize-seconds.txt')) {
+            [double](Get-Content -LiteralPath (Join-Path $trial 'materialize-seconds.txt') -Raw)
+        }
         wall_s = [Math]::Round(($wall ?? $launch.Elapsed.TotalSeconds), 3)
         peak_commit_bytes = $commit; peak_ws_bytes = $ws
         sampled_temp_bytes = $temp; residual_temp_bytes = $residual.bytes
@@ -146,32 +164,39 @@ function Invoke-Trial([int] $End, [string] $Profile, [string] $Path, [string] $C
     return $row
 }
 
-foreach ($end in 2020, 2022) {
-    if (!(Test-Path -LiteralPath (Join-Path $run "$end-minimum-sql-audit-1/audit.rds"))) {
-        $audit = Invoke-Trial $end minimum sql audit 1
+foreach ($end in $Ends) {
+    if (!(Test-Path -LiteralPath (Join-Path $run "$end-minimum-sql_view-audit-1/audit.rds"))) {
+        $audit = Invoke-Trial $end minimum sql_view audit 1
         if ($audit.status -ne 'ok') { throw 'Annual input validation failed. See private evidence.' }
     }
 }
 if ($Backend -ne 'survey') {
     foreach ($call in $Calls) {
-        $cells = @(@{end=2020; profile='minimum'}, @{end=2020; profile='reference'},
-            @{end=2022; profile='minimum'}, @{end=2022; profile='reference'})
-        $finished = @{}
+        $paths = if ($call -in @('glm','adult_glm','gaussian','poisson','wide_glm','wide_gaussian')) {
+            $ModelPaths
+        } else { @('sql_view') }
+        $cells = @(foreach ($end in $Ends) {
+            foreach ($profileName in $Profiles) {
+                foreach ($pathName in $paths) { @{end=$end; profile=$profileName; path=$pathName} }
+            }
+        })
         for ($i = 1; $i -le $Repeats; $i++) {
             if ($i -gt 1) { [array]::Reverse($cells) }
             foreach ($cell in $cells) {
-                $key = "$($cell.end)-$($cell.profile)"
-                if ($finished[$key]) { continue }
-                $result = Invoke-Trial $cell.end $cell.profile sql $call $i
-                if ($result.status -ne 'ok' -or ($i -eq 1 -and $result.wall_s -ge 60)) {
-                    $finished[$key] = $true
-                }
+                $null = Invoke-Trial $cell.end $cell.profile $cell.path $call $i
             }
         }
     }
 }
 if ($Backend -ne 'sql') {
-    $null = Invoke-Trial 2020 reference survey control_suite 1
+    for ($i = 1; $i -le $Repeats; $i++) {
+        $order = @($Calls)
+        if ($i % 2 -eq 0) { [array]::Reverse($order) }
+        foreach ($call in $order) { $null = Invoke-Trial 2020 reference survey $call $i }
+    }
+}
+if ((git rev-parse HEAD) -ne $revision -or (git status --porcelain -- $PSScriptRoot)) {
+    throw 'Experiment source changed during measurement.'
 }
 & $rscriptExe --vanilla (Join-Path $PSScriptRoot 'summarize.R') $run
 if ($LASTEXITCODE -ne 0) { throw 'Summary failed. See private evidence.' }

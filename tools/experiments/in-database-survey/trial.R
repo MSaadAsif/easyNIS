@@ -1,13 +1,12 @@
 args <- commandArgs(TRUE)
-stopifnot(length(args) %in% 7:8)
+stopifnot(length(args) == 7L)
 trial <- args[[1L]]
 writeLines(as.character(Sys.getpid()), file.path(trial, "pid"))
 source("tools/experiments/in-database-survey/workload.R")
 options(survey.lonely.psu = "fail", survey.adjust.domain.lonely = FALSE,
   survey.multicore = FALSE, na.action = "na.omit")
 
-run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
-                      control_calls) {
+run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call) {
   years <- 2018:end_year
   files <- lapply(file.path(root, sprintf("NIS_%d.parquet", years)), list.files,
     pattern = "\\.parquet$", full.names = TRUE)
@@ -30,7 +29,8 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
     normalizePath(settings$temp_directory, winslash = "/") ==
       normalizePath(spill, winslash = "/"))
   write.table(settings, file.path(trial, "settings.tsv"), sep = "\t", row.names = FALSE)
-  open_views(con, paths)
+  spec <- workloads[[call]]
+  open_views(con, paths, wide = isTRUE(spec$wide))
   if (call == "audit") {
     audit <- DBI::dbGetQuery(con, sprintf(paste(
       "SELECT count(*) AS input_rows,",
@@ -52,13 +52,17 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
 
   profile_path <- file.path(trial, "duckdb-profile.json")
   DBI::dbExecute(con, "SET enable_profiling = 'json'")
+  DBI::dbExecute(con, "SET profiling_coverage = 'ALL'")
   DBI::dbExecute(con, paste("SET profiling_output =", DBI::dbQuoteString(con, profile_path)))
   profiles <- list()
   # A fresh JSON file is required for every data query. Record DuckDB's peak
   # for transient spills that the Windows directory sampler could miss.
-  query <- function(sql) {
+  query <- function(sql, execute = FALSE) {
     unlink(profile_path)
-    result <- DBI::dbGetQuery(con, sql)
+    result <- if (execute) {
+      DBI::dbExecute(con, sql)
+      data.frame()
+    } else DBI::dbGetQuery(con, sql)
     if (!file.exists(profile_path)) stop("DuckDB did not profile the data query.")
     p <- jsonlite::fromJSON(profile_path, simplifyVector = FALSE)
     stopifnot(length(p$system_peak_temp_dir_size) == 1L,
@@ -68,35 +72,20 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
     result
   }
   before_call <- proc.time()[["elapsed"]]
-  if (backend == "sql") {
-    result <- sql_call(query, call, years)
+  if (backend %in% c("sql_view", "sql_temp")) {
+    materialize <- if (backend == "sql_temp") function(sql) {
+      start_materialize <- proc.time()[["elapsed"]]
+      query(paste("CREATE TEMP TABLE model_input AS", sql), execute = TRUE)
+      writeLines(as.character(proc.time()[["elapsed"]] - start_materialize),
+        file.path(trial, "materialize-seconds.txt"))
+      "model_input"
+    }
+    result <- sql_call(query, call, years, materialize)
     stopifnot(all(vapply(profiles, function(x) x$rows <= length(years), logical(1))))
   } else {
-    if (call == "control_suite") {
-      data <- query("SELECT YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, FEMALE, LOS, DIED FROM valid")
-      design <- reference_design(data)
-      rm(data)
-      gc()
-      # This is one correctness control on a single materialized design.
-      failures <- vapply(control_calls, function(key) {
-        ok <- tryCatch({
-          result <- reference_call(design, key)
-          stopifnot(all(is.finite(result$estimate)), all(is.finite(result$se)))
-          saveRDS(result, file.path(trial, paste0(key, "-statistics.rds")))
-          TRUE
-        }, error = function(e) {
-          writeLines(conditionMessage(e), file.path(trial, paste0(key, "-error.txt")))
-          FALSE
-        })
-        gc()
-        !ok
-      }, logical(1))
-      if (any(failures)) stop("At least one in-memory control failed.")
-      return(invisible(NULL))
-    }
-    spec <- workloads[[call]]
     columns <- unique(c(design_fields, spec$y,
-      if (!is.null(spec$domain) || !is.null(spec$family)) c("AGE", "FEMALE")))
+      if (!is.null(spec$domain) || !is.null(spec$family)) c("AGE", "FEMALE"),
+      if (isTRUE(spec$wide)) wide_columns))
     data <- query(paste("SELECT", paste(columns, collapse = ", "), "FROM valid"))
     design <- reference_design(data)
     rm(data)
@@ -116,9 +105,8 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
 }
 
 tryCatch({
-  control_calls <- if (length(args) == 8L) strsplit(args[[8L]], ",", fixed = TRUE)[[1L]]
   run_trial(trial, args[[2L]], as.integer(args[[3L]]), as.integer(args[[4L]]),
-    as.integer(args[[5L]]), args[[6L]], args[[7L]], control_calls)
+    as.integer(args[[5L]]), args[[6L]], args[[7L]])
   status <- "ok"
 }, error = function(e) {
   writeLines(conditionMessage(e), file.path(trial, "error.txt"))

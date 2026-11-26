@@ -4,6 +4,9 @@ design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
 valid_design <- paste(sprintf("coalesce(isfinite(%1$s) AND %1$s > 0, false)",
   design_fields), collapse = " AND ")
 adult <- "AGE >= 65 AND FEMALE = 1"
+wide_columns <- c("bed_medium", "bed_large", "urban_non_teaching", "urban_teaching",
+  paste0("ynel", 1:20))
+wide_fields <- c("HOSP_BEDSIZE", "HOSP_LOCTEACH", paste0("ynel", 1:20), "TOTCHG")
 workloads <- list(
   mean = list(y = "LOS"), total = list(y = "DIED", total = TRUE),
   by = list(y = "LOS", group = "YEAR"),
@@ -13,7 +16,9 @@ workloads <- list(
   glm = list(y = "DIED", family = "quasibinomial"),
   adult_glm = list(y = "DIED", domain = "AGE >= 65", family = "quasibinomial"),
   gaussian = list(y = "LOS", family = "gaussian"),
-  poisson = list(y = "LOS", family = "poisson")
+  poisson = list(y = "LOS", family = "poisson"),
+  wide_glm = list(y = "DIED", family = "quasibinomial", wide = TRUE),
+  wide_gaussian = list(y = "TOTCHG", family = "gaussian", wide = TRUE)
 )
 fixture_cases <- list(
   numeric_total = list(y = "LOS", total = TRUE),
@@ -25,26 +30,33 @@ fixture_cases <- list(
   empty_mean = list(y = "LOS", domain = "HOSP_NIS < 0")
 )
 
-open_views <- function(con, paths) {
+open_views <- function(con, paths, wide = FALSE) {
   quoted <- paste(DBI::dbQuoteString(con, paths), collapse = ", ")
   DBI::dbExecute(con, sprintf(paste(
     "CREATE VIEW raw_input AS SELECT YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, filename,",
     "%s FROM read_parquet([%s], union_by_name = true, hive_partitioning = false,",
     "filename = true)"), paste(sprintf(
       "nullif(CAST(%1$s AS DOUBLE), 'NaN'::DOUBLE) AS %1$s",
-      c("AGE", "FEMALE", "LOS", "DIED")), collapse = ", "), quoted))
-  DBI::dbExecute(con, paste("CREATE VIEW valid AS SELECT * EXCLUDE (filename)",
+      c("AGE", "FEMALE", "LOS", "DIED", if (wide) wide_fields)), collapse = ", "), quoted))
+  hospital <- if (wide) paste(
+    ", CAST(HOSP_BEDSIZE = 2 AS DOUBLE) AS bed_medium,",
+    "CAST(HOSP_BEDSIZE = 3 AS DOUBLE) AS bed_large,",
+    "CAST(HOSP_LOCTEACH = 2 AS DOUBLE) AS urban_non_teaching,",
+    "CAST(HOSP_LOCTEACH = 3 AS DOUBLE) AS urban_teaching") else ""
+  DBI::dbExecute(con, paste("CREATE VIEW valid AS SELECT * EXCLUDE (filename)", hospital,
     "FROM raw_input WHERE", valid_design))
 }
 
-sql_call <- function(query, call, years) {
+sql_call <- function(query, call, years, materialize = NULL) {
   spec <- c(workloads, fixture_cases)[[call]]
   if (!is.null(spec$family)) {
     year_terms <- sprintf("factor(YEAR)%d", years[-1L])
     columns <- c("(Intercept)" = "1.0", AGE = "AGE", FEMALE = "FEMALE",
+      if (isTRUE(spec$wide)) stats::setNames(wide_columns, wide_columns),
       stats::setNames(sprintf("CAST(YEAR = %d AS DOUBLE)", years[-1L]), year_terms))
     # Sex is constant in the age/sex domain. Use an age-only domain for this fit.
-    return(taylor_glm(query, spec$y, columns, spec$family, spec$domain %||% "true"))
+    return(taylor_glm(query, spec$y, columns, spec$family, spec$domain %||% "true",
+      materialize = materialize))
   }
   taylor_stat(query, spec$y, total = isTRUE(spec$total), domain = spec$domain %||% "true",
     group = spec$group, na.rm = spec$na.rm %||% TRUE)
@@ -73,9 +85,9 @@ reference_call <- function(design, call) {
   na.rm <- spec$na.rm %||% TRUE
   if (!is.null(spec$family)) {
     family <- get(spec$family, envir = asNamespace("stats"))()
-    fit <- survey::svyglm(stats::reformulate(c("AGE", "FEMALE", "factor(YEAR)"), spec$y),
-      design, family = family, rescale = FALSE,
-      control = stats::glm.control(epsilon = 1e-10))
+    predictors <- c("AGE", "FEMALE", if (isTRUE(spec$wide)) wide_columns, "factor(YEAR)")
+    fit <- survey::svyglm(stats::reformulate(predictors, spec$y),
+      design, family = family)
     stopifnot(fit$converged)
     return(list(estimate = stats::coef(fit), se = survey::SE(fit),
       vcov = stats::vcov(fit), df = fit$df.residual, iterations = fit$iter))
