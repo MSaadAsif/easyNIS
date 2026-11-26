@@ -8,6 +8,8 @@ param(
     [int] $Repeats = 3,
     [ValidateSet('sql', 'survey', 'both')]
     [string] $Backend = 'both',
+    [ValidateSet('mean', 'total', 'by', 'adult_mean', 'adult_by',
+        'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson')]
     [string[]] $Calls = @('mean', 'total', 'by', 'adult_mean', 'adult_by',
         'srvyr', 'glm', 'adult_glm', 'gaussian', 'poisson'),
     [string] $Evidence
@@ -71,6 +73,7 @@ function Invoke-Trial([int] $End, [string] $Profile, [string] $Path, [string] $C
     $spill = Join-Path $trial 'spill'
     $argLine = '--vanilla "{0}" "{1}" "{2}" {3} {4} {5} {6} {7}' -f
         $workerScript, $trial, $NisRoot, $End, $threads, $mb, $Path, $Call
+    if ($Call -eq 'control_suite') { $argLine += " $($Calls -join ',')" }
     $launch = [Diagnostics.Stopwatch]::StartNew()
     $process = Start-Process $rscriptExe -ArgumentList $argLine -PassThru -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $trial 'stdout.log') `
@@ -168,7 +171,7 @@ if ($Backend -ne 'survey') {
     }
 }
 if ($Backend -ne 'sql') {
-    foreach ($call in $Calls) { $null = Invoke-Trial 2020 reference survey $call 1 }
+    $null = Invoke-Trial 2020 reference survey control_suite 1
 }
 & $rscriptExe --vanilla (Join-Path $PSScriptRoot 'summarize.R') $run
 if ($LASTEXITCODE -ne 0) { throw 'Summary failed. See private evidence.' }

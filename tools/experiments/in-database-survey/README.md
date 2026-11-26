@@ -66,8 +66,8 @@ pwsh -NoProfile -File tools/experiments/in-database-survey/run.ps1 -NisRoot $env
 
 The runner compares 2018–2020 and 2018–2022, using four threads and 4,800 MB
 in the minimum profile and eight threads and 60% of physical RAM in the
-reference profile. Each measurement uses a new Rscript and builds its own
-views or in-memory survey design in that process. The timing table uses the
+reference profile. Each SQL measurement uses a new Rscript and builds its own
+views in that process. The timing table uses the
 median end-to-end time, including interpreter startup. A separate column in
 the local summary isolates time inside the analysis. Three repeats run for a
 cell whose first trial finishes in less than a minute. Scale and profile
@@ -92,7 +92,9 @@ The runner checks for residual files after each process exits.
 | `gaussian`, `poisson` | LOS model with age, sex and year |
 
 The three-year SQL trials compare individually with the corresponding
-in-memory reference. The five-year SQL trials compare across profiles.
+in-memory reference. A fresh Rscript builds a single in-memory design and
+runs the reference calls sequentially as one correctness control. The
+five-year SQL trials compare across profiles.
 Agreement is the maximum symmetric relative difference,
 using `max(abs(a), abs(b))` as the denominator for nonzero values and a
 tolerance of `1e-6`. The licensed Parquet query projects numeric fields.

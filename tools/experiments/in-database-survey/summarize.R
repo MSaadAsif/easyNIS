@@ -3,10 +3,18 @@ run <- commandArgs(TRUE)[[1L]]
 metrics <- read.delim(file.path(run, "metrics.tsv"))
 metrics <- metrics[metrics$call != "audit", ]
 if (!nrow(metrics)) quit()
-read_result <- function(trial) readRDS(file.path(run, trial, "statistics.rds"))
+result_path <- function(trial) file.path(run, trial, "statistics.rds")
 successful <- metrics[metrics$status == "ok", ]
 reference <- successful$trial[successful$backend == "survey"]
 names(reference) <- successful$call[successful$backend == "survey"]
+reference <- vapply(reference, result_path, character(1))
+suite <- metrics$trial[metrics$call == "control_suite"]
+if (length(suite)) {
+  paths <- stats::setNames(file.path(run, tail(suite, 1L),
+    paste0(names(workloads), "-statistics.rds")), names(workloads))
+  present <- file.exists(paths)
+  reference[names(paths)[present]] <- paths[present]
+}
 sql <- successful[successful$backend == "sql", ]
 agreement <- do.call(rbind, lapply(seq_len(nrow(sql)), function(i) {
   row <- sql[i, ]
@@ -16,11 +24,11 @@ agreement <- do.call(rbind, lapply(seq_len(nrow(sql)), function(i) {
   } else {
     peers <- sql[sql$end_year == row$end_year & sql$call == row$call &
       sql$profile != row$profile, ]
-    expected <- peers$trial[1L]
+    expected <- if (nrow(peers)) result_path(peers$trial[1L]) else NA_character_
     comparison <- "SQL across profiles"
   }
   if (is.na(expected)) return(NULL)
-  diff <- differences(read_result(row$trial), read_result(expected))
+  diff <- differences(readRDS(result_path(row$trial)), readRDS(expected))
   data.frame(trial = row$trial, call = row$call, comparison = comparison,
     t(diff), pass = all(diff <= 1e-6))
 }))

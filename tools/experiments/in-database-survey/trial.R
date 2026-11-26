@@ -1,12 +1,13 @@
 args <- commandArgs(TRUE)
-stopifnot(length(args) == 7L)
+stopifnot(length(args) %in% 7:8)
 trial <- args[[1L]]
 writeLines(as.character(Sys.getpid()), file.path(trial, "pid"))
 source("tools/experiments/in-database-survey/workload.R")
 options(survey.lonely.psu = "fail", survey.adjust.domain.lonely = FALSE,
   survey.multicore = FALSE, na.action = "na.omit")
 
-run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call) {
+run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call,
+                      control_calls) {
   years <- 2018:end_year
   files <- lapply(file.path(root, sprintf("NIS_%d.parquet", years)), list.files,
     pattern = "\\.parquet$", full.names = TRUE)
@@ -71,6 +72,28 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call) 
     result <- sql_call(query, call, years)
     stopifnot(all(vapply(profiles, function(x) x$rows <= length(years), logical(1))))
   } else {
+    if (call == "control_suite") {
+      data <- query("SELECT YEAR, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, FEMALE, LOS, DIED FROM valid")
+      design <- reference_design(data)
+      rm(data)
+      gc()
+      # This is one correctness control on a single materialized design.
+      failures <- vapply(control_calls, function(key) {
+        ok <- tryCatch({
+          result <- reference_call(design, key)
+          stopifnot(all(is.finite(result$estimate)), all(is.finite(result$se)))
+          saveRDS(result, file.path(trial, paste0(key, "-statistics.rds")))
+          TRUE
+        }, error = function(e) {
+          writeLines(conditionMessage(e), file.path(trial, paste0(key, "-error.txt")))
+          FALSE
+        })
+        gc()
+        !ok
+      }, logical(1))
+      if (any(failures)) stop("At least one in-memory control failed.")
+      return(invisible(NULL))
+    }
     spec <- workloads[[call]]
     columns <- unique(c(design_fields, spec$y,
       if (!is.null(spec$domain) || !is.null(spec$family)) c("AGE", "FEMALE")))
@@ -93,8 +116,9 @@ run_trial <- function(trial, root, end_year, threads, memory_mb, backend, call) 
 }
 
 tryCatch({
+  control_calls <- if (length(args) == 8L) strsplit(args[[8L]], ",", fixed = TRUE)[[1L]]
   run_trial(trial, args[[2L]], as.integer(args[[3L]]), as.integer(args[[4L]]),
-    as.integer(args[[5L]]), args[[6L]], args[[7L]])
+    as.integer(args[[5L]]), args[[6L]], args[[7L]], control_calls)
   status <- "ok"
 }, error = function(e) {
   writeLines(conditionMessage(e), file.path(trial, "error.txt"))
