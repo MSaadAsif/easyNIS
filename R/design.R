@@ -192,11 +192,8 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   hospital_index <- vctrs::vec_match(cohort_rows[keys], hospital_rows[keys])
   has_cohort <- tabulate(hospital_index, nrow(hospital_rows)) > 0L
   empty <- which(!has_cohort)
+  if (!is.double(cohort_rows$DISCWT)) cohort_rows$DISCWT <- as.double(cohort_rows$DISCWT)
   discharge_weights <- cohort_rows$DISCWT
-  if (length(empty)) {
-    weight_type <- vctrs::vec_ptype_common(discharge_weights, hospital_rows$DISCWT)
-    cohort_rows$DISCWT <- vctrs::vec_cast(discharge_weights, weight_type)
-  }
 
   has_cost_inputs <- all(c(charges, "CCR_NIS") %in% fields$keep_names)
   if (!is.null(dollars) && !has_cost_inputs) {

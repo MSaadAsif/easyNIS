@@ -16,7 +16,10 @@ nis_cohort_design <- function(variables, structure, placeholders, excluded,
   if (nrow(placeholders) > 0L) {
     design <- design[seq_len(nrow(variables)), ]
   }
+  # Use survey's subset representation for with-replacement designs.
+  design$fpc$popsize <- NULL
   design$variables <- dplyr::as_tibble(variables)
+  attr(design, "survey_vars") <- NULL
   attr(design, "nis_placeholder_rows") <- placeholders
   attr(design, "nis_cohort_rows") <- nrow(variables)
   attr(design, "nis_excluded") <- excluded
