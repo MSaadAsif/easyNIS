@@ -41,6 +41,20 @@ documented limitations.
 - Work on a branch. An independent reviewer reviews the diff; merge only
   after review and checks pass.
 
+### Resource-intensive tests
+
+The regular suite checks DuckDB workload settings, spill-limit
+enforcement and cleanup, and every procedure timing policy and relation.
+The full tier also checks procedure timing on a 25-slot Parquet fixture.
+Set `EASYNIS_FULL_TESTS` to `true`, `TRUE`, or `1` to include that
+check.
+
+Run the full suite with
+`Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()` or run the
+committed package check with
+`Rscript --vanilla tools/check-package.R --full`. The latter is the
+command for scheduled or manually triggered full checks.
+
 ## Where changes belong
 
 R loads package source from the flat `R/` directory. Use the domain in

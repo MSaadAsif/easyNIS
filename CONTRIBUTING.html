@@ -70,7 +70,12 @@
 <li>Run relevant tests with <code>devtools::test()</code>. From the repository root, run <code>Rscript --vanilla tools/check-package.R</code> after committing changes and before requesting review. It runs <code>devtools::check()</code> on the exact commit, away from the checkout’s ignored data and working files. Before committing, run <code>Rscript --vanilla tools/check-package.R --lint</code> to check Air formatting, Jarl findings, and the installed package’s cyclomatic complexity limit of 15. Use <code>air format .</code> to apply formatting and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
 <li>Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.</li>
 <li>Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.</li>
-</ul></div>
+</ul><div class="section level3">
+<h3 id="resource-intensive-tests">Resource-intensive tests<a class="anchor" aria-label="anchor" href="#resource-intensive-tests"></a></h3>
+<p>The regular suite checks DuckDB workload settings, spill-limit enforcement and cleanup, and every procedure timing policy and relation. The full tier also checks procedure timing on a 25-slot Parquet fixture. Set <code>EASYNIS_FULL_TESTS</code> to <code>true</code>, <code>TRUE</code>, or <code>1</code> to include that check.</p>
+<p>Run the full suite with <code>Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()</code> or run the committed package check with <code>Rscript --vanilla tools/check-package.R --full</code>. The latter is the command for scheduled or manually triggered full checks.</p>
+</div>
+</div>
 <div class="section level2">
 <h2 id="where-changes-belong">Where changes belong<a class="anchor" aria-label="anchor" href="#where-changes-belong"></a></h2>
 <p>R loads package source from the flat <code>R/</code> directory. Use the domain in the filename and put focused tests next to that domain’s other tests in <code>tests/testthat/</code>.</p>
