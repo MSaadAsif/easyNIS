@@ -5,8 +5,13 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.", call = call)
   }
-  reserved <- c(.nis_cohort_structure_fields, ".in_cohort", ".nis_cohort",
-    ".nis_valid", unname(.nis_design_invalid_fields))
+  reserved <- c(
+    .nis_cohort_structure_fields,
+    ".in_cohort",
+    ".nis_cohort",
+    ".nis_valid",
+    unname(.nis_design_invalid_fields)
+  )
   if (!identical(reserved, nis_internal_names(.data, nis_names(.data), reserved))) {
     cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
   }
@@ -28,8 +33,11 @@ nis_design_fields <- function(.data, keep_quo, call) {
   keep_expr <- rlang::get_expr(keep_quo)
   keep_symbol <- rlang::is_symbol(keep_expr)
   keep_symbol_name <- if (keep_symbol) rlang::as_string(keep_expr) else NULL
-  keep_value <- if (keep_symbol && !(keep_symbol_name %in% data_names) &&
-    rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)) {
+  keep_value <- if (
+    keep_symbol &&
+      !(keep_symbol_name %in% data_names) &&
+      rlang::env_has(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
+  ) {
     rlang::env_get(rlang::get_env(keep_quo), rlang::as_string(keep_expr), inherit = TRUE)
   } else {
     keep_expr
@@ -39,8 +47,7 @@ nis_design_fields <- function(.data, keep_quo, call) {
     if (length(absent_keep)) {
       cli::cli_abort("`keep` references missing column{?s} {.val {absent_keep}}.", call = call)
     }
-    tidyselect::eval_select(rlang::expr(tidyselect::all_of(!!keep_value)),
-      data = select_data)
+    tidyselect::eval_select(rlang::expr(tidyselect::all_of(!!keep_value)), data = select_data)
   } else {
     tidyselect::eval_select(keep_quo, data = select_data)
   }
@@ -168,14 +175,12 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'   discharges = srvyr::survey_total(),
 #'   mean_age = srvyr::survey_mean(AGE)
 #' )
-nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
-                       charges = "TOTCHG") {
+nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, charges = "TOTCHG") {
   call <- rlang::current_call()
   .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
-  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected,
-    fields$quarter_prototype, annualize, call)
+  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
   hospital_rows <- sample$hospital_rows
   cohort_rows <- sample$cohort_rows
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
@@ -192,7 +197,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   hospital_index <- vctrs::vec_match(cohort_rows[keys], hospital_rows[keys])
   has_cohort <- tabulate(hospital_index, nrow(hospital_rows)) > 0L
   empty <- which(!has_cohort)
-  if (!is.double(cohort_rows$DISCWT)) cohort_rows$DISCWT <- as.double(cohort_rows$DISCWT)
+  if (!is.double(cohort_rows$DISCWT)) {
+    cohort_rows$DISCWT <- as.double(cohort_rows$DISCWT)
+  }
   discharge_weights <- cohort_rows$DISCWT
 
   has_cost_inputs <- all(c(charges, "CCR_NIS") %in% fields$keep_names)
@@ -204,9 +211,13 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
   if (has_cost_inputs) {
     cost_fields <- c(charges, "CCR_NIS", "charges_adj", "cost_adj")
     charge_years <- unique(cohort_rows$YEAR)
-    missing_charge_years <- charge_years[vapply(charge_years, function(year) {
-      all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
-    }, logical(1))]
+    missing_charge_years <- charge_years[vapply(
+      charge_years,
+      function(year) {
+        all(is.na(cohort_rows[[charges]][cohort_rows$YEAR == year]))
+      },
+      logical(1)
+    )]
     if (length(missing_charge_years) > 0L) {
       cli::cli_warn(c(
         paste0(
@@ -217,9 +228,10 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
         i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
       ))
     }
-    if (is.null(dollars)) dollars <- max(sample$years)
-    cohort_rows <- nis_adjust_costs(cohort_rows, dollars, charges, call,
-      cohort_years = sample$years)
+    if (is.null(dollars)) {
+      dollars <- max(sample$years)
+    }
+    cohort_rows <- nis_adjust_costs(cohort_rows, dollars, charges, call, cohort_years = sample$years)
     cost_provenance <- nis_cost_provenance(cohort_rows)
   } else {
     cost_fields <- NULL
@@ -253,6 +265,5 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL,
     .nis_stratum = factor(stratum)[indices],
     .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
   )
-  nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded,
-    cost_provenance, nest = nest)
+  nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
 }

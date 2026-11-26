@@ -73,8 +73,13 @@ nis_reweight_data <- function(design, weights_quo, call) {
 nis_reweight <- function(design, weights) {
   call <- rlang::current_call()
   rows <- nis_reweight_data(design, rlang::enquo(weights), call)
-  reweighted <- nis_cohort_design(rows$variables, rows$structure, rows$placeholders,
-    attr(design, "nis_excluded", exact = TRUE), nis_cost_provenance(design))
+  reweighted <- nis_cohort_design(
+    rows$variables,
+    rows$structure,
+    rows$placeholders,
+    attr(design, "nis_excluded", exact = TRUE),
+    nis_cost_provenance(design)
+  )
   nis_cohort_check_rebuild(design, reweighted, call)
   reweighted
 }

@@ -2,8 +2,7 @@
 
 # Build the survey structure over the cohort and placeholders before attaching
 # the analysis data, so restricting the domain never slices those columns.
-nis_cohort_design <- function(variables, structure, placeholders, excluded,
-                              cost_provenance, nest = TRUE) {
+nis_cohort_design <- function(variables, structure, placeholders, excluded, cost_provenance, nest = TRUE) {
   design <- srvyr::as_survey_design(
     structure,
     ids = .nis_psu,
@@ -34,25 +33,33 @@ nis_cohort_records <- function(data) {
 nis_cohort_design_rows <- function(design, call) {
   placeholders <- attr(design, "nis_placeholder_rows", exact = TRUE)
   cohort_rows <- attr(design, "nis_cohort_rows", exact = TRUE)
-  if (any(c(!inherits(design, "tbl_svy"), !is.data.frame(placeholders),
-      is.null(cohort_rows)))) {
+  if (any(c(!inherits(design, "tbl_svy"), !is.data.frame(placeholders), is.null(cohort_rows)))) {
     cli::cli_abort("`design` must be a result of `nis_design()`.", call = call)
   }
   variables <- design$variables
   if (nrow(variables) != cohort_rows) {
-    cli::cli_abort(c(
-      "`design` has been narrowed with `filter()`.",
-      i = "Call `nis_reweight()` before narrowing the cohort."
-    ), call = call)
+    cli::cli_abort(
+      c(
+        "`design` has been narrowed with `filter()`.",
+        i = "Call `nis_reweight()` before narrowing the cohort."
+      ),
+      call = call
+    )
   }
 
   list(variables = variables, placeholders = placeholders)
 }
 
 nis_cohort_design_restore <- function(design, call) {
-  if (any(c(ncol(design$cluster) != 1L, ncol(design$strata) != 1L,
-      !is.null(design$postStrata), !is.null(design$fpc$popsize),
-      !identical(design$pps, FALSE)))) {
+  if (
+    any(c(
+      ncol(design$cluster) != 1L,
+      ncol(design$strata) != 1L,
+      !is.null(design$postStrata),
+      !is.null(design$fpc$popsize),
+      !identical(design$pps, FALSE)
+    ))
+  ) {
     cli::cli_abort("`design` has unsupported survey structure for reweighting.", call = call)
   }
   stratum <- as.character(design$strata[[1L]])
@@ -70,11 +77,9 @@ nis_cohort_design_restore <- function(design, call) {
 
 nis_cohort_check_rebuild <- function(original, rebuilt, call) {
   same_ids <- function(field) {
-    identical(as.character(original[[field]][[1L]]),
-      as.character(rebuilt[[field]][[1L]]))
+    identical(as.character(original[[field]][[1L]]), as.character(rebuilt[[field]][[1L]]))
   }
-  if (!same_ids("cluster") || !same_ids("strata") ||
-      !identical(original$fpc, rebuilt$fpc)) {
+  if (!same_ids("cluster") || !same_ids("strata") || !identical(original$fpc, rebuilt$fpc)) {
     cli::cli_abort("`design` variance structure cannot be safely rebuilt for reweighting.", call = call)
   }
 }

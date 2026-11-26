@@ -44,8 +44,7 @@ test_that("reweight restores selected design fields from intact survey metadata"
     expect_identical(actual$cluster[[1L]], design$cluster[[1L]])
     expect_identical(actual$strata[[1L]], design$strata[[1L]])
     expect_identical(actual$fpc, design$fpc)
-    expect_equal(as.numeric(stats::weights(actual)),
-      as.numeric(stats::weights(selected)) * multipliers)
+    expect_equal(as.numeric(stats::weights(actual)), as.numeric(stats::weights(selected)) * multipliers)
     expect_identical(names(actual$variables), "AGE")
     expect_identical(attr(actual$variables$AGE, "label"), attr(selected$variables$AGE, "label"))
     expect_identical(attr(actual, "nis_excluded"), attr(selected, "nis_excluded"))

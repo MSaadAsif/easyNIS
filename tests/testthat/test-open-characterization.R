@@ -100,8 +100,10 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
   expect_false("TOTCHG_2023" %in% names(variables))
   expect_true(all(is.na(variables$cost_adj[variables$YEAR == 2023L])))
   expect_true(all(is.finite(variables$cost_adj[variables$YEAR == 2022L])))
-  expect_setequal(as.character(default_pool$cluster[[1L]]),
-    c("2022::1.2022::101", "2022::1.2022::102", "2023::1.2023::101", "2023::1.2023::102"))
+  expect_setequal(
+    as.character(default_pool$cluster[[1L]]),
+    c("2022::1.2022::101", "2022::1.2022::102", "2023::1.2023::101", "2023::1.2023::102")
+  )
   expect_setequal(as.character(default_pool$strata[[1L]]), c("2022::1", "2023::1"))
 
   # An analyst may pool charge definitions with one explicit mutate.
