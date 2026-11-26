@@ -112,6 +112,26 @@ test_that("procedure timing treats an unmatched PRDAY slot as unknown", {
   }
 })
 
+test_that("procedure timing pairs and orders two-digit slots by number", {
+  data <- dplyr::tibble(
+    YEAR = 2020L,
+    I10_PR12 = "OUT",
+    I10_PR10 = "OUT",
+    I10_PR2 = "IX",
+    PRDAY10 = c(2L, 0L),
+    PRDAY2 = 1L
+  )
+  for (input in list(data, duckdb_query_fixture(data))) {
+    result <- nis_flag_pr_timing(input, "IX", "OUT", missing_day = "indeterminate") |>
+      dplyr::collect()
+    expect_identical(result$outcome_post_index, c(TRUE, NA))
+    completion <- nis_prday_completeness(input, "OUT")
+    expect_identical(completion$slot, c(2L, 10L, 12L))
+    expect_identical(completion$known_day, c(0L, 2L, 0L))
+    expect_identical(completion$absent_prday_column, c(0L, 0L, 2L))
+  }
+})
+
 test_that("procedure timing matches the documented four-row example", {
   data <- dplyr::tibble(
     I10_PR1 = rep("02UG0JZ", 4L),

@@ -30,11 +30,10 @@ Thanks for helping improve easyNIS. Changes should be reviewable, supported by i
 
 ### Resource-intensive tests
 
-The regular suite includes the DuckDB workload-settings and connection-cleanup
-checks and exercises every procedure timing policy and relation. The full tier
-also checks procedure timing on a 25-slot Parquet fixture and sorts a million
-invented rows to check enforcement and cleanup of the DuckDB spill limit.
-These two tests are skipped unless `EASYNIS_FULL_TESTS=true`.
+The regular suite checks DuckDB workload settings, spill-limit enforcement and
+cleanup, and every procedure timing policy and relation. The full tier also
+checks procedure timing on a 25-slot Parquet fixture. Set `EASYNIS_FULL_TESTS`
+to `true`, `TRUE`, or `1` to include that check.
 
 Run the full suite with `Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()`
 or run the committed package check with

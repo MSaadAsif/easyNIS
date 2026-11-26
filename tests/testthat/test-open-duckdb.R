@@ -517,3 +517,35 @@ test_that("open queries apply workload limits and own separate spill locations",
   expect_error(nis_open(missing_path), "Invalid .*YEAR")
   expect_setequal(list.dirs(spill, recursive = FALSE, full.names = FALSE), basename(spill_paths))
 })
+
+test_that("an export that exceeds the configured spill cap fails and releases spill space", {
+  spill <- withr::local_tempdir()
+  path <- nis_example(2020L)
+  withr::defer(unlink(path, recursive = TRUE))
+  withr::local_options(
+    easyNIS.duckdb_config = list(
+      memory_limit = "32MB",
+      max_temp_directory_size = "1MB",
+      threads = 1L,
+      preserve_insertion_order = FALSE,
+      temp_directory = spill
+    )
+  )
+  query <- nis_open(path)
+  con <- dbplyr::remote_con(query)
+  file <- file.path(spill, "sorted.parquet")
+  output <- DBI::dbQuoteString(con, file)
+  sql <- paste0(
+    "COPY (SELECT i, md5(i::VARCHAR) AS tag FROM range(1000000) AS t(i) ",
+    "ORDER BY tag, i) TO ",
+    output,
+    " (FORMAT PARQUET)"
+  )
+  expect_error(DBI::dbExecute(con, sql), "max_temp_directory_size")
+  unlink(file)
+  rm(query)
+  invisible(gc())
+  expect_false(DBI::dbIsValid(con))
+  expect_true(dir.exists(spill))
+  expect_length(list.files(spill, all.files = TRUE, no.. = TRUE), 0L)
+})

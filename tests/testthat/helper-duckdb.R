@@ -5,7 +5,9 @@ write_duckdb_parquet <- local({
       writer <<- nis_duckdb_connect(config = list(threads = "1"))
       withr::defer(
         {
-          DBI::dbDisconnect(writer, shutdown = TRUE)
+          if (DBI::dbIsValid(writer)) {
+            DBI::dbDisconnect(writer, shutdown = TRUE)
+          }
           writer <<- NULL
         },
         envir = testthat::teardown_env()
@@ -22,7 +24,12 @@ write_duckdb_parquet <- local({
 open_duckdb_dataset <- function(path, .env = parent.frame()) {
   sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE)
   con <- nis_duckdb_connect()
-  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE), envir = .env)
+  withr::defer(
+    {
+      if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+    },
+    envir = .env
+  )
   quoted <- DBI::dbQuoteString(con, normalizePath(sources, winslash = "/", mustWork = TRUE))
   parquet <- paste0(
     "read_parquet([",
