@@ -34,8 +34,10 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::callr, any::cyclocomp, any::jsonlite, any::goodpractice, any::pkgload, local::.
-          needs: check
+          extra-packages: any::callr, any::cyclocomp, any::jsonlite, any::goodpractice, any::pkgload
+          dependencies: '"hard"'
+          install-pandoc: false
+          install-quarto: false
       - name: Check improvement-loop tooling
         run: |
           Rscript tools/check-public-text.R --self-test

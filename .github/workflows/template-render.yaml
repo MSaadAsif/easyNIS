@@ -3,7 +3,19 @@ name: template-render
 on:
   push:
     branches: [main]
+    paths: &study-inputs
+      - '.github/workflows/template-render.yaml'
+      - '.agents/skills/verify/**'
+      - '.Rbuildignore'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - 'R/**'
+      - 'data/**'
+      - 'inst/**'
+      - 'src/**'
+      - 'tools/probe/workspace.R'
   pull_request:
+    paths: *study-inputs
   workflow_dispatch:
 
 permissions:

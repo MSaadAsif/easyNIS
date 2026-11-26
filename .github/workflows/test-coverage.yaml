@@ -3,7 +3,18 @@ name: test-coverage
 on:
   push:
     branches: [main]
+    paths: &coverage-inputs
+      - '.github/workflows/test-coverage.yaml'
+      - '.Rbuildignore'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - 'R/**'
+      - 'data/**'
+      - 'inst/**'
+      - 'src/**'
+      - 'tests/**'
   pull_request:
+    paths: *coverage-inputs
   workflow_dispatch:
 
 permissions:
@@ -26,6 +37,7 @@ jobs:
         with:
           extra-packages: any::covr
           needs: check
+          install-quarto: false
       - name: Generate Cobertura coverage report
         run: |
           coverage <- covr::package_coverage()
