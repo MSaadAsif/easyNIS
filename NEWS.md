@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- `nis_open(check_release = TRUE)` checks complete annual Core files against
+  HCUP's published discharge counts, discharge weight totals, and hospital
+  counts for 2012–2024. Discrepancies warn and the query remains available.
+
 - Parquet opening assigns nested Hive parts to the nearest partition year and
   inspects each source schema once. Compatible files share a native DuckDB
   scan, and integer year filters can use Parquet statistics. Configure memory,

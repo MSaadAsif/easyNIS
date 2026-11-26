@@ -52,6 +52,24 @@ The preview contains only the requested variables from the synthetic 2020
 file. Mixed-case column names are normalized to upper case; already lower-case
 names remain unchanged.
 
+## Check a complete annual release
+
+When opening converted, full-year Core files, set `check_release = TRUE`.
+DuckDB compares the row count, sum of `DISCWT`, and distinct `HOSP_NIS` count
+for each year with the published totals. The comparison covers 2012–2024.
+Discrepancies produce a warning and the lazy query is still available.
+
+```{r release-check, eval=FALSE}
+nis_open(data_path, years = 2019:2021, check_release = TRUE)
+```
+
+Leave the check off for extracts, individual quarters, or synthetic data,
+which may use the same file names as complete releases. HCUP publishes
+different 2021 totals in its NIS introduction and its 2021 Core File summary.
+The check uses the introduction tables.
+[2021 introduction](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp)
+[2021 Core File summary](https://hcup-us.ahrq.gov/db/nation/nis/tools/stats/MaskedStats_NIS_2021_Core_Weighted.PDF)
+
 ## Filter and project before collecting
 
 `nis_open()` uses DuckDB's native Parquet reader by default and returns a lazy

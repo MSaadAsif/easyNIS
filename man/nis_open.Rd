@@ -4,7 +4,12 @@
 \alias{nis_open}
 \title{Open annual NIS Parquet files lazily}
 \usage{
-nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
+nis_open(
+  path,
+  years = NULL,
+  reader = c("duckdb", "arrow"),
+  check_release = FALSE
+)
 }
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
@@ -18,6 +23,10 @@ codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \item{reader}{Parquet reader: \code{"duckdb"} (default) or \code{"arrow"}. Arrow is
 an optional dependency. Its reader preserves source bytes in strings,
 including malformed UTF-8; downstream string operations may still fail.}
+
+\item{check_release}{Set to \code{TRUE} for complete annual Core releases to
+compare their totals with HCUP's NIS introduction tables. The default
+\code{FALSE} also suits cohort extracts and partial years.}
 }
 \value{
 A lazy DuckDB-backed dbplyr table with case-normalized columns.
@@ -68,6 +77,19 @@ through the optional \code{arrow} package. Arrow preserves the bytes; it does
 not detect or repair all invalid text, and downstream string operations
 may still fail on malformed values.
 }
+\section{Annual release check}{
+
+With \code{check_release = TRUE}, DuckDB counts discharges and distinct
+\code{HOSP_NIS} values and sums \code{DISCWT} by year. The reference covers 2012
+through 2024. Counts must match exactly. The weight sum can differ by
+half a discharge, plus a small allowance for floating-point arithmetic,
+because HCUP publishes whole discharges. Unexpected or missing \code{YEAR} and
+nonpositive \code{NIS_STRATUM} also contribute to the warning. A mismatch leaves
+the query available for use. HCUP's 2021 introduction and its Core File
+summary report publish different totals, so a 2021 warning can reflect
+that discrepancy.
+}
+
 \section{Large data}{
 
 The query stays in DuckDB until you collect it. Filter, project, and summarize
