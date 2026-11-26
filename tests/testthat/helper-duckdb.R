@@ -3,10 +3,13 @@ write_duckdb_parquet <- local({
   function(data, path) {
     if (is.null(writer)) {
       writer <<- nis_duckdb_connect(config = list(threads = "1"))
-      withr::defer({
-        DBI::dbDisconnect(writer, shutdown = TRUE)
-        writer <<- NULL
-      }, envir = testthat::teardown_env())
+      withr::defer(
+        {
+          DBI::dbDisconnect(writer, shutdown = TRUE)
+          writer <<- NULL
+        },
+        envir = testthat::teardown_env()
+      )
     }
     dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
     DBI::dbWriteTable(writer, "fixture", data, temporary = TRUE, overwrite = TRUE)
@@ -17,13 +20,15 @@ write_duckdb_parquet <- local({
 })
 
 open_duckdb_dataset <- function(path, .env = parent.frame()) {
-  sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE,
-    full.names = TRUE)
+  sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE)
   con <- nis_duckdb_connect()
   withr::defer(DBI::dbDisconnect(con, shutdown = TRUE), envir = .env)
   quoted <- DBI::dbQuoteString(con, normalizePath(sources, winslash = "/", mustWork = TRUE))
-  parquet <- paste0("read_parquet([", paste(quoted, collapse = ", "),
-    "], union_by_name = true, hive_partitioning = false)")
+  parquet <- paste0(
+    "read_parquet([",
+    paste(quoted, collapse = ", "),
+    "], union_by_name = true, hive_partitioning = false)"
+  )
   dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM ", parquet)))
 }
 
@@ -36,9 +41,12 @@ local_sql_na_warnings <- function(.env = parent.frame()) {
 
 duckdb_query_fixture <- function(data, .env = parent.frame()) {
   con <- nis_duckdb_connect()
-  withr::defer({
-    if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-  }, envir = .env)
+  withr::defer(
+    {
+      if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+    },
+    envir = .env
+  )
   DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
   dplyr::tbl(con, "fixture")
 }

@@ -107,8 +107,7 @@ test_that("procedure timing treats an unmatched PRDAY slot as unknown", {
   for (input in list(data, duckdb_query_fixture(data))) {
     excluded <- nis_flag_pr_timing(input, "IX", "OUT") |> dplyr::collect()
     expect_identical(excluded$outcome_post_index, c(FALSE, FALSE))
-    unknown <- nis_flag_pr_timing(input, "IX", "OUT",
-      missing_day = "indeterminate") |> dplyr::collect()
+    unknown <- nis_flag_pr_timing(input, "IX", "OUT", missing_day = "indeterminate") |> dplyr::collect()
     expect_identical(unknown$outcome_post_index, c(NA, NA))
   }
 })
@@ -249,10 +248,22 @@ test_that("procedure timing agrees across DuckDB policies and relations", {
   for (policy in c("exclude", "assume_same_day", "indeterminate")) {
     for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
       window <- if (relation == "within_days") 2L else NULL
-      expected <- nis_flag_pr_timing(data, c("IX", "IDX", "NOMATCH"), c("OUT", "ALT"),
-        relation = relation, window = window, missing_day = policy)
-      actual <- nis_flag_pr_timing(query, c("IX", "IDX", "NOMATCH"), c("OUT", "ALT"),
-        relation = relation, window = window, missing_day = policy) |>
+      expected <- nis_flag_pr_timing(
+        data,
+        c("IX", "IDX", "NOMATCH"),
+        c("OUT", "ALT"),
+        relation = relation,
+        window = window,
+        missing_day = policy
+      )
+      actual <- nis_flag_pr_timing(
+        query,
+        c("IX", "IDX", "NOMATCH"),
+        c("OUT", "ALT"),
+        relation = relation,
+        window = window,
+        missing_day = policy
+      ) |>
         dplyr::collect()
       expect_identical(actual, expected, info = paste(policy, relation))
     }
@@ -451,8 +462,7 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
     actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = "same_day", missing_day = "indeterminate") |>
       dplyr::collect()
     expect_identical(actual, expected, info = day_type)
-    expect_identical(nis_prday_completeness(query, "OUT"),
-      nis_prday_completeness(data, "OUT"), info = day_type)
+    expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"), info = day_type)
   }
 })
 

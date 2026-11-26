@@ -10,8 +10,13 @@ test_that("attrition ignores input groups for criteria and aggregate totals", {
   local_sql_na_warnings()
 
   # Rows 1, 2, 4, 6 pass keep; only rows 4 and 6 also exceed 3.5.
-  for (grouped in list(data, query, dplyr::rowwise(data),
-    dplyr::group_by(data, YEAR, group), dplyr::group_by(query, YEAR, group))) {
+  for (grouped in list(
+    data,
+    query,
+    dplyr::rowwise(data),
+    dplyr::group_by(data, YEAR, group),
+    dplyr::group_by(query, YEAR, group)
+  )) {
     result <- nis_attrition(grouped, keep, above_mean = score >= mean(score, na.rm = TRUE))
     expect_identical(result$n_unweighted, c(6L, 4L, 2L))
     expect_equal(result$n_dropped_unweighted, c(NA, 2, 2))
@@ -19,8 +24,7 @@ test_that("attrition ignores input groups for criteria and aggregate totals", {
     expect_equal(result$n_dropped_weighted, c(NA, 5, 2))
     expect_equal(result$pct_retained, 100 * c(1, 4 / 6, 2 / 6))
 
-    annual <- nis_attrition(grouped, keep, above_mean = score >= mean(score, na.rm = TRUE),
-      by_year = TRUE)
+    annual <- nis_attrition(grouped, keep, above_mean = score >= mean(score, na.rm = TRUE), by_year = TRUE)
     expect_equal(annual$YEAR, rep(2020:2021, each = 3L))
     expect_identical(annual$step, rep(0:2, 2L))
     expect_identical(annual$n_unweighted, c(3L, 2L, 0L, 3L, 2L, 2L))
@@ -47,15 +51,13 @@ test_that("missing logical criteria and logical weights agree across backends", 
     expect_identical(result$n_unweighted, c(4L, 2L, 0L))
     expect_equal(result$n_weighted, c(2, 1, 0))
     expect_equal(result$n_dropped_weighted, c(NA, 1, 1))
-    annual <- nis_attrition(input, keep, unknown, by_year = TRUE,
-      weight_var = "weight")
+    annual <- nis_attrition(input, keep, unknown, by_year = TRUE, weight_var = "weight")
     expect_equal(annual$YEAR, rep(2020:2021, each = 3L))
     expect_identical(annual$n_unweighted, c(2L, 1L, 0L, 2L, 1L, 0L))
     expect_equal(annual$n_weighted, c(2, 1, 0, 0, 0, 0))
 
     missing <- dplyr::mutate(input, weight = NA)
-    expect_equal(nis_attrition(missing, keep, weight_var = "weight")$n_weighted,
-      c(0, 0))
+    expect_equal(nis_attrition(missing, keep, weight_var = "weight")$n_weighted, c(0, 0))
   }
 })
 
@@ -75,8 +77,19 @@ test_that("empty attrition totals are zero and empty annual output has no rows",
 
     annual <- nis_attrition(grouped, keep, second = keep, by_year = TRUE)
     expect_equal(nrow(annual), 0L)
-    expect_named(annual, c("YEAR", "step", "criterion", "n_unweighted",
-      "n_dropped_unweighted", "n_weighted", "n_dropped_weighted", "pct_retained"))
+    expect_named(
+      annual,
+      c(
+        "YEAR",
+        "step",
+        "criterion",
+        "n_unweighted",
+        "n_dropped_unweighted",
+        "n_weighted",
+        "n_dropped_weighted",
+        "pct_retained"
+      )
+    )
     expect_type(annual$YEAR, "integer")
     expect_type(annual$n_unweighted, "integer")
     expect_type(annual$n_weighted, "double")
@@ -106,8 +119,7 @@ test_that("missing weights contribute zero while infinite weights are retained",
 
 test_that("attrition preserves counts from a DuckDB integer64 connection", {
   skip_if_not_installed("bit64")
-  frame <- dplyr::tibble(YEAR = rep(2020:2021, each = 3L), DISCWT = 1,
-    include = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE))
+  frame <- dplyr::tibble(YEAR = rep(2020:2021, each = 3L), DISCWT = 1, include = c(TRUE, TRUE, FALSE, TRUE, TRUE, TRUE))
   con <- DBI::dbConnect(duckdb::duckdb(bigint = "integer64"))
   withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
   query <- dplyr::copy_to(con, frame, "invented_attrition64", temporary = TRUE)
