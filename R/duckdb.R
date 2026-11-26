@@ -6,26 +6,28 @@ methods::setClass("nis_duckdb_connection", contains = "duckdb_connection")
 methods::setClass("nis_duckdb_result", contains = "duckdb_result")
 
 # DuckDB executes in dbSendQuery() or, for deferred parameters, dbBind().
-methods::setMethod("dbSendQuery", c("nis_duckdb_connection", "character"),
-  function(conn, statement, ...) {
-    result <- nis_duckdb_translate_errors(methods::callNextMethod())
-    methods::new("nis_duckdb_result", result)
-  }
-)
+methods::setMethod("dbSendQuery", c("nis_duckdb_connection", "character"), function(conn, statement, ...) {
+  result <- nis_duckdb_translate_errors(methods::callNextMethod())
+  methods::new("nis_duckdb_result", result)
+})
 
-methods::setMethod("dbBind", "nis_duckdb_result",
-  function(res, params, ...) {
-    nis_duckdb_translate_errors(methods::callNextMethod())
-  }
-)
+methods::setMethod("dbBind", "nis_duckdb_result", function(res, params, ...) {
+  nis_duckdb_translate_errors(methods::callNextMethod())
+})
 
 nis_duckdb_translate_errors <- function(query) {
   withCallingHandlers(query, error = function(error) {
-    if (rlang::cnd_inherits(error, "easyNIS_invalid_utf8")) return()
-    while (!is.null(error$parent)) error <- error$parent
+    if (rlang::cnd_inherits(error, "easyNIS_invalid_utf8")) {
+      return()
+    }
+    while (!is.null(error$parent)) {
+      error <- error$parent
+    }
     message <- strsplit(conditionMessage(error), "\n", fixed = TRUE, useBytes = TRUE)[[1L]][1L]
     encoding_error <- "^(Invalid Error: )?Invalid Input Error: Invalid string encoding found in Parquet file"
-    if (!grepl(encoding_error, message, useBytes = TRUE)) return()
+    if (!grepl(encoding_error, message, useBytes = TRUE)) {
+      return()
+    }
 
     field <- function(text, pattern) {
       match <- regmatches(text, regexec(pattern, text, perl = TRUE, useBytes = TRUE))[[1L]]
@@ -40,11 +42,18 @@ nis_duckdb_translate_errors <- function(query) {
       if (!is.na(column)) " in column {.field {column}}",
       if (!is.na(file)) " in {.path {file}}"
     )
-    cli::cli_abort(c(
-      paste0("Malformed UTF-8", location, "."),
-      i = paste('Use {.code nis_open(reader = "arrow")} to work around this.',
-        "Regenerate the Parquet file with the correct source encoding to fix it.")
-    ), class = "easyNIS_invalid_utf8", parent = error, call = conditionCall(error))
+    cli::cli_abort(
+      c(
+        paste0("Malformed UTF-8", location, "."),
+        i = paste(
+          'Use {.code nis_open(reader = "arrow")} to work around this.',
+          "Regenerate the Parquet file with the correct source encoding to fix it."
+        )
+      ),
+      class = "easyNIS_invalid_utf8",
+      parent = error,
+      call = conditionCall(error)
+    )
   })
 }
 

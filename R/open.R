@@ -152,11 +152,12 @@ nis_open_normalize_names <- function(query, source_names) {
     con <- dbplyr::remote_con(query)
     # Use ASCII argument names while retaining the lazy projection so dbplyr
     # can drop unused coalesces before DuckDB binds their types.
-    aliases <- nis_internal_names(query, c(old_names, output),
-      paste0(".nis_projection_", seq_along(computed)))
+    aliases <- nis_internal_names(query, c(old_names, output), paste0(".nis_projection_", seq_along(computed)))
     expressions <- lapply(name_groups[computed], function(group) {
       quoted <- DBI::dbQuoteIdentifier(con, group)
-      if (length(quoted) == 1L) return(dbplyr::sql(quoted))
+      if (length(quoted) == 1L) {
+        return(dbplyr::sql(quoted))
+      }
       dbplyr::sql(paste0("COALESCE(", paste(quoted, collapse = ", "), ")"))
     })
     query <- dplyr::mutate(query, !!!stats::setNames(expressions, aliases))
