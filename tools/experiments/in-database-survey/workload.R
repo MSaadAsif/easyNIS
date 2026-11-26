@@ -19,7 +19,10 @@ fixture_cases <- list(
   numeric_total = list(y = "LOS", total = TRUE),
   binary_mean = list(y = "DIED"),
   age_by_sex = list(y = "LOS", group = "FEMALE", domain = "AGE >= 65"),
-  missing_mean = list(y = "LOS", na.rm = FALSE)
+  missing_mean = list(y = "LOS", na.rm = FALSE),
+  all_missing_mean = list(y = "LOS", domain = "HOSP_NIS == 2"),
+  all_missing_by = list(y = "LOS", domain = "HOSP_NIS == 2", group = "YEAR"),
+  empty_mean = list(y = "LOS", domain = "HOSP_NIS < 0")
 )
 
 open_views <- function(con, paths) {
@@ -61,8 +64,9 @@ reference_design <- function(data) {
 reference_call <- function(design, call) {
   spec <- c(workloads, fixture_cases)[[call]]
   if (!is.null(spec$domain)) {
-    inside <- with(design$variables, AGE >= 65)
-    if (identical(spec$domain, adult)) inside <- inside & design$variables$FEMALE == 1
+    predicate <- if (identical(spec$domain, adult)) quote(AGE >= 65 & FEMALE == 1) else
+      str2lang(spec$domain)
+    inside <- eval(predicate, design$variables)
     design <- subset(design, inside)
   }
   y <- stats::reformulate(spec$y)

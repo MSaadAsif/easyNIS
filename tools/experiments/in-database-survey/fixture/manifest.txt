@@ -1,4 +1,4 @@
-Command: Rscript --vanilla tools/experiments/in-database-survey/verify.R "local/loop/in-database-survey/invented"
+Command: Rscript --vanilla tools/experiments/in-database-survey/verify.R "local/loop/in-database-survey/invented-edge-cases"
 Platform: x86_64-w64-mingw32
 R version 4.6.1 (2026-06-24 ucrt)
 DBI: 1.3.0
@@ -8,5 +8,5 @@ srvyr: 1.3.1
 dplyr: 1.2.1
 RNG: Mersenne-Twister, Inversion, Rejection
 Seeds: 2601, 2602, 2603, 2604, 2605, 2606, 2607, 2608, 2609, 2610, 2611, 2612
-Cases: 168
-Passed: 168
+Cases: 204
+Passed: 204

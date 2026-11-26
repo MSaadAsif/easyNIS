@@ -26,11 +26,12 @@ taylor_center <- function(columns, by = character()) {
 
 taylor_stat <- function(query, outcome, total = FALSE, domain = "true",
                         group = NULL, na.rm = TRUE) {
-  ratio <- if (total) "numerator" else "numerator / nullif(denominator, 0)"
+  # survey returns zero for a mean on an empty complete-case subset.
+  ratio <- if (total) "numerator" else "coalesce(numerator / nullif(denominator, 0), 0)"
   linearized <- if (total) "wy" else "(wy - w * estimate) / nullif(denominator, 0)"
   missing <- if (na.rm) "false" else "any_missing"
   levels <- if (is.null(group)) "SELECT 0 AS grp" else
-    "SELECT DISTINCT grp FROM observed WHERE domain_n > 0"
+    "SELECT DISTINCT grp FROM observed WHERE domain_n > 0 AND grp IS NOT NULL"
   result <- query(sprintf(paste(
     "WITH rows AS (SELECT YEAR, NIS_STRATUM, HOSP_NIS, DISCWT, (%s) AS y,",
     "(%s) AS grp, coalesce((%s), false) AS inside FROM valid),",

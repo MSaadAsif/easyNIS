@@ -47,8 +47,9 @@ annual Parquet files. The checked-in [receipt](fixture/manifest.txt) records
 the seeds, platform, dependencies and outcome. The
 [comparison](fixture/agreement.tsv) records each case's relative
 differences and pass/fail. The cases vary PSU and stratum sizes, include a
-two-PSU stratum with no domain members and PSUs with no usable outcomes, reuse
-hospital identifiers across years, and exercise both values of `na.rm`.
+two-PSU stratum with zero or one in-domain PSU, reuse hospital identifiers
+across years, and exercise both values of `na.rm`. They also cover an empty
+domain, a domain with all outcomes missing, and missing grouping values.
 The model checks include the entire covariance matrix, residual degrees of
 freedom and IRLS iteration count.
 
@@ -91,7 +92,8 @@ The runner checks for residual files after each process exits.
 | `gaussian`, `poisson` | LOS model with age, sex and year |
 
 The three-year SQL trials compare individually with the corresponding
-in-memory reference. Agreement is the maximum symmetric relative difference,
+in-memory reference. The five-year SQL trials compare across profiles.
+Agreement is the maximum symmetric relative difference,
 using `max(abs(a), abs(b))` as the denominator for nonzero values and a
 tolerance of `1e-6`. The licensed Parquet query projects numeric fields.
 The age-only fit replaces the Q26 diagnosis-domain fit because the source

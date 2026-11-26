@@ -25,6 +25,7 @@ check_fixture <- function(seed) {
     died[h == 1L | runif(length(h)) < 0.04] <- NA
     age[runif(length(h)) < 0.04] <- NA
     female[h == 2L | (year == 2018 & h == 1L)] <- 0L
+    female[h > 2L & seq_along(h) %% 17L == 0L] <- NA
     if (year != 2018) {
       age[5L] <- 70L
       female[5L] <- 1L

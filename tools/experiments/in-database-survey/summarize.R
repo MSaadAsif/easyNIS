@@ -8,11 +8,21 @@ successful <- metrics[metrics$status == "ok", ]
 reference <- successful$trial[successful$backend == "survey"]
 names(reference) <- successful$call[successful$backend == "survey"]
 sql <- successful[successful$backend == "sql", ]
-available <- sql[sql$end_year == 2020 & sql$call %in% names(reference), ]
-agreement <- do.call(rbind, lapply(seq_len(nrow(available)), function(i) {
-  row <- available[i, ]
-  diff <- differences(read_result(row$trial), read_result(reference[[row$call]]))
-  data.frame(trial = row$trial, call = row$call, t(diff), pass = all(diff <= 1e-6))
+agreement <- do.call(rbind, lapply(seq_len(nrow(sql)), function(i) {
+  row <- sql[i, ]
+  if (row$end_year == 2020) {
+    expected <- unname(reference[row$call])
+    comparison <- "survey"
+  } else {
+    peers <- sql[sql$end_year == row$end_year & sql$call == row$call &
+      sql$profile != row$profile, ]
+    expected <- peers$trial[1L]
+    comparison <- "SQL across profiles"
+  }
+  if (is.na(expected)) return(NULL)
+  diff <- differences(read_result(row$trial), read_result(expected))
+  data.frame(trial = row$trial, call = row$call, comparison = comparison,
+    t(diff), pass = all(diff <= 1e-6))
 }))
 if (!is.null(agreement)) {
   write.table(agreement, file.path(run, "agreement.tsv"), sep = "\t", row.names = FALSE)
@@ -31,3 +41,4 @@ summary <- do.call(rbind, lapply(cells, function(cell) {
     agreement = if (!NROW(checks)) NA_character_ else if (all(checks$pass)) "pass" else "fail")
 }))
 write.table(summary, file.path(run, "summary.tsv"), sep = "\t", row.names = FALSE)
+quit(status = as.integer(any(metrics$status != "ok") || any(!agreement$pass)))
