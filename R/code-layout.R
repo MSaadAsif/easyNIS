@@ -10,8 +10,7 @@ nis_code_slots <- function(columns, stem, canonical = TRUE) {
 
 nis_diagnosis_fields <- function(data) {
   columns <- nis_names(data)
-  slots <- c(nis_code_slots(columns, "I10_DX", canonical = FALSE),
-    nis_code_slots(columns, "DXPOA", canonical = FALSE))
+  slots <- c(nis_code_slots(columns, "I10_DX", canonical = FALSE), nis_code_slots(columns, "DXPOA", canonical = FALSE))
   intersect(columns, names(slots))
 }
 
@@ -40,7 +39,9 @@ code_system_valid_year <- function(data) {
   } else {
     data
   }
-  if (!is.numeric(schema$YEAR)) return(rlang::expr(TRUE))
+  if (!is.numeric(schema$YEAR)) {
+    return(rlang::expr(TRUE))
+  }
   finite_year <- nis_is_finite_expr(data, "YEAR") # nolint: object_usage_linter
   rlang::expr(!!finite_year & YEAR == floor(YEAR)) # nolint: object_usage_linter
 }
@@ -52,9 +53,12 @@ code_system_filter <- function(data, columns, slots, system) {
   if (version_name %in% columns) {
     field <- rlang::sym(version_name)
     missing_version <- nis_is_missing_expr(data, version_name) # nolint: object_usage_linter
-    conditions <- c(conditions, list(rlang::expr(
-      !!missing_version | !!field == !!version
-    )))
+    conditions <- c(
+      conditions,
+      list(rlang::expr(
+        !!missing_version | !!field == !!version
+      ))
+    )
   }
   if ("YEAR" %in% columns) {
     missing_year <- nis_is_missing_expr(data, "YEAR") # nolint: object_usage_linter
@@ -64,20 +68,27 @@ code_system_filter <- function(data, columns, slots, system) {
     } else {
       rlang::expr(YEAR >= 2015L)
     }
-    conditions <- c(conditions, list(rlang::expr(
-      !!missing_year | (!!valid_year & !!year_range)
-    )))
+    conditions <- c(
+      conditions,
+      list(rlang::expr(
+        !!missing_year | (!!valid_year & !!year_range)
+      ))
+    )
     if ("DQTR" %in% columns) {
       quarters <- if (system == "icd9") 1:3 else 4L
       quarter <- rlang::sym("DQTR")
       missing_quarter <- nis_is_missing_expr(data, "DQTR") # nolint: object_usage_linter
-      conditions <- c(conditions, list(rlang::expr(
-        !!missing_year | YEAR != 2015L | !!missing_quarter |
-          !!quarter %in% !!quarters
-      )))
+      conditions <- c(
+        conditions,
+        list(rlang::expr(
+          !!missing_year | YEAR != 2015L | !!missing_quarter | !!quarter %in% !!quarters
+        ))
+      )
     }
   }
-  if (length(conditions) == 0L) return(NULL)
+  if (length(conditions) == 0L) {
+    return(NULL)
+  }
   Reduce(nis_and_expr, conditions) # nolint: object_usage_linter
 }
 

@@ -1,9 +1,0 @@
-linters: linters_with_defaults(
-    cyclocomp_linter(15),
-    line_length_linter(120),
-    indentation_linter = NULL
-  )
-exclusions: list(
-    "tests/testthat/helper-ccsr.R" = list(line_length_linter = Inf)
-  )
-encoding: "UTF-8"

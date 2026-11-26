@@ -18,10 +18,8 @@ test_that("nis_new_study copies the packaged template byte for byte", {
     )
   }
   expect_identical(
-    readBin(file.path(target, ".gitignore"), "raw",
-            n = file.info(file.path(target, ".gitignore"))$size),
-    readBin(file.path(template, "gitignore"), "raw",
-            n = file.info(file.path(template, "gitignore"))$size)
+    readBin(file.path(target, ".gitignore"), "raw", n = file.info(file.path(target, ".gitignore"))$size),
+    readBin(file.path(template, "gitignore"), "raw", n = file.info(file.path(template, "gitignore"))$size)
   )
 })
 
@@ -45,8 +43,7 @@ test_that("nis_new_study validates path arguments with stable conditions", {
   expect_invalid_path <- function(path) {
     error <- tryCatch(easyNIS::nis_new_study(path), error = identity)
     expect_s3_class(error, "rlang_error")
-    expect_identical(conditionMessage(error),
-                     "`path` must be one non-empty directory path.")
+    expect_identical(conditionMessage(error), "`path` must be one non-empty directory path.")
     expect_identical(conditionCall(error), quote(easyNIS::nis_new_study(path)))
   }
 
@@ -70,9 +67,13 @@ test_that("the packaged Quarto template contains no private paths", {
   files <- file.path(template, c("_quarto.yml", "analysis.qmd"))
   combined <- unlist(lapply(files, readLines, encoding = "UTF-8"))
   drive_roots <- paste0(c(LETTERS, letters), ":", intToUtf8(92))
-  expect_false(any(vapply(drive_roots, function(root) {
-    any(grepl(root, combined, fixed = TRUE))
-  }, logical(1))))
+  expect_false(any(vapply(
+    drive_roots,
+    function(root) {
+      any(grepl(root, combined, fixed = TRUE))
+    },
+    logical(1)
+  )))
   expect_false(any(grepl("/Users/|/home/|/private/", combined)))
 })
 
@@ -127,7 +128,9 @@ test_that("study scaffold removes partial destination after copy failure", {
   copy_file <- base::file.copy
   testthat::local_mocked_bindings(
     file.copy = function(from, to, ...) {
-      if (!identical(to, normalized)) return(copy_file(from, to, ...))
+      if (!identical(to, normalized)) {
+        return(copy_file(from, to, ...))
+      }
       copy_file(from[[1]], to, ...)
       FALSE
     },

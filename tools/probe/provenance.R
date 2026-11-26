@@ -1,42 +1,68 @@
 with_verified_source <- function(root, fn) {
-  result <- callr::r(function(root, fn) {
-    library <- tempfile("quality-library-")
-    dir.create(library)
-    on.exit(unlink(library, recursive = TRUE), add = TRUE)
-    package <- read.dcf(file.path(root, "DESCRIPTION"), fields = "Package")[[1L]]
-    callr::rcmd("INSTALL", c(paste0("--library=", library), root),
-      user_profile = FALSE, system_profile = FALSE, fail_on_status = TRUE)
-    expected <- file.path(library, package)
-    if (!file.exists(file.path(expected, "DESCRIPTION"))) stop("Installation missing")
-    .libPaths(c(library, .libPaths()))
-    namespace <- loadNamespace(package, lib.loc = library)
-    effective <- getNamespaceInfo(namespace, "path")
-    if (!identical(normalizePath(effective), normalizePath(expected))) {
-      stop("Effective namespace does not match the isolated installation")
-    }
-    warnings <- list()
-    error <- NULL
-    value <- tryCatch(withCallingHandlers(fn(root, package), warning = function(w) {
-      warnings[[length(warnings) + 1L]] <<- w
-      invokeRestart("muffleWarning")
-    }), error = function(e) { error <<- e; NULL })
-    list(value = value, warnings = warnings, error = error)
-  }, list(normalizePath(root, mustWork = TRUE), fn),
-    user_profile = FALSE, system_profile = FALSE)
-  for (condition in result$warnings) warning(condition)
-  if (!is.null(result$error)) stop(result$error)
+  result <- callr::r(
+    function(root, fn) {
+      library <- tempfile("quality-library-")
+      dir.create(library)
+      on.exit(unlink(library, recursive = TRUE), add = TRUE)
+      package <- read.dcf(file.path(root, "DESCRIPTION"), fields = "Package")[[1L]]
+      callr::rcmd(
+        "INSTALL",
+        c(paste0("--library=", library), root),
+        user_profile = FALSE,
+        system_profile = FALSE,
+        fail_on_status = TRUE
+      )
+      expected <- file.path(library, package)
+      if (!file.exists(file.path(expected, "DESCRIPTION"))) {
+        stop("Installation missing")
+      }
+      .libPaths(c(library, .libPaths()))
+      namespace <- loadNamespace(package, lib.loc = library)
+      effective <- getNamespaceInfo(namespace, "path")
+      if (!identical(normalizePath(effective), normalizePath(expected))) {
+        stop("Effective namespace does not match the isolated installation")
+      }
+      warnings <- list()
+      error <- NULL
+      value <- tryCatch(
+        withCallingHandlers(fn(root, package), warning = function(w) {
+          warnings[[length(warnings) + 1L]] <<- w
+          invokeRestart("muffleWarning")
+        }),
+        error = function(e) {
+          error <<- e
+          NULL
+        }
+      )
+      list(value = value, warnings = warnings, error = error)
+    },
+    list(normalizePath(root, mustWork = TRUE), fn),
+    user_profile = FALSE,
+    system_profile = FALSE
+  )
+  for (condition in result$warnings) {
+    warning(condition)
+  }
+  if (!is.null(result$error)) {
+    stop(result$error)
+  }
   result$value
 }
 
 # Outer namespace verification cannot attest to installations made by nested tools.
 provenance_pass <- function(passed, provenance) {
-  if (identical(passed, FALSE)) return(FALSE)
-  if (identical(provenance, "nested_unverified")) return(NA)
+  if (identical(passed, FALSE)) {
+    return(FALSE)
+  }
+  if (identical(provenance, "nested_unverified")) {
+    return(NA)
+  }
   passed
 }
 
 namespace_complexity_pass <- function(value) {
-  if (!is.data.frame(value) || !is.numeric(value$cyclocomp) || !nrow(value) ||
-      any(!is.finite(value$cyclocomp))) return(NA)
+  if (!is.data.frame(value) || !is.numeric(value$cyclocomp) || !nrow(value) || any(!is.finite(value$cyclocomp))) {
+    return(NA)
+  }
   all(value$cyclocomp <= 15)
 }

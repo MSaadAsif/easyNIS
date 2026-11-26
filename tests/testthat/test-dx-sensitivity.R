@@ -15,14 +15,18 @@ test_that("diagnosis position flags partition any-position cases", {
 
   expect_true(all(flags$hocm_principal <= flags$hocm_any))
   expect_false(any(flags$hocm_principal & flags$hocm_secondary_only))
-  expect_identical(flags$hocm_principal | flags$hocm_secondary_only,
-    flags$hocm_any)
+  expect_identical(flags$hocm_principal | flags$hocm_secondary_only, flags$hocm_any)
   expect_identical(flags$hocm_principal, c(TRUE, FALSE, TRUE, FALSE, FALSE, FALSE))
   expect_identical(flags$hocm_secondary_only, c(FALSE, TRUE, FALSE, TRUE, FALSE, FALSE))
   expect_identical(flags$hocm_any, c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE))
-  expect_error(nis_flag_dx_position(
-    dplyr::mutate(data, hocm_any = FALSE), "I42", name = "hocm"
-  ), "must not replace")
+  expect_error(
+    nis_flag_dx_position(
+      dplyr::mutate(data, hocm_any = FALSE),
+      "I42",
+      name = "hocm"
+    ),
+    "must not replace"
+  )
 })
 
 test_that("diagnosis sensitivity summary matches manual counts and rates", {
@@ -38,8 +42,7 @@ test_that("diagnosis sensitivity summary matches manual counts and rates", {
   expect_equal(out$DIED_rate_weighted, c(2 / 2, 7 / 10, 9 / 12))
   expect_equal(out$ELECTIVE_rate_unweighted, c(1 / 2, 1, 2 / 3))
   expect_equal(out$ELECTIVE_rate_weighted, c(2 / 7, 3 / 3, 5 / 10))
-  expect_error(nis_dx_sensitivity(data, "I42", outcomes = "MISSING"),
-    "Missing requested outcome")
+  expect_error(nis_dx_sensitivity(data, "I42", outcomes = "MISSING"), "Missing requested outcome")
 })
 
 test_that("diagnosis sensitivity validation conditions keep public calls", {
@@ -51,16 +54,23 @@ test_that("diagnosis sensitivity validation conditions keep public calls", {
     capture_error(nis_dx_sensitivity(data, "I42", outcomes = "MISSING")),
     capture_error(nis_dx_sensitivity(dplyr::select(data, -DISCWT), "I42"))
   )
-  expect_identical(vapply(errors, conditionMessage, character(1)), c(
-    "`weight_var` must be one column name.",
-    "`outcomes` must be a character vector of unique column names.",
-    "Missing requested outcome column: \"MISSING\".",
-    "Weight column \"DISCWT\" is missing from `.data`."
-  ))
+  expect_identical(
+    vapply(errors, conditionMessage, character(1)),
+    c(
+      "`weight_var` must be one column name.",
+      "`outcomes` must be a character vector of unique column names.",
+      "Missing requested outcome column: \"MISSING\".",
+      "Weight column \"DISCWT\" is missing from `.data`."
+    )
+  )
   expect_true(all(vapply(errors, inherits, logical(1), "rlang_error")))
-  expect_true(all(vapply(errors, function(error) {
-    identical(conditionCall(error)[[1L]], quote(nis_dx_sensitivity))
-  }, logical(1))))
+  expect_true(all(vapply(
+    errors,
+    function(error) {
+      identical(conditionCall(error)[[1L]], quote(nis_dx_sensitivity))
+    },
+    logical(1)
+  )))
 })
 
 test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
@@ -74,25 +84,35 @@ test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
 
   lazy_flags <- nis_flag_dx_position(query, "I42", name = "hocm")
   expect_s3_class(lazy_flags, "tbl_sql")
-  expect_identical(dplyr::collect(lazy_flags),
-    nis_flag_dx_position(data, "I42", name = "hocm"))
+  expect_identical(dplyr::collect(lazy_flags), nis_flag_dx_position(data, "I42", name = "hocm"))
   expect_no_warning(lazy_default <- nis_dx_sensitivity(query, "I42"))
   expect_equal(lazy_default, nis_dx_sensitivity(data, "I42"))
 
-  expect_no_warning(lazy_explicit <- nis_dx_sensitivity(
-    query, "I42", outcomes = c("DIED", "ELECTIVE")
-  ))
-  expect_equal(lazy_explicit, nis_dx_sensitivity(
-    data, "I42", outcomes = c("DIED", "ELECTIVE")
-  ))
+  expect_no_warning(
+    lazy_explicit <- nis_dx_sensitivity(
+      query,
+      "I42",
+      outcomes = c("DIED", "ELECTIVE")
+    )
+  )
+  expect_equal(
+    lazy_explicit,
+    nis_dx_sensitivity(
+      data,
+      "I42",
+      outcomes = c("DIED", "ELECTIVE")
+    )
+  )
 })
 
 test_that("sensitivity summary skips absent defaults and excludes missing outcomes", {
   data <- dx_sensitivity_fixture() |>
     dplyr::select(-DIED, -ELECTIVE)
   out <- nis_dx_sensitivity(data, "I42")
-  expect_identical(names(out), c("presentation", "n_unweighted", "n_weighted",
-    "pct_of_any_unweighted", "pct_of_any_weighted"))
+  expect_identical(
+    names(out),
+    c("presentation", "n_unweighted", "n_weighted", "pct_of_any_unweighted", "pct_of_any_weighted")
+  )
 
   no_codes <- data |>
     dplyr::mutate(I10_DX1 = NA_character_, I10_DX2 = NA_character_)

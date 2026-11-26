@@ -1,7 +1,9 @@
 test_that("nis_cell_counts rejects reserved summary names in cell keys", {
   records <- data.frame(
-    YEAR = rep(2020, 4), HOSP_NIS = c(1, 2, 1, 2),
-    NIS_STRATUM = 1, DISCWT = 1,
+    YEAR = rep(2020, 4),
+    HOSP_NIS = c(1, 2, 1, 2),
+    NIS_STRATUM = 1,
+    DISCWT = 1,
     group = c("A", "A", "B", "B"),
     n = c("first", "first", "second", "second"),
     hospitals = c("north", "south", "north", "south")
@@ -11,20 +13,19 @@ test_that("nis_cell_counts rejects reserved summary names in cell keys", {
     srvyr::as_survey_design(records, ids = HOSP_NIS, weights = DISCWT),
     nis_design(records, TRUE, keep = c(group, n, hospitals))
   )
-  keys <- list("n", "hospitals", c("group", "n"),
-    c("hospitals", "group"), c("n", "hospitals", "group"))
+  keys <- list("n", "hospitals", c("group", "n"), c("hospitals", "group"), c("n", "hospitals", "group"))
 
   for (input in inputs) {
     for (by in keys) {
-      expect_error(nis_cell_counts(input, by = by),
-        "`by`.*reserved.*(n|hospitals)")
+      expect_error(nis_cell_counts(input, by = by), "`by`.*reserved.*(n|hospitals)")
     }
   }
 })
 
 test_that("Parquet cell counts retain year scope and reject invalid identities", {
   records <- data.frame(
-    YEAR = c(2020L, 2020L, 2021L, 2020L), HOSP_NIS = c(1, 1, 1, Inf),
+    YEAR = c(2020L, 2020L, 2021L, 2020L),
+    HOSP_NIS = c(1, 1, 1, Inf),
     N = c("one", "one", "one", NA_character_)
   )
   path <- tempfile("nis-cells-")
@@ -43,11 +44,13 @@ test_that("nis_cell_counts retains ordinary multi-key identities and counts", {
   records <- data.frame(
     YEAR = c(2020, 2020, 2021, 2020, 2020, 2020),
     HOSP_NIS = c(1, 1, 1, 2, 3, 4),
-    NIS_STRATUM = 1, DISCWT = 1,
+    NIS_STRATUM = 1,
+    DISCWT = 1,
     group = c("A", "A", "A", "A", "B", "B"),
     category = c("north", "north", "north", "south", "north", "south"),
     eligible = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
-    n = "source label", hospitals = "source hospital label"
+    n = "source label",
+    hospitals = "source hospital label"
   )
   inputs <- list(
     records[records$eligible, ],

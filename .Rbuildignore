@@ -5,7 +5,6 @@
 ^codemeta[.]json$
 ^\.easynis-local\.ps1$
 ^\.github$
-^\.lintr$
 ^\.Rproj\.user$
 ^\.Rproj$
 ^AGENTS\.md$
@@ -25,3 +24,4 @@
 ^_pkgdown\.yml$
 ^_site($|[/\\])
 ^\.githooks($|[/\\])
+^air[.]toml$

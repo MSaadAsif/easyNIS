@@ -66,21 +66,41 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   include = c(AGE, FEMALE)
 #' )
 #' nis_suppress(table, threshold = 10)
-nis_suppress <- function(x, threshold = 10, ..., count_col, weighted_cols = NULL,
-                         by = NULL, secondary = TRUE, hospital_col = NULL) {
+nis_suppress <- function(
+  x,
+  threshold = 10,
+  ...,
+  count_col,
+  weighted_cols = NULL,
+  by = NULL,
+  secondary = TRUE,
+  hospital_col = NULL
+) {
   error_call <- rlang::current_call()
   dots <- rlang::dots_list(...)
   validate_suppress_dots(dots, error_call)
   validate_suppress_threshold(threshold, error_call)
   if (is.data.frame(x) && !inherits(x, "tbl_svysummary")) {
     return(suppress_dataframe(
-      x, threshold, count_col, weighted_cols, by, secondary, hospital_col,
-      missing(count_col), error_call
+      x,
+      threshold,
+      count_col,
+      weighted_cols,
+      by,
+      secondary,
+      hospital_col,
+      missing(count_col),
+      error_call
     ))
   }
   validate_survey_suppress_input(x, error_call)
   validate_survey_suppress_args(
-    count_col, weighted_cols, by, hospital_col, secondary, missing(count_col),
+    count_col,
+    weighted_cols,
+    by,
+    hospital_col,
+    secondary,
+    missing(count_col),
     error_call
   )
   suppress_survey_table(x, threshold, error_call)

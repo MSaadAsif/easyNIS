@@ -5,15 +5,13 @@
 }
 
 .nis_attrition_validate_weight <- function(weight_var) {
-  if (!is.character(weight_var) || length(weight_var) != 1L ||
-      is.na(weight_var) || !nzchar(weight_var)) {
+  if (!is.character(weight_var) || length(weight_var) != 1L || is.na(weight_var) || !nzchar(weight_var)) {
     cli::cli_abort("`weight_var` must be a single column name.")
   }
 }
 
 .nis_attrition_validate_cols <- function(.data, by_year, weight_var) {
-  absent <- setdiff(c(weight_var, if (by_year) "YEAR"),
-    nis_names(.data)) # nolint: object_usage_linter
+  absent <- setdiff(c(weight_var, if (by_year) "YEAR"), nis_names(.data)) # nolint: object_usage_linter
   if (length(absent) > 0L) {
     cli::cli_abort("`.data` is missing required column{?s} {.val {absent}}.")
   }
@@ -26,8 +24,7 @@
 }
 
 .nis_attrition_keep_names <- function(.data, criteria_count) {
-  nis_internal_names(.data, nis_names(.data),
-    paste0(".nis_attrition_keep_", seq_len(criteria_count)))
+  nis_internal_names(.data, nis_names(.data), paste0(".nis_attrition_keep_", seq_len(criteria_count)))
 }
 
 .nis_attrition_keep_exprs <- function(criteria, keep_names) {
@@ -45,8 +42,11 @@
 
 nis_attrition_metrics <- function(data, criteria_count) {
   steps <- seq.int(0L, criteria_count)
-  aliases <- nis_internal_names(data, nis_names(data),
-    c(paste0(".nis_attrition_n_", steps), paste0(".nis_attrition_w_", steps)))
+  aliases <- nis_internal_names(
+    data,
+    nis_names(data),
+    c(paste0(".nis_attrition_n_", steps), paste0(".nis_attrition_w_", steps))
+  )
   positions <- seq_along(steps)
   list(n = aliases[positions], weight = aliases[length(steps) + positions])
 }
@@ -58,11 +58,17 @@ nis_attrition_metrics <- function(data, criteria_count) {
   for (i in seq_along(keep_names)) {
     keep <- rlang::sym(keep_names[[i]])
     summary_exprs[[metrics$n[[i + 1L]]]] <- rlang::expr(sum(
-      dplyr::if_else(!!keep, 1L, 0L), na.rm = TRUE
+      dplyr::if_else(!!keep, 1L, 0L),
+      na.rm = TRUE
     ))
-    summary_exprs[[metrics$weight[[i + 1L]]]] <- rlang::expr(sum(dplyr::if_else(
-      !!keep, !!weight, 0
-    ), na.rm = TRUE))
+    summary_exprs[[metrics$weight[[i + 1L]]]] <- rlang::expr(sum(
+      dplyr::if_else(
+        !!keep,
+        !!weight,
+        0
+      ),
+      na.rm = TRUE
+    ))
   }
   summary_exprs
 }
@@ -144,7 +150,10 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   prepared <- dplyr::mutate(dplyr::ungroup(.data), !!!keep_exprs)
   missing_weight <- nis_is_missing_expr(prepared, weight_var) # nolint: object_usage_linter
   weight <- rlang::expr(dplyr::if_else(
-    !!missing_weight, 0, as.double(!!rlang::sym(weight_var))))
+    !!missing_weight,
+    0,
+    as.double(!!rlang::sym(weight_var))
+  ))
   metrics <- nis_attrition_metrics(prepared, length(criteria))
   summary_exprs <- .nis_attrition_summary_exprs(metrics, keep_names, weight)
   counts <- .nis_attrition_summarise(prepared, summary_exprs, by_year, metrics$n[[1L]])

@@ -40,11 +40,9 @@ nis_remove_owned_directory <- function(path) {
 }
 
 nis_duckdb_workload_settings <- function(config) {
-  supported <- c("memory_limit", "threads", "temp_directory", "max_temp_directory_size",
-    "preserve_insertion_order")
+  supported <- c("memory_limit", "threads", "temp_directory", "max_temp_directory_size", "preserve_insertion_order")
   keys <- names(config)
-  if (!is.list(config) || length(keys) != length(config) || anyDuplicated(keys) ||
-      !all(keys %in% supported)) {
+  if (!is.list(config) || length(keys) != length(config) || anyDuplicated(keys) || !all(keys %in% supported)) {
     cli::cli_abort("Option `easyNIS.duckdb_config` must be a named list of DuckDB workload settings.")
   }
   lapply(config, nis_duckdb_setting_text)
@@ -61,17 +59,23 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   finalizer <- new.env(parent = emptyenv())
   reg.finalizer(finalizer, function(e) release(), onexit = TRUE)
   tbl$src$.easyNIS_connection_finalizer <- finalizer
-  if (length(owners)) tbl$src$.easyNIS_arrow_refs <- owners
+  if (length(owners)) {
+    tbl$src$.easyNIS_arrow_refs <- owners
+  }
   tbl
 }
 
 nis_duckdb_write_parquet <- function(data, path, con) {
   table <- "easyNIS_fixture"
   DBI::dbWriteTable(con, table, data, temporary = TRUE, overwrite = TRUE)
-  destination <- as.character(DBI::dbQuoteString(con,
-    normalizePath(path, winslash = "/", mustWork = FALSE)))
-  statement <- paste0("COPY ", as.character(DBI::dbQuoteIdentifier(con, table)),
-    " TO ", destination, " (FORMAT PARQUET)")
+  destination <- as.character(DBI::dbQuoteString(con, normalizePath(path, winslash = "/", mustWork = FALSE)))
+  statement <- paste0(
+    "COPY ",
+    as.character(DBI::dbQuoteIdentifier(con, table)),
+    " TO ",
+    destination,
+    " (FORMAT PARQUET)"
+  )
   DBI::dbExecute(con, statement)
   invisible(path)
 }

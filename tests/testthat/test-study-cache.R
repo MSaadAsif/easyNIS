@@ -16,11 +16,14 @@ test_that("study cache keys change when definitions or external data roots chang
   Sys.setFileTime(file_b, fixed_time)
   make <- function(path, file, definition = "x <- x + 1L") {
     make_key(
-      input_path = path, is_example = FALSE, data_files = file,
-      years = 2017:2018, codes = list(dx = "I50"), cohort = "dx & AGE >= 18",
+      input_path = path,
+      is_example = FALSE,
+      data_files = file,
+      years = 2017:2018,
+      codes = list(dx = "I50"),
+      cohort = "dx & AGE >= 18",
       annualize = FALSE,
-      source_chunks = list(setup = 'options(survey.lonely.psu = "adjust")',
-                           definitions = definition),
+      source_chunks = list(setup = 'options(survey.lonely.psu = "adjust")', definitions = definition),
       survey_options = list(lonely_psu = "adjust", adjust_domain_lonely = TRUE)
     )
   }
@@ -39,10 +42,15 @@ test_that("study cache keys track selected Parquet parts only", {
   selected <- nis_open(path, years = 2020L)
   make_key <- function() {
     nis_study_cache_key(
-      input_path = path, is_example = FALSE,
+      input_path = path,
+      is_example = FALSE,
       data_files = nis_open_source_paths(selected),
-      years = 2020L, codes = list(dx = "I50"), cohort = "dx",
-      annualize = FALSE, source_chunks = list(), survey_options = list()
+      years = 2020L,
+      codes = list(dx = "I50"),
+      cohort = "dx",
+      annualize = FALSE,
+      source_chunks = list(),
+      survey_options = list()
     )
   }
   input_key <- make_key()
@@ -70,7 +78,8 @@ test_that("report cache keys include model inputs, format, and dependency versio
   docx <- do.call(make_key, c(args, list(output_format = "docx")))
   updated_args <- args
   updated_args$package_versions <- c(
-    gtsummary = "2.1.0", gt = "<not-installed>"
+    gtsummary = "2.1.0",
+    gt = "<not-installed>"
   )
   updated <- do.call(make_key, c(updated_args, list(output_format = "html")))
   expect_false(identical(html, docx))

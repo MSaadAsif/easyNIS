@@ -1,8 +1,11 @@
 git_evidence <- function() {
-  commit <- tryCatch(system2("git", c("rev-parse", "HEAD"),
-    stdout = TRUE, stderr = FALSE), error = function(e) character())
-  status <- tryCatch(system2("git", c("status", "--porcelain", "--untracked-files=all"),
-    stdout = TRUE, stderr = FALSE), error = function(e) "dirty")
+  commit <- tryCatch(system2("git", c("rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE), error = function(e) {
+    character()
+  })
+  status <- tryCatch(
+    system2("git", c("status", "--porcelain", "--untracked-files=all"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "dirty"
+  )
   commit_status <- attr(commit, "status", exact = TRUE)
   status_status <- attr(status, "status", exact = TRUE)
   list(
@@ -16,9 +19,12 @@ parse_open_issue_query <- function(output, status = 0L) {
     return(list(ok = FALSE, count = NA_integer_))
   }
   json <- paste(output, collapse = "\n")
-  if (!startsWith(trimws(json), "[")) return(list(ok = FALSE, count = NA_integer_))
-  issues <- tryCatch(jsonlite::fromJSON(json,
-    simplifyVector = FALSE), error = function(e) NULL)
-  if (!is.list(issues)) return(list(ok = FALSE, count = NA_integer_))
+  if (!startsWith(trimws(json), "[")) {
+    return(list(ok = FALSE, count = NA_integer_))
+  }
+  issues <- tryCatch(jsonlite::fromJSON(json, simplifyVector = FALSE), error = function(e) NULL)
+  if (!is.list(issues)) {
+    return(list(ok = FALSE, count = NA_integer_))
+  }
   list(ok = TRUE, count = length(issues))
 }

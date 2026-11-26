@@ -9,10 +9,15 @@ validate_survey_suppress_input <- function(x, error_call) {
 }
 
 validate_survey_suppress_args <- function(
-    count_col, weighted_cols, by, hospital_col, secondary,
-    missing_count_col, error_call) {
-  data_frame_only <- !missing_count_col || !is.null(weighted_cols) ||
-    !is.null(by) || !is.null(hospital_col)
+  count_col,
+  weighted_cols,
+  by,
+  hospital_col,
+  secondary,
+  missing_count_col,
+  error_call
+) {
+  data_frame_only <- !missing_count_col || !is.null(weighted_cols) || !is.null(by) || !is.null(hospital_col)
   if (data_frame_only) {
     cli::cli_abort(
       "`count_col`, `weighted_cols`, `by`, and `hospital_col` apply only to data frames.",
@@ -33,25 +38,31 @@ survey_suppress_cards <- function(x) {
 }
 
 survey_row_spec <- function(body, row, cards, card_variable_level) {
-  if (!all(c("variable", "row_type", "var_type") %in% names(body))) return(NULL)
+  if (!all(c("variable", "row_type", "var_type") %in% names(body))) {
+    return(NULL)
+  }
   variable <- body$variable[[row]]
   row_type <- body$row_type[[row]]
   var_type <- body$var_type[[row]]
-  if (!survey_row_metadata_valid(variable, row_type, var_type)) return(NULL)
-  survey_row_spec_by_type(body, row, variable, row_type, var_type,
-                          cards, card_variable_level)
+  if (!survey_row_metadata_valid(variable, row_type, var_type)) {
+    return(NULL)
+  }
+  survey_row_spec_by_type(body, row, variable, row_type, var_type, cards, card_variable_level)
 }
 
 survey_row_metadata_valid <- function(variable, row_type, var_type) {
-  !is.na(variable) && nzchar(trimws(variable)) && !is.na(row_type) &&
-    !is.na(var_type) && nzchar(trimws(var_type))
+  !is.na(variable) && nzchar(trimws(variable)) && !is.na(row_type) && !is.na(var_type) && nzchar(trimws(var_type))
 }
 
-survey_row_spec_by_type <- function(body, row, variable, row_type, var_type,
-                                    cards, card_variable_level) {
+survey_row_spec_by_type <- function(body, row, variable, row_type, var_type, cards, card_variable_level) {
   if (identical(row_type, "level")) {
     return(survey_level_row_spec(
-      body, row, variable, var_type, cards, card_variable_level
+      body,
+      row,
+      variable,
+      var_type,
+      cards,
+      card_variable_level
     ))
   }
   if (identical(row_type, "missing")) {
@@ -65,33 +76,48 @@ survey_row_spec_by_type <- function(body, row, variable, row_type, var_type,
 
 survey_cell_mask_result <- function(body, column, row, masks, threshold) {
   masked <- masks$count || masks$hospital
-  if (masks$count) body[[column]][[row]] <- paste0("\u2264", threshold)
-  if (masks$hospital) body[[column]][[row]] <- "<2 hospitals"
+  if (masks$count) {
+    body[[column]][[row]] <- paste0("\u2264", threshold)
+  }
+  if (masks$hospital) {
+    body[[column]][[row]] <- "<2 hospitals"
+  }
   overall <- identical(column, "stat_0")
   list(body = body, group_masked = masked && !overall, overall_masked = masked && overall)
 }
 
 survey_level_row_spec <- function(
-    body, row, variable, var_type, cards, card_variable_level) {
+  body,
+  row,
+  variable,
+  var_type,
+  cards,
+  card_variable_level
+) {
   if (identical(var_type, "continuous2")) {
     return(list(
-      variable = variable, context = "missing",
+      variable = variable,
+      context = "missing",
       stat_name = "N_nonmiss_unweighted",
-      level_index = rep(TRUE, nrow(cards)), continuous2 = TRUE
+      level_index = rep(TRUE, nrow(cards)),
+      continuous2 = TRUE
     ))
   }
   context <- if (identical(var_type, "dichotomous")) "dichotomous" else "categorical"
-  level_value <- survey_card_level_value(cards, variable, context,
-    card_variable_level, body$label[[row]])
+  level_value <- survey_card_level_value(cards, variable, context, card_variable_level, body$label[[row]])
   if (is.null(level_value)) {
     cli::cli_abort(paste0(
-      "Cannot verify the raw level for displayed `", variable,
-      "` statistic labeled `", body$label[[row]],
+      "Cannot verify the raw level for displayed `",
+      variable,
+      "` statistic labeled `",
+      body$label[[row]],
       "`. Restore the original gtsummary level label."
     ))
   }
   list(
-    variable = variable, context = context, stat_name = "n_unweighted",
+    variable = variable,
+    context = context,
+    stat_name = "n_unweighted",
     level_index = survey_level_index(card_variable_level, body$label[[row]]),
     level_value = level_value,
     continuous2 = FALSE
@@ -99,32 +125,43 @@ survey_level_row_spec <- function(
 }
 
 survey_card_level_value <- function(cards, variable, context, levels, label) {
-  idx <- which(cards$variable == variable & cards$context == context &
-    cards$stat_name == "n_unweighted" & levels == as.character(label))
+  idx <- which(
+    cards$variable == variable &
+      cards$context == context &
+      cards$stat_name == "n_unweighted" &
+      levels == as.character(label)
+  )
   values <- unique(levels[idx])
   if (length(values) == 1L) values[[1L]] else NULL
 }
 
 survey_missing_row_spec <- function(variable, cards) {
   list(
-    variable = variable, context = "missing", stat_name = "N_miss_unweighted",
-    level_index = rep(TRUE, nrow(cards)), continuous2 = FALSE
+    variable = variable,
+    context = "missing",
+    stat_name = "N_miss_unweighted",
+    level_index = rep(TRUE, nrow(cards)),
+    continuous2 = FALSE
   )
 }
 
 survey_label_row_spec <- function(variable, var_type, cards) {
   if (identical(var_type, "continuous")) {
     return(list(
-      variable = variable, context = "missing",
+      variable = variable,
+      context = "missing",
       stat_name = "N_nonmiss_unweighted",
-      level_index = rep(TRUE, nrow(cards)), continuous2 = FALSE
+      level_index = rep(TRUE, nrow(cards)),
+      continuous2 = FALSE
     ))
   }
   if (identical(var_type, "dichotomous")) {
     return(list(
-      variable = variable, context = "dichotomous",
+      variable = variable,
+      context = "dichotomous",
       stat_name = "n_unweighted",
-      level_index = rep(TRUE, nrow(cards)), continuous2 = FALSE
+      level_index = rep(TRUE, nrow(cards)),
+      continuous2 = FALSE
     ))
   }
   NULL
@@ -132,9 +169,13 @@ survey_label_row_spec <- function(variable, var_type, cards) {
 
 survey_variable_levels <- function(cards) {
   if ("variable_level" %in% names(cards)) {
-    vapply(cards[["variable_level"]], function(value) {
-      if (length(value) == 0L) "" else as.character(value[[1L]])
-    }, character(1))
+    vapply(
+      cards[["variable_level"]],
+      function(value) {
+        if (length(value) == 0L) "" else as.character(value[[1L]])
+      },
+      character(1)
+    )
   } else {
     rep(NA_character_, nrow(cards))
   }
@@ -145,19 +186,27 @@ survey_level_index <- function(card_variable_level, level) {
 }
 
 survey_continuous2_blank <- function(cell) {
-  length(cell) == 0L || (length(cell) == 1L &&
-    (is.na(cell) || (is.character(cell) && !nzchar(trimws(cell)))))
+  length(cell) == 0L ||
+    (length(cell) == 1L &&
+      (is.na(cell) || (is.character(cell) && !nzchar(trimws(cell)))))
 }
 
 survey_card_matches <- function(cards, spec, column) {
-  matches <- which(cards$variable == spec$variable &
-    cards$context == spec$context & cards$stat_name == spec$stat_name &
-    cards$gts_column == column & spec$level_index)
-  if (length(matches) == 0L && identical(column, "stat_0") &&
-      !spec$continuous2) {
-    matches <- which(cards$variable == spec$variable &
-      cards$context == spec$context & cards$stat_name == spec$stat_name &
-      grepl("^stat_[1-9][0-9]*$", cards$gts_column) & spec$level_index)
+  matches <- which(
+    cards$variable == spec$variable &
+      cards$context == spec$context &
+      cards$stat_name == spec$stat_name &
+      cards$gts_column == column &
+      spec$level_index
+  )
+  if (length(matches) == 0L && identical(column, "stat_0") && !spec$continuous2) {
+    matches <- which(
+      cards$variable == spec$variable &
+        cards$context == spec$context &
+        cards$stat_name == spec$stat_name &
+        grepl("^stat_[1-9][0-9]*$", cards$gts_column) &
+        spec$level_index
+    )
   }
   matches
 }
@@ -173,15 +222,28 @@ survey_card_count <- function(cards, matches, spec, column, error_call) {
   }
   variable <- spec$variable
   if (spec$continuous2) {
-    cli::cli_abort(paste0(
-      "Cannot verify the non-missing count for continuous2 statistic `",
-      variable, "` in `", column, "`. Keep exactly one finite ",
-      "`N_nonmiss_unweighted` card for that variable and column."
-    ), call = error_call)
+    cli::cli_abort(
+      paste0(
+        "Cannot verify the non-missing count for continuous2 statistic `",
+        variable,
+        "` in `",
+        column,
+        "`. Keep exactly one finite ",
+        "`N_nonmiss_unweighted` card for that variable and column."
+      ),
+      call = error_call
+    )
   }
-  cli::cli_abort(paste0(
-    "Cannot verify the unweighted count for `", variable, "` in `", column, "`."
-  ), call = error_call)
+  cli::cli_abort(
+    paste0(
+      "Cannot verify the unweighted count for `",
+      variable,
+      "` in `",
+      column,
+      "`."
+    ),
+    call = error_call
+  )
 }
 
 survey_cell_suppression <- function(x, records, body, cards, row, column, spec, threshold, error_call) {
@@ -197,11 +259,14 @@ survey_cell_suppression <- function(x, records, body, cards, row, column, spec, 
 }
 
 survey_stat_displayed <- function(body, row, stat_columns) {
-  any(vapply(stat_columns, function(column) {
-    value <- body[[column]][[row]]
-    length(value) > 0L && !all(is.na(value)) &&
-      !(is.character(value) && all(!nzchar(trimws(value))))
-  }, logical(1)))
+  any(vapply(
+    stat_columns,
+    function(column) {
+      value <- body[[column]][[row]]
+      length(value) > 0L && !all(is.na(value)) && !(is.character(value) && all(!nzchar(trimws(value))))
+    },
+    logical(1)
+  ))
 }
 
 survey_row_mapping_error <- function(body, row, row_type, error_call) {
@@ -211,19 +276,42 @@ survey_row_mapping_error <- function(body, row, row_type, error_call) {
   } else {
     "missing or unsupported"
   }
-  cli::cli_abort(paste0(
-    "Cannot verify the statistic mapping for displayed row `",
-    description, "` in `", variable, "`."
-  ), call = error_call)
+  cli::cli_abort(
+    paste0(
+      "Cannot verify the statistic mapping for displayed row `",
+      description,
+      "` in `",
+      variable,
+      "`."
+    ),
+    call = error_call
+  )
 }
 
 suppress_survey_row <- function(
-    x, records, body, cards, row, spec, stat_columns, threshold, error_call) {
+  x,
+  records,
+  body,
+  cards,
+  row,
+  spec,
+  stat_columns,
+  threshold,
+  error_call
+) {
   group_masked <- FALSE
   overall_primary_masked <- FALSE
   for (column in stat_columns) {
     result <- survey_cell_suppression(
-      x, records, body, cards, row, column, spec, threshold, error_call
+      x,
+      records,
+      body,
+      cards,
+      row,
+      column,
+      spec,
+      threshold,
+      error_call
     )
     body <- result$body
     group_masked <- group_masked || result$group_masked
@@ -248,17 +336,29 @@ suppress_survey_table <- function(x, threshold, error_call) {
     if (displayed_stat && is.null(spec)) {
       survey_row_mapping_error(body, row, row_type, error_call)
     }
-    if (is.null(spec)) next
+    if (is.null(spec)) {
+      next
+    }
     body <- suppress_survey_row(
-      x, records, body, cards, row, spec, stat_columns, threshold, error_call
+      x,
+      records,
+      body,
+      cards,
+      row,
+      spec,
+      stat_columns,
+      threshold,
+      error_call
     )
   }
   x <- gtsummary::modify_table_body(x, function(table_body) body)
   gtsummary::modify_footnote_header(
     x,
     footnote = paste0(
-      "Statistics based on unweighted n \u2264", threshold,
-      " are marked \u2264", threshold,
+      "Statistics based on unweighted n \u2264",
+      threshold,
+      " are marked \u2264",
+      threshold,
       "; cells contributed by fewer than two distinct year-scoped hospitals ",
       "are marked '<2 hospitals', regardless of count. The discharge-count ",
       "mask takes precedence when both rules apply.",
@@ -330,7 +430,9 @@ survey_hosp_missing <- function(data, variable, spec) {
 
 survey_hosp_categorical <- function(data, variable, cards, matches, spec, error_call) {
   level <- spec$level_value
-  if (is.null(level)) cli::cli_abort("Cannot map displayed categorical row to a raw card level.", call = error_call)
+  if (is.null(level)) {
+    cli::cli_abort("Cannot map displayed categorical row to a raw card level.", call = error_call)
+  }
   raw_level <- survey_card_scalar_values(cards, "variable_level", matches, error_call)
   if (!identical(raw_level, as.character(level))) {
     cli::cli_abort("Summary card raw variable level does not match the displayed row.", call = error_call)
@@ -348,12 +450,16 @@ survey_hosp_dichotomous <- function(data, x, variable, error_call) {
 
 survey_hospital_group_records <- function(data, x, cards, column, keep, error_call) {
   by <- x$inputs$by
-  if (!length(by) || identical(column, "stat_0")) return(keep)
+  if (!length(by) || identical(column, "stat_0")) {
+    return(keep)
+  }
   if (length(by) != 1L || !all(c("gts_column", "group1", "group1_level") %in% names(cards))) {
     cli::cli_abort("Cannot map `{column}` to a by-group from summary cards.", call = error_call)
   }
   group_rows <- which(cards$gts_column == column & !is.na(cards$group1))
-  if (!length(group_rows)) cli::cli_abort("Cannot map `{column}` to a by-group from summary cards.", call = error_call)
+  if (!length(group_rows)) {
+    cli::cli_abort("Cannot map `{column}` to a by-group from summary cards.", call = error_call)
+  }
   group_values <- unique(as.character(cards$group1[group_rows]))
   if (length(group_values) != 1L || !identical(group_values[[1L]], by[[1L]])) {
     cli::cli_abort("Summary cards do not identify one valid by-group for `{column}`.", call = error_call)
@@ -363,7 +469,9 @@ survey_hospital_group_records <- function(data, x, cards, column, keep, error_ca
 }
 
 survey_cell_evidence <- function(x, data, cards, matches, column, spec, error_call) {
-  if (!nrow(data)) return(list(n = 0L, hospitals = 0L))
+  if (!nrow(data)) {
+    return(list(n = 0L, hospitals = 0L))
+  }
   keep <- survey_hospital_var_records(data, x, cards, matches, spec, error_call)
   keep <- survey_hospital_group_records(data, x, cards, column, keep, error_call)
   selected <- data[keep, c("YEAR", "HOSP_NIS"), drop = FALSE]

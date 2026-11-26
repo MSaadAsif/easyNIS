@@ -1,6 +1,5 @@
 expect_ccsr_call <- function(expr, message) {
-  condition <- tryCatch(eval(substitute(expr), envir = parent.frame()),
-    error = identity)
+  condition <- tryCatch(eval(substitute(expr), envir = parent.frame()), error = identity)
   testthat::expect_s3_class(condition, "error")
   testthat::expect_match(conditionMessage(condition), message)
   testthat::expect_identical(rlang::call_name(conditionCall(condition)), "nis_ccsr_codes")
@@ -15,12 +14,9 @@ test_that("nis_ccsr_codes reads the Excel mapping sheet and honours defaults", {
 
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X101"))
   expect_equal(nis_ccsr_codes(path, "zzz002"), c("X101", "X102", "X200"))
-  expect_equal(nis_ccsr_codes(path, c("ZZZ001", "ZZZ003")),
-    c("X100", "X101", "X200", "Y300", "Y30A"))
-  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE),
-    c("X101", "X102"))
-  expect_equal(nis_ccsr_codes(path, "ZZZ003", default_only = TRUE),
-    c("X200", "Y30A"))
+  expect_equal(nis_ccsr_codes(path, c("ZZZ001", "ZZZ003")), c("X100", "X101", "X200", "Y300", "Y30A"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE), c("X101", "X102"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ003", default_only = TRUE), c("X200", "Y30A"))
 })
 
 test_that("nis_ccsr_codes reads the wide comma-separated layout", {
@@ -30,8 +26,7 @@ test_that("nis_ccsr_codes reads the wide comma-separated layout", {
 
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X101"))
   expect_equal(nis_ccsr_codes(path, "ZZZ002"), c("X101", "X102", "X200"))
-  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE),
-    c("X101", "X102"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE), c("X101", "X102"))
   expect_equal(nis_ccsr_codes(path, "ZZZ003", default_only = TRUE), "X200")
 })
 
@@ -45,8 +40,7 @@ test_that("nis_ccsr_codes rejects bad input clearly", {
   expect_error(nis_ccsr_codes(path, character()), "categories")
   expect_error(nis_ccsr_codes(path, NA_character_), "categories")
   expect_error(nis_ccsr_codes(path, "ZZZ001", default_only = NA), "default_only")
-  expect_error(nis_ccsr_codes(tempfile(fileext = ".xlsx"), "ZZZ001"),
-    "existing CCSR")
+  expect_error(nis_ccsr_codes(tempfile(fileext = ".xlsx"), "ZZZ001"), "existing CCSR")
 
   other <- tempfile(fileext = ".csv")
   on.exit(unlink(other), add = TRUE)
@@ -74,16 +68,18 @@ test_that("malformed CCSR inputs identify the public lookup call", {
 test_that("procedure files have no default category", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
-  writeLines(c(
-    "'ICD-10-PCS','ICD-10-PCS DESCRIPTION','PRCCSR','PRCCSR DESCRIPTION'",
-    "'0AB0001','d','ZZP001','c'",
-    "'0AB0002','d','ZZP001','c'",
-    "'0AC0001','d','ZZP002','c'"
-  ), path)
+  writeLines(
+    c(
+      "'ICD-10-PCS','ICD-10-PCS DESCRIPTION','PRCCSR','PRCCSR DESCRIPTION'",
+      "'0AB0001','d','ZZP001','c'",
+      "'0AB0002','d','ZZP001','c'",
+      "'0AC0001','d','ZZP002','c'"
+    ),
+    path
+  )
 
   expect_equal(nis_ccsr_codes(path, "ZZP001"), c("0AB0001", "0AB0002"))
-  expect_error(nis_ccsr_codes(path, "ZZP001", default_only = TRUE),
-    "no default")
+  expect_error(nis_ccsr_codes(path, "ZZP001", default_only = TRUE), "no default")
 })
 
 test_that("CCSR codes feed nis_flag_dx and nis_flag_pr as prefixes", {
@@ -106,22 +102,24 @@ test_that("CCSR codes feed nis_flag_dx and nis_flag_pr as prefixes", {
 test_that("quoted descriptions with commas and apostrophes do not shift fields", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
-  writeLines(c(
-    paste0(
-      "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','",
-      "Default CCSR CATEGORY IP','Default CCSR CATEGORY DESCRIPTION IP',",
-      "'CCSR CATEGORY 1','CCSR CATEGORY 1 DESCRIPTION'"
+  writeLines(
+    c(
+      paste0(
+        "'ICD-10-CM CODE','ICD-10-CM CODE DESCRIPTION','",
+        "Default CCSR CATEGORY IP','Default CCSR CATEGORY DESCRIPTION IP',",
+        "'CCSR CATEGORY 1','CCSR CATEGORY 1 DESCRIPTION'"
+      ),
+      "'X100','Invented disease, type one','ZZZ001','Invented, category','ZZZ001','Invented, category'",
+      "'X101','Invented's disease','ZZZ002','Owner's category','ZZZ002','Owner's category'",
+      "'X102','Both, and Invented's, here','ZZZ002','c','ZZZ002',''",
+      "'X.103','d','ZZZ001','c','ZZZ001','c'"
     ),
-    "'X100','Invented disease, type one','ZZZ001','Invented, category','ZZZ001','Invented, category'",
-    "'X101','Invented's disease','ZZZ002','Owner's category','ZZZ002','Owner's category'",
-    "'X102','Both, and Invented's, here','ZZZ002','c','ZZZ002',''",
-    "'X.103','d','ZZZ001','c','ZZZ001','c'"
-  ), path)
+    path
+  )
 
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X103"))
   expect_equal(nis_ccsr_codes(path, "ZZZ002"), c("X101", "X102"))
-  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE),
-    c("X101", "X102"))
+  expect_equal(nis_ccsr_codes(path, "ZZZ002", default_only = TRUE), c("X101", "X102"))
 })
 
 test_that("malformed CSV rows and non-ICD codes are rejected clearly", {
@@ -148,11 +146,14 @@ test_that("malformed CSV rows and non-ICD codes are rejected clearly", {
 test_that("plain double-quoted CSV files still parse", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
-  writeLines(c(
-    "ICD-10-CM CODE,ICD-10-CM CODE DESCRIPTION,CCSR CATEGORY 1",
-    "X100,\"Invented, disease\",ZZZ001",
-    "X101,d,ZZZ002"
-  ), path)
+  writeLines(
+    c(
+      "ICD-10-CM CODE,ICD-10-CM CODE DESCRIPTION,CCSR CATEGORY 1",
+      "X100,\"Invented, disease\",ZZZ001",
+      "X101,d,ZZZ002"
+    ),
+    path
+  )
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })
 
@@ -172,12 +173,15 @@ test_that("standard CSV mappings reject extra and missing record fields", {
 test_that("standard CSV validation respects quoted commas and multiline records", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
-  writeLines(c(
-    '"ICD-10-CM CODE","Description","CCSR CATEGORY 1"',
-    '"X100","Invented, description","ZZZ001"',
-    '"X101","Invented ""quoted""',
-    'description, continued","ZZZ001"'
-  ), path)
+  writeLines(
+    c(
+      '"ICD-10-CM CODE","Description","CCSR CATEGORY 1"',
+      '"X100","Invented, description","ZZZ001"',
+      '"X101","Invented ""quoted""',
+      'description, continued","ZZZ001"'
+    ),
+    path
+  )
   expect_identical(nis_ccsr_codes(path, "ZZZ001"), c("X100", "X101"))
 })
 
@@ -196,8 +200,15 @@ test_that("standard CSV validation accepts multiline headers and checks later re
 test_that("a byte-order mark before the header is tolerated", {
   path <- tempfile(fileext = ".csv")
   on.exit(unlink(path), add = TRUE)
-  writeBin(c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw(paste0(
-    "'ICD-10-CM CODE','CCSR CATEGORY 1'\n'X100','ZZZ001'\n"))), path)
+  writeBin(
+    c(
+      as.raw(c(0xef, 0xbb, 0xbf)),
+      charToRaw(paste0(
+        "'ICD-10-CM CODE','CCSR CATEGORY 1'\n'X100','ZZZ001'\n"
+      ))
+    ),
+    path
+  )
   expect_equal(nis_ccsr_codes(path, "ZZZ001"), "X100")
 })
 
@@ -217,7 +228,6 @@ test_that("CCSR workbooks require one mapping sheet and an ICD-10 header", {
   write_ccsr_xlsx(path, sheet = "Invented sheet")
   expect_error(nis_ccsr_codes(path, "ZZZ001"), "needs one")
 
-  write_ccsr_xlsx(path, header = c("Invented header", "Description",
-    "Category", "Category description", "Default"))
+  write_ccsr_xlsx(path, header = c("Invented header", "Description", "Category", "Category description", "Default"))
   expect_error(nis_ccsr_codes(path, "ZZZ001"), "No header row")
 })

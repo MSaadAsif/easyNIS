@@ -1,10 +1,12 @@
 # All expectations below use invented discharges and hand-calculated totals.
 dx_boundary_fixture <- function() {
   dplyr::tibble(
-    g = c("a", "b", "a", "b", "c"), h = c(1, 1, 2, 2, 3),
+    g = c("a", "b", "a", "b", "c"),
+    h = c(1, 1, 2, 2, 3),
     I10_DX1 = c("A100", "A100", "Z999", "Z999", NA_character_),
     I10_DX2 = c(NA, NA, "A100", "A100", NA_character_),
-    DISCWT = c(2, 3, 0, NA, 7), DIED = c(1, 0, NA, 1, 0),
+    DISCWT = c(2, 3, 0, NA, 7),
+    DIED = c(1, 0, NA, 1, 0),
     DIED_weighted = c(0, 1, 1, NA, 1),
     DIED_weighted_weighted = c(1, 0, NA, 1, 0),
     .nis_dx_summary_1_n = c(0, 1, 1, NA, 1),
@@ -48,8 +50,7 @@ test_that("Local and DuckDB empty and unmatched summaries have zero totals", {
       }
     }
     out <- nis_dx_sensitivity(dplyr::filter(data, FALSE), "A1", outcomes = character())
-    expect_named(out, c("presentation", "n_unweighted", "n_weighted",
-      "pct_of_any_unweighted", "pct_of_any_weighted"))
+    expect_named(out, c("presentation", "n_unweighted", "n_weighted", "pct_of_any_unweighted", "pct_of_any_weighted"))
   }
 })
 
@@ -57,13 +58,27 @@ test_that("Local and DuckDB outcome rates are independent of names and order", {
   for (make_input in list(identity, duckdb_query_fixture)) {
     fixture <- dx_boundary_fixture()
     data <- make_input(fixture)
-    outcomes <- c("DIED", "DIED_weighted", "DIED_weighted_weighted",
-      ".nis_dx_summary_1_n", ".nis_dx_principal_DIED_n", "odd outcome")
+    outcomes <- c(
+      "DIED",
+      "DIED_weighted",
+      "DIED_weighted_weighted",
+      ".nis_dx_summary_1_n",
+      ".nis_dx_principal_DIED_n",
+      "odd outcome"
+    )
     for (order in list(outcomes, rev(outcomes))) {
       out <- nis_dx_sensitivity(data, "A1", outcomes = order)
-      expect_named(out, c("presentation", "n_unweighted", "n_weighted",
-        "pct_of_any_unweighted", "pct_of_any_weighted",
-        as.vector(rbind(paste0(order, "_rate_unweighted"), paste0(order, "_rate_weighted")))))
+      expect_named(
+        out,
+        c(
+          "presentation",
+          "n_unweighted",
+          "n_weighted",
+          "pct_of_any_unweighted",
+          "pct_of_any_weighted",
+          as.vector(rbind(paste0(order, "_rate_unweighted"), paste0(order, "_rate_weighted")))
+        )
+      )
       for (outcome in outcomes) {
         first <- fixture[[outcome]][[1L]] == 1
         expected <- if (first) c(2 / 5, NA, 2 / 5) else c(3 / 5, NA, 3 / 5)
@@ -101,11 +116,14 @@ test_that("Local and DuckDB zero and missing weights keep omission arithmetic", 
 test_that("DuckDB physical NaN weights and outcomes are missing", {
   con <- DBI::dbConnect(duckdb::duckdb())
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
-  query <- dplyr::tbl(con, dbplyr::sql(paste(
-    "SELECT * FROM (VALUES ('I50', 2.0::DOUBLE, 1.0::DOUBLE),",
-    "('I50', 'NaN'::DOUBLE, 0.0), ('I50', 4.0, 'NaN'::DOUBLE))",
-    "AS t(I10_DX1, DISCWT, DIED)"
-  )))
+  query <- dplyr::tbl(
+    con,
+    dbplyr::sql(paste(
+      "SELECT * FROM (VALUES ('I50', 2.0::DOUBLE, 1.0::DOUBLE),",
+      "('I50', 'NaN'::DOUBLE, 0.0), ('I50', 4.0, 'NaN'::DOUBLE))",
+      "AS t(I10_DX1, DISCWT, DIED)"
+    ))
+  )
   result <- nis_dx_sensitivity(query, "I50")
   expect_equal(result$n_weighted, c(6, 0, 6))
   expect_equal(result$DIED_rate_unweighted, c(1 / 2, NA, 1 / 2))
@@ -136,8 +154,7 @@ test_that("sensitivity does not alter input metadata", {
 
 
 test_that("sensitivity does not overwrite or reject analyst fields named like flags", {
-  data <- dplyr::tibble(YEAR = 2020L, I10_DX1 = c("I50", "Z99"),
-    DISCWT = c(2, 5), .NIS_DX_ANY = c(1, 0))
+  data <- dplyr::tibble(YEAR = 2020L, I10_DX1 = c("I50", "Z99"), DISCWT = c(2, 5), .NIS_DX_ANY = c(1, 0))
   for (input in list(data, duckdb_query_fixture(data))) {
     result <- nis_dx_sensitivity(input, "I50", outcomes = ".NIS_DX_ANY")
     expect_identical(result$n_unweighted, c(1, 0, 1))

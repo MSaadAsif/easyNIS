@@ -34,10 +34,8 @@ test_that("nis_design preserves year-scoped domain estimates", {
   expect_identical(design$variables$.nis_psu, c("2020::1", "2021::1"))
   expect_identical(design$variables$.nis_stratum, c("2020::1", "2021::1"))
   expect_equal(as.numeric(stats::weights(design)), c(1, 3.5))
-  expect_equal(coef(survey::svytotal(~AGE, design)),
-    coef(survey::svytotal(~AGE, reference)))
-  expect_equal(survey::SE(survey::svytotal(~AGE, design)),
-    survey::SE(survey::svytotal(~AGE, reference)))
+  expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
+  expect_equal(survey::SE(survey::svytotal(~AGE, design)), survey::SE(survey::svytotal(~AGE, reference)))
   expect_true(any(grepl("missing cohort value", informs, fixed = TRUE)))
   expect_true(any(grepl("Cohort: 2 discharges", informs, fixed = TRUE)))
 })
@@ -119,8 +117,11 @@ test_that("sample diagnostics count defects separately from valid quarter covera
   )
   input <- dplyr::bind_rows(valid, invalid)
   reference <- survey::svydesign(
-    ids = ~interaction(YEAR, HOSP_NIS), strata = ~YEAR,
-    weights = ~I(DISCWT / 2), nest = TRUE, data = valid
+    ids = ~ interaction(YEAR, HOSP_NIS),
+    strata = ~YEAR,
+    weights = ~ I(DISCWT / 2),
+    nest = TRUE,
+    data = valid
   ) |>
     subset(eligible)
   factor_quarters <- dplyr::mutate(input, DQTR = factor(DQTR))
@@ -143,20 +144,22 @@ test_that("sample diagnostics count defects separately from valid quarter covera
     expect_equal(excluded$by_field, c(YEAR = 1, HOSP_NIS = 1, NIS_STRATUM = 1, DISCWT = 3))
     expect_equal(excluded$by_year, dplyr::tibble(YEAR = 2015:2016, n = c(1, 2)))
     expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
-    expect_equal(survey::SE(survey::svytotal(~AGE, design)),
-      survey::SE(survey::svytotal(~AGE, reference)))
+    expect_equal(survey::SE(survey::svytotal(~AGE, design)), survey::SE(survey::svytotal(~AGE, reference)))
   }
 })
 
 test_that("a nonannual DuckDB design does not evaluate unselected quarter data", {
-  data <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = rep(1:2, each = 4L),
-    NIS_STRATUM = 1L, DISCWT = 1, AGE = 41:48)
+  data <- dplyr::tibble(YEAR = 2020L, HOSP_NIS = rep(1:2, each = 4L), NIS_STRATUM = 1L, DISCWT = 1, AGE = 41:48)
   query <- duckdb_query_fixture(data)
-  query <- dplyr::mutate(query, DQTR = dbplyr::sql(
-    "CAST(error('unneeded quarter must not be evaluated') AS INTEGER)"
-  ))
-  expect_message(design <- nis_design(query,
-    dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE),
-    "Treated 2 missing cohort values")
+  query <- dplyr::mutate(
+    query,
+    DQTR = dbplyr::sql(
+      "CAST(error('unneeded quarter must not be evaluated') AS INTEGER)"
+    )
+  )
+  expect_message(
+    design <- nis_design(query, dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE),
+    "Treated 2 missing cohort values"
+  )
   expect_equal(nrow(design$variables), 6L)
 })

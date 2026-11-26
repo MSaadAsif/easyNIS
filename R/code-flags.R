@@ -76,10 +76,8 @@
 #'   nis_flag_dx(hf_full = list(regex = "I50[0-9]{2}")) |>
 #'   dplyr::count(hf_full) |>
 #'   dplyr::collect()
-nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"),
-                        system = c("icd10", "icd9")) {
-  nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position),
-    system = match.arg(system))
+nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"), system = c("icd10", "icd9")) {
+  nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position), system = match.arg(system))
 }
 
 #' Add procedure code flags
@@ -109,10 +107,8 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   nis_flag_pr(ablation = "02L") |>
 #'   dplyr::count(ablation) |>
 #'   dplyr::collect()
-nis_flag_pr <- function(.data, ..., position = c("any", "principal"),
-                        system = c("icd10", "icd9")) {
-  nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position),
-    system = match.arg(system))
+nis_flag_pr <- function(.data, ..., position = c("any", "principal"), system = c("icd10", "icd9")) {
+  nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position), system = match.arg(system))
 }
 
 nis_flag_codes <- function(.data, slots, ..., position, system) {
@@ -130,7 +126,9 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
 
   rules <- lapply(definitions, normalize_flag_definition)
   regexes <- unique(unlist(lapply(rules, `[[`, "regex"), use.names = FALSE))
-  if (length(regexes)) validate_flag_regex(regexes)
+  if (length(regexes)) {
+    validate_flag_regex(regexes)
+  }
 
   slot_names <- nis_flag_slot_names(data_names, slots, system, position)
   flags <- lapply(rules, nis_code_match, data = .data, slot_names = slot_names)
@@ -151,8 +149,11 @@ normalize_flag_definition <- function(definition) {
 
 validate_flag_definition_list <- function(value) {
   allowed <- c("prefix", "regex", "exclude")
-  valid_names <- is.list(value) && !is.null(names(value)) &&
-    !anyDuplicated(names(value)) && all(names(value) %in% allowed) && length(value)
+  valid_names <- is.list(value) &&
+    !is.null(names(value)) &&
+    !anyDuplicated(names(value)) &&
+    all(names(value) %in% allowed) &&
+    length(value)
   if (!valid_names) {
     cli::cli_abort(paste(
       "Code flag definitions must be character vectors or named lists",
@@ -176,12 +177,16 @@ normalize_flag_definition_list <- function(value) {
 }
 
 normalize_flag_prefixes <- function(value) {
-  if (is.null(value)) return(character())
+  if (is.null(value)) {
+    return(character())
+  }
   normalize_prefixes(value)
 }
 
 normalize_flag_regexes <- function(value) {
-  if (is.null(value)) return(character())
+  if (is.null(value)) {
+    return(character())
+  }
   if (!is.character(value) || anyNA(value)) {
     cli::cli_abort("`regex` must be a non-missing character vector.")
   }
@@ -189,7 +194,9 @@ normalize_flag_regexes <- function(value) {
 }
 
 normalize_flag_exclusions <- function(value) {
-  if (is.null(value)) return(character())
+  if (is.null(value)) {
+    return(character())
+  }
   if (!is.character(value) || anyNA(value)) {
     cli::cli_abort("`exclude` must be a non-missing character vector.")
   }
@@ -200,11 +207,12 @@ validate_flag_regex <- function(patterns) {
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   for (pattern in patterns) {
-    tryCatch(DBI::dbGetQuery(con,
-      "SELECT regexp_full_match('', ?) AS valid", params = list(pattern)), # nolint: object_usage_linter
+    tryCatch(
+      DBI::dbGetQuery(con, "SELECT regexp_full_match('', ?) AS valid", params = list(pattern)), # nolint: object_usage_linter
       error = function(error) {
         cli::cli_abort("Invalid or unsupported DuckDB regular expression {.val {pattern}}.")
-      })
+      }
+    )
   }
   invisible(patterns)
 }
@@ -247,12 +255,17 @@ nis_code_match <- function(rule, data, slot_names) {
       included <- list(prefix)
     }
     if (length(rule$regex)) {
-      regex <- if (local) rlang::expr(nis_frame_regex_match(!!value, !!rule$regex)) else
+      regex <- if (local) {
+        rlang::expr(nis_frame_regex_match(!!value, !!rule$regex))
+      } else {
         nis_sql_regex_match(rule$regex, column)
+      }
       included <- c(included, list(regex))
     }
     matched <- reduce_or(included)
-    if (!length(rule$exclude)) return(matched)
+    if (!length(rule$exclude)) {
+      return(matched)
+    }
     excluded <- rlang::expr(!!value %in% !!rule$exclude)
     nis_and_expr(matched, rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
   })
@@ -264,19 +277,27 @@ nis_prefix_rule <- function(prefix) {
 }
 
 nis_frame_regex_match <- function(values, patterns) {
-  if (length(values) == 0L) return(logical())
+  if (length(values) == 0L) {
+    return(logical())
+  }
   con <- nis_duckdb_connect() # nolint: object_usage_linter
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
-  DBI::dbWriteTable(con, "regex_values", data.frame(
-    row_id = seq_along(values), code = values, stringsAsFactors = FALSE
-  ), temporary = TRUE)
+  DBI::dbWriteTable(
+    con,
+    "regex_values",
+    data.frame(
+      row_id = seq_along(values),
+      code = values,
+      stringsAsFactors = FALSE
+    ),
+    temporary = TRUE
+  )
 
   code <- as.character(DBI::dbQuoteIdentifier(con, "code"))
   row_id <- as.character(DBI::dbQuoteIdentifier(con, "row_id"))
   matches <- paste0("COALESCE(regexp_full_match(", code, ", ?), FALSE)")
   match_expression <- paste(rep(matches, length(patterns)), collapse = " OR ")
-  sql <- paste0("SELECT ", row_id, ", (", match_expression,
-    ") AS matched FROM regex_values ORDER BY ", row_id)
+  sql <- paste0("SELECT ", row_id, ", (", match_expression, ") AS matched FROM regex_values ORDER BY ", row_id)
   result <- DBI::dbGetQuery(con, sql, params = as.list(patterns))
   result$matched
 }

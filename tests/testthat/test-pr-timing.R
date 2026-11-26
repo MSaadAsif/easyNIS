@@ -42,12 +42,10 @@ test_that("procedure timing evaluates every relation and the earliest index day"
     c(FALSE, FALSE, TRUE, TRUE, FALSE, FALSE)
   )
   expect_identical(
-    nis_flag_pr_timing(data, "ix", "out", relation = "within_days",
-      window = 1L)$outcome_post_index,
+    nis_flag_pr_timing(data, "ix", "out", relation = "within_days", window = 1L)$outcome_post_index,
     c(TRUE, FALSE, TRUE, TRUE, FALSE, FALSE)
   )
-  expect_error(nis_flag_pr_timing(data, "ix", "out", relation = "within_days"),
-    "window")
+  expect_error(nis_flag_pr_timing(data, "ix", "out", relation = "within_days"), "window")
   expect_error(nis_flag_pr_timing(data, "ix", "out", window = 1L), "NULL")
   expect_error(nis_flag_pr_timing(data, NA_character_, "out"), "index_pr")
   expect_error(nis_flag_pr_timing(data, "ix", NA_character_), "outcome_pr")
@@ -55,24 +53,22 @@ test_that("procedure timing evaluates every relation and the earliest index day"
 })
 
 test_that("procedure timing validation errors retain their public call", {
-  data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
-    PRDAY2 = 1L)
+  data <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY2 = 1L)
   condition <- tryCatch(
     nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days", window = Inf),
     error = identity
   )
 
   expect_s3_class(condition, "rlang_error")
-  expect_identical(conditionCall(condition),
-    quote(nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days",
-      window = Inf)))
+  expect_identical(
+    conditionCall(condition),
+    quote(nis_flag_pr_timing(data, "IX", "OUT", relation = "within_days", window = Inf))
+  )
 })
 
 test_that("whole numeric timing windows include the boundary in DuckDB", {
-  data <- dplyr::tibble(id = 1:2, I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L,
-    PRDAY2 = c(2L, 3L))
-  actual <- nis_flag_pr_timing(duckdb_query_fixture(data), "IX", "OUT",
-    relation = "within_days", window = 2.0) |>
+  data <- dplyr::tibble(id = 1:2, I10_PR1 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY2 = c(2L, 3L))
+  actual <- nis_flag_pr_timing(duckdb_query_fixture(data), "IX", "OUT", relation = "within_days", window = 2.0) |>
     dplyr::arrange(id) |>
     dplyr::collect()
   expect_identical(actual$outcome_post_index, c(TRUE, FALSE))
@@ -80,8 +76,10 @@ test_that("whole numeric timing windows include the boundary in DuckDB", {
 
 test_that("procedure timing accepts integer and mixed numeric day columns", {
   integer_days <- dplyr::tibble(
-    I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),
-    PRDAY1 = c(0L, 2L), PRDAY2 = c(1L, 1L)
+    I10_PR1 = c("IX", "IX"),
+    I10_PR2 = c("OUT", "OUT"),
+    PRDAY1 = c(0L, 2L),
+    PRDAY2 = c(1L, 1L)
   )
   expect_identical(
     nis_flag_pr_timing(integer_days, "IX", "OUT")$outcome_post_index,
@@ -89,8 +87,10 @@ test_that("procedure timing accepts integer and mixed numeric day columns", {
   )
 
   mixed_days <- dplyr::tibble(
-    I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),
-    PRDAY1 = c(0L, 2L), PRDAY2 = c(1, 1)
+    I10_PR1 = c("IX", "IX"),
+    I10_PR2 = c("OUT", "OUT"),
+    PRDAY1 = c(0L, 2L),
+    PRDAY2 = c(1, 1)
   )
   expect_identical(
     nis_flag_pr_timing(mixed_days, "IX", "OUT")$outcome_post_index,
@@ -100,7 +100,8 @@ test_that("procedure timing accepts integer and mixed numeric day columns", {
 
 test_that("procedure timing treats an unmatched PRDAY slot as unknown", {
   data <- dplyr::tibble(
-    I10_PR1 = c("IX", "IX"), I10_PR2 = c("OUT", "OUT"),
+    I10_PR1 = c("IX", "IX"),
+    I10_PR2 = c("OUT", "OUT"),
     PRDAY1 = c(0L, 2L)
   )
   expect_identical(
@@ -131,7 +132,8 @@ test_that("procedure timing handles missing days and absent procedures", {
   )
   for (policy in c("exclude", "assume_same_day", "indeterminate")) {
     actual <- nis_flag_pr_timing(data, "IX", "OUT", missing_day = policy)$outcome_post_index
-    expected <- switch(policy,
+    expected <- switch(
+      policy,
       exclude = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
       assume_same_day = c(TRUE, TRUE, TRUE, TRUE, FALSE, FALSE),
       indeterminate = c(NA, NA, NA, NA, FALSE, FALSE)
@@ -139,9 +141,14 @@ test_that("procedure timing handles missing days and absent procedures", {
     expect_identical(actual, expected)
   }
   # A determinate satisfying pair wins even if another matching slot is unknown.
-  mixed <- dplyr::tibble(I10_PR1 = "IX", I10_PR2 = c("IX", "OUT"),
-    I10_PR3 = c("OUT", "IX"), PRDAY1 = c(-99L, 0L),
-    PRDAY2 = c(0L, 0L), PRDAY3 = c(0L, -99L))
+  mixed <- dplyr::tibble(
+    I10_PR1 = "IX",
+    I10_PR2 = c("IX", "OUT"),
+    I10_PR3 = c("OUT", "IX"),
+    PRDAY1 = c(-99L, 0L),
+    PRDAY2 = c(0L, 0L),
+    PRDAY3 = c(0L, -99L)
+  )
   expect_identical(
     nis_flag_pr_timing(mixed, "IX", "OUT", missing_day = "indeterminate")$outcome_post_index,
     c(TRUE, TRUE)
@@ -184,8 +191,14 @@ test_that("procedure timing policies have explicit relation expectations", {
     for (relation in names(expected[[policy]])) {
       window <- if (relation == "within_days") 1L else NULL
       expect_identical(
-        nis_flag_pr_timing(data, "IX", "OUT", relation = relation,
-          window = window, missing_day = policy)$outcome_post_index,
+        nis_flag_pr_timing(
+          data,
+          "IX",
+          "OUT",
+          relation = relation,
+          window = window,
+          missing_day = policy
+        )$outcome_post_index,
         expected[[policy]][[relation]],
         info = paste(policy, relation)
       )
@@ -195,26 +208,26 @@ test_that("procedure timing policies have explicit relation expectations", {
 
 test_that("procedure timing uses ICD-9 slots and validates its output", {
   data <- dplyr::tibble(
-    PR1 = c("3722", "3722"), PR2 = c("3325", "3325"),
-    PRDAY1 = c(1L, 3L), PRDAY2 = c(2L, 2L)
+    PR1 = c("3722", "3722"),
+    PR2 = c("3325", "3325"),
+    PRDAY1 = c(1L, 3L),
+    PRDAY2 = c(2L, 2L)
   )
   expect_identical(
     nis_flag_pr_timing(data, "37.2", "33 25", system = "icd9")$outcome_post_index,
     c(TRUE, FALSE)
   )
-  expect_error(nis_flag_pr_timing(data, "37", "33", name = "PR1"),
-    "must not replace")
-  expect_error(nis_flag_pr_timing(dplyr::select(data, -PRDAY1, -PRDAY2),
-    "37", "33", system = "icd9"), "PRDAY")
-  expect_error(nis_flag_pr_timing(data, "37", "33", name = c("x", "y")),
-    "single")
+  expect_error(nis_flag_pr_timing(data, "37", "33", name = "PR1"), "must not replace")
+  expect_error(nis_flag_pr_timing(dplyr::select(data, -PRDAY1, -PRDAY2), "37", "33", system = "icd9"), "PRDAY")
+  expect_error(nis_flag_pr_timing(data, "37", "33", name = c("x", "y")), "single")
 })
 
 test_that("procedure timing stays lazy and agrees with data frames on DuckDB", {
   data <- dplyr::tibble(
     I10_PR1 = c("IX", "IX", "IX", "OTHER"),
     I10_PR2 = c("OUT", "OUT", "OUT", "OUT"),
-    PRDAY1 = c(0L, 2L, -99L, 1L), PRDAY2 = c(1L, 1L, 1L, 2L)
+    PRDAY1 = c(0L, 2L, -99L, 1L),
+    PRDAY2 = c(1L, 1L, 1L, 2L)
   )
   path <- tempfile("nis-pr-timing-")
   dir.create(path)
@@ -228,22 +241,25 @@ test_that("procedure timing stays lazy and agrees with data frames on DuckDB", {
 })
 
 test_that("procedure timing agrees across DuckDB policies and many slots", {
-  procedure_slots <- stats::setNames(rep(list(rep("OTHER", 5L)), 25L),
-    paste0("I10_PR", seq_len(25L)))
+  procedure_slots <- stats::setNames(rep(list(rep("OTHER", 5L)), 25L), paste0("I10_PR", seq_len(25L)))
   procedure_slots[[1L]] <- c("IX", "IX", "IX", "IX", "IX")
   procedure_slots[[2L]] <- c("OUT", "OUT", "OUT", "OUT", "OUT")
   procedure_slots[[3L]] <- c("IDX", "IDX", "OTHER", "OTHER", "OTHER")
   procedure_slots[[4L]] <- c("ALT", "ALT", "ALT", "ALT", "ALT")
   procedure_slots[[12L]] <- c("OUT", "OUT", "OUT", "OUT", "OUT")
-  day_slots <- stats::setNames(rep(list(rep(1L, 5L)), 11L),
-    paste0("PRDAY", seq_len(11L)))
+  day_slots <- stats::setNames(rep(list(rep(1L, 5L)), 11L), paste0("PRDAY", seq_len(11L)))
   day_slots[[1L]] <- c(0L, -99L, 0L, -99L, -99L)
   day_slots[[2L]] <- c(1, 1, -99, NA_real_, 1)
   day_slots[[3L]] <- c(2L, 1L, 0L, -99L, 1L)
   day_slots[[4L]] <- c(3L, -99L, 0L, 1L, 1L)
-  data <- dplyr::as_tibble(c(procedure_slots, day_slots, list(
-    YEAR = rep(2018L, 5L), PRVER = c(10L, 10L, 10L, 10L, 9L)
-  )))
+  data <- dplyr::as_tibble(c(
+    procedure_slots,
+    day_slots,
+    list(
+      YEAR = rep(2018L, 5L),
+      PRVER = c(10L, 10L, 10L, 10L, 9L)
+    )
+  ))
   path <- tempfile("nis-pr-timing-many-slots-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -255,8 +271,7 @@ test_that("procedure timing agrees across DuckDB policies and many slots", {
   query_data <- list(list(data, query), list(small_data, small_query))
   for (i in seq_along(query_data)) {
     cases <- if (i == 1L) {
-      list(c("exclude", "on_or_after"), c("indeterminate", "on_or_after"),
-        c("indeterminate", "within_days"))
+      list(c("exclude", "on_or_after"), c("indeterminate", "on_or_after"), c("indeterminate", "within_days"))
     } else {
       grid <- expand.grid(
         policy = c("exclude", "assume_same_day", "indeterminate"),
@@ -271,10 +286,22 @@ test_that("procedure timing agrees across DuckDB policies and many slots", {
       policy <- case[[1L]]
       relation <- case[[2L]]
       window <- if (relation == "within_days") 2L else NULL
-      expected <- nis_flag_pr_timing(query_data[[i]][[1L]], c("IX", "IDX", "NOMATCH"), c("OUT", "ALT"),
-        relation = relation, window = window, missing_day = policy)
-      actual <- nis_flag_pr_timing(query_data[[i]][[2L]], c("IX", "IDX", "NOMATCH"), c("OUT", "ALT"),
-        relation = relation, window = window, missing_day = policy) |>
+      expected <- nis_flag_pr_timing(
+        query_data[[i]][[1L]],
+        c("IX", "IDX", "NOMATCH"),
+        c("OUT", "ALT"),
+        relation = relation,
+        window = window,
+        missing_day = policy
+      )
+      actual <- nis_flag_pr_timing(
+        query_data[[i]][[2L]],
+        c("IX", "IDX", "NOMATCH"),
+        c("OUT", "ALT"),
+        relation = relation,
+        window = window,
+        missing_day = policy
+      ) |>
         dplyr::collect()
       expect_identical(actual, expected)
     }
@@ -290,13 +317,19 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
     PRDAY2 = c(0L, NA_integer_, -88L, 1L)
   )
   actual <- nis_prday_completeness(data, c("ix", "out"))
-  expect_identical(actual, dplyr::tibble(
-    YEAR = c(2020L, 2020L, 2021L, 2021L), slot = c(1L, 2L, 1L, 2L),
-    matched_slots = c(2L, 2L, 1L, 2L), known_day = c(1L, 1L, 1L, 1L),
-    missing_day = c(0L, 1L, 0L, 0L),
-    sentinel_invalid_day = c(1L, 0L, 0L, 1L),
-    absent_prday_column = c(0L, 0L, 0L, 0L), pct_known = c(50, 50, 100, 50)
-  ))
+  expect_identical(
+    actual,
+    dplyr::tibble(
+      YEAR = c(2020L, 2020L, 2021L, 2021L),
+      slot = c(1L, 2L, 1L, 2L),
+      matched_slots = c(2L, 2L, 1L, 2L),
+      known_day = c(1L, 1L, 1L, 1L),
+      missing_day = c(0L, 1L, 0L, 0L),
+      sentinel_invalid_day = c(1L, 0L, 0L, 1L),
+      absent_prday_column = c(0L, 0L, 0L, 0L),
+      pct_known = c(50, 50, 100, 50)
+    )
+  )
 
   no_slot_day <- dplyr::select(data, -PRDAY2)
   absent <- nis_prday_completeness(no_slot_day, "out")
@@ -304,16 +337,14 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
   expect_identical(absent_slot2$absent_prday_column, c(2L, 2L))
   expect_identical(absent_slot2$matched_slots, c(2L, 2L))
 
-  duckdb_result <- nis_prday_completeness(duckdb_query_fixture(data),
-    c("ix", "out"))
+  duckdb_result <- nis_prday_completeness(duckdb_query_fixture(data), c("ix", "out"))
   expect_equal(duckdb_result, actual)
 })
 
 test_that("PRDAY completeness aggregates on DuckDB queries", {
   skip_if_not_installed("duckdb")
   skip_if_not_installed("dbplyr")
-  data <- dplyr::tibble(YEAR = c(2020L, 2020L), I10_PR1 = c("IX", "IX"),
-    PRDAY1 = c(0L, -99L))
+  data <- dplyr::tibble(YEAR = c(2020L, 2020L), I10_PR1 = c("IX", "IX"), PRDAY1 = c(0L, -99L))
   con <- duckdb::dbConnect(duckdb::duckdb())
   on.exit(duckdb::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
@@ -335,7 +366,8 @@ test_that("PRDAY completeness separates matches by year and slot", {
     PRDAY3 = c(-99L, 0L, 1L, 2L)
   )
   expected <- dplyr::tibble(
-    YEAR = rep(2020:2021, each = 3L), slot = rep(1:3, 2),
+    YEAR = rep(2020:2021, each = 3L),
+    slot = rep(1:3, 2),
     matched_slots = c(1L, 1L, 2L, 2L, 2L, 1L),
     known_day = c(1L, 1L, 1L, 0L, 1L, 1L),
     missing_day = c(0L, 0L, 0L, 1L, 0L, 0L),
@@ -349,17 +381,16 @@ test_that("PRDAY completeness separates matches by year and slot", {
 test_that("PRDAY completeness classifies days like procedure timing", {
   data <- dplyr::tibble(
     YEAR = rep(2020L, 4L),
-    I10_PR1 = rep("IX", 4L), I10_PR2 = rep("OUT", 4L),
-    PRDAY1 = rep(0L, 4L), PRDAY2 = c(0L, 1L, NA_integer_, -99L)
+    I10_PR1 = rep("IX", 4L),
+    I10_PR2 = rep("OUT", 4L),
+    PRDAY1 = rep(0L, 4L),
+    PRDAY2 = c(0L, 1L, NA_integer_, -99L)
   )
   summary <- nis_prday_completeness(data, "OUT")
-  flag <- nis_flag_pr_timing(data, "IX", "OUT", relation = "same_day",
-    missing_day = "indeterminate")$outcome_post_index
+  flag <- nis_flag_pr_timing(data, "IX", "OUT", relation = "same_day", missing_day = "indeterminate")$outcome_post_index
   expect_identical(flag, c(TRUE, FALSE, NA, NA))
-  expect_identical(summary$known_day[summary$slot == 2L],
-    as.integer(sum(!is.na(flag))))
-  expect_identical(summary$missing_day[summary$slot == 2L],
-    as.integer(sum(is.na(data$PRDAY2))))
+  expect_identical(summary$known_day[summary$slot == 2L], as.integer(sum(!is.na(flag))))
+  expect_identical(summary$missing_day[summary$slot == 2L], as.integer(sum(is.na(data$PRDAY2))))
   expect_identical(summary$sentinel_invalid_day[summary$slot == 2L], 1L)
 })
 
@@ -383,12 +414,15 @@ test_that("PRDAY completeness uses factor labels across input types", {
   }
 
   query <- duckdb_query_fixture(data)
-  on.exit({
-    con <- query$src$con
-    query <- NULL
-    invisible(gc())
-    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-  }, add = TRUE)
+  on.exit(
+    {
+      con <- query$src$con
+      query <- NULL
+      invisible(gc())
+      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+    },
+    add = TRUE
+  )
   expect_identical(nis_prday_completeness(query, "OUT"), expected)
 })
 
@@ -413,47 +447,65 @@ test_that("PRDAY completeness buckets unparseable and NaN text days as missing",
   levels <- c("", "-1", "0", "NaN", "abc", "unused")
   factor_data <- dplyr::mutate(data, PRDAY1 = factor(values, levels = levels))
   expect_identical(
-    suppressWarnings(nis_prday_completeness(factor_data, "OUT")), expected
+    suppressWarnings(nis_prday_completeness(factor_data, "OUT")),
+    expected
   )
 
   query <- duckdb_query_fixture(data)
-  on.exit({
-    con <- query$src$con
-    query <- NULL
-    invisible(gc())
-    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-  }, add = TRUE)
+  on.exit(
+    {
+      con <- query$src$con
+      query <- NULL
+      invisible(gc())
+      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+    },
+    add = TRUE
+  )
   expect_identical(nis_prday_completeness(query, "OUT"), expected)
 })
 
 test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
   data <- dplyr::tibble(
     YEAR = rep(2020L, 5L),
-    I10_PR1 = rep("IX", 5L), I10_PR2 = rep("OUT", 5L),
-    PRDAY1 = rep(0, 5L), PRDAY2 = c(0, -99, NA_real_, NaN, Inf)
+    I10_PR1 = rep("IX", 5L),
+    I10_PR2 = rep("OUT", 5L),
+    PRDAY1 = rep(0, 5L),
+    PRDAY2 = c(0, -99, NA_real_, NaN, Inf)
   )
   query <- duckdb_query_fixture(data)
-  on.exit({
-    con <- query$src$con
-    query <- NULL
-    invisible(gc())
-    if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
-  }, add = TRUE)
+  on.exit(
+    {
+      con <- query$src$con
+      query <- NULL
+      invisible(gc())
+      if (duckdb::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
+    },
+    add = TRUE
+  )
 
   for (policy in c("exclude", "assume_same_day", "indeterminate")) {
     for (relation in c("on_or_after", "after", "before", "same_day", "within_days")) {
-      expected <- nis_flag_pr_timing(data, "IX", "OUT", relation = relation,
+      expected <- nis_flag_pr_timing(
+        data,
+        "IX",
+        "OUT",
+        relation = relation,
         window = if (relation == "within_days") 2L else NULL,
-        missing_day = policy)
-      actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = relation,
+        missing_day = policy
+      )
+      actual <- nis_flag_pr_timing(
+        query,
+        "IX",
+        "OUT",
+        relation = relation,
         window = if (relation == "within_days") 2L else NULL,
-        missing_day = policy) |>
+        missing_day = policy
+      ) |>
         dplyr::collect()
       expect_identical(actual, expected, info = paste(policy, relation))
     }
   }
-  expect_identical(nis_prday_completeness(query, "OUT"),
-    nis_prday_completeness(data, "OUT"))
+  expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"))
 })
 
 test_that("PRDAY missing checks support logical, character, and numeric columns", {
@@ -464,18 +516,18 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
   )
   for (day_type in names(day_values)) {
     data <- dplyr::tibble(
-      YEAR = 2020L, I10_PR1 = "IX", I10_PR2 = "OUT",
-      PRDAY1 = 0L, PRDAY2 = day_values[[day_type]]
+      YEAR = 2020L,
+      I10_PR1 = "IX",
+      I10_PR2 = "OUT",
+      PRDAY1 = 0L,
+      PRDAY2 = day_values[[day_type]]
     )
-    expected <- nis_flag_pr_timing(data, "IX", "OUT",
-      relation = "same_day", missing_day = "indeterminate")
+    expected <- nis_flag_pr_timing(data, "IX", "OUT", relation = "same_day", missing_day = "indeterminate")
     query <- duckdb_query_fixture(data)
-    actual <- nis_flag_pr_timing(query, "IX", "OUT",
-      relation = "same_day", missing_day = "indeterminate") |>
+    actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = "same_day", missing_day = "indeterminate") |>
       dplyr::collect()
     expect_identical(actual, expected, info = day_type)
-    expect_identical(nis_prday_completeness(query, "OUT"),
-      nis_prday_completeness(data, "OUT"), info = day_type)
+    expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"), info = day_type)
     con <- query$src$con
     query <- NULL
     invisible(gc())
@@ -485,8 +537,15 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
 
 
 test_that("procedure timing preserves requested flags with equivalent slot names", {
-  frame <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "IX", I10_PR2 = "OUT",
-    I10_PR01 = "OUT", PRDAY01 = 15L, PRDAY1 = 0L, PRDAY2 = 5L)
+  frame <- dplyr::tibble(
+    YEAR = 2020L,
+    I10_PR1 = "IX",
+    I10_PR2 = "OUT",
+    I10_PR01 = "OUT",
+    PRDAY01 = 15L,
+    PRDAY1 = 0L,
+    PRDAY2 = 5L
+  )
   output <- ".easyNIS_pr_timing_match_1"
   for (data in list(frame, duckdb_query_fixture(frame))) {
     for (display_name in list(stats::setNames(output, "requested"), I(output))) {
@@ -501,15 +560,21 @@ test_that("procedure timing preserves requested flags with equivalent slot names
 
 test_that("empty PRDAY summaries retain the yearly output schema", {
   frame <- dplyr::tibble(YEAR = integer(), I10_PR1 = character(), PRDAY1 = integer())
-  expected <- dplyr::tibble(YEAR = integer(), slot = integer(), matched_slots = integer(),
-    known_day = integer(), missing_day = integer(), sentinel_invalid_day = integer(),
-    absent_prday_column = integer(), pct_known = double())
+  expected <- dplyr::tibble(
+    YEAR = integer(),
+    slot = integer(),
+    matched_slots = integer(),
+    known_day = integer(),
+    missing_day = integer(),
+    sentinel_invalid_day = integer(),
+    absent_prday_column = integer(),
+    pct_known = double()
+  )
   expect_identical(nis_prday_completeness(frame, "IX"), expected)
   expect_identical(nis_prday_completeness(duckdb_query_fixture(frame), "IX"), expected)
 })
 test_that("procedure timing and completeness preserve numeric slot pairing", {
-  frame <- dplyr::tibble(YEAR = 2020L, I10_PR01 = "IX", I10_PR2 = "OUT",
-    PRDAY1 = 0L, PRDAY01 = 9L, PRDAY2 = 5L)
+  frame <- dplyr::tibble(YEAR = 2020L, I10_PR01 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY01 = 9L, PRDAY2 = 5L)
   reversed <- dplyr::relocate(frame, PRDAY01, .before = PRDAY1)
   padded_day <- dplyr::rename(dplyr::select(frame, -PRDAY01), I10_PR1 = I10_PR01, PRDAY01 = PRDAY1)
   legacy <- dplyr::tibble(YEAR = 2014L, PR0 = "0123", PR1 = "9999", PRDAY00 = 0L, PRDAY1 = 1L)

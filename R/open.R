@@ -100,10 +100,14 @@ nis_open_source_paths <- function(query) {
 
 nis_open_notice <- function(years) {
   if (any(years < 2016L)) {
-    cli::cli_inform(c(
-      "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
-      i = "Flag them with {.code system = \"icd9\"}; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4) slots."
-    ), .frequency = "once", .frequency_id = "easyNIS_icd9_layout")
+    cli::cli_inform(
+      c(
+        "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
+        i = "Flag them with {.code system = \"icd9\"}; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4) slots."
+      ),
+      .frequency = "once",
+      .frequency_id = "easyNIS_icd9_layout"
+    )
   }
   invisible(NULL)
 }
@@ -114,16 +118,18 @@ nis_open_normalize_names <- function(query, source_names) {
   name_groups <- split(old_names, new_names)
 
   rename_groups <- name_groups[lengths(name_groups) == 1L]
-  rename_map <- stats::setNames(rlang::syms(unlist(rename_groups)),
-    names(rename_groups))
+  rename_map <- stats::setNames(rlang::syms(unlist(rename_groups)), names(rename_groups))
   query <- dplyr::rename(query, !!!rename_map)
 
   duplicate_groups <- name_groups[lengths(name_groups) > 1L]
   for (canonical in names(duplicate_groups)) {
     fields <- rlang::syms(duplicate_groups[[canonical]])
-    merged <- Reduce(function(left, right) {
-      rlang::expr(dplyr::coalesce(!!left, !!right))
-    }, fields)
+    merged <- Reduce(
+      function(left, right) {
+        rlang::expr(dplyr::coalesce(!!left, !!right))
+      },
+      fields
+    )
     query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
   }
   query <- dplyr::select(query, dplyr::all_of(names(name_groups)))
@@ -142,12 +148,18 @@ nis_open_restore_spelling <- function(query, source_names) {
   proposed[has_source] <- toupper(uppercase[source[has_source]])
   changed <- which(proposed != output)
   target <- nis_sql_identifier_key(proposed[changed])
-  collides <- vapply(seq_along(changed), function(i) {
-    target[[i]] %in% output_keys[-changed[[i]]]
-  }, logical(1))
+  collides <- vapply(
+    seq_along(changed),
+    function(i) {
+      target[[i]] %in% output_keys[-changed[[i]]]
+    },
+    logical(1)
+  )
   duplicate <- duplicated(target) | duplicated(target, fromLast = TRUE)
   keep <- changed[!collides & !duplicate]
-  if (!length(keep)) return(query)
+  if (!length(keep)) {
+    return(query)
+  }
   rename_map <- stats::setNames(rlang::syms(output[keep]), proposed[keep])
   dplyr::rename(query, !!!rename_map)
 }
@@ -176,7 +188,8 @@ nis_open_warn_2023 <- function(query) {
     names(warning_messages) <- c("", rep("i", length(warning_messages) - 1L))
     cli::cli_warn(
       warning_messages,
-      .frequency = "once", .frequency_id = "easyNIS_totchg_2023"
+      .frequency = "once",
+      .frequency_id = "easyNIS_totchg_2023"
     )
   }
   invisible(NULL)

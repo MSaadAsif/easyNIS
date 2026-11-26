@@ -7,10 +7,18 @@ local({
   on.exit(unlink(scratch, recursive = TRUE))
   make_package <- function(path, definition) {
     dir.create(file.path(path, "R"), recursive = TRUE)
-    writeLines(c("Package: qualityprovenancefixture", "Version: 0.0.1",
-      "Title: Invented Fixture", "Description: An invented test fixture.",
-      "License: MIT", "Author: Fixture Author",
-      "Maintainer: Fixture Author <fixture@example.org>"), file.path(path, "DESCRIPTION"))
+    writeLines(
+      c(
+        "Package: qualityprovenancefixture",
+        "Version: 0.0.1",
+        "Title: Invented Fixture",
+        "Description: An invented test fixture.",
+        "License: MIT",
+        "Author: Fixture Author",
+        "Maintainer: Fixture Author <fixture@example.org>"
+      ),
+      file.path(path, "DESCRIPTION")
+    )
     writeLines("export(marker)", file.path(path, "NAMESPACE"))
     writeLines(definition, file.path(path, "R", "marker.R"))
   }
@@ -29,88 +37,124 @@ local({
   pkgload::load_all(requested, quiet = TRUE)
   on.exit(pkgload::unload("qualityprovenancefixture"), add = TRUE)
   # An older installation with the same version remains available on failure.
-  failed <- tryCatch(with_verified_source(broken, function(root, package) {
-    stop("Callback must never run after failed installation")
-  }), error = identity)
+  failed <- tryCatch(
+    with_verified_source(broken, function(root, package) {
+      stop("Callback must never run after failed installation")
+    }),
+    error = identity
+  )
   stopifnot(inherits(failed, "error"), !grepl("Callback must never", conditionMessage(failed)))
   cat("Install failure refused before callback\n")
   for (throws in c(FALSE, TRUE)) {
     captured <- capture_quality_step("invented", function() {
       with_verified_source(requested, function(root, package) {
-        warning(structure(list(message = "INVENTED_WARNING", call = NULL),
-          class = c("invented_warning", "warning", "condition")))
-        if (throws) stop("Invented callback failure")
+        warning(structure(
+          list(message = "INVENTED_WARNING", call = NULL),
+          class = c("invented_warning", "warning", "condition")
+        ))
+        if (throws) {
+          stop("Invented callback failure")
+        }
         FALSE
       })
     })
-    stopifnot(length(captured$warning_conditions) == 1L,
+    stopifnot(
+      length(captured$warning_conditions) == 1L,
       inherits(captured$warning_conditions[[1L]], "invented_warning"),
       identical(conditionMessage(captured$warning_conditions[[1L]]), "INVENTED_WARNING"),
-      identical(inherits(captured$value, "error"), throws))
+      identical(inherits(captured$value, "error"), throws)
+    )
   }
   result <- with_verified_source(requested, function(root, package) {
-    list(marker = getExportedValue(package, "marker")(),
+    list(
+      marker = getExportedValue(package, "marker")(),
       complexity = cyclocomp::cyclocomp_package(package)$cyclocomp,
-      version = as.character(utils::packageVersion(package)))
+      version = as.character(utils::packageVersion(package))
+    )
   })
-  stopifnot(identical(result$marker, "requested"), result$complexity == 2,
-    result$version == "0.0.1")
+  stopifnot(identical(result$marker, "requested"), result$complexity == 2, result$version == "0.0.1")
   cat("Loaded parent / same-version fallback: isolated requested namespace measured\n")
 })
-stopifnot(identical(provenance_pass(FALSE, "nested_unverified"), FALSE),
+stopifnot(
+  identical(provenance_pass(FALSE, "nested_unverified"), FALSE),
   is.na(provenance_pass(TRUE, "nested_unverified")),
   is.na(provenance_pass(NA, "nested_unverified")),
   identical(provenance_pass(TRUE, "isolated_namespace_verified"), TRUE),
-  is.na(provenance_pass(NA, "isolated_namespace_verified")))
+  is.na(provenance_pass(NA, "isolated_namespace_verified"))
+)
 cat("Provenance behavior tests passed\n")
 source("tools/probe/quality-result.R")
 evidence <- list(commit = "invented", working_tree_clean = TRUE)
 synthetic_hits <- c(1, 0)
 synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")
 coverage_record <- coverage_percent_record(
-  list(value = synthetic_coverage, error_class = ""), evidence,
+  list(value = synthetic_coverage, error_class = ""),
+  evidence,
   percent_coverage = function(value) 100 * mean(value$hits > 0),
-  provenance_pass_fn = provenance_pass)
-stopifnot(identical(coverage_record$status, "not_verified"),
-  identical(coverage_record$pass, FALSE), identical(coverage_record$value, 50),
-  identical(coverage_record$provenance, "nested_unverified"))
+  provenance_pass_fn = provenance_pass
+)
+stopifnot(
+  identical(coverage_record$status, "not_verified"),
+  identical(coverage_record$pass, FALSE),
+  identical(coverage_record$value, 50),
+  identical(coverage_record$provenance, "nested_unverified")
+)
 passing_coverage <- structure(list(hits = c(1, 1)), class = "coverage")
 passing_coverage_record <- coverage_percent_record(
-  list(value = passing_coverage, error_class = ""), evidence,
+  list(value = passing_coverage, error_class = ""),
+  evidence,
   percent_coverage = function(value) 100 * mean(value$hits > 0),
-  provenance_pass_fn = provenance_pass)
-stopifnot(identical(passing_coverage_record$status, "not_verified"),
-  is.na(passing_coverage_record$pass), identical(passing_coverage_record$value, 100))
+  provenance_pass_fn = provenance_pass
+)
+stopifnot(
+  identical(passing_coverage_record$status, "not_verified"),
+  is.na(passing_coverage_record$pass),
+  identical(passing_coverage_record$value, 100)
+)
 stopifnot(is.null(coverage_percent_record(
-  list(value = "skipped_by_selection"), evidence,
-  percent_coverage = identity, provenance_pass_fn = provenance_pass)))
+  list(value = "skipped_by_selection"),
+  evidence,
+  percent_coverage = identity,
+  provenance_pass_fn = provenance_pass
+)))
 failed_coverage_record <- coverage_percent_record(
-  list(value = simpleError("invented failure"), error_class = "simpleError"), evidence,
-  percent_coverage = identity, provenance_pass_fn = provenance_pass)
-stopifnot(identical(failed_coverage_record$status, "failed"),
+  list(value = simpleError("invented failure"), error_class = "simpleError"),
+  evidence,
+  percent_coverage = identity,
+  provenance_pass_fn = provenance_pass
+)
+stopifnot(
+  identical(failed_coverage_record$status, "failed"),
   identical(failed_coverage_record$pass, FALSE),
   is.na(failed_coverage_record$value),
-  identical(failed_coverage_record$error_class, "simpleError"))
+  identical(failed_coverage_record$error_class, "simpleError")
+)
 receipt <- function(name, fn) quality_record(capture_quality_step(name, fn), evidence)
-check <- receipt("R CMD check --as-cran", function() list(errors = character(),
-  warnings = character(), notes = character()))
-stopifnot(is.na(check$pass), check$status == "not_verified",
-  check$provenance == "nested_unverified")
-failed <- receipt("R CMD check --as-cran", function() list(errors = "invented failure",
-  warnings = character(), notes = character()))
+check <- receipt("R CMD check --as-cran", function() {
+  list(errors = character(), warnings = character(), notes = character())
+})
+stopifnot(is.na(check$pass), check$status == "not_verified", check$provenance == "nested_unverified")
+failed <- receipt("R CMD check --as-cran", function() {
+  list(errors = "invented failure", warnings = character(), notes = character())
+})
 stopifnot(identical(failed$pass, FALSE))
 failed_install <- receipt("installed_namespace_complexity", function() stop("invented failure"))
-stopifnot(identical(failed_install$pass, FALSE), failed_install$status == "failed",
-  failed_install$provenance == "failed")
+stopifnot(
+  identical(failed_install$pass, FALSE),
+  failed_install$status == "failed",
+  failed_install$provenance == "failed"
+)
 measured <- receipt("installed_namespace_complexity", function() data.frame(name = "marker", cyclocomp = 2))
 stopifnot(isTRUE(measured$pass), measured$provenance == "isolated_namespace_verified")
 unknown <- receipt("pkgcheck", function() structure(list(), class = "pkgcheck"))
 stopifnot(is.na(unknown$pass), unknown$status == "not_verified")
 cat("Production receipt provenance tests passed\n")
-stopifnot(is.na(namespace_complexity_pass(NULL)),
+stopifnot(
+  is.na(namespace_complexity_pass(NULL)),
   is.na(namespace_complexity_pass(data.frame(cyclocomp = numeric()))),
   is.na(namespace_complexity_pass(data.frame(cyclocomp = NA_real_))),
-  identical(namespace_complexity_pass(data.frame(cyclocomp = 16)), FALSE))
+  identical(namespace_complexity_pass(data.frame(cyclocomp = 16)), FALSE)
+)
 skipped <- receipt("installed_namespace_complexity", function() "skipped_by_selection")
 stopifnot(is.na(skipped$pass), skipped$provenance == "not_measured")
 gp_failure <- structure(list(checks = list(invented = list(status = FALSE))), class = "goodPractice")

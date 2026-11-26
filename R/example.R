@@ -1,18 +1,12 @@
 .nis_example_validate_years <- function(years) {
   if (!is.numeric(years) || length(years) == 0L || anyNA(years)) {
-    cli::cli_abort("`years` must contain whole years from 2012 through 2024.",
-      call = rlang::caller_call()
-    )
+    cli::cli_abort("`years` must contain whole years from 2012 through 2024.", call = rlang::caller_call())
   }
   if (any(!is.finite(years)) || any(years != as.integer(years))) {
-    cli::cli_abort("`years` must contain whole years from 2012 through 2024.",
-      call = rlang::caller_call()
-    )
+    cli::cli_abort("`years` must contain whole years from 2012 through 2024.", call = rlang::caller_call())
   }
   if (any(years < 2012L) || any(years > 2024L)) {
-    cli::cli_abort("`years` must contain whole years from 2012 through 2024.",
-      call = rlang::caller_call()
-    )
+    cli::cli_abort("`years` must contain whole years from 2012 through 2024.", call = rlang::caller_call())
   }
 }
 
@@ -63,21 +57,27 @@
     ynel1 = as.integer((hospital + within_hospital) %% 2L == 0L),
     ynel2 = as.integer((hospital + within_hospital) %% 3L == 0L)
   )
-  list(records = records, hospital = hospital,
+  list(
+    records = records,
+    hospital = hospital,
     hospital_stratum = hospital_stratum,
-    within_hospital = within_hospital, has_cohort = has_cohort)
+    within_hospital = within_hospital,
+    has_cohort = has_cohort
+  )
 }
 
-.nis_example_add_code_slots <- function(records, hospital, within_hospital,
-                                        has_cohort) {
+.nis_example_add_code_slots <- function(records, hospital, within_hospital, has_cohort) {
   records$I10_DX1 <- ifelse(has_cohort, "I5022", "J189")
   exposure_code <- (hospital + within_hospital) %% 5L == 0L
-  records$I10_DX2 <- ifelse(exposure_code, "Z515",
-    ifelse(has_cohort & within_hospital %% 2L == 1L, "I509", "E119"))
+  records$I10_DX2 <- ifelse(exposure_code, "Z515", ifelse(has_cohort & within_hospital %% 2L == 1L, "I509", "E119"))
   records$I10_PR1 <- ifelse(within_hospital %% 2L == 0L, "0JH60DZ", "02703ZZ")
   records$I10_PR2 <- ifelse(within_hospital %% 3L == 0L, "02L73DK", NA_character_)
-  for (slot in 3:40) records[[paste0("I10_DX", slot)]] <- NA_character_
-  for (slot in 3:25) records[[paste0("I10_PR", slot)]] <- NA_character_
+  for (slot in 3:40) {
+    records[[paste0("I10_DX", slot)]] <- NA_character_
+  }
+  for (slot in 3:25) {
+    records[[paste0("I10_PR", slot)]] <- NA_character_
+  }
   records
 }
 
@@ -89,26 +89,35 @@
     records$DX1 <- ifelse(is_icd9, ifelse(has_cohort, "12345", "67890"), NA_character_)
     records$DX2 <- ifelse(is_icd9, "V0001", NA_character_)
     records$PR1 <- ifelse(is_icd9, "0123", NA_character_)
-    for (slot in 3:30) records[[paste0("DX", slot)]] <- NA_character_
-    for (slot in 2:15) records[[paste0("PR", slot)]] <- NA_character_
+    for (slot in 3:30) {
+      records[[paste0("DX", slot)]] <- NA_character_
+    }
+    for (slot in 2:15) {
+      records[[paste0("PR", slot)]] <- NA_character_
+    }
     records$NDX <- ifelse(is_icd9, 2L, NA_integer_)
     records$NPR <- ifelse(is_icd9, 1L, NA_integer_)
     icd10_columns <- grep("^I10_", names(records), value = TRUE)
-    for (column in icd10_columns) records[[column]][is_icd9] <- NA
+    for (column in icd10_columns) {
+      records[[column]][is_icd9] <- NA
+    }
     if (year < 2015L) {
       records <- dplyr::select(records, -dplyr::all_of(icd10_columns))
       records <- dplyr::select(records, -dplyr::all_of(paste0("DX", 26:30)))
     } else {
-      records <- dplyr::select(records, -dplyr::all_of(c(
-        paste0("I10_DX", 31:40), paste0("I10_PR", 16:25)
-      )))
+      records <- dplyr::select(
+        records,
+        -dplyr::all_of(c(
+          paste0("I10_DX", 31:40),
+          paste0("I10_PR", 16:25)
+        ))
+      )
     }
   }
   records
 }
 
-.nis_example_annual_fields <- function(records, year, hospital,
-                                       hospital_stratum, within_hospital) {
+.nis_example_annual_fields <- function(records, year, hospital, hospital_stratum, within_hospital) {
   mortality_name <- if (year == 2022L) {
     "APRDRG_RISK_MORTALITY"
   } else {
@@ -129,14 +138,21 @@
 .nis_example_records <- function(year) {
   fixture <- .nis_example_base_records(year)
   records <- .nis_example_add_code_slots(
-    fixture$records, fixture$hospital, fixture$within_hospital,
+    fixture$records,
+    fixture$hospital,
+    fixture$within_hospital,
     fixture$has_cohort
   )
   records <- .nis_example_pre2016_layout(
-    records, year, fixture$has_cohort
+    records,
+    year,
+    fixture$has_cohort
   )
   .nis_example_annual_fields(
-    records, year, fixture$hospital, fixture$hospital_stratum,
+    records,
+    year,
+    fixture$hospital,
+    fixture$hospital_stratum,
     fixture$within_hospital
   )
 }
@@ -169,9 +185,10 @@ nis_example <- function(years = 2017:2022) {
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE, after = FALSE)
   for (year in years) {
     year_path <- file.path(path, paste0("NIS_", year, ".parquet"))
-    if (!dir.create(year_path)) cli::cli_abort("Could not create an example year directory.")
-    nis_duckdb_write_parquet(.nis_example_records(year),
-      file.path(year_path, "part-0.parquet"), con)
+    if (!dir.create(year_path)) {
+      cli::cli_abort("Could not create an example year directory.")
+    }
+    nis_duckdb_write_parquet(.nis_example_records(year), file.path(year_path, "part-0.parquet"), con)
   }
   complete <- TRUE
   path

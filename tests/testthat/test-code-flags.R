@@ -58,19 +58,15 @@ test_that("flag rules support per-slot exclusions and whole-code regexes", {
   expect_identical(expected$excluded, c(TRUE, FALSE, TRUE, FALSE, TRUE, TRUE))
   expect_identical(expected$full, c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE))
   expect_identical(expected$procedure, c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE))
-  expect_identical(nis_flag_dx(data, match = "I50")$match,
-    c(TRUE, TRUE, TRUE, FALSE, TRUE, TRUE))
-  expect_error(nis_flag_dx(data, invalid = list(regex = "I50[")),
-    "Invalid or unsupported DuckDB regular expression")
-  expect_error(nis_flag_dx(data, invalid = list(exclude = "I502")),
-    "must include `prefix` or `regex`")
+  expect_identical(nis_flag_dx(data, match = "I50")$match, c(TRUE, TRUE, TRUE, FALSE, TRUE, TRUE))
+  expect_error(nis_flag_dx(data, invalid = list(regex = "I50[")), "Invalid or unsupported DuckDB regular expression")
+  expect_error(nis_flag_dx(data, invalid = list(exclude = "I502")), "must include `prefix` or `regex`")
 })
 
 test_that("regex flags use DuckDB full-match semantics for frames and lazy queries", {
   data <- dplyr::tibble(
     I10_DX1 = c("I501", "I502", "I50\n", "I50\v", "I5010", NA_character_, "I502"),
-    I10_DX2 = c(NA_character_, NA_character_, NA_character_, NA_character_,
-      NA_character_, "I501", "I501")
+    I10_DX2 = c(NA_character_, NA_character_, NA_character_, NA_character_, NA_character_, "I501", "I501")
   )
   add_flags <- function(.data) {
     .data |>
@@ -138,7 +134,9 @@ test_that("ICD flags read the current lazy projection, not the stored columns", 
         I10_PR1 = dplyr::if_else(pick == 1L, "02L73DK", "0JH60DZ")
       ) |>
       nis_flag_dx(
-        one_prefix = "A12", several = c("A12", "B56", "C0"), position = "any"
+        one_prefix = "A12",
+        several = c("A12", "B56", "C0"),
+        position = "any"
       ) |>
       nis_flag_dx(first_slot = c("A1", "C004"), position = "principal") |>
       nis_flag_dx(late_slot = "B5", position = "secondary") |>
@@ -180,8 +178,7 @@ test_that("ICD-9 flags test only DX/PR slots and ICD-10 flags only I10_ slots", 
 
   add_flags <- function(.data) {
     .data |>
-      nis_flag_dx(hf9 = "428", any_hf9 = c("4280", "4281", "V66"),
-        system = "icd9") |>
+      nis_flag_dx(hf9 = "428", any_hf9 = c("4280", "4281", "V66"), system = "icd9") |>
       nis_flag_dx(principal9 = "428", system = "icd9", position = "principal") |>
       nis_flag_dx(secondary9 = "4 28", system = "icd9", position = "secondary") |>
       nis_flag_dx(hf10 = "I50") |>
@@ -223,8 +220,11 @@ test_that("version, year and 2015 quarter metadata prevent wrong-era matches", {
     DQTR = c(4L, 1L, 4L, NA, 2L, 1L, 0L, NA, 4L),
     DXVER = c(9L, 9L, 10L, 10L, 10L, NA, NA, NA, 8L),
     PRVER = c(9L, 9L, 10L, 9L, 10L, NA, NA, NA, 8L),
-    DX1 = "12345", DX30 = "V0001", PR15 = "0123",
-    I10_DX1 = "A1234", I10_PR1 = "0AAAAAA"
+    DX1 = "12345",
+    DX30 = "V0001",
+    PR15 = "0123",
+    I10_DX1 = "A1234",
+    I10_PR1 = "0AAAAAA"
   )
   add_flags <- function(.data) {
     .data |>

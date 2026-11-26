@@ -32,20 +32,33 @@ nis_study_trend_support <- function(data, threshold) {
 }
 
 nis_study_model_group_ok <- function(data, response, binary, threshold) {
-  if (!nis_study_supported(data, threshold)) return(FALSE)
-  if (!binary) return(TRUE)
+  if (!nis_study_supported(data, threshold)) {
+    return(FALSE)
+  }
+  if (!binary) {
+    return(TRUE)
+  }
   values <- unique(response)
-  length(values) == 2L && all(vapply(values, function(value) {
-    nis_study_supported(data[which(response == value), ], threshold)
-  }, logical(1)))
+  length(values) == 2L &&
+    all(vapply(
+      values,
+      function(value) {
+        nis_study_supported(data[which(response == value), ], threshold)
+      },
+      logical(1)
+    ))
 }
 
 nis_study_model_groupings <- function(frame, exposure) {
   terms <- attr(frame, "terms")
   predictors <- setdiff(names(frame), names(frame)[attr(terms, "response")])
-  categorical <- predictors[vapply(frame[predictors], function(value) {
-    is.factor(value) || is.character(value) || is.logical(value)
-  }, logical(1))]
+  categorical <- predictors[vapply(
+    frame[predictors],
+    function(value) {
+      is.factor(value) || is.character(value) || is.logical(value)
+    },
+    logical(1)
+  )]
   categorical <- union(categorical, exposure)
   factors <- attr(terms, "factors")
   combinations <- lapply(seq_len(ncol(factors)), function(i) {
@@ -55,23 +68,36 @@ nis_study_model_groupings <- function(frame, exposure) {
 }
 
 nis_study_complete_cases <- function(formula, data, exposure) {
-  if (!all(c("YEAR", "HOSP_NIS", exposure) %in% names(data))) return(NULL)
+  if (!all(c("YEAR", "HOSP_NIS", exposure) %in% names(data))) {
+    return(NULL)
+  }
   frame <- tryCatch(
     stats::model.frame(formula, data = data, na.action = stats::na.omit, drop.unused.levels = TRUE),
     error = function(error) NULL
   )
-  if (is.null(frame)) return(NULL)
+  if (is.null(frame)) {
+    return(NULL)
+  }
   rows <- match(rownames(frame), rownames(data))
   response <- stats::model.response(frame)
-  valid <- c(exposure %in% names(frame), !anyNA(rows), anyDuplicated(rows) == 0L,
-    is.null(dim(response)), !is.null(response))
-  if (!all(valid)) return(NULL)
+  valid <- c(
+    exposure %in% names(frame),
+    !anyNA(rows),
+    anyDuplicated(rows) == 0L,
+    is.null(dim(response)),
+    !is.null(response)
+  )
+  if (!all(valid)) {
+    return(NULL)
+  }
   list(frame = frame, data = data[rows, , drop = FALSE], response = response)
 }
 
 nis_study_model_disclosure <- function(formula, data, family, exposure, threshold) {
   cases <- nis_study_complete_cases(formula, data, exposure)
-  if (is.null(cases)) return(FALSE)
+  if (is.null(cases)) {
+    return(FALSE)
+  }
   frame <- cases$frame
   data <- cases$data
   response <- cases$response
@@ -79,26 +105,42 @@ nis_study_model_disclosure <- function(formula, data, family, exposure, threshol
   supported <- function(i) {
     nis_study_model_group_ok(data[i, , drop = FALSE], response[i], binary, threshold)
   }
-  if (!supported(seq_len(nrow(data)))) return(FALSE)
+  if (!supported(seq_len(nrow(data)))) {
+    return(FALSE)
+  }
   groupings <- nis_study_model_groupings(frame, exposure)
-  all(vapply(groupings, function(fields) {
-    groups <- split(seq_len(nrow(frame)), unname(as.list(frame[fields])), drop = TRUE)
-    length(groups) > 0L && all(vapply(groups, supported, logical(1)))
-  }, logical(1)))
+  all(vapply(
+    groupings,
+    function(fields) {
+      groups <- split(seq_len(nrow(frame)), unname(as.list(frame[fields])), drop = TRUE)
+      length(groups) > 0L && all(vapply(groups, supported, logical(1)))
+    },
+    logical(1)
+  ))
 }
 
 nis_study_withheld_model <- function() {
   list(model = NULL, status = "Withheld under the study disclosure policy.", warnings = character())
 }
 
-nis_study_fit_report_model <- function(formula, design, family, outcome, exposure, disclosure_limit,
-                                       report_supported = TRUE, ...) {
+nis_study_fit_report_model <- function(
+  formula,
+  design,
+  family,
+  outcome,
+  exposure,
+  disclosure_limit,
+  report_supported = TRUE,
+  ...
+) {
   status <- nis_study_model_input_status(design$variables, outcome, exposure)
   if (!is.null(status)) {
     return(list(model = NULL, status = status, warnings = character()))
   }
-  if (!report_supported ||
-      !nis_study_model_disclosure(formula, design$variables, family, exposure, disclosure_limit)) {
+  if (
+    !report_supported ||
+      !nis_study_model_disclosure(formula, design$variables, family, exposure, disclosure_limit)
+  ) {
     return(nis_study_withheld_model())
   }
   nis_study_fit_model(formula, design, family, outcome = outcome, exposure = exposure, ...)

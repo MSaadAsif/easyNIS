@@ -2,8 +2,11 @@
   if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
     .data <- nis_cohort_records(.data$variables)
   }
-  if (!is.data.frame(.data) && !(inherits(.data, "tbl_sql") &&
-      inherits(dbplyr::remote_con(.data), "duckdb_connection"))) {
+  if (
+    !is.data.frame(.data) &&
+      !(inherits(.data, "tbl_sql") &&
+        inherits(dbplyr::remote_con(.data), "duckdb_connection"))
+  ) {
     cli::cli_abort("`.data` must be a record-level data frame, a DuckDB query, or a `nis_design()` result.")
   }
   .data
@@ -15,7 +18,9 @@ nis_hospital_count_query <- function(data, by) {
     dplyr::select(dplyr::all_of(.nis_hospital_fields)) |>
     utils::head(0L) |>
     nis_collect()
-  if (!all(vapply(schema, is.numeric, logical(1)))) nis_invalid_hospital_ids()
+  if (!all(vapply(schema, is.numeric, logical(1)))) {
+    nis_invalid_hospital_ids()
+  }
 
   invalid <- reduce_or(lapply(.nis_hospital_fields, function(field) {
     finite <- nis_is_finite_expr(data, field)
@@ -36,7 +41,9 @@ nis_hospital_count_query <- function(data, by) {
       .groups = "drop"
     ) |>
     nis_collect()
-  if (any(counts[[aliases[[3L]]]], na.rm = TRUE)) nis_invalid_hospital_ids()
+  if (any(counts[[aliases[[3L]]]], na.rm = TRUE)) {
+    nis_invalid_hospital_ids()
+  }
   counts[[aliases[[3L]]]] <- NULL
   names(counts)[match(aliases[1:2], names(counts))] <- c("n", "hospitals")
   dplyr::arrange(counts, dplyr::across(dplyr::all_of(by)))
@@ -79,7 +86,9 @@ nis_cell_counts <- function(.data, by) {
   .data <- .nis_cell_count_records(.data)
   .nis_cell_count_validate_by(by)
   nis_validate_hospital_columns(.data, by)
-  if (inherits(.data, "tbl_sql")) return(nis_hospital_count_query(.data, by))
+  if (inherits(.data, "tbl_sql")) {
+    return(nis_hospital_count_query(.data, by))
+  }
   nis_validate_hospital_ids(.data)
   grouped <- dplyr::group_by(.data, dplyr::across(dplyr::all_of(by)))
   dplyr::summarise(

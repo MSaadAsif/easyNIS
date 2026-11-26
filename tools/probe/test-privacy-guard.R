@@ -3,17 +3,24 @@ local({
   directory <- tempfile("privacy-fixture-")
   stopifnot(dir.create(directory))
   previous <- setwd(directory)
-  on.exit({
-    setwd(previous)
-    unlink(directory, recursive = TRUE)
-  }, add = TRUE)
+  on.exit(
+    {
+      setwd(previous)
+      unlink(directory, recursive = TRUE)
+    },
+    add = TRUE
+  )
   git <- function(...) {
     status <- system2("git", c(...), stdout = FALSE, stderr = FALSE)
     stopifnot(identical(status, 0L))
   }
   inspect <- function() {
-    output <- suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
-      c("--vanilla", shQuote(guard)), stdout = TRUE, stderr = TRUE))
+    output <- suppressWarnings(system2(
+      file.path(R.home("bin"), "Rscript"),
+      c("--vanilla", shQuote(guard)),
+      stdout = TRUE,
+      stderr = TRUE
+    ))
     list(output = output, status = attr(output, "status", exact = TRUE))
   }
 
@@ -22,8 +29,7 @@ local({
   git("add", "--", "invented.txt")
   writeLines("benign worktree", "invented.txt")
   blocked <- inspect()
-  stopifnot(identical(blocked$status, 1L),
-    any(grepl("private path or directory marker", blocked$output, fixed = TRUE)))
+  stopifnot(identical(blocked$status, 1L), any(grepl("private path or directory marker", blocked$output, fixed = TRUE)))
 
   git("add", "--", "invented.txt")
   writeLines(paste0("AHRQ_", "NIS"), "invented.txt")
@@ -37,7 +43,6 @@ local({
   git("add", "--", "missing.parquet")
   unlink("missing.parquet")
   blocked <- inspect()
-  stopifnot(identical(blocked$status, 1L),
-    any(grepl("data extension: missing.parquet", blocked$output, fixed = TRUE)))
+  stopifnot(identical(blocked$status, 1L), any(grepl("data extension: missing.parquet", blocked$output, fixed = TRUE)))
 })
 cat("Privacy-guard tests passed.\n")
