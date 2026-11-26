@@ -31,7 +31,7 @@ test_that("Parquet cell counts retain year scope and reject invalid identities",
   path <- tempfile("nis-cells-")
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(records, file.path(path, "NIS_2020.parquet"))
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   valid <- dplyr::filter(query, is.finite(HOSP_NIS))
   expect_error(nis_cell_counts(query, "N"), "finite positive")
   expect_equal(nis_cell_counts(valid, "N"), nis_cell_counts(records[1:3, ], "N"))

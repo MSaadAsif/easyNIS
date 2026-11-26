@@ -36,8 +36,8 @@ nis_open_check_release <- function(plan, dataset) {
   observed <- result$observed
   fields_by_year <- split(lapply(plan$names_by_part, nis_sql_identifier_key), dataset$parts$year)
   references <- match(observed$release_year, expected$year)
-  eligible <- which(observed$rows >= expected$rows[references] / 2)
-  details <- vapply(eligible, function(i) {
+  matched <- which(!is.na(references))
+  details <- vapply(matched, function(i) {
     year <- observed$release_year[[i]]
     annual_fields <- Reduce(intersect, fields_by_year[[as.character(year)]])
     mismatches <- nis_release_mismatches(expected[references[[i]], ], observed[i, ], annual_fields)
@@ -46,13 +46,13 @@ nis_open_check_release <- function(plan, dataset) {
   }, character(1))
   details <- c(details, paste0(result$empty, ": 0 unweighted discharges in the opened Parquet files",
     recycle0 = TRUE))
-  details <- details[order(c(observed$release_year[eligible], result$empty))]
+  details <- details[order(c(observed$release_year[matched], result$empty))]
   details <- c(details[nzchar(details)], nis_release_integrity_details(observed, years, has_year))
   if (length(details)) {
     cli::cli_warn(c(
       "NIS annual release check found discrepancies.",
       stats::setNames(details, rep("x", length(details))),
-      i = "Set {.code check_release = FALSE} to disable this check."
+      i = "Cohort extracts are expected to differ. Set {.code check_release = FALSE} to skip the check."
     ), class = "easynis_release_mismatch")
   }
   invisible(NULL)

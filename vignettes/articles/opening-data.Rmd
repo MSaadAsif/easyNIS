@@ -21,7 +21,7 @@ quantities.
 
 ```{r fixture}
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path)
+nis <- nis_open(path, check_release = FALSE)
 nis |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 
@@ -42,7 +42,7 @@ licensed data.
 what a later collection needs; lazy operations are evaluated when collected.
 
 ```{r columns}
-nis_open(path, years = 2020) |>
+nis_open(path, years = 2020, check_release = FALSE) |>
   dplyr::select(YEAR, AGE, FEMALE, LOS) |>
   dplyr::collect() |>
   head()
@@ -57,14 +57,13 @@ names remain unchanged.
 `nis_open()` checks converted Core files by default. DuckDB compares the row
 count, sum of `DISCWT`, and distinct `HOSP_NIS` count for each year against
 HCUP's Core Weighted and Hospital Weights summary statistics for 2012–2024.
-Totals are compared only when at least half of the published discharge count
-for a year is present.
 [HCUP NIS summary statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
 
 When those fields are present, missing `YEAR`, `YEAR` outside the opened
-years, and nonpositive `NIS_STRATUM` values warn even in small extracts.
-Warnings leave the lazy query available. Set `check_release = FALSE` to
-disable the check, for example when opening an intentional large extract.
+years, and nonpositive `NIS_STRATUM` values also warn.
+Warnings leave the lazy query available. Cohort extracts are expected to
+differ from the published totals. Set `check_release = FALSE` to skip the
+check for an intentional extract or an invented fixture.
 
 ## Filter and project before collecting
 
@@ -75,7 +74,7 @@ frame. The default reader is unchanged; `reader = "arrow"` opts in to the
 optional `arrow` package for reading Parquet files individually.
 
 ```{r duckdb}
-duck <- nis_open(path, years = 2020)
+duck <- nis_open(path, years = 2020, check_release = FALSE)
 duck |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 

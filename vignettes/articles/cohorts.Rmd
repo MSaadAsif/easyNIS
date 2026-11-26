@@ -19,7 +19,7 @@ The analyst supplies literal code prefixes. Each slot is tested separately;
 punctuation, spaces, and case in the supplied prefixes are normalized.
 
 ```{r flags}
-nis <- nis_open(nis_example(years = 2019:2020)) |>
+nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
   nis_flag_dx(heart_failure = "I50", principal_hf = "I50",
               position = "any") |>
   nis_flag_pr(ablation = "02L")
@@ -78,7 +78,7 @@ known day.
 conditions supplied in order.
 
 ```{r attrition}
-nis <- nis_open(nis_example(years = 2019)) |>
+nis <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
   nis_flag_dx(heart_failure = "I50")
 nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure)
 ```

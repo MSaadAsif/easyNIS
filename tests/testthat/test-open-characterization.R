@@ -9,7 +9,7 @@ test_that("nis_open stays lazy and unifies the 2022 APR-DRG case drift", {
   path <- nis_example(2017:2022)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   expect_true(inherits(query, "tbl_sql"))
   expect_true("APRDRG_RISK_MORTALITY" %in% colnames(query))
   expect_false(any(grepl("^APRDRG_Risk_Mortality$", colnames(query))))
@@ -62,16 +62,16 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
 
   rlang::reset_warning_verbosity("easyNIS_totchg_2023")
   expect_warning(
-    latest <- nis_open(path, years = 2023L),
+    latest <- nis_open(path, years = 2023L, check_release = FALSE),
     "not comparable"
   )
-  expect_no_warning(nis_open(path, years = 2023L))
+  expect_no_warning(nis_open(path, years = 2023L, check_release = FALSE))
   expect_true(inherits(latest, "tbl_sql"))
   expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% colnames(latest)))
   expect_true("TOTCHG_2023" %in% colnames(latest))
   expect_false("TOTCHG" %in% colnames(latest))
 
-  pooled_query <- suppressWarnings(nis_open(path, years = 2022:2023))
+  pooled_query <- nis_open(path, years = 2022:2023, check_release = FALSE)
   collected <- dplyr::collect(pooled_query)
   expect_identical(collected$TOTCHG[order(collected$YEAR, collected$HOSP_NIS)], c(1000, 1100, NA, NA))
   expect_identical(
@@ -120,7 +120,7 @@ test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", 
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   rlang::reset_message_verbosity("easyNIS_icd9_layout")
   withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
-  expect_message(query <- nis_open(path, years = 2012), "ICD-9")
+  expect_message(query <- nis_open(path, years = 2012, check_release = FALSE), "ICD-9")
   expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
   expect_false(any(grepl("^I10_", colnames(query))))
   expect_error(nis_open(path, years = 2011), "before 2012")

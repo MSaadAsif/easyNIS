@@ -162,7 +162,7 @@ attr(.hcup_labels, "source") <- paste(
 #' @seealso [Opening NIS data](articles/opening-data.html).
 #' @export
 #' @examples
-#' demographics <- nis_open(nis_example(years = 2019)) |>
+#' demographics <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
 #'   dplyr::select(AGE, FEMALE, RACE) |>
 #'   dplyr::collect()
 #' head(nis_label(demographics))

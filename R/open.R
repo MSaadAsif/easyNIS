@@ -47,8 +47,7 @@
 #' DuckDB checks the discharge count, sum of `DISCWT`, and distinct
 #' `HOSP_NIS` count against the
 #' [HCUP summary statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
-#' for 2012 through 2024. Totals are compared only when at least half of the
-#' published discharge count for a year is present. Counts must match exactly,
+#' for each opened year from 2012 through 2024. Counts must match exactly,
 #' and the weight sum can differ by half a discharge plus a small allowance
 #' for floating-point arithmetic because HCUP rounds the published weight sum
 #' to a whole discharge. Only finite, positive hospital IDs count, and
@@ -57,8 +56,10 @@
 #' Parquet files with zero discharges across an entire opened year warn.
 #' When the fields are present, missing `YEAR`, `YEAR`
 #' outside the opened years, and `NIS_STRATUM` values of zero or less warn
-#' regardless of extract size or reference coverage. If the check cannot
+#' even for years without published reference totals. If the check cannot
 #' run, it warns with the reason. The lazy query remains available for use.
+#' Cohort extracts are expected to differ from the published totals. Use
+#' `check_release = FALSE` to skip the check for an intentional extract.
 #'
 #' @section Large data:
 #' The query stays in DuckDB until you collect it. Filter, project, and summarize
@@ -85,13 +86,13 @@
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)
-#' nis <- nis_open(path)
+#' nis <- nis_open(path, check_release = FALSE)
 #' nis |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 #'
 #' # Open one year only
-#' nis_open(path, years = 2020) |>
+#' nis_open(path, years = 2020, check_release = FALSE) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),

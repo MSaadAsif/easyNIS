@@ -20,7 +20,7 @@ charges by `CCR_NIS`, then expresses both cost and charges in a selected
 reference-year dollar using annual CPI-U indices.
 
 ```{r cost}
-charges <- nis_open(nis_example(years = 2019:2020)) |>
+charges <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
 adjusted <- nis_cost(charges, dollars = 2024)

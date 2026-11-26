@@ -19,7 +19,7 @@ Declare the cohort in `nis_design()` and keep the columns needed by the
 summary and model.
 
 ```{r design}
-nis <- nis_open(nis_example(years = 2019:2020)) |>
+nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(death = as.integer(DIED))
 design <- nis_design(

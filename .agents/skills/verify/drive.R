@@ -45,13 +45,13 @@ drive_open <- function(scratch, evidence) {
   stopifnot(dir.create(spill_root))
   old <- options(easyNIS.duckdb_config = list(temp_directory = spill_root, threads = 2L))
   on.exit(options(old))
-  data <- easyNIS::nis_open(path)
+  data <- easyNIS::nis_open(path, check_release = FALSE)
   stopifnot(inherits(data, "tbl_sql"), length(list.files(spill_root)) == 1L)
   counts <- data |>
     dplyr::count(YEAR) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
-  selected <- easyNIS::nis_open(path, years = 2020L) |>
+  selected <- easyNIS::nis_open(path, years = 2020L, check_release = FALSE) |>
     dplyr::summarise(rows = dplyr::n(), key_sum = sum(key, na.rm = TRUE)) |>
     dplyr::collect()
   stopifnot(identical(counts$YEAR, 2019:2020), all(as.numeric(counts$n) == 4),
@@ -64,7 +64,7 @@ drive_open <- function(scratch, evidence) {
 }
 
 drive_cohort <- function(scratch, evidence) {
-  data <- easyNIS::nis_open(annual_fixture(scratch, evidence))
+  data <- easyNIS::nis_open(annual_fixture(scratch, evidence), check_release = FALSE)
   flagged <- data |>
     easyNIS::nis_flag_dx(principal = "I50", position = "principal") |>
     easyNIS::nis_flag_dx(any_dx = "I50") |>
@@ -88,7 +88,7 @@ drive_cohort <- function(scratch, evidence) {
 }
 
 drive_survey <- function(scratch, evidence) {
-  data <- easyNIS::nis_open(annual_fixture(scratch, evidence)) |>
+  data <- easyNIS::nis_open(annual_fixture(scratch, evidence), check_release = FALSE) |>
     easyNIS::nis_flag_dx(eligible = "I50", position = "principal")
   design <- easyNIS::nis_design(data, eligible, keep = c(AGE, TOTCHG, CCR_NIS),
     annualize = TRUE, dollars = 2020L)
@@ -105,7 +105,7 @@ drive_survey <- function(scratch, evidence) {
 }
 
 drive_disclosure <- function(scratch, evidence) {
-  rows <- easyNIS::nis_open(annual_fixture(scratch, evidence)) |>
+  rows <- easyNIS::nis_open(annual_fixture(scratch, evidence), check_release = FALSE) |>
     dplyr::mutate(category = dplyr::case_when(
       key == 1L ~ "small",
       key %in% c(2L, 5L, 6L) ~ "companion",

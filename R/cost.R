@@ -118,7 +118,7 @@ nis_cost_report <- function(provenance, population) {
 #' @seealso [Charges, costs, and provenance](articles/costs.html).
 #' @export
 #' @examples
-#' charges <- nis_open(nis_example(years = 2019:2020)) |>
+#' charges <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect()
 #' head(nis_cost(charges, dollars = 2024))
@@ -185,7 +185,7 @@ nis_adjust_costs <- function(data, dollars, charges, call, population = NULL) {
 #' @family costs
 #' @seealso [Charges, costs, and provenance](articles/costs.html).
 #' @examples
-#' charges <- nis_open(nis_example(years = 2019)) |>
+#' charges <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect() |>
 #'   nis_cost(dollars = 2024)

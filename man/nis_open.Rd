@@ -81,8 +81,7 @@ may still fail on malformed values.
 DuckDB checks the discharge count, sum of \code{DISCWT}, and distinct
 \code{HOSP_NIS} count against the
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp}{HCUP summary statistics}
-for 2012 through 2024. Totals are compared only when at least half of the
-published discharge count for a year is present. Counts must match exactly,
+for each opened year from 2012 through 2024. Counts must match exactly,
 and the weight sum can differ by half a discharge plus a small allowance
 for floating-point arithmetic because HCUP rounds the published weight sum
 to a whole discharge. Only finite, positive hospital IDs count, and
@@ -91,8 +90,10 @@ corresponding column.
 Parquet files with zero discharges across an entire opened year warn.
 When the fields are present, missing \code{YEAR}, \code{YEAR}
 outside the opened years, and \code{NIS_STRATUM} values of zero or less warn
-regardless of extract size or reference coverage. If the check cannot
+even for years without published reference totals. If the check cannot
 run, it warns with the reason. The lazy query remains available for use.
+Cohort extracts are expected to differ from the published totals. Use
+\code{check_release = FALSE} to skip the check for an intentional extract.
 }
 
 \section{Large data}{
@@ -107,13 +108,13 @@ directory, or under the R session's temporary directory by default.
 
 \examples{
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path)
+nis <- nis_open(path, check_release = FALSE)
 nis |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 
 # Open one year only
-nis_open(path, years = 2020) |>
+nis_open(path, years = 2020, check_release = FALSE) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 }

@@ -34,7 +34,7 @@ existing label because its origin cannot be recovered after dropping levels.
 Apply HCUP labels
 }
 \examples{
-demographics <- nis_open(nis_example(years = 2019)) |>
+demographics <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
 head(nis_label(demographics))

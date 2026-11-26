@@ -60,7 +60,7 @@ writeLines(c(
 codes <- nis_ccsr_codes(reference, "CIR019")
 codes
 
-nis_open(nis_example(years = 2019)) |>
+nis_open(nis_example(years = 2019), check_release = FALSE) |>
   nis_flag_dx(heart_failure = codes) |>
   dplyr::count(heart_failure) |>
   dplyr::collect()

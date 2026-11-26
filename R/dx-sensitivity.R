@@ -16,7 +16,7 @@
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019))
+#' nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
 #' nis_flag_dx_position(nis, "I50", name = "heart_failure")
 nis_flag_dx_position <- function(.data, code, name = "dx", system = c("icd10", "icd9")) {
   system <- match.arg(system)
@@ -82,7 +82,7 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019))
+#' nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
 #' nis_dx_sensitivity(nis, "I50")
 nis_dx_sensitivity <- function(
   .data,

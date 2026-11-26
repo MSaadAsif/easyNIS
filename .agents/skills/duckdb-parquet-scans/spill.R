@@ -25,7 +25,7 @@ run_sort <- function(path, spill, rows, threads, output, profile = NULL, cap = "
   ))
   on.exit(options(old))
   stopifnot(!length(list.files(spill, all.files = TRUE, no.. = TRUE)))
-  query <- easyNIS::nis_open(path)
+  query <- easyNIS::nis_open(path, check_release = FALSE)
   con <- dbplyr::remote_con(query)
   on.exit(if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   on.exit(unlink(output), add = TRUE)
@@ -81,7 +81,7 @@ verify_spill <- function(scratch, evidence) {
   cat("FIXTURE ", rows, " rows, ", sum(file.info(parts)$size), " compressed bytes\n", sep = "")
   opts <- options(easyNIS.duckdb_config = list(threads = 1L, temp_directory = spill))
   on.exit(options(opts))
-  selected <- easyNIS::nis_open(path, years = 2020L)
+  selected <- easyNIS::nis_open(path, years = 2020L, check_release = FALSE)
   con <- dbplyr::remote_con(selected)
   sources <- getFromNamespace("nis_open_source_paths", "easyNIS")(selected)
   expected <- parts[basename(dirname(parts)) == "YEAR=2020"]

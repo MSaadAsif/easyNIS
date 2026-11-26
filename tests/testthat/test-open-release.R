@@ -15,7 +15,7 @@ test_that("complete releases open quietly within HCUP's weight precision", {
   expect_equal(as.numeric(counts$n[order(counts$YEAR)]), c(3, 3))
 })
 
-test_that("the default check flags a missing quarter and accepts a small extract", {
+test_that("the default check flags a missing quarter", {
   local_mocked_bindings(nis_release_reference = data.frame(
     year = 2020L, rows = 12, weight = 60, hospitals = 4
   ))
@@ -30,20 +30,31 @@ test_that("the default check flags a missing quarter and accepts a small extract
     class = "easynis_release_mismatch",
     regexp = paste0(
       "(?s)2020.*discharges.*9.*12.*DISCWT.*45.*60.*HOSP_NIS.*3.*4",
-      ".*check_release = FALSE"
+      ".*Cohort extracts.*check_release = FALSE"
     ),
     perl = TRUE
   )
   expect_equal(nrow(dplyr::collect(query)), 9L)
-  expect_no_warning(nis_open(path, check_release = FALSE))
+})
 
-  extract_path <- withr::local_tempdir()
-  write_duckdb_parquet(data[1:3, ], file.path(extract_path, basename(annual)))
-  expect_no_warning(nis_open(extract_path))
+test_that("the default check flags a release missing three of four Parquet parts", {
+  local_mocked_bindings(nis_release_reference = data.frame(
+    year = 2020L, rows = 12, weight = 60, hospitals = 4
+  ))
+  path <- withr::local_tempdir()
+  full_path <- file.path(path, "full")
+  partial_path <- file.path(path, "partial")
+  for (quarter in 1:4) {
+    part <- file.path("YEAR=2020", paste0("part-", quarter, ".parquet"))
+    data <- data.frame(DQTR = rep(quarter, 3), DISCWT = 5, HOSP_NIS = quarter)
+    write_duckdb_parquet(data, file.path(full_path, part))
+    if (quarter == 1L) write_duckdb_parquet(data, file.path(partial_path, part))
+  }
 
-  half_path <- withr::local_tempdir()
-  write_duckdb_parquet(data[1:6, ], file.path(half_path, basename(annual)))
-  expect_warning(nis_open(half_path), class = "easynis_release_mismatch")
+  expect_no_warning(nis_open(full_path))
+  expect_warning(nis_open(partial_path), "2020: unweighted discharges 3 [(]expected 12[)]",
+    class = "easynis_release_mismatch")
+  expect_no_warning(nis_open(partial_path, check_release = FALSE))
 })
 
 test_that("release checks report corrupt design fields even in extracts", {

@@ -25,7 +25,7 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
     file.path(path, "NIS_2020.parquet")
   )
 
-  duckdb_query <- nis_open(path, years = 2020L)
+  duckdb_query <- nis_open(path, years = 2020L, check_release = FALSE)
   expect_s3_class(duckdb_query, "tbl_duckdb_connection")
   expect_true(all(c("YEAR", "HOSP_NIS") %in% colnames(duckdb_query)))
   expect_false("Hosp_Nis" %in% colnames(duckdb_query))
@@ -51,7 +51,7 @@ test_that("easyNIS explains invalid UTF-8 during collection", {
   corrupt_parquet_marker(file, marker)
 
   expect_error(
-    nis_audit_code_transition(nis_open(path), c(marker = marker), type = "dx"),
+    nis_audit_code_transition(nis_open(path, check_release = FALSE), c(marker = marker), type = "dx"),
     "A string column in the Parquet input is not valid UTF-8"
   )
 })
@@ -68,6 +68,9 @@ test_that("invalid UTF-8 in a release field warns and keeps clean columns querya
 
 test_that("Arrow reader preserves invalid UTF-8 bytes and integer years", {
   skip_if_not_installed("arrow")
+  local_mocked_bindings(nis_release_reference = data.frame(
+    year = 2020L, rows = 1, weight = 5, hospitals = 1
+  ))
   path <- tempfile("nis-arrow-invalid-utf8-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
@@ -96,7 +99,7 @@ test_that("Arrow reader unions mixed annual and Hive schemas", {
     file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(dplyr::tibble(YEAR = c(NA_integer_, 2020L), id = 2:3,
     hive = c("b", "c")), file.path(path, "YEAR=2020", "part.parquet"))
-  result <- dplyr::collect(nis_open(path, reader = "arrow") |>
+  result <- dplyr::collect(nis_open(path, reader = "arrow", check_release = FALSE) |>
     dplyr::select(YEAR, id, annual, hive))
   expect_type(result$YEAR, "integer")
   expect_setequal(result$YEAR, c(2019L, 2020L, 2020L))
@@ -121,7 +124,7 @@ test_that("nis_open safely quotes paths containing spaces and apostrophes", {
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   parquet <- file.path(path, "NIS_2019.parquet")
   write_duckdb_parquet(dplyr::tibble(YEAR = rep(2019L, 3)), parquet)
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   result <- query |>
     dplyr::summarise(n = dplyr::n()) |>
     dplyr::collect()
@@ -142,14 +145,14 @@ test_that("nis_open reads Hive year partitions and unions their schemas", {
     file.path(path, "YEAR=2020", "part.parquet")
   )
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   expect_s3_class(query, "tbl_sql")
   all_years <- dplyr::collect(query |> dplyr::select(YEAR, A, B, drift))
   expect_equal(all_years$YEAR, c(2019L, 2019L, 2020L))
   expect_equal(all_years$A, c(1L, 2L, NA_integer_))
   expect_equal(all_years$B, c(NA_integer_, NA_integer_, 3L))
   expect_equal(all_years$drift, c(10, 20, 30.5))
-  selected_year <- dplyr::collect(nis_open(path, years = 2020L) |>
+  selected_year <- dplyr::collect(nis_open(path, years = 2020L, check_release = FALSE) |>
     dplyr::select(YEAR, B, drift))
   expect_equal(selected_year$YEAR, 2020L)
   expect_equal(selected_year$drift, 30.5)
@@ -169,7 +172,7 @@ test_that("nis_open pushes selected columns down to Parquet", {
     file.path(path, "YEAR=2020", "part.parquet")
   )
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
   skip_if_not_installed("jsonlite")
   plan <- DBI::dbGetQuery(query$src$con, paste(
@@ -203,13 +206,13 @@ test_that("nis_open combines annual files with Hive partitions", {
   write_duckdb_parquet(dplyr::tibble(id = 2L, hive_only = "b"),
     file.path(path, "YEAR=2020", "part.parquet"))
 
-  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id,
+  result <- dplyr::collect(nis_open(path, check_release = FALSE) |> dplyr::select(YEAR, id,
     annual_only, hive_only))
   expect_identical(sort(result$YEAR), c(2019L, 2020L))
   expect_identical(sort(result$id), c(1L, 2L))
   expect_identical(result$annual_only[!is.na(result$annual_only)], "a")
   expect_identical(result$hive_only[!is.na(result$hive_only)], "b")
-  selected <- dplyr::collect(nis_open(path, years = 2020L) |>
+  selected <- dplyr::collect(nis_open(path, years = 2020L, check_release = FALSE) |>
     dplyr::select(YEAR, id))
   expect_identical(selected$YEAR, 2020L)
   expect_identical(selected$id, 2L)
@@ -238,7 +241,7 @@ test_that("nis_open checks mixed layouts only for selected years", {
   write_duckdb_parquet(dplyr::tibble(id = 3L),
     file.path(path, "YEAR=2020", "part.parquet"))
 
-  result <- dplyr::collect(nis_open(path, years = 2019L) |>
+  result <- dplyr::collect(nis_open(path, years = 2019L, check_release = FALSE) |>
     dplyr::select(YEAR, id))
   expect_identical(result$YEAR, 2019L)
   expect_identical(result$id, 1L)
@@ -255,7 +258,7 @@ test_that("nis_open accepts Hive parts within one annual dataset", {
   readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
   for (reader in readers) {
     for (years in list(NULL, 2020L)) {
-      result <- dplyr::collect(nis_open(path, years = years, reader = reader))
+      result <- dplyr::collect(nis_open(path, years = years, reader = reader, check_release = FALSE))
       expect_identical(result$id, 1L)
       expect_identical(result$YEAR, 2020L)
     }
@@ -280,7 +283,7 @@ test_that("nis_open accepts annual parts within one Hive dataset", {
   for (reader in readers) {
     for (spelling in c(hive, paste0(hive, "/"), file.path(hive, "."))) {
       for (years in list(NULL, 2020L)) {
-        result <- dplyr::collect(nis_open(spelling, years = years, reader = reader))
+        result <- dplyr::collect(nis_open(spelling, years = years, reader = reader, check_release = FALSE))
         expect_identical(sort(result$id), 1:3)
         expect_identical(result$YEAR, rep(2020L, 3L))
       }
@@ -297,7 +300,7 @@ test_that("nis_open accepts multiple Hive parts for one year", {
   write_duckdb_parquet(dplyr::tibble(id = 3L),
     file.path(path, "YEAR=2020", "part-2.parquet"))
 
-  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id))
+  result <- dplyr::collect(nis_open(path, check_release = FALSE) |> dplyr::select(YEAR, id))
   expect_identical(result$YEAR, rep(2020L, 3L))
   expect_identical(result$id, 1:3)
 })
@@ -311,7 +314,7 @@ test_that("nis_open casts physical Hive years before combining annual files", {
   write_duckdb_parquet(dplyr::tibble(YEAR = "2020", id = 2L),
     file.path(path, "YEAR=2020", "part.parquet"))
 
-  result <- dplyr::collect(nis_open(path) |> dplyr::select(YEAR, id))
+  result <- dplyr::collect(nis_open(path, check_release = FALSE) |> dplyr::select(YEAR, id))
   expect_type(result$YEAR, "integer")
   expect_identical(result$YEAR, c(2019L, 2020L))
   expect_identical(result$id, c(1L, 2L))
@@ -328,7 +331,7 @@ test_that("nis_open casts YEAR to integer and rejects non-numeric years", {
     YEAR = "2020", I10_DX1 = "J189", I10_PR1 = "0JH60DZ"
   ), file.path(path, "NIS_2020.parquet"))
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   result <- query |>
     nis_flag_dx(hf = "I50") |>
     nis_flag_pr(proc = "02703") |>
@@ -379,7 +382,7 @@ test_that("nis_open rejects physical years that conflict with Hive partitions", 
   write_duckdb_parquet(dplyr::tibble(id = 3L),
     file.path(valid_path, "YEAR=2019", "part-b.parquet"))
 
-  query <- nis_open(valid_path)
+  query <- nis_open(valid_path, check_release = FALSE)
   expect_s3_class(query, "tbl_duckdb_connection")
   expect_equal(dplyr::collect(query |> dplyr::select(YEAR, id))$YEAR,
     c(2019L, 2019L, 2019L))
@@ -396,7 +399,7 @@ test_that("nis_open unions representative all-NA Parquet column types", {
     nullable_date = as.Date(c(NA_character_, NA_character_))
   ), file.path(path, "NIS_2019.parquet"))
 
-  result <- dplyr::collect(nis_open(path))
+  result <- dplyr::collect(nis_open(path, check_release = FALSE))
   expect_type(result$nullable_integer, "integer")
   expect_type(result$nullable_double, "double")
   expect_type(result$nullable_character, "character")
@@ -416,7 +419,7 @@ test_that("nis_open promotes numeric and character fields to character", {
   write_duckdb_parquet(dplyr::tibble(YEAR = 2020L, field = "two"),
     file.path(path, "NIS_2020.parquet"))
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   expect_s3_class(query, "tbl_sql")
   result <- dplyr::collect(query |> dplyr::select(YEAR, field))
   expect_type(result$field, "character")
@@ -433,7 +436,7 @@ test_that("derived DuckDB queries retain the connection until all are released",
   write_duckdb_parquet(data.frame(YEAR = 2019L),
     file.path(path, "NIS_2019.parquet"))
 
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   con <- query$src$con
   lookup <- dplyr::tibble(YEAR = 2019L, adjustment = 2L)
   DBI::dbWriteTable(con, "lookup", lookup, temporary = TRUE)
@@ -460,7 +463,7 @@ test_that("open queries apply workload limits and own separate spill locations",
     temp_directory = spill, max_temp_directory_size = "1GB", preserve_insertion_order = FALSE))
   path <- nis_example(2020L)
   withr::defer(unlink(path, recursive = TRUE))
-  queries <- list(nis_open(path), nis_open(path))
+  queries <- list(nis_open(path, check_release = FALSE), nis_open(path, check_release = FALSE))
   settings <- lapply(queries, function(query) {
     con <- dbplyr::remote_con(query)
     DBI::dbGetQuery(con, paste(
@@ -495,7 +498,7 @@ test_that("an export that exceeds the configured spill cap fails and releases sp
     memory_limit = "32MB", max_temp_directory_size = "1MB", threads = 1L,
     preserve_insertion_order = FALSE, temp_directory = spill
   ))
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   con <- dbplyr::remote_con(query)
   file <- file.path(spill, "sorted.parquet")
   output <- DBI::dbQuoteString(con, file)

@@ -127,7 +127,7 @@ test_that("suppression uses unweighted boundary and missing counts", {
 test_that("nis_suppress masks low unweighted counts and adds the DUA footnote", {
   path <- nis_example(2017)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  design <- nis_open(path) |>
+  design <- nis_open(path, check_release = FALSE) |>
     nis_flag_dx(heart_failure = "I50", position = "principal") |>
     nis_design(heart_failure, keep = c(AGE, DIED, FEMALE))
   table <- gtsummary::tbl_svysummary(

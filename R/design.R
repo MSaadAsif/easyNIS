@@ -154,7 +154,7 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' @seealso [Survey design and weighting](articles/survey-design.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#' nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
 #'   nis_flag_dx(heart_failure = "I50")
 #' design <- nis_design(
 #'   nis,

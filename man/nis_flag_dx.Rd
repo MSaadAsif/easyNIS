@@ -70,7 +70,7 @@ ICD-10 crosswalk, and even with both code sets, counts of a condition can
 break at the transition.
 }
 \examples{
-nis <- nis_open(nis_example(years = 2019:2020))
+nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE)
 nis |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::count(heart_failure) |>
