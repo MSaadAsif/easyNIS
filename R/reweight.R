@@ -10,7 +10,7 @@ nis_reweight_data <- function(design, weights_quo, call) {
   if (length(weight_values) != nrow(variables)) {
     cli::cli_abort("`weights` must have one value per cohort row in `design`.", call = call)
   }
-  if (any(!is.finite(weight_values))) {
+  if (!all(is.finite(weight_values))) {
     cli::cli_abort("`weights` must contain only finite values.", call = call)
   }
   if (any(weight_values <= 0)) {

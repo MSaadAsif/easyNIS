@@ -22,11 +22,10 @@
 2. Run `& $env:EASYNIS_RSCRIPT tools/probe/test-probe-helpers.R`, then
    `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --self-test`. Run
    `& $env:EASYNIS_RSCRIPT tools/probe/readiness.R` and inspect its cyclocomp
-   gate and the violation report from `probe-quality.R`. The no-open-P0/P1
-   issues gate stays unmet if either GitHub issue query fails or returns
-   invalid JSON. Keep
-   `cyclocomp_linter(15)` out of `.lintr` until the final violation is cleared;
-   add it in the PR that clears that violation.
+   receipt from `probe-quality.R`. Run
+   `Rscript --vanilla tools/check-package.R --lint` before committing to check
+   Air, Jarl, and installed-package complexity. The no-open-P0/P1 issues gate
+   stays unmet if either GitHub issue query fails or returns invalid JSON.
 3. Turn actionable findings into GitHub issues using
    `.github/ISSUE_TEMPLATE/loop-finding.yml`. For CLI issues use
    `gh issue create --label loop-found --label P1 --body-file issue.md` and
@@ -71,12 +70,12 @@ fallback installation is accepted. Run `tools/probe/test-provenance.R` for the
 invented loaded-parent, same-version older-installation, and install-failure cases.
 
 The goodpractice and pkgcheck entry processes also use verified isolated
-installations, but their nested installations and subprocesses are not attested
-by that outer check. R CMD check and coverage likewise create their own
+installations. The goodpractice probe skips its lint and complexity groups.
+The pkgcheck probe runs its reduced packaging checks. Their nested
+installations and subprocesses are not attested by the outer check. R CMD check and coverage likewise create their own
 installations. These receipts carry `nested_unverified`: observed failures
 remain false, while apparent passes and unknown outcomes remain unverified
 (`pass: null`). The separate coverage percentage receipt follows the same rule.
-Static lint receipts describe source inspection, not installed-namespace evidence.
 The installed complexity receipt verifies only that direct measurement, not
 every result returned by packaging tools. pkgcheck has no published aggregate
 pass API used here; the probe retains known goodpractice failures and otherwise

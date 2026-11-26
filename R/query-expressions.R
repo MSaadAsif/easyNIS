@@ -24,7 +24,7 @@ nis_names <- function(data) {
 nis_is_finite_expr <- function(data, column) {
   if (inherits(data, "tbl_sql")) {
     return(dbplyr::sql_expr(
-      isfinite(!!dbplyr::ident(column)), # nolint: object_usage_linter
+      isfinite(!!dbplyr::ident(column)),
       con = data$src$con
     ))
   }

@@ -50,7 +50,7 @@ nis_hospital_count_query <- function(data, by) {
 }
 
 .nis_cell_count_validate_by <- function(by) {
-  if (!is.character(by) || anyNA(by) || any(!nzchar(by))) {
+  if (!is.character(by) || anyNA(by) || !all(nzchar(by))) {
     cli::cli_abort("`by` must be a character vector of cell-defining columns.")
   }
   reserved <- intersect(by, c("n", "hospitals"))

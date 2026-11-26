@@ -36,4 +36,43 @@ check_committed_package <- function() {
   as.integer(any(counts != 0L))
 }
 
-quit(status = check_committed_package())
+check_complexity <- function() {
+  source(file.path("tools", "probe", "provenance.R"))
+  scores <- namespace_complexity(".")
+  passed <- namespace_complexity_pass(scores)
+  if (is.na(passed)) {
+    stop("Could not verify installed package complexity.", call. = FALSE)
+  }
+  cat("Maximum cyclomatic complexity:", max(scores$cyclocomp), "(limit 15)\n")
+  if (!passed) {
+    print(scores[scores$cyclocomp > 15, , drop = FALSE])
+  }
+  as.integer(!passed)
+}
+
+check_lint <- function() {
+  commands <- list(air = c("format", ".", "--check"), jarl = c("check", "."))
+  for (command in names(commands)) {
+    executable <- Sys.which(command)
+    if (!nzchar(executable)) {
+      stop("Install ", command, " and add it to PATH. See CONTRIBUTING.md.", call. = FALSE)
+    }
+    status <- system2(executable, commands[[command]])
+    if (status != 0L) {
+      return(status)
+    }
+  }
+  check_complexity()
+}
+
+args <- commandArgs(trailingOnly = TRUE)
+status <- if (length(args) == 0L) {
+  check_committed_package()
+} else if (identical(args, "--lint")) {
+  check_lint()
+} else if (identical(args, "--complexity")) {
+  check_complexity()
+} else {
+  stop("Usage: Rscript --vanilla tools/check-package.R [--lint | --complexity]", call. = FALSE)
+}
+quit(status = status)

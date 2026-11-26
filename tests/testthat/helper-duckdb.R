@@ -2,12 +2,12 @@ write_duckdb_parquet <- function(data, path) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   con <- nis_duckdb_connect(config = list(threads = "1"))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
-  nis_duckdb_write_parquet(data, path, con) # nolint: object_usage_linter
+  nis_duckdb_write_parquet(data, path, con)
 }
 
 open_duckdb_dataset <- function(path) {
   sources <- list.files(path, pattern = "[.]parquet$", recursive = TRUE, full.names = TRUE)
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  con <- nis_duckdb_connect()
   quoted <- DBI::dbQuoteString(con, normalizePath(sources, winslash = "/", mustWork = TRUE))
   parquet <- paste0(
     "read_parquet([",
@@ -28,7 +28,7 @@ local_sql_na_warnings <- function(.env = parent.frame()) {
 }
 
 duckdb_query_fixture <- function(data) {
-  con <- nis_duckdb_connect() # nolint: object_usage_linter
+  con <- nis_duckdb_connect()
   DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
   nis_duckdb_attach_finalizer(dplyr::tbl(con, "fixture"), function() {
     if (DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)

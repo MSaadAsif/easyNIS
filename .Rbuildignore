@@ -5,6 +5,8 @@
 ^codemeta[.]json$
 ^\.easynis-local\.ps1$
 ^\.github$
+^\.git-blame-ignore-revs$
+^jarl[.]toml$
 ^\.Rproj\.user$
 ^\.Rproj$
 ^AGENTS\.md$

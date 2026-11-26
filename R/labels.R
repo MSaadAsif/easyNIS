@@ -171,7 +171,6 @@ nis_label <- function(data) {
     cli::cli_abort("`data` must be a collected data frame.")
   }
   for (variable in nis_names(data)) {
-    # nolint: object_usage_linter
     if (startsWith(variable, ".")) {
       next
     }

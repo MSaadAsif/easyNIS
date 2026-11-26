@@ -1,0 +1,6 @@
+[lint]
+extend-select = ["quotes"]
+
+[lint.undesirable_operator]
+# Use native pipes. Tests, probes, and the bundled study use scoped assignment or internal calls.
+operators = ["%>%", "%!>%", "%T>%", "%$%", "%<>%"]

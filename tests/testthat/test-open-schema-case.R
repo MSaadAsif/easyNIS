@@ -7,7 +7,7 @@ schema_case_fixture <- function(spellings) {
     data[['analyst"tag']] <- paste0("tag-", index)
     data$APRDRG_RISK_MORTALITY_1 <- 10L + index
     write_duckdb_parquet(
-      data, # nolint: object_usage_linter
+      data,
       file.path(path, paste0("NIS_", 2018L + index, ".parquet"))
     )
   }

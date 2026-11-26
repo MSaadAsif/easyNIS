@@ -17,6 +17,7 @@ nis_study_supported <- function(data, threshold) {
   support$n > 0L && !nzchar(support$mask)
 }
 
+# jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_trend_support <- function(data, threshold) {
   dplyr::group_by(data, !!rlang::sym("YEAR")) |>
     dplyr::group_modify(function(rows, year) {

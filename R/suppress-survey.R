@@ -263,7 +263,7 @@ survey_stat_displayed <- function(body, row, stat_columns) {
     stat_columns,
     function(column) {
       value <- body[[column]][[row]]
-      length(value) > 0L && !all(is.na(value)) && !(is.character(value) && all(!nzchar(trimws(value))))
+      length(value) > 0L && !all(is.na(value)) && !(is.character(value) && !any(nzchar(trimws(value))))
     },
     logical(1)
   ))

@@ -67,7 +67,7 @@ nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
 }
 
 validate_ccsr_categories <- function(categories, call) {
-  if (!is.character(categories) || length(categories) == 0L || anyNA(categories) || any(!nzchar(trimws(categories)))) {
+  if (!is.character(categories) || length(categories) == 0L || anyNA(categories) || !all(nzchar(trimws(categories)))) {
     cli::cli_abort("`categories` must be a non-empty character vector.", call = call)
   }
   unique(toupper(trimws(categories)))
@@ -210,8 +210,8 @@ read_ccsr_csv <- function(file, call) {
   wrong <- which(width != width[1L] | !grepl("^'.*'$", lines))
   if (length(wrong) > 0L) {
     # Used by cli interpolation below.
-    shown <- utils::head(wrong, 3L) # nolint
-    expected <- width[1L] # nolint
+    shown <- utils::head(wrong, 3L)
+    expected <- width[1L]
     cli::cli_abort(
       c(
         "`file` is not a well-formed single-quoted CSV.",
@@ -255,7 +255,7 @@ read_ccsr_sheet <- function(file, call) {
     )
   }
   cells <- suppressMessages(readxl::read_excel(file, sheet = sheet, col_names = FALSE, col_types = "text"))
-  header <- which(grepl("^ICD-?10", cells[[1L]], ignore.case = TRUE))[1L]
+  header <- grep("^ICD-?10", cells[[1L]], ignore.case = TRUE)[1L]
   if (is.na(header)) {
     cli::cli_abort("No header row starting with `ICD-10` was found in `file`.", call = call)
   }

@@ -77,7 +77,7 @@ nis_flag_pr_timing <- function(
   .data <- index$data
   temporary_names <- index$temporary_names
   result <- timing_result(days, decoded, index_matches, outcome_matches, index$index_day, relation, window, missing_day)
-  eligibility <- code_system_filter(.data, data_names, "PR", system) # nolint: object_usage_linter
+  eligibility <- code_system_filter(.data, data_names, "PR", system)
   result <- nis_in_code_system(result, eligibility)
   .data <- dplyr::mutate(.data, !!name := !!result)
   dplyr::select(.data, -dplyr::all_of(temporary_names))

@@ -1,3 +1,4 @@
+# jarl-ignore unused_function: S3 dispatch for the synthetic labelled column.
 is.na.synthetic_labelled_spss <- function(x) {
   values <- unclass(x)
   is.na(values) | values %in% attr(x, "na_values", exact = TRUE)

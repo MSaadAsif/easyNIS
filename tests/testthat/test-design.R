@@ -44,7 +44,7 @@ test_that("data columns take precedence over colliding caller vectors", {
   path <- nis_example(2019)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   data <- dplyr::collect(nis_open(path))
-  AGE <- "FEMALE" # nolint: object_name_linter
+  AGE <- "FEMALE"
 
   frame_design <- nis_design(data, TRUE, keep = AGE)
   expect_true("AGE" %in% names(frame_design$variables))

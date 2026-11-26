@@ -37,7 +37,6 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
   quarter_flags <- nis_sample_quarter_flags(quarter_prototype)
   # Invalid discharges need only their defect flags and, when valid, their year.
   # Keeping their raw hospital and stratum IDs can make the summary as large as the input.
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
   design_groups <- prepared |>
     dplyr::mutate(
       YEAR = dplyr::if_else(!(!!invalid_year), YEAR, NA),
@@ -52,14 +51,13 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
       .groups = "drop"
     ) |>
     nis_collect()
-  # nolint end
   excluded <- nis_sample_exclusions(design_groups)
   valid <- design_groups$.nis_valid
   hospital_rows <- design_groups[valid, .nis_design_fields]
   if (nrow(hospital_rows) == 0L) {
     cli::cli_abort("No discharges have valid design fields.", call = call)
   }
-  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS) # nolint: object_usage_linter
+  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS)
   if (any(stratum_counts$n != 1L)) {
     cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
   }
@@ -73,11 +71,11 @@ nis_sample_quarter_flags <- function(prototype) {
     return(list())
   }
   factor_quarters <- is.factor(prototype)
-  quarter_field <- if (factor_quarters) rlang::expr(as.character(DQTR)) else rlang::sym("DQTR") # nolint: object_usage_linter
+  quarter_field <- if (factor_quarters) rlang::expr(as.character(DQTR)) else rlang::sym("DQTR")
   quarters <- if (factor_quarters) as.character(1:4) else 1:4
   flags <- if (factor_quarters || is.numeric(prototype) || is.logical(prototype)) {
     lapply(quarters, function(quarter) {
-      rlang::expr(any(.nis_valid & dplyr::coalesce(!!quarter_field == !!quarter, FALSE), na.rm = TRUE)) # nolint: object_usage_linter
+      rlang::expr(any(.nis_valid & dplyr::coalesce(!!quarter_field == !!quarter, FALSE), na.rm = TRUE))
     })
   } else {
     rep(list(rlang::expr(FALSE)), 4L)
@@ -169,12 +167,10 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
   # the cohort expression runs once per discharge. Missing values are counted
   # here and dropped.
-  # nolint start: object_usage_linter. Data-masked dplyr expressions.
   collected <- prepared |>
     dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
     dplyr::select(dplyr::all_of(collected_fields), .nis_cohort) |>
     nis_collect()
-  # nolint end
   if (!is.logical(collected$.nis_cohort)) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }

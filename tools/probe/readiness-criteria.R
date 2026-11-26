@@ -112,8 +112,8 @@ evaluate_readiness <- function(
     ),
     record(
       "Cyclomatic complexity <= 15 per function",
-      if (check_pass("cyclocomp")) "ready" else "not met",
-      "Requires a passing cyclocomp_linter(15) result for the current commit"
+      if (check_pass("namespace_complexity")) "ready" else "not met",
+      "Requires a passing installed-namespace cyclocomp result for the current commit"
     ),
     record(
       "Reproduces headline estimates of 3 published NIS studies within stated tolerance",
