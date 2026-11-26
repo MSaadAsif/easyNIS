@@ -144,31 +144,33 @@ nis_open_normalize_names <- function(query, source_names) {
   old_names <- colnames(query)
   new_names <- ifelse(grepl("[A-Z]", old_names), toupper(old_names), old_names)
   name_groups <- split(old_names, new_names)
+  output <- nis_open_restore_spelling(names(name_groups), source_names)
+  fields <- vapply(name_groups, "[[", character(1), 1L)
+  computed <- which(lengths(name_groups) > 1L | grepl("[^ -~]", fields, useBytes = TRUE))
 
-  rename_groups <- name_groups[lengths(name_groups) == 1L]
-  rename_map <- stats::setNames(rlang::syms(unlist(rename_groups)), names(rename_groups))
-  query <- dplyr::rename(query, !!!rename_map)
-
-  duplicate_groups <- name_groups[lengths(name_groups) > 1L]
-  for (canonical in names(duplicate_groups)) {
-    fields <- rlang::syms(duplicate_groups[[canonical]])
-    merged <- Reduce(
-      function(left, right) {
-        rlang::expr(dplyr::coalesce(!!left, !!right))
-      },
-      fields
-    )
-    query <- dplyr::mutate(query, !!canonical := !!merged) # dplyr name injection.
+  if (length(computed)) {
+    con <- dbplyr::remote_con(query)
+    # Use ASCII argument names while retaining the lazy projection so dbplyr
+    # can drop unused coalesces before DuckDB binds their types.
+    aliases <- nis_internal_names(query, c(old_names, output),
+      paste0(".nis_projection_", seq_along(computed)))
+    expressions <- lapply(name_groups[computed], function(group) {
+      quoted <- DBI::dbQuoteIdentifier(con, group)
+      if (length(quoted) == 1L) return(dbplyr::sql(quoted))
+      dbplyr::sql(paste0("COALESCE(", paste(quoted, collapse = ", "), ")"))
+    })
+    query <- dplyr::mutate(query, !!!stats::setNames(expressions, aliases))
+    fields[computed] <- aliases
   }
-  query <- dplyr::select(query, dplyr::all_of(names(name_groups)))
 
-  nis_open_restore_spelling(query, source_names)
+  # Tidyselect converts spliced argument names to the native encoding.
+  selection <- stats::setNames(fields, output)
+  dplyr::select(query, tidyselect::all_of(selection))
 }
 
-nis_open_restore_spelling <- function(query, source_names) {
+nis_open_restore_spelling <- function(output, source_names) {
   uppercase <- unique(source_names[grepl("[A-Z]", source_names)])
   keys <- nis_sql_identifier_key(uppercase)
-  output <- colnames(query)
   output_keys <- nis_sql_identifier_key(output)
   source <- match(output_keys, keys)
   proposed <- output
@@ -185,11 +187,8 @@ nis_open_restore_spelling <- function(query, source_names) {
   )
   duplicate <- duplicated(target) | duplicated(target, fromLast = TRUE)
   keep <- changed[!collides & !duplicate]
-  if (!length(keep)) {
-    return(query)
-  }
-  rename_map <- stats::setNames(rlang::syms(output[keep]), proposed[keep])
-  dplyr::rename(query, !!!rename_map)
+  output[keep] <- proposed[keep]
+  output
 }
 
 nis_open_warn_2023 <- function(query) {
