@@ -9,9 +9,8 @@
 #' @param reader Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is
 #'   an optional dependency. Its reader preserves source bytes in strings,
 #'   including malformed UTF-8; downstream string operations may still fail.
-#' @param check_release Set to `TRUE` for complete annual Core releases to
-#'   compare their totals with HCUP's NIS introduction tables. The default
-#'   `FALSE` also suits cohort extracts and partial years.
+#' @param check_release Check annual release totals and design fields by
+#'   default. Set to `FALSE` to skip the check.
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
 #'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
@@ -45,15 +44,17 @@
 #'   may still fail on malformed values.
 #'
 #' @section Annual release check:
-#' With `check_release = TRUE`, DuckDB counts discharges and distinct
-#' `HOSP_NIS` values and sums `DISCWT` by year. The reference covers 2012
-#' through 2024. Counts must match exactly. The weight sum can differ by
-#' half a discharge, plus a small allowance for floating-point arithmetic,
-#' because HCUP publishes whole discharges. Unexpected or missing `YEAR` and
-#' nonpositive `NIS_STRATUM` also contribute to the warning. A mismatch leaves
-#' the query available for use. HCUP's 2021 introduction and its Core File
-#' summary report publish different totals, so a 2021 warning can reflect
-#' that discrepancy.
+#' DuckDB checks the discharge count, sum of `DISCWT`, and distinct
+#' `HOSP_NIS` count against the
+#' [HCUP summary statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
+#' for 2012 through 2024. Totals are compared only when at least half of the
+#' published discharge count for a year is present. Counts must match exactly,
+#' and the weight sum can differ by half a discharge plus a small allowance
+#' for floating-point arithmetic because HCUP rounds the published weight sum
+#' to a whole discharge. When the fields are present, missing `YEAR`, `YEAR`
+#' outside the opened years, and `NIS_STRATUM` values of zero or less warn
+#' regardless of extract size or reference coverage. A warning leaves the
+#' lazy query available for use.
 #'
 #' @section Large data:
 #' The query stays in DuckDB until you collect it. Filter, project, and summarize
@@ -90,7 +91,7 @@
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),
-                     check_release = FALSE) {
+                     check_release = TRUE) {
   reader <- match.arg(reader)
   if (!rlang::is_bool(check_release)) {
     cli::cli_abort("{.arg check_release} must be `TRUE` or `FALSE`.")
@@ -104,8 +105,9 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),
   connection <- nis_duckdb_open_data()
   on.exit(connection$release(), add = TRUE)
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
+  # Check source columns before name normalization can add unrelated expressions.
+  if (check_release) nis_open_check_release(plan$query, dataset$years)
   query <- nis_open_normalize_names(plan$query, plan$names)
-  if (check_release) nis_open_check_release(query, dataset$years)
   nis_open_warn_2023(query)
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)

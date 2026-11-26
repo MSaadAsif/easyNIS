@@ -209,7 +209,9 @@ for (type in c("BIGINT", "UBIGINT")) {
 
     lower <- if (type == "BIGINT") "(-2147483648)" else "0"
     write_years(c(lower, "2147483647", "NULL"), "part-valid.parquet")
-    actual <- nis_open(path) |> dplyr::summarise(rows = dplyr::n()) |> dplyr::collect()
+    actual <- nis_open(path, check_release = FALSE) |>
+      dplyr::summarise(rows = dplyr::n()) |>
+      dplyr::collect()
     expect_equal(actual$rows, 3)
 
     extreme <- if (type == "BIGINT") "(-2147483649)" else "18446744073709551615"

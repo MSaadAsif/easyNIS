@@ -8,7 +8,7 @@ nis_open(
   path,
   years = NULL,
   reader = c("duckdb", "arrow"),
-  check_release = FALSE
+  check_release = TRUE
 )
 }
 \arguments{
@@ -24,9 +24,8 @@ codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 an optional dependency. Its reader preserves source bytes in strings,
 including malformed UTF-8; downstream string operations may still fail.}
 
-\item{check_release}{Set to \code{TRUE} for complete annual Core releases to
-compare their totals with HCUP's NIS introduction tables. The default
-\code{FALSE} also suits cohort extracts and partial years.}
+\item{check_release}{Check annual release totals and design fields by
+default. Set to \code{FALSE} to skip the check.}
 }
 \value{
 A lazy DuckDB-backed dbplyr table with case-normalized columns.
@@ -79,15 +78,17 @@ may still fail on malformed values.
 }
 \section{Annual release check}{
 
-With \code{check_release = TRUE}, DuckDB counts discharges and distinct
-\code{HOSP_NIS} values and sums \code{DISCWT} by year. The reference covers 2012
-through 2024. Counts must match exactly. The weight sum can differ by
-half a discharge, plus a small allowance for floating-point arithmetic,
-because HCUP publishes whole discharges. Unexpected or missing \code{YEAR} and
-nonpositive \code{NIS_STRATUM} also contribute to the warning. A mismatch leaves
-the query available for use. HCUP's 2021 introduction and its Core File
-summary report publish different totals, so a 2021 warning can reflect
-that discrepancy.
+DuckDB checks the discharge count, sum of \code{DISCWT}, and distinct
+\code{HOSP_NIS} count against the
+\href{https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp}{HCUP summary statistics}
+for 2012 through 2024. Totals are compared only when at least half of the
+published discharge count for a year is present. Counts must match exactly,
+and the weight sum can differ by half a discharge plus a small allowance
+for floating-point arithmetic because HCUP rounds the published weight sum
+to a whole discharge. When the fields are present, missing \code{YEAR}, \code{YEAR}
+outside the opened years, and \code{NIS_STRATUM} values of zero or less warn
+regardless of extract size or reference coverage. A warning leaves the
+lazy query available for use.
 }
 
 \section{Large data}{
