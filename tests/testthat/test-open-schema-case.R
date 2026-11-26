@@ -14,7 +14,8 @@ schema_case_fixture <- function(spellings) {
   path
 }
 
-test_that("Unicode projections retain names and values under the C locale", {
+test_that("Unicode projections retain names and values under the Windows C locale", {
+  skip_if_not(.Platform$OS.type == "windows", "Unicode case folding in the C locale differs by platform")
   withr::local_locale(c(LC_CTYPE = "C"))
   path <- tempfile("nis-unicode-case-")
   dir.create(path)

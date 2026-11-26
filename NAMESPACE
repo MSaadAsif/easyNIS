@@ -22,5 +22,7 @@ export(nis_reweight)
 export(nis_suppress)
 importClassesFrom(duckdb,duckdb_connection)
 importClassesFrom(duckdb,duckdb_result)
-importFrom(DBI,dbBind)
-importFrom(DBI,dbSendQuery)
+importFrom(DBI,
+  dbBind,
+  dbSendQuery
+)
