@@ -1,30 +1,41 @@
-#' @importClassesFrom duckdb duckdb_connection
-#' @importFrom DBI dbSendQuery
+#' @importClassesFrom duckdb duckdb_connection duckdb_result
+#' @importFrom DBI dbBind dbSendQuery
 NULL
 
 methods::setClass("nis_duckdb_connection", contains = "duckdb_connection")
+methods::setClass("nis_duckdb_result", contains = "duckdb_result")
 
-# DuckDB executes the query in dbSendQuery(), including parameter binding
-# when DBI supplies params. This also covers consumers outside easyNIS.
+# DuckDB executes in dbSendQuery() or, for deferred parameters, dbBind().
 methods::setMethod("dbSendQuery", c("nis_duckdb_connection", "character"),
   function(conn, statement, ...) {
+    result <- nis_duckdb_translate_errors(methods::callNextMethod())
+    methods::new("nis_duckdb_result", result)
+  }
+)
+
+methods::setMethod("dbBind", "nis_duckdb_result",
+  function(res, params, ...) {
     nis_duckdb_translate_errors(methods::callNextMethod())
   }
 )
 
 nis_duckdb_translate_errors <- function(query) {
   withCallingHandlers(query, error = function(error) {
+    if (rlang::cnd_inherits(error, "easyNIS_invalid_utf8")) return()
     while (!is.null(error$parent)) error <- error$parent
-    message <- strsplit(conditionMessage(error), "\n", fixed = TRUE)[[1L]][1L]
-    if (!grepl("invalid string encoding|invalid UTF-8", message, ignore.case = TRUE)) return()
+    message <- strsplit(conditionMessage(error), "\n", fixed = TRUE, useBytes = TRUE)[[1L]][1L]
+    encoding_error <- "^(Invalid Error: )?Invalid Input Error: Invalid string encoding found in Parquet file"
+    if (!grepl(encoding_error, message, useBytes = TRUE)) return()
 
-    message <- sub(': value ".*$', "", message)
-    field <- function(pattern) {
-      match <- regmatches(message, regexec(pattern, message, perl = TRUE))[[1L]]
+    field <- function(text, pattern) {
+      match <- regmatches(text, regexec(pattern, text, perl = TRUE, useBytes = TRUE))[[1L]]
       match[2L]
     }
-    file <- field('(?i)Parquet file "(.+?)"(?=:|,| \\(|$)')
-    column <- field('(?i)column ["\x27]([^"\x27]+)["\x27]')
+    file_pattern <- 'Parquet file "(.+?)"(?=:|,| \\(|$)'
+    file <- field(message, file_pattern)
+    details <- sub(file_pattern, "", message, perl = TRUE, useBytes = TRUE)
+    details <- sub(': value ".*$', "", details, useBytes = TRUE)
+    column <- field(details, '(?i)column ["\x27]([^"\x27]+)["\x27]')
     location <- paste0(
       if (!is.na(column)) " in column {.field {column}}",
       if (!is.na(file)) " in {.path {file}}"
@@ -33,7 +44,7 @@ nis_duckdb_translate_errors <- function(query) {
       paste0("Malformed UTF-8", location, "."),
       i = paste('Use {.code nis_open(reader = "arrow")} to work around this.',
         "Regenerate the Parquet file with the correct source encoding to fix it.")
-    ), class = "easyNIS_invalid_utf8")
+    ), class = "easyNIS_invalid_utf8", parent = error, call = conditionCall(error))
   })
 }
 

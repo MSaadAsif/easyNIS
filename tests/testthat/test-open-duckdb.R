@@ -39,7 +39,7 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
 })
 
 test_that("native Parquet queries explain malformed ICD code strings", {
-  path <- tempfile("nis-invalid-utf8-")
+  path <- tempfile("nis-invalid-utf8-column 'decoy'-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
 
@@ -51,12 +51,25 @@ test_that("native Parquet queries explain malformed ICD code strings", {
   corrupt_parquet_marker(file, marker)
 
   query <- nis_open(path, check_release = FALSE)
+  con <- dbplyr::remote_con(query)
+  sql <- dbplyr::sql_render(query)
+  conversion <- expect_error(DBI::dbGetQuery(con, "SELECT CAST('invalid UTF-8' AS INTEGER)"),
+    "^(Invalid Error: )?Conversion Error:")
+  expect_false(rlang::cnd_inherits(conversion, "easyNIS_invalid_utf8"))
+  binder <- expect_error(DBI::dbGetQuery(con, 'SELECT "invalid string encoding" FROM (SELECT 1 AS x)'),
+    "^Binder Error:")
+  expect_false(rlang::cnd_inherits(binder, "easyNIS_invalid_utf8"))
+
   expect_identical(dplyr::collect(dplyr::select(query, AGE))$AGE, 60L)
   expect_error(dplyr::collect(query), class = "easyNIS_invalid_utf8")
-  expect_error(
-    DBI::dbGetQuery(dbplyr::remote_con(query), dbplyr::sql_render(query)),
-    class = "easyNIS_invalid_utf8"
-  )
+  direct <- expect_error(DBI::dbGetQuery(con, sql), class = "easyNIS_invalid_utf8")
+  expect_match(conditionMessage(direct$parent), "Invalid string encoding found in Parquet file", fixed = TRUE)
+  expect_identical(conditionCall(direct), conditionCall(direct$parent))
+  expect_false(grepl("in column", direct$message, fixed = TRUE))
+
+  result <- DBI::dbSendQuery(con, paste("SELECT I10_DX1 FROM (", sql, ") WHERE AGE = ?"))
+  on.exit(DBI::dbClearResult(result), add = TRUE)
+  expect_error(DBI::dbBind(result, list(60L)), class = "easyNIS_invalid_utf8")
   error <- expect_error(
     nis_design(query, cohort = I10_DX1 == marker, keep = AGE),
     class = "easyNIS_invalid_utf8"
@@ -64,6 +77,7 @@ test_that("native Parquet queries explain malformed ICD code strings", {
   expect_match(conditionMessage(error), "NIS_2020.parquet", fixed = TRUE)
   expect_match(conditionMessage(error), 'nis_open(reader = "arrow")', fixed = TRUE)
   expect_match(conditionMessage(error), "Regenerate", fixed = TRUE)
+  expect_length(regmatches(conditionMessage(error), gregexpr("Malformed UTF-8", conditionMessage(error)))[[1L]], 1L)
   expect_error(dplyr::collect(nis_flag_dx(query, flagged = marker)),
     class = "easyNIS_invalid_utf8")
   expect_error(nis_audit_code_transition(query, c(marker = marker), type = "dx"),
