@@ -23,7 +23,7 @@ call this on the direct \code{nis_cost()} result or on the survey design returne
 by \code{nis_design()}.
 }
 \examples{
-charges <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
+charges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect() |>
   nis_cost(dollars = 2024)

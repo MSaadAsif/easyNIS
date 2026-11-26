@@ -39,7 +39,7 @@ test_that("study cache keys change when definitions or external data roots chang
 test_that("study cache keys track selected Parquet parts only", {
   path <- nis_example(2019:2020)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  selected <- nis_open(path, years = 2020L, check_release = FALSE)
+  selected <- nis_open(path, years = 2020L)
   make_key <- function() {
     nis_study_cache_key(
       input_path = path,

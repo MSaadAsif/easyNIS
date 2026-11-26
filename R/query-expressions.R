@@ -24,8 +24,7 @@ nis_names <- function(data) {
 nis_is_finite_expr <- function(data, column) {
   if (inherits(data, "tbl_sql")) {
     value <- if (inherits(column, "sql")) column else dbplyr::ident(column)
-    return(dbplyr::sql_expr(isfinite(!!value),
-      con = data$src$con))
+    return(dbplyr::sql_expr(isfinite(!!value), con = data$src$con))
   }
   rlang::expr(is.finite(!!rlang::sym(column)))
 }
@@ -88,7 +87,9 @@ nis_sql_identifier_key <- function(names) {
 }
 
 nis_collect <- function(x) {
-  if (is.data.frame(x)) return(x)
+  if (is.data.frame(x)) {
+    return(x)
+  }
   nis_explain_invalid_utf8(dplyr::collect(x))
 }
 

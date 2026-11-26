@@ -81,7 +81,7 @@ Principal and secondary diagnoses can capture different presentations.
 principal, secondary-only, and any-position definitions.
 
 ```{r sensitivity}
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019))
 nis_dx_sensitivity(nis, "I50")
 ```
 

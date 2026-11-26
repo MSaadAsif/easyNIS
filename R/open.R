@@ -51,8 +51,9 @@
 #' and the weight sum can differ by half a discharge plus a small allowance
 #' for floating-point arithmetic because HCUP rounds the published weight sum
 #' to a whole discharge. Only finite, positive hospital IDs count, and
-#' optional totals are compared only when every part for a year has the
-#' corresponding column.
+#' optional totals are compared only when every checked part for a year has the
+#' corresponding column. Files created by [nis_example()] are excluded from
+#' these totals. They still undergo the integrity checks below.
 #' Parquet files with zero discharges across an entire opened year warn.
 #' When the fields are present, missing `YEAR`, `YEAR`
 #' outside the opened years, and `NIS_STRATUM` values of zero or less warn
@@ -86,17 +87,16 @@
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)
-#' nis <- nis_open(path, check_release = FALSE)
+#' nis <- nis_open(path)
 #' nis |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
 #'
 #' # Open one year only
-#' nis_open(path, years = 2020, check_release = FALSE) |>
+#' nis_open(path, years = 2020) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
-nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),
-                     check_release = TRUE) {
+nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_release = TRUE) {
   reader <- match.arg(reader)
   if (!rlang::is_bool(check_release)) {
     cli::cli_abort("{.arg check_release} must be `TRUE` or `FALSE`.")
@@ -111,7 +111,9 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"),
   on.exit(connection$release(), add = TRUE)
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
-  if (check_release) nis_open_check_release(plan, dataset)
+  if (check_release) {
+    nis_open_check_release(plan, dataset)
+  }
   query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)

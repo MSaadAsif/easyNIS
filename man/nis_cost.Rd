@@ -27,7 +27,7 @@ in-memory data frame has \code{nis_cost_provenance} metadata; retrieve it with
 Adjust NIS charges and costs to a reference dollar year
 }
 \examples{
-charges <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
+charges <- nis_open(nis_example(years = 2019:2020)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
 head(nis_cost(charges, dollars = 2024))

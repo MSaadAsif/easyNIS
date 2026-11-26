@@ -289,7 +289,7 @@ test_that("nis_cost rejects negative and non-finite charges but retains zero", {
   expect_equal(nis_cost_provenance(adjusted)$rows_missing_charges, 4L)
 
   design_data <- nis_example(years = 2020) |>
-    nis_open(check_release = FALSE) |>
+    nis_open() |>
     dplyr::collect()
   design_data$test_row <- seq_len(nrow(design_data))
   design_data$TOTCHG[1:5] <- c(-1, 0, NA_real_, NaN, Inf)

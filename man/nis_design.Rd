@@ -96,7 +96,7 @@ retained analysis columns.
 }
 
 \examples{
-nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
+nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,

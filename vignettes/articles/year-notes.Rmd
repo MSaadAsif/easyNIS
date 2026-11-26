@@ -57,7 +57,7 @@ package operations. Its rows are not a complete copy of annual layouts.
 
 ```{r years}
 path <- nis_example(years = c(2015, 2019, 2020))
-nis <- nis_open(path, check_release = FALSE)
+nis <- nis_open(path)
 nis |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 

@@ -65,16 +65,25 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   tbl
 }
 
+# Parquet files produced by easyNIS that do not represent an HCUP release.
+nis_non_release_metadata <- c(easyNIS_source = "non_release")
+
 nis_duckdb_write_parquet <- function(data, path, con) {
   table <- "easyNIS_fixture"
   DBI::dbWriteTable(con, table, data, temporary = TRUE, overwrite = TRUE)
   destination <- as.character(DBI::dbQuoteString(con, normalizePath(path, winslash = "/", mustWork = FALSE)))
+  key <- DBI::dbQuoteIdentifier(con, names(nis_non_release_metadata))
+  value <- DBI::dbQuoteString(con, unname(nis_non_release_metadata))
   statement <- paste0(
     "COPY ",
     as.character(DBI::dbQuoteIdentifier(con, table)),
     " TO ",
     destination,
-    " (FORMAT PARQUET)"
+    " (FORMAT PARQUET, KV_METADATA {",
+    key,
+    ": ",
+    value,
+    "})"
   )
   DBI::dbExecute(con, statement)
   invisible(path)

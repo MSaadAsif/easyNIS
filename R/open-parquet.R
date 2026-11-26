@@ -11,14 +11,18 @@ nis_open_plan_parquet <- function(parts, con, reader) {
     nis_open_validate_partition(scan, con)
   }
   nis_open_check_year_values(scans, con)
-  projections <- vapply(scans, nis_open_project_year, character(1))
-  union <- paste(projections, collapse = " UNION ALL BY NAME ")
-  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
   list(
-    query = query,
+    query = nis_open_parquet_query(scans, con),
+    sources = sources,
     names_by_part = lapply(sources, function(source) source$schema$column_name),
     owners = Filter(Negate(is.null), lapply(sources, function(source) source$owner))
   )
+}
+
+nis_open_parquet_query <- function(scans, con) {
+  projections <- vapply(scans, nis_open_project_year, character(1))
+  union <- paste(projections, collapse = " UNION ALL BY NAME ")
+  dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
 }
 
 nis_open_scan <- function(path, partition_year, index, con, reader) {

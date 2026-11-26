@@ -37,7 +37,7 @@ then creates diagnosis and procedure flags:
 ```{r prefixes}
 example_path <- nis_example(years = 2018:2020)
 
-nis_flagged <- nis_open(example_path, years = 2018:2020, check_release = FALSE) |>
+nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   dplyr::mutate(
     I10_DX1 = dplyr::if_else(AGE >= 50, "A1234", "C004"),
     I10_DX2 = dplyr::if_else(FEMALE == 1, "B34.1", "C00.5"),

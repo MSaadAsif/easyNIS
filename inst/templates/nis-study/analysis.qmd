@@ -25,7 +25,7 @@ input_path <- if (is_example) {
   params$data_path
 }
 
-nis_data <- nis_open(input_path, years = params$years, check_release = !is_example)
+nis_data <- nis_open(input_path, years = params$years)
 data_files <- easyNIS:::nis_open_source_paths(nis_data)
 ```
 

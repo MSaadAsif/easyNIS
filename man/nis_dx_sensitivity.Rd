@@ -44,7 +44,7 @@ descriptive point estimates, not design-based survey estimates; use
 prohibits reporting cells of 1–10.
 }
 \examples{
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019))
 nis_dx_sensitivity(nis, "I50")
 }
 \seealso{

@@ -65,7 +65,7 @@ study_fixture_expectations <- function(input, evidence) {
   relative <- substring(files, nchar(input) + 2L)
   writeLines(paste(unname(hashes), relative), file.path(evidence, "study-input-hashes.txt"))
 
-  query <- easyNIS::nis_open(input, check_release = FALSE)
+  query <- easyNIS::nis_open(input)
   records <- dplyr::collect(dplyr::select(query, AGE, DISCWT, I10_DX1))
   rm(query)
   gc()
@@ -134,12 +134,6 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
   if (!is.null(cohort_code) || !is.null(disclosure_case)) {
     analysis <- file.path(path, "analysis.qmd")
     definition <- readLines(analysis, encoding = "UTF-8")
-    if (!is.null(input)) {
-      open_line <- grep("^nis_data <- nis_open[(]", definition)
-      stopifnot(length(open_line) == 1L)
-      definition[open_line] <- sub("check_release = !is_example", "check_release = FALSE",
-        definition[open_line], fixed = TRUE)
-    }
     if (!is.null(cohort_code)) {
       cohort_line <- grepl("^cohort <- ", definition)
       stopifnot(sum(cohort_line) == 1L)

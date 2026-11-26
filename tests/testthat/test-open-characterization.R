@@ -9,7 +9,7 @@ test_that("nis_open stays lazy and unifies the 2022 APR-DRG case drift", {
   path <- nis_example(2017:2022)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
 
-  query <- nis_open(path, check_release = FALSE)
+  query <- nis_open(path)
   expect_true(inherits(query, "tbl_sql"))
   expect_true("APRDRG_RISK_MORTALITY" %in% colnames(query))
   expect_false(any(grepl("^APRDRG_Risk_Mortality$", colnames(query))))
@@ -120,7 +120,7 @@ test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", 
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   rlang::reset_message_verbosity("easyNIS_icd9_layout")
   withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
-  expect_message(query <- nis_open(path, years = 2012, check_release = FALSE), "ICD-9")
+  expect_message(query <- nis_open(path, years = 2012), "ICD-9")
   expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
   expect_false(any(grepl("^I10_", colnames(query))))
   expect_error(nis_open(path, years = 2011), "before 2012")

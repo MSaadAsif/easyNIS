@@ -21,7 +21,7 @@ quantities.
 
 ```{r fixture}
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path, check_release = FALSE)
+nis <- nis_open(path)
 nis |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 
@@ -42,7 +42,7 @@ licensed data.
 what a later collection needs; lazy operations are evaluated when collected.
 
 ```{r columns}
-nis_open(path, years = 2020, check_release = FALSE) |>
+nis_open(path, years = 2020) |>
   dplyr::select(YEAR, AGE, FEMALE, LOS) |>
   dplyr::collect() |>
   head()
@@ -61,9 +61,10 @@ HCUP's Core Weighted and Hospital Weights summary statistics for 2012–2024.
 
 When those fields are present, missing `YEAR`, `YEAR` outside the opened
 years, and nonpositive `NIS_STRATUM` values also warn.
-Warnings leave the lazy query available. Cohort extracts are expected to
-differ from the published totals. Set `check_release = FALSE` to skip the
-check for an intentional extract or an invented fixture.
+Warnings leave the lazy query available. Files from `nis_example()` still
+undergo these integrity checks and are excluded from the published totals.
+If you open an intentional extract, set `check_release = FALSE` to skip the
+check.
 
 ## Filter and project before collecting
 
@@ -74,7 +75,7 @@ frame. The default reader is unchanged; `reader = "arrow"` opts in to the
 optional `arrow` package for reading Parquet files individually.
 
 ```{r duckdb}
-duck <- nis_open(path, years = 2020, check_release = FALSE)
+duck <- nis_open(path, years = 2020)
 duck |> dplyr::count(YEAR) |> dplyr::collect()
 ```
 

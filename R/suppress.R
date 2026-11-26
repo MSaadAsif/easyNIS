@@ -57,7 +57,7 @@ validate_suppress_dots <- function(dots, error_call) {
 #' @seealso [Disclosure and suppression](articles/disclosure.html).
 #' @export
 #' @examplesIf rlang::is_installed(c("gtsummary", "cardx", "survey"))
-#' nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
+#' nis <- nis_open(nis_example(years = 2019:2020)) |>
 #'   nis_flag_dx(heart_failure = "I50")
 #' design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 #' table <- gtsummary::tbl_svysummary(

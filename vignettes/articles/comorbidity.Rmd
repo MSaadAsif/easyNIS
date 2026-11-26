@@ -24,7 +24,7 @@ The function accepts a collected data frame with `I10_DX1`, `I10_DX2`, and
 other diagnosis columns.
 
 ```{r comorbidity, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
-discharges <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
+discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::filter(AGE >= 18) |>
   dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
@@ -42,7 +42,7 @@ If an analysis uses `nis_design()`, keep diagnosis columns in the design and
 pass the design to `nis_comorbidity()`. This preserves the design object.
 
 ```{r design, eval=rlang::is_installed("medicalcoder", version = "0.10.0")}
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
+nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,

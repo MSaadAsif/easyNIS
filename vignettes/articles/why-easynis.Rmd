@@ -52,7 +52,7 @@ The total of `one` is a weighted discharge count; the mean LOS also comes with a
 
 ```{r easyNIS-equivalent}
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path, check_release = FALSE) |>
+nis <- nis_open(path) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(one = 1L)
 design <- nis_design(nis, cohort = AGE >= 18 & heart_failure,
@@ -97,7 +97,7 @@ The same design can feed descriptive summaries and models. The `tbl_svysummary()
 
 ```{r workflow, results='hide'}
 path <- nis_example(years = 2019:2020)
-nis <- nis_open(path, check_release = FALSE) |> nis_flag_dx(heart_failure = "I50")
+nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
 design <- nis_design(nis, cohort = AGE >= 18,
   keep = c(AGE, LOS, heart_failure), annualize = TRUE)
 table_one <- gtsummary::tbl_svysummary(
@@ -119,7 +119,7 @@ summary(fit)
 See how a cohort definition changes the discharge count at each step:
 
 ```{r attrition}
-nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019:2020))
 nis <- nis |> nis_flag_dx(heart_failure = "I50")
 nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure, by_year = TRUE)
 ```
@@ -127,7 +127,7 @@ nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure, by_year = 
 Check how a heart-failure definition changes when restricted to the principal diagnosis:
 
 ```{r dx-sensitivity}
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019))
 nis_dx_sensitivity(nis, "I50")
 ```
 

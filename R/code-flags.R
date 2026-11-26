@@ -55,7 +55,7 @@
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE)
+#' nis <- nis_open(nis_example(years = 2019:2020))
 #' nis |>
 #'   nis_flag_dx(heart_failure = "I50") |>
 #'   dplyr::count(heart_failure) |>
@@ -102,7 +102,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE)
+#' nis <- nis_open(nis_example(years = 2019:2020))
 #' nis |>
 #'   nis_flag_pr(ablation = "02L") |>
 #'   dplyr::count(ablation) |>

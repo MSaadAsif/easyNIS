@@ -106,7 +106,7 @@ design (clusters, strata, weights) untouched.
 
 \examples{
 \dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
-discharges <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
+discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
   dplyr::collect()
 comorbid <- nis_comorbidity(discharges)

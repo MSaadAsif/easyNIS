@@ -25,7 +25,7 @@ pass that column to `cohort`. Group the returned survey design when you need
 grouped survey summaries.
 
 ```{r design}
-nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
+nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,

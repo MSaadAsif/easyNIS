@@ -273,7 +273,7 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   skip_if_not_installed("medicalcoder")
   path <- nis_example(2017:2018)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path, check_release = FALSE) |>
+  query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
   design <- suppressMessages(nis_design(
     query,
@@ -314,7 +314,7 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
   skip_if_not_installed("medicalcoder")
   path <- nis_example(2017:2018)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path, check_release = FALSE) |>
+  query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
   design <- suppressMessages(nis_design(
     query,

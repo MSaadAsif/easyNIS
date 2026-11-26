@@ -26,7 +26,7 @@ positions only, and any position. Prefix matching and code-system eligibility
 follow \code{\link[=nis_flag_dx]{nis_flag_dx()}}.
 }
 \examples{
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019))
 nis_flag_dx_position(nis, "I50", name = "heart_failure")
 }
 \seealso{

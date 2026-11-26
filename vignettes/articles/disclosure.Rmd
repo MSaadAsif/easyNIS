@@ -78,7 +78,7 @@ behavior described above. If the records or cards cannot unambiguously map a
 displayed cell, the function errors.
 
 ```{r gtsummary, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
-nis <- nis_open(nis_example(years = 2019), check_release = FALSE) |>
+nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 table_one <- gtsummary::tbl_svysummary(

@@ -1,6 +1,6 @@
 comparison_designs <- function(years = 2017:2019, partial_2015 = FALSE, annualize = FALSE, invalid_rows = FALSE) {
   path <- nis_example(years)
-  query <- nis_open(path, check_release = FALSE) |>
+  query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
 
   data <- query |>

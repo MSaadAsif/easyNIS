@@ -149,9 +149,14 @@ test_that("partition years come from inside the supplied directory", {
 })
 
 test_that("native Parquet parts are read at their literal paths", {
-  local_mocked_bindings(nis_release_reference = data.frame(
-    year = 2020L, rows = 2, weight = 10, hospitals = 2
-  ))
+  local_mocked_bindings(
+    nis_release_reference = data.frame(
+      year = 2020L,
+      rows = 2,
+      weight = 10,
+      hospitals = 2
+    )
+  )
   path <- tempfile("nis-literal-parquet-path-")
   dir.create(path)
   withr::defer(unlink(path, recursive = TRUE))

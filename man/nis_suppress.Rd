@@ -69,7 +69,7 @@ optional \code{hospital_col} as described below.
 }
 \examples{
 \dontshow{if (rlang::is_installed(c("gtsummary", "cardx", "survey"))) withAutoprint(\{ # examplesIf}
-nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE) |>
+nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 table <- gtsummary::tbl_svysummary(

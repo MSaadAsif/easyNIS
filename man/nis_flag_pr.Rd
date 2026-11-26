@@ -35,7 +35,7 @@ position. The principal slot has suffix \code{1}; sparse and reordered slots
 are supported.
 }
 \examples{
-nis <- nis_open(nis_example(years = 2019:2020), check_release = FALSE)
+nis <- nis_open(nis_example(years = 2019:2020))
 nis |>
   nis_flag_pr(ablation = "02L") |>
   dplyr::count(ablation) |>
