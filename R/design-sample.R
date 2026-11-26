@@ -22,9 +22,8 @@ nis_design_sample <- function(data, cohort, selected, quarter_prototype, annuali
 
 nis_sample_fields <- function(data, cohort_quo) {
   invalid <- lapply(.nis_design_fields, function(field) {
-    finite <- nis_is_finite_expr(data, field)
-    positive <- rlang::expr(!!rlang::sym(field) > 0)
-    rlang::expr(!dplyr::coalesce(!!finite & !!positive, FALSE))
+    valid <- nis_is_positive_finite_expr(data, field)
+    rlang::expr(!dplyr::coalesce(!!valid, FALSE))
   })
   names(invalid) <- unname(.nis_design_invalid_fields)
   any_invalid <- reduce_or(rlang::syms(names(invalid)))

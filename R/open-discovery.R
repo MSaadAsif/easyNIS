@@ -11,7 +11,8 @@ nis_open_discover <- function(path, years, call) {
   if (!nrow(parts) || (explicit && length(empty))) {
     cli::cli_abort("The selected NIS entries contain no Parquet part files for year{?s} {.val {empty}}.", call = call)
   }
-  list(years = years, parts = unique(parts[c("path", "partition_year")]))
+  distinct <- !duplicated(parts[c("path", "partition_year")])
+  list(years = intersect(years, parts$year), parts = parts[distinct, ])
 }
 
 nis_open_available_years <- function(path) {

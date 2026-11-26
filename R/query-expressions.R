@@ -23,12 +23,16 @@ nis_names <- function(data) {
 
 nis_is_finite_expr <- function(data, column) {
   if (inherits(data, "tbl_sql")) {
-    return(dbplyr::sql_expr(
-      isfinite(!!dbplyr::ident(column)),
-      con = data$src$con
-    ))
+    value <- if (inherits(column, "sql")) column else dbplyr::ident(column)
+    return(dbplyr::sql_expr(isfinite(!!value), con = data$src$con))
   }
   rlang::expr(is.finite(!!rlang::sym(column)))
+}
+
+nis_is_positive_finite_expr <- function(data, column) {
+  value <- if (inherits(column, "sql")) column else rlang::sym(column)
+  finite <- nis_is_finite_expr(data, column)
+  rlang::expr(!!finite & !!value > 0)
 }
 
 nis_is_missing_expr <- function(data, column) {
@@ -86,8 +90,12 @@ nis_collect <- function(x) {
   if (is.data.frame(x)) {
     return(x)
   }
+  nis_explain_invalid_utf8(dplyr::collect(x))
+}
+
+nis_explain_invalid_utf8 <- function(expr) {
   tryCatch(
-    dplyr::collect(x),
+    expr,
     error = function(error) {
       if (grepl("invalid string encoding|invalid UTF-8", conditionMessage(error), ignore.case = TRUE)) {
         cli::cli_abort(

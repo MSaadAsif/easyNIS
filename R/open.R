@@ -9,6 +9,8 @@
 #' @param reader Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is
 #'   an optional dependency. Its reader preserves source bytes in strings,
 #'   including malformed UTF-8; downstream string operations may still fail.
+#' @param check_release Check annual release totals and design fields by
+#'   default. Set to `FALSE` to skip the check.
 #'
 #' @details `nis_open()` reads Parquet directly with DuckDB and returns a
 #'   DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
@@ -40,6 +42,25 @@
 #'   through the optional `arrow` package. Arrow preserves the bytes; it does
 #'   not detect or repair all invalid text, and downstream string operations
 #'   may still fail on malformed values.
+#'
+#' @section Annual release check:
+#' DuckDB checks the discharge count, sum of `DISCWT`, and distinct
+#' `HOSP_NIS` count against the
+#' [HCUP summary statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
+#' for each opened year from 2012 through 2024. Counts must match exactly,
+#' and the weight sum can differ by half a discharge plus a small allowance
+#' for floating-point arithmetic because HCUP rounds the published weight sum
+#' to a whole discharge. Only finite, positive hospital IDs count, and
+#' optional totals are compared only when every checked part for a year has the
+#' corresponding column. Files created by [nis_example()] are excluded from
+#' these totals. They still undergo the integrity checks below.
+#' Parquet files with zero discharges across an entire opened year warn.
+#' When the fields are present, missing `YEAR`, `YEAR`
+#' outside the opened years, and `NIS_STRATUM` values of zero or less warn
+#' even for years without published reference totals. If the check cannot
+#' run, it warns with the reason. The lazy query remains available for use.
+#' Cohort extracts are expected to differ from the published totals. Use
+#' `check_release = FALSE` to skip the check for an intentional extract.
 #'
 #' @section Large data:
 #' The query stays in DuckDB until you collect it. Filter, project, and summarize
@@ -75,8 +96,11 @@
 #' nis_open(path, years = 2020) |>
 #'   dplyr::count(YEAR) |>
 #'   dplyr::collect()
-nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow")) {
+nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_release = TRUE) {
   reader <- match.arg(reader)
+  if (!rlang::is_bool(check_release)) {
+    cli::cli_abort("{.arg check_release} must be `TRUE` or `FALSE`.")
+  }
   if (reader == "arrow" && !requireNamespace("arrow", quietly = TRUE)) {
     cli::cli_abort("The {.val arrow} reader requires the optional {.pkg arrow} package.")
   }
@@ -86,7 +110,11 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow")) {
   connection <- nis_duckdb_open_data()
   on.exit(connection$release(), add = TRUE)
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
-  query <- nis_open_normalize_names(plan$query, plan$names)
+  # Check source columns before name normalization can add unrelated expressions.
+  if (check_release) {
+    nis_open_check_release(plan, dataset)
+  }
+  query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)

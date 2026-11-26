@@ -11,14 +11,18 @@ nis_open_plan_parquet <- function(parts, con, reader) {
     nis_open_validate_partition(scan, con)
   }
   nis_open_check_year_values(scans, con)
-  projections <- vapply(scans, nis_open_project_year, character(1))
-  union <- paste(projections, collapse = " UNION ALL BY NAME ")
-  query <- dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
   list(
-    query = query,
-    names = unlist(lapply(sources, function(source) source$schema$column_name), use.names = FALSE),
+    query = nis_open_parquet_query(scans, con),
+    sources = sources,
+    names_by_part = lapply(sources, function(source) source$schema$column_name),
     owners = Filter(Negate(is.null), lapply(sources, function(source) source$owner))
   )
+}
+
+nis_open_parquet_query <- function(scans, con) {
+  projections <- vapply(scans, nis_open_project_year, character(1))
+  union <- paste(projections, collapse = " UNION ALL BY NAME ")
+  dplyr::tbl(con, dbplyr::sql(paste0("SELECT * FROM (", union, ")")))
 }
 
 nis_open_scan <- function(path, partition_year, index, con, reader) {
@@ -161,12 +165,15 @@ nis_open_year_range_predicate <- function(source) {
 }
 
 nis_parquet_scan <- function(con, paths) {
+  paste0("read_parquet(", nis_parquet_paths(con, paths), ", hive_partitioning = false)")
+}
+
+nis_parquet_paths <- function(con, paths) {
   patterns <- gsub("[", "[[]", paths, fixed = TRUE)
   patterns <- gsub("*", "[*]", patterns, fixed = TRUE)
   patterns <- gsub("?", "[?]", patterns, fixed = TRUE)
   quoted <- as.character(DBI::dbQuoteString(con, patterns))
-  argument <- if (length(quoted) == 1L) quoted else paste0("[", paste(quoted, collapse = ", "), "]")
-  paste0("read_parquet(", argument, ", hive_partitioning = false)")
+  if (length(quoted) == 1L) quoted else paste0("[", paste(quoted, collapse = ", "), "]")
 }
 
 nis_open_group_scans <- function(sources, con) {

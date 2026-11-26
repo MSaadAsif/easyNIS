@@ -4,7 +4,12 @@
 \alias{nis_open}
 \title{Open annual NIS Parquet files lazily}
 \usage{
-nis_open(path, years = NULL, reader = c("duckdb", "arrow"))
+nis_open(
+  path,
+  years = NULL,
+  reader = c("duckdb", "arrow"),
+  check_release = TRUE
+)
 }
 \arguments{
 \item{path}{Directory containing \verb{NIS_<year>.parquet} files or directories.}
@@ -18,6 +23,9 @@ codes in \verb{DX*}/\verb{PR*} slots, and 2015 holds both systems (see
 \item{reader}{Parquet reader: \code{"duckdb"} (default) or \code{"arrow"}. Arrow is
 an optional dependency. Its reader preserves source bytes in strings,
 including malformed UTF-8; downstream string operations may still fail.}
+
+\item{check_release}{Check annual release totals and design fields by
+default. Set to \code{FALSE} to skip the check.}
 }
 \value{
 A lazy DuckDB-backed dbplyr table with case-normalized columns.
@@ -68,6 +76,27 @@ through the optional \code{arrow} package. Arrow preserves the bytes; it does
 not detect or repair all invalid text, and downstream string operations
 may still fail on malformed values.
 }
+\section{Annual release check}{
+
+DuckDB checks the discharge count, sum of \code{DISCWT}, and distinct
+\code{HOSP_NIS} count against the
+\href{https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp}{HCUP summary statistics}
+for each opened year from 2012 through 2024. Counts must match exactly,
+and the weight sum can differ by half a discharge plus a small allowance
+for floating-point arithmetic because HCUP rounds the published weight sum
+to a whole discharge. Only finite, positive hospital IDs count, and
+optional totals are compared only when every checked part for a year has the
+corresponding column. Files created by \code{\link[=nis_example]{nis_example()}} are excluded from
+these totals. They still undergo the integrity checks below.
+Parquet files with zero discharges across an entire opened year warn.
+When the fields are present, missing \code{YEAR}, \code{YEAR}
+outside the opened years, and \code{NIS_STRATUM} values of zero or less warn
+even for years without published reference totals. If the check cannot
+run, it warns with the reason. The lazy query remains available for use.
+Cohort extracts are expected to differ from the published totals. Use
+\code{check_release = FALSE} to skip the check for an intentional extract.
+}
+
 \section{Large data}{
 
 The query stays in DuckDB until you collect it. Filter, project, and summarize

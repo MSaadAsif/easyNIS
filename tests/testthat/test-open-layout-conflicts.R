@@ -39,13 +39,13 @@ for (annual_type in c("file", "directory")) {
     write_duckdb_parquet(data.frame(id = 3L), file.path(path, "YEAR=2021", "part.parquet"))
 
     expect_error(nis_open(path, years = c(2019L, 2020L)), "both annual and Hive layouts")
-    annual_result <- dplyr::collect(nis_open(path, years = 2019L))
+    annual_result <- dplyr::collect(nis_open(path, years = 2019L, check_release = FALSE))
     expect_identical(annual_result$YEAR, 2019L)
     expect_identical(annual_result$id, 1L)
-    hive_result <- dplyr::collect(nis_open(path, years = 2021L))
+    hive_result <- dplyr::collect(nis_open(path, years = 2021L, check_release = FALSE))
     expect_identical(hive_result$YEAR, 2021L)
     expect_identical(hive_result$id, 3L)
-    selected <- dplyr::collect(nis_open(path, years = c(2019L, 2021L)))
+    selected <- dplyr::collect(nis_open(path, years = c(2019L, 2021L), check_release = FALSE))
     selected <- selected[order(selected$id), ]
     expect_identical(selected$YEAR, c(2019L, 2021L))
     expect_identical(selected$id, c(1L, 3L))
@@ -61,7 +61,7 @@ test_that("nis_open reads all parts of a valid annual directory", {
   write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L), file.path(annual, "nested", "part-2.parquet"))
 
   for (years in list(NULL, 2020L)) {
-    result <- dplyr::collect(nis_open(path, years = years))
+    result <- dplyr::collect(nis_open(path, years = years, check_release = FALSE))
     expect_identical(result$YEAR, c(2020L, 2020L))
     expect_setequal(result$id, 1:2)
     expect_equal(nrow(result), 2L)
@@ -76,11 +76,11 @@ test_that("nis_open combines annual files, directories and Hive in different yea
   write_duckdb_parquet(data.frame(YEAR = 2020L, id = 2L), file.path(path, "NIS_2020.parquet", "part.parquet"))
   write_duckdb_parquet(data.frame(id = 3L), file.path(path, "YEAR=2021", "part.parquet"))
 
-  result <- dplyr::collect(nis_open(path))
+  result <- dplyr::collect(nis_open(path, check_release = FALSE))
   result <- result[order(result$id), ]
   expect_identical(result$YEAR, 2019:2021)
   expect_identical(result$id, 1:3)
-  selected <- dplyr::collect(nis_open(path, years = c(2020L, 2021L)))
+  selected <- dplyr::collect(nis_open(path, years = c(2020L, 2021L), check_release = FALSE))
   selected <- selected[order(selected$id), ]
   expect_identical(selected$YEAR, 2020:2021)
   expect_identical(selected$id, 2:3)
@@ -94,13 +94,13 @@ test_that("nested Hive parts belong to their nearest selected year", {
   write_duckdb_parquet(data.frame(id = 1L), file.path(path, "YEAR=2020", "outer.parquet"))
   write_duckdb_parquet(data.frame(id = 2L), file.path(path, "YEAR=2020", "YEAR=2021", "inner.parquet"))
 
-  outer <- dplyr::collect(nis_open(path, 2020L))
+  outer <- dplyr::collect(nis_open(path, 2020L, check_release = FALSE))
   expect_identical(outer$YEAR, 2020L)
   expect_identical(outer$id, 1L)
-  inner <- dplyr::collect(nis_open(path, 2021L))
+  inner <- dplyr::collect(nis_open(path, 2021L, check_release = FALSE))
   expect_identical(inner$YEAR, 2021L)
   expect_identical(inner$id, 2L)
-  both <- nis_open(path) |> dplyr::arrange(YEAR) |> dplyr::collect()
+  both <- nis_open(path, check_release = FALSE) |> dplyr::arrange(YEAR) |> dplyr::collect()
   expect_identical(both$id, 1:2)
 })
 
@@ -117,11 +117,11 @@ test_that("the selected query reports exactly its Parquet parts", {
   write_duckdb_parquet(data.frame(id = 3L), inner)
   write_duckdb_parquet(data.frame(id = 4L), unrelated)
 
-  query <- nis_open(path, years = c(2019L, 2021L)) |>
+  query <- nis_open(path, years = c(2019L, 2021L), check_release = FALSE) |>
     dplyr::select(YEAR, id)
   expect_identical(nis_open_source_paths(query), normalizePath(c(annual, inner), winslash = "/"))
   expect_identical(nis_open_available_years(path), 2019:2021)
-  expect_identical(sort(dplyr::collect(nis_open(path))$id), 1:3)
+  expect_identical(sort(dplyr::collect(nis_open(path, check_release = FALSE))$id), 1:3)
 })
 
 test_that("an explicitly selected empty year is reported with other years present", {
@@ -131,7 +131,7 @@ test_that("an explicitly selected empty year is reported with other years presen
   write_duckdb_parquet(data.frame(YEAR = 2019L, id = 1L), file.path(path, "NIS_2019.parquet"))
 
   expect_error(nis_open(path, years = 2019:2020), "no Parquet part files.*2020")
-  expect_identical(dplyr::collect(nis_open(path))$YEAR, 2019L)
+  expect_identical(dplyr::collect(nis_open(path, check_release = FALSE))$YEAR, 2019L)
   expect_identical(nis_open_available_years(path), 2019L)
 })
 
@@ -141,21 +141,30 @@ test_that("partition years come from inside the supplied directory", {
   dir.create(path, recursive = TRUE)
   withr::defer(unlink(dirname(dirname(path)), recursive = TRUE))
   write_duckdb_parquet(data.frame(YEAR = 2021L, id = 1L), file.path(path, "NIS_2021.parquet"))
-  expect_identical(dplyr::collect(nis_open(path, 2021L))$YEAR, 2021L)
+  expect_identical(dplyr::collect(nis_open(path, 2021L, check_release = FALSE))$YEAR, 2021L)
 
   hive <- file.path(path, "YEAR=2022")
   write_duckdb_parquet(data.frame(id = 2L), file.path(hive, "part.parquet"))
-  expect_identical(dplyr::collect(nis_open(hive))$YEAR, 2022L)
+  expect_identical(dplyr::collect(nis_open(hive, check_release = FALSE))$YEAR, 2022L)
 })
 
 test_that("native Parquet parts are read at their literal paths", {
+  local_mocked_bindings(
+    nis_release_reference = data.frame(
+      year = 2020L,
+      rows = 2,
+      weight = 10,
+      hospitals = 2
+    )
+  )
   path <- tempfile("nis-literal-parquet-path-")
   dir.create(path)
   withr::defer(unlink(path, recursive = TRUE))
   hive <- file.path(path, "YEAR=2020")
   write_duckdb_parquet(data.frame(id = 1L), file.path(hive, "part[1].parquet"))
   write_duckdb_parquet(data.frame(id = 2L), file.path(hive, "part1.parquet"))
-  expect_identical(sort(dplyr::collect(nis_open(path))$id), 1:2)
+  expect_no_warning(query <- nis_open(path))
+  expect_identical(sort(dplyr::collect(query)$id), 1:2)
 })
 
 test_that("a physical year conflict identifies the offending part of a Hive scan", {
@@ -209,7 +218,9 @@ for (type in c("BIGINT", "UBIGINT")) {
 
     lower <- if (type == "BIGINT") "(-2147483648)" else "0"
     write_years(c(lower, "2147483647", "NULL"), "part-valid.parquet")
-    actual <- nis_open(path) |> dplyr::summarise(rows = dplyr::n()) |> dplyr::collect()
+    actual <- nis_open(path, check_release = FALSE) |>
+      dplyr::summarise(rows = dplyr::n()) |>
+      dplyr::collect()
     expect_equal(actual$rows, 3)
 
     extreme <- if (type == "BIGINT") "(-2147483649)" else "18446744073709551615"
@@ -231,7 +242,7 @@ test_that("a Hive dataset root owns repeated year partitions and literal names",
   write_duckdb_parquet(data.frame(id = 1L), outer)
   write_duckdb_parquet(data.frame(id = 2L), inner)
 
-  query <- nis_open(path, 2020L)
+  query <- nis_open(path, 2020L, check_release = FALSE)
   expect_setequal(nis_open_source_paths(query), normalizePath(c(outer, inner), winslash = "/"))
   result <- query |> dplyr::arrange(id) |> dplyr::collect()
   expect_identical(result$id, 1:2)

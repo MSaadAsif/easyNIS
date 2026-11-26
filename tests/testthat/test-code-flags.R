@@ -270,10 +270,10 @@ test_that("invented 2015 split stays lazy across pooled years", {
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   rlang::reset_message_verbosity("easyNIS_icd9_layout")
   withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
-  expect_message(query <- nis_open(path), "Experimental")
+  expect_message(query <- nis_open(path, check_release = FALSE), "Experimental")
   repeated_messages <- character()
   withCallingHandlers(
-    nis_open(path, years = 2012L),
+    nis_open(path, years = 2012L, check_release = FALSE),
     message = function(message) {
       repeated_messages <<- c(repeated_messages, conditionMessage(message))
       invokeRestart("muffleMessage")

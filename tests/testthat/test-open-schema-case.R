@@ -22,7 +22,7 @@ test_that("normalization collisions retain coalesced names and values", {
   names(data)[2:3] <- c("A\u00e9", "A\u00c9")
   write_duckdb_parquet(data, file.path(path, "NIS_2019.parquet"))
   for (reader in c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")) {
-    actual <- dplyr::collect(nis_open(path, reader = reader))
+    actual <- dplyr::collect(nis_open(path, reader = reader, check_release = FALSE))
     expect_setequal(names(actual), c("YEAR", "A\u00c9"))
     expect_identical(actual[["A\u00c9"]], 7L)
   }
@@ -41,7 +41,7 @@ test_that("pooled normalization collisions coalesce after annual type promotion"
 
   readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
   for (reader in readers) {
-    actual <- nis_open(path, reader = reader) |>
+    actual <- nis_open(path, reader = reader, check_release = FALSE) |>
       dplyr::arrange(YEAR) |>
       dplyr::collect()
     expect_identical(actual[["A\u00c9"]], c(1L, 10L))
@@ -61,7 +61,7 @@ test_that("normalization collisions coalesce after character promotion", {
 
   readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
   for (reader in readers) {
-    actual <- nis_open(path, reader = reader) |>
+    actual <- nis_open(path, reader = reader, check_release = FALSE) |>
       dplyr::arrange(YEAR) |>
       dplyr::collect()
     expect_identical(actual[["A\u00c9"]], c("alpha", "beta"))
@@ -79,7 +79,7 @@ test_that("source spelling proposals do not merge existing normalized outputs", 
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open(path) |>
+  actual <- nis_open(path, check_release = FALSE) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
   expect_setequal(names(actual), c("YEAR", "a\u00e9", "A\u00c9"))
@@ -101,7 +101,7 @@ test_that("source spelling proposals preserve promoted normalization values", {
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
   write_duckdb_parquet(third, file.path(path, "NIS_2021.parquet"))
 
-  actual <- nis_open(path) |>
+  actual <- nis_open(path, check_release = FALSE) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
   expect_setequal(names(actual), c("YEAR", "a\u00e9", "A\u00c9"))
@@ -118,7 +118,7 @@ test_that("canonical rename proposals that share a target stay unchanged", {
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open(path) |> dplyr::arrange(YEAR) |> dplyr::collect()
+  actual <- nis_open(path, check_release = FALSE) |> dplyr::arrange(YEAR) |> dplyr::collect()
   expect_setequal(names(actual), c("YEAR", "a\u00e9", "a\u00c9"))
   expect_identical(actual[["a\u00e9"]], c(1L, 3L))
   expect_identical(actual[["a\u00c9"]], c(2L, 4L))
@@ -139,7 +139,7 @@ test_that("wide sources keep separate Unicode columns and values", {
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open(path) |>
+  actual <- nis_open(path, check_release = FALSE) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
 
@@ -164,7 +164,7 @@ test_that("lowercase Greek sigma spellings remain separate columns", {
 
   readers <- c("duckdb", if (requireNamespace("arrow", quietly = TRUE)) "arrow")
   for (reader in readers) {
-    actual <- dplyr::collect(nis_open(path, reader = reader))
+    actual <- dplyr::collect(nis_open(path, reader = reader, check_release = FALSE))
     expect_identical(actual[["\u03c3"]], 1L)
     expect_identical(actual[["\u03c2"]], 2L)
   }
@@ -175,7 +175,7 @@ test_that("single sources retain the established case normalization", {
   path <- schema_case_fixture(spellings)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   for (index in seq_along(spellings)) {
-    query <- nis_open(path, years = 2018L + index)
+    query <- nis_open(path, years = 2018L + index, check_release = FALSE)
     field <- if (index == 1L) spellings[[index]] else toupper(spellings[[index]])
     expect_s3_class(query, "tbl_sql")
     expect_setequal(colnames(query), c("YEAR", field, "analyst_note", 'analyst"tag', "APRDRG_RISK_MORTALITY_1"))
@@ -191,7 +191,7 @@ test_that("pooled canonical recognition is independent of source order", {
   )) {
     path <- schema_case_fixture(spellings)
     withr::defer(unlink(path, recursive = TRUE))
-    query <- nis_open(path)
+    query <- nis_open(path, check_release = FALSE)
     expect_s3_class(query, "tbl_sql")
     expect_setequal(
       colnames(query),
@@ -211,7 +211,7 @@ test_that("pooled canonical recognition is independent of source order", {
 test_that("lowercase-only pooled fields keep their spelling and projection", {
   path <- schema_case_fixture(rep("aprdrg_risk_mortality", 2L))
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path)
+  query <- nis_open(path, check_release = FALSE)
   expect_true("aprdrg_risk_mortality" %in% colnames(query))
   expect_false("APRDRG_RISK_MORTALITY" %in% colnames(query))
   actual <- query |>
@@ -237,7 +237,7 @@ test_that("case normalization preserves DuckDB-disambiguated source columns", {
       " (FORMAT PARQUET)"
     )
   )
-  actual <- dplyr::collect(nis_open(path))
+  actual <- dplyr::collect(nis_open(path, check_release = FALSE))
   expect_setequal(names(actual), c("YEAR", "aprdrg_risk_mortality", "APRDRG_RISK_MORTALITY_1"))
   expect_identical(actual$aprdrg_risk_mortality, 1L)
   expect_identical(actual$APRDRG_RISK_MORTALITY_1, 9L)
@@ -247,7 +247,7 @@ test_that("Arrow scans share pooled canonical recognition", {
   skip_if_not_installed("arrow")
   path <- schema_case_fixture(c("aprdrg_risk_mortality", "APRDRG_Risk_Mortality"))
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  actual <- nis_open(path, reader = "arrow") |>
+  actual <- nis_open(path, reader = "arrow", check_release = FALSE) |>
     dplyr::select(YEAR, APRDRG_RISK_MORTALITY) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
@@ -266,7 +266,7 @@ test_that("unrelated projections survive promoted Unicode normalization collisio
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open(path) |>
+  actual <- nis_open(path, check_release = FALSE) |>
     dplyr::select(YEAR, KEEP) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
@@ -285,7 +285,7 @@ test_that("real alias-like fields remain independent of Unicode names", {
   write_duckdb_parquet(first, file.path(path, "NIS_2019.parquet"))
   write_duckdb_parquet(second, file.path(path, "NIS_2020.parquet"))
 
-  actual <- nis_open(path) |>
+  actual <- nis_open(path, check_release = FALSE) |>
     dplyr::arrange(YEAR) |>
     dplyr::collect()
   expect_identical(actual[["A\u00c9"]], c(1L, NA_integer_))

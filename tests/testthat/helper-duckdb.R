@@ -2,7 +2,10 @@ write_duckdb_parquet <- function(data, path) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   con <- nis_duckdb_connect(config = list(threads = "1"))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
-  nis_duckdb_write_parquet(data, path, con)
+  DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
+  destination <- DBI::dbQuoteString(con, normalizePath(path, winslash = "/", mustWork = FALSE))
+  DBI::dbExecute(con, paste("COPY fixture TO", destination, "(FORMAT PARQUET)"))
+  invisible(path)
 }
 
 open_duckdb_dataset <- function(path) {

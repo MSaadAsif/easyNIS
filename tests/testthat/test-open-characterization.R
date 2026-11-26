@@ -62,16 +62,16 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
 
   rlang::reset_warning_verbosity("easyNIS_totchg_2023")
   expect_warning(
-    latest <- nis_open(path, years = 2023L),
+    latest <- nis_open(path, years = 2023L, check_release = FALSE),
     "not comparable"
   )
-  expect_no_warning(nis_open(path, years = 2023L))
+  expect_no_warning(nis_open(path, years = 2023L, check_release = FALSE))
   expect_true(inherits(latest, "tbl_sql"))
   expect_false(any(c("HOSP_REGION", "HOSP_DIVISION", "RACE") %in% colnames(latest)))
   expect_true("TOTCHG_2023" %in% colnames(latest))
   expect_false("TOTCHG" %in% colnames(latest))
 
-  pooled_query <- suppressWarnings(nis_open(path, years = 2022:2023))
+  pooled_query <- nis_open(path, years = 2022:2023, check_release = FALSE)
   collected <- dplyr::collect(pooled_query)
   expect_identical(collected$TOTCHG[order(collected$YEAR, collected$HOSP_NIS)], c(1000, 1100, NA, NA))
   expect_identical(
