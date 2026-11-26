@@ -60,14 +60,14 @@
 <ol style="list-style-type: decimal"><li>Fork the repository and create a branch for your change.</li>
 <li>Open the repository root in RStudio or set it as your working directory.</li>
 <li>Install development dependencies with <code>pak::pak(".", dependencies = TRUE)</code>.</li>
-<li>For documentation changes, install <code>roxygen2</code> and <code>pkgdown</code>; for lint checks, install <code>lintr</code>.</li>
+<li>For documentation changes, install <code>roxygen2</code> and <code>pkgdown</code>. For local checks, install <code>callr</code> and <code>cyclocomp</code> in R and put <a href="https://posit-dev.github.io/air/cli.html" class="external-link">Air 0.13.0</a> and <a href="https://jarl.etiennebacher.com/#installation" class="external-link">Jarl 0.7.1</a> on your PATH.</li>
 </ol></div>
 <div class="section level2">
 <h2 id="change-and-verify">Change and verify<a class="anchor" aria-label="anchor" href="#change-and-verify"></a></h2>
 <ul><li>Keep each branch focused and describe the user-visible behavior in the pull request.</li>
 <li>Add or update focused <code>testthat</code> coverage using invented fixtures. Do not create examples from licensed NIS inputs or record-derived output.</li>
 <li>Regenerate documentation with <code>devtools::document()</code> when roxygen comments change, and include the generated <code>man/</code> and <code>NAMESPACE</code> changes.</li>
-<li>Run relevant tests with <code>devtools::test()</code>. From the repository root, run <code>Rscript --vanilla tools/check-package.R</code> after committing changes and before requesting review. It runs <code>devtools::check()</code> on the exact commit, away from the checkout’s ignored data and working files. Run <code>lintr::lint_package()</code> for style changes and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
+<li>Run relevant tests with <code>devtools::test()</code>. From the repository root, run <code>Rscript --vanilla tools/check-package.R</code> after committing changes and before requesting review. It runs <code>devtools::check()</code> on the exact commit, away from the checkout’s ignored data and working files. Before committing, run <code>Rscript --vanilla tools/check-package.R --lint</code> to check Air formatting, Jarl findings, and the installed package’s cyclomatic complexity limit of 15. Use <code>air format .</code> to apply formatting and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
 <li>Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.</li>
 <li>Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.</li>
 </ul></div>
