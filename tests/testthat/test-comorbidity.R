@@ -4,28 +4,19 @@ method <- "elixhauser_ahrq_icd10"
 
 single_codes <- function(conditions, method = "elixhauser_ahrq_icd10") {
   tables <- medicalcoder::get_elixhauser_codes()
-  tables <- tables[tables$icdv == 10 & tables$dx == 1 & tables[[method]] %in% 1, ]
+  tables <- tables[tables$icdv == 10 & tables$dx == 1 &
+    tables[[method]] %in% 1, ]
   unique_codes <- names(which(table(tables$code) == 1L))
   tables <- tables[tables$code %in% unique_codes, ]
-  vapply(
-    conditions,
-    function(condition) {
-      tables$code[tables$condition == condition][[1L]]
-    },
-    character(1)
-  )
+  vapply(conditions, function(condition) {
+    tables$code[tables$condition == condition][[1L]]
+  }, character(1))
 }
 
 direct <- function(rows, method = "elixhauser_ahrq_icd10") {
   medicalcoder::comorbidities(
-    rows,
-    icd.codes = "code",
-    id.vars = "id",
-    method = method,
-    icdv = 10L,
-    dx = 1L,
-    poa = 1L,
-    primarydx.var = "primary"
+    rows, icd.codes = "code", id.vars = "id", method = method,
+    icdv = 10L, dx = 1L, poa = 1L, primarydx.var = "primary"
   )
 }
 
@@ -58,10 +49,8 @@ test_that("codes map to the conditions in medicalcoder's own tables", {
   scores <- medicalcoder::get_elixhauser_index_scores()
   for (i in seq_along(conditions)) {
     for (index in c("mortality", "readmission")) {
-      expected <- scores[[method]][
-        scores$condition == conditions[[i]] &
-          scores$index == index
-      ]
+      expected <- scores[[method]][scores$condition == conditions[[i]] &
+        scores$index == index]
       expect_equal(out[[paste0("cmrb_", index, "_index")]][[i]], expected)
     }
   }
@@ -74,7 +63,8 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
     KEY = 1:6,
     I10_DX1 = c("ZZZ99", NA, "", "ZZZ99", "zzz99", "ZZZ99"),
     I10_DX2 = c(NA, NA, NA, tolower(codes[["AIDS"]]), NA, codes[["DEMENTIA"]]),
-    I10_DX3 = c(NA, NA, NA, NA, paste0(" ", codes[["DEMENTIA"]], " "), codes[["AIDS"]])
+    I10_DX3 = c(NA, NA, NA, NA, paste0(" ", codes[["DEMENTIA"]], " "),
+      codes[["AIDS"]])
   )
 
   expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "2 rows")
@@ -84,9 +74,11 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
   expect_identical(out$cmrb_dementia, c(FALSE, NA, NA, FALSE, TRUE, TRUE))
   expect_identical(out$cmrb_n, c(0L, NA, NA, 1L, 1L, 2L))
 
-  one_at_a_time <- suppressWarnings(do.call(rbind, lapply(seq_len(nrow(data)), function(i) nis_comorbidity(data[i, ]))))
+  one_at_a_time <- suppressWarnings(do.call(rbind, lapply(seq_len(nrow(data)),
+    function(i) nis_comorbidity(data[i, ]))))
   expect_identical(out, one_at_a_time)
-  expect_identical(suppressWarnings(nis_comorbidity(data[rev(seq_len(6)), ])), out[rev(seq_len(6)), ])
+  expect_identical(suppressWarnings(nis_comorbidity(data[rev(seq_len(6)), ])),
+    out[rev(seq_len(6)), ])
   expect_s3_class(out, "tbl_df")
   expect_identical(names(out)[1:4], names(data))
 })
@@ -165,11 +157,8 @@ test_that("partial and absent POA columns warn and assume present", {
   skip_if_not_installed("medicalcoder")
   hf <- single_codes("HF")
   partial <- dplyr::tibble(
-    I10_DX1 = "ZZZ99",
-    I10_DX2 = "ZZZ99",
-    I10_DX3 = hf,
-    DXPOA1 = "Y",
-    DXPOA2 = "Y"
+    I10_DX1 = "ZZZ99", I10_DX2 = "ZZZ99", I10_DX3 = hf,
+    DXPOA1 = "Y", DXPOA2 = "Y"
   )
   expect_warning(partial_out <- nis_comorbidity(partial), "I10_DX3")
   expect_true(partial_out$cmrb_hf)
@@ -184,12 +173,16 @@ test_that("POA exemptions are applied to exempt codes in POA-required conditions
   codes <- medicalcoder::get_elixhauser_codes()
   poa <- medicalcoder::get_elixhauser_poa()
   candidates <- merge(
-    codes[codes$icdv == 10 & codes$dx == 1 & codes[[method]] == 1 & codes$poaexempt == 1, c("code", "condition")],
-    poa[poa$poa_required == 1 & poa[[method]] == 1, c("condition", "poa_required")],
+    codes[codes$icdv == 10 & codes$dx == 1 &
+      codes[[method]] == 1 & codes$poaexempt == 1,
+    c("code", "condition")],
+    poa[poa$poa_required == 1 & poa[[method]] == 1,
+      c("condition", "poa_required")],
     by = "condition"
   )
   candidate <- candidates[1L, , drop = FALSE]
-  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = candidate$code, DXPOA1 = "Y", DXPOA2 = "N")
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = candidate$code,
+    DXPOA1 = "Y", DXPOA2 = "N")
 
   condition_column <- paste0("cmrb_", tolower(candidate$condition[[1L]]))
   expect_true(nis_comorbidity(data)[[condition_column]])
@@ -198,7 +191,8 @@ test_that("POA exemptions are applied to exempt codes in POA-required conditions
 test_that("conditions that do not require POA remain flaggable", {
   skip_if_not_installed("medicalcoder")
   aids <- single_codes("AIDS")
-  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = aids, DXPOA1 = "Y", DXPOA2 = "N")
+  data <- dplyr::tibble(I10_DX1 = "ZZZ99", I10_DX2 = aids,
+    DXPOA1 = "Y", DXPOA2 = "N")
 
   expect_true(nis_comorbidity(data)$cmrb_aids)
 })
@@ -217,11 +211,8 @@ test_that("a discharge with no usable code gets NA and a warning, not zeros", {
   expect_identical(out$cmrb_mortality_index[[3L]], 0L)
   expect_true(all(is.na(out$cmrb_hf[c(1, 2, 4)])))
   expect_identical(out$cmrb_hf[[3L]], FALSE)
-  expect_true(all(vapply(
-    out[grepl("^cmrb_", names(out))][c(1, 2, 4), ],
-    function(column) all(is.na(column)),
-    logical(1)
-  )))
+  expect_true(all(vapply(out[grepl("^cmrb_", names(out))][c(1, 2, 4), ],
+    function(column) all(is.na(column)), logical(1))))
 
   all_usable <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = "Y")
   expect_no_warning(nis_comorbidity(all_usable))
@@ -269,15 +260,14 @@ test_that("method and prefix options and input errors are explicit", {
   expect_error(nis_comorbidity(open_duckdb_dataset(path)), "collect")
 })
 
-test_that("a nis_design keeps its design and gains comorbidity columns", {
+test_that("comorbidity columns preserve survey design and support reweighting", {
   skip_if_not_installed("medicalcoder")
   path <- nis_example(2017:2018)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   query <- nis_open(path) |>
     nis_flag_dx(heart_failure = "I50", position = "principal")
   design <- suppressMessages(nis_design(
-    query,
-    heart_failure,
+    query, heart_failure,
     keep = c(AGE, dplyr::starts_with("I10_DX"))
   ))
 
@@ -291,8 +281,7 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   expect_true(all(vapply(labels, Negate(is.null), logical(1))))
   for (field in labelled_fields) {
     expect_identical(
-      attr(enriched$variables[[field]], "label", exact = TRUE),
-      labels[[field]]
+      attr(enriched$variables[[field]], "label", exact = TRUE), labels[[field]]
     )
   }
 
@@ -302,33 +291,10 @@ test_that("a nis_design keeps its design and gains comorbidity columns", {
   expect_identical(enriched$prob, design$prob)
   expected <- suppressWarnings(nis_comorbidity(design$variables))
   expect_identical(enriched$variables, expected)
-  expect_true(all(
-    c("cmrb_hf", "cmrb_n", "cmrb_mortality_index") %in%
-      names(enriched$variables)
-  ))
+  expect_true(all(c("cmrb_hf", "cmrb_n", "cmrb_mortality_index") %in%
+    names(enriched$variables)))
   total <- survey::svytotal(~cmrb_any, enriched)
   expect_true(is.finite(stats::coef(total)[["cmrb_anyTRUE"]]))
-})
-
-test_that("nis_reweight works on a design that went through nis_comorbidity", {
-  skip_if_not_installed("medicalcoder")
-  path <- nis_example(2017:2018)
-  on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  query <- nis_open(path) |>
-    nis_flag_dx(heart_failure = "I50", position = "principal")
-  design <- suppressMessages(nis_design(
-    query,
-    heart_failure,
-    keep = c(AGE, dplyr::starts_with("I10_DX"))
-  ))
-  enriched <- suppressWarnings(nis_comorbidity(design))
-
-  labelled_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT", "AGE")
-  labels <- lapply(labelled_fields, function(field) {
-    attr(design$variables[[field]], "label", exact = TRUE)
-  })
-  names(labels) <- labelled_fields
-  expect_true(all(vapply(labels, Negate(is.null), logical(1))))
 
   expect_identical(
     attr(enriched, "nis_placeholder_rows"),
@@ -344,8 +310,7 @@ test_that("nis_reweight works on a design that went through nis_comorbidity", {
   reference <- nis_reweight(design, multipliers)
   for (field in labelled_fields) {
     expect_identical(
-      attr(reweighted$variables[[field]], "label", exact = TRUE),
-      labels[[field]]
+      attr(reweighted$variables[[field]], "label", exact = TRUE), labels[[field]]
     )
   }
   comorbid_after_reweight <- suppressWarnings(nis_comorbidity(reference))
