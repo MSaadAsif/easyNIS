@@ -38,31 +38,58 @@ test_that("nis_open reads native Parquet lazily and normalizes case drift", {
   expect_error(nis_open(path, years = 2020L, engine = "duckdb"), "unused argument")
 })
 
-test_that("easyNIS explains invalid UTF-8 during collection", {
+test_that("native Parquet queries explain malformed ICD code strings", {
   path <- tempfile("nis-invalid-utf8-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
 
   marker <- "SYNTHMARK"
-  data <- data.frame(YEAR = 2020L, DISCWT = 5, AGE = 60L, FEMALE = "Female", DIED = "No", I10_DX1 = marker)
+  data <- data.frame(YEAR = 2020L, HOSP_NIS = 1L, NIS_STRATUM = 1L,
+    DISCWT = 5, AGE = 60L, FEMALE = "Female", DIED = "No", I10_DX1 = marker)
   file <- file.path(path, "NIS_2020.parquet")
   write_duckdb_parquet(data, file)
   corrupt_parquet_marker(file, marker)
 
+  query <- nis_open(path, check_release = FALSE)
+  expect_identical(dplyr::collect(dplyr::select(query, AGE))$AGE, 60L)
+  expect_error(dplyr::collect(query), class = "easyNIS_invalid_utf8")
   expect_error(
-    nis_audit_code_transition(nis_open(path, check_release = FALSE), c(marker = marker), type = "dx"),
-    "A string column in the Parquet input is not valid UTF-8"
+    DBI::dbGetQuery(dbplyr::remote_con(query), dbplyr::sql_render(query)),
+    class = "easyNIS_invalid_utf8"
   )
+  error <- expect_error(
+    nis_design(query, cohort = I10_DX1 == marker, keep = AGE),
+    class = "easyNIS_invalid_utf8"
+  )
+  expect_match(conditionMessage(error), "NIS_2020.parquet", fixed = TRUE)
+  expect_match(conditionMessage(error), 'nis_open(reader = "arrow")', fixed = TRUE)
+  expect_match(conditionMessage(error), "Regenerate", fixed = TRUE)
+  expect_error(dplyr::collect(nis_flag_dx(query, flagged = marker)),
+    class = "easyNIS_invalid_utf8")
+  expect_error(nis_audit_code_transition(query, c(marker = marker), type = "dx"),
+    class = "easyNIS_invalid_utf8")
+
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    arrow_query <- nis_open(path, reader = "arrow", check_release = FALSE)
+    expect_identical(dplyr::collect(nis_flag_dx(arrow_query, flagged = marker))$flagged, FALSE)
+    design <- nis_design(arrow_query, cohort = AGE == 60L, keep = I10_DX1)
+    expect_identical(charToRaw(design$variables$I10_DX1[[1L]]), c(as.raw(0xFF), charToRaw(marker)[-1L]))
+  }
 })
+
 test_that("invalid UTF-8 in a release field warns and keeps clean columns queryable", {
   path <- withr::local_tempdir()
   file <- file.path(path, "NIS_2020.parquet")
   write_duckdb_parquet(data.frame(YEAR = 2020L, id = 7L, NIS_STRATUM = "SYNTHMARK"), file)
   corrupt_parquet_marker(file, "SYNTHMARK")
 
-  expect_warning(query <- nis_open(path), "UTF-8", class = "easynis_release_check_failed")
+  expect_warning(
+    query <- nis_open(path),
+    "Malformed UTF-8",
+    class = "easynis_release_check_failed"
+  )
   expect_identical(dplyr::collect(dplyr::select(query, id))$id, 7L)
-  expect_error(nis_collect(dplyr::select(query, NIS_STRATUM)), "UTF-8")
+  expect_error(dplyr::collect(dplyr::select(query, NIS_STRATUM)), class = "easyNIS_invalid_utf8")
 })
 
 test_that("Arrow reader preserves invalid UTF-8 bytes and integer years", {

@@ -43,9 +43,7 @@ nis_open_check_release <- function(plan, dataset) {
   has_year <- "year" %in% fields
 
   result <- tryCatch(
-    nis_explain_invalid_utf8(
-      nis_release_inspect(plan, dataset, fields)
-    ),
+    nis_release_inspect(plan, dataset, fields),
     error = identity
   )
   if (inherits(result, "error")) {

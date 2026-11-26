@@ -1,5 +1,44 @@
+#' @importClassesFrom duckdb duckdb_connection
+#' @importFrom DBI dbSendQuery
+NULL
+
+methods::setClass("nis_duckdb_connection", contains = "duckdb_connection")
+
+# DuckDB executes the query in dbSendQuery(), including parameter binding
+# when DBI supplies params. This also covers consumers outside easyNIS.
+methods::setMethod("dbSendQuery", c("nis_duckdb_connection", "character"),
+  function(conn, statement, ...) {
+    nis_duckdb_translate_errors(methods::callNextMethod())
+  }
+)
+
+nis_duckdb_translate_errors <- function(query) {
+  withCallingHandlers(query, error = function(error) {
+    while (!is.null(error$parent)) error <- error$parent
+    message <- strsplit(conditionMessage(error), "\n", fixed = TRUE)[[1L]][1L]
+    if (!grepl("invalid string encoding|invalid UTF-8", message, ignore.case = TRUE)) return()
+
+    message <- sub(': value ".*$', "", message)
+    field <- function(pattern) {
+      match <- regmatches(message, regexec(pattern, message, perl = TRUE))[[1L]]
+      match[2L]
+    }
+    file <- field('(?i)Parquet file "(.+?)"(?=:|,| \\(|$)')
+    column <- field('(?i)column ["\x27]([^"\x27]+)["\x27]')
+    location <- paste0(
+      if (!is.na(column)) " in column {.field {column}}",
+      if (!is.na(file)) " in {.path {file}}"
+    )
+    cli::cli_abort(c(
+      paste0("Malformed UTF-8", location, "."),
+      i = paste('Use {.code nis_open(reader = "arrow")} to work around this.',
+        "Regenerate the Parquet file with the correct source encoding to fix it.")
+    ), class = "easyNIS_invalid_utf8")
+  })
+}
+
 nis_duckdb_connect <- function(config = list()) {
-  DBI::dbConnect(duckdb::duckdb(config = config))
+  methods::new("nis_duckdb_connection", DBI::dbConnect(duckdb::duckdb(config = config)))
 }
 
 nis_duckdb_open_data <- function() {

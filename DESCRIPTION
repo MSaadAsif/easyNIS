@@ -27,6 +27,7 @@ Imports:
     dbplyr,
     dplyr,
     duckdb,
+    methods,
     rlang,
     srvyr,
     tidyselect,
