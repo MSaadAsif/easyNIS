@@ -12,26 +12,20 @@ validate_suppress_dots <- function(dots, error_call) {
 
 #' Suppress small unweighted cells in a survey summary
 #'
-#' For a `gtsummary::tbl_svysummary()` result, replaces displayed statistics
-#' when their corresponding unweighted count is at or below `threshold`. The
-#' count is the smaller of the summary card count and the number of matching
-#' records in the supplied survey design. A dichotomous row whose displayed
-#' level passes both rules is marked `Masked` if its non-missing complement
-#' fails the count or hospital rule. Continuous2 statistic rows use the
-#' non-missing count for their corresponding output column. If that count is
-#' absent, ambiguous, or non-finite for a displayed statistic, the function
-#' errors; blank statistic cells do not require a count. When a by-group cell
-#' is masked, the overall cell (`stat_0`) in the same row is marked `Masked`,
-#' unless it already has a primary mask. If exactly one categorical level is
-#' masked within a column, the smallest remaining positive level is also
-#' marked `Masked`. Other derivable cells still need analyst review before
-#' sharing. For survey summaries, hospital
-#' support is counted from retained records using year-scoped `YEAR` and
-#' `HOSP_NIS` identities, within the cohort, non-missing/category, and by-group
-#' cells represented by the table. The rule is applied only when the survey
-#' records and summary cards provide an unambiguous mapping; otherwise the
-#' function errors. Data-frame behavior uses the supplied `count_col` and
-#' optional `hospital_col` as described below.
+#' Mask a summary using unweighted counts and contributing hospitals.
+#'
+#' @details In a survey table, each statistic is checked against its
+#' supporting discharges and hospital-years. The function stops when it
+#' cannot identify the records behind a statistic. It also checks the
+#' non-missing complement of a displayed two-level indicator and can mask
+#' related overall statistics. If one categorical level in a column is
+#' masked, the function also masks the smallest remaining positive level.
+#' Review other deductions from related outputs before release.
+#'
+#' In a data frame, supply unweighted counts and, when available, distinct
+#' hospital counts. Grouped complementary suppression can mask an additional
+#' positive cell when there is one primary mask in a group. Review totals
+#' and any other cells that someone could recover by subtraction.
 #'
 #' @param .data A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
 #'   or `add_overall()`, or a data frame/tibble.
@@ -60,7 +54,8 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   character. For `gtsummary` results, the table with primary and secondary
 #'   masks and a footnote describing them.
 #' @family disclosure
-#' @seealso [Disclosure and suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
+#'   [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 #' @export
 #' @examplesIf rlang::is_installed(c("gtsummary", "cardx", "survey"))
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>
@@ -73,9 +68,9 @@ validate_suppress_dots <- function(dots, error_call) {
 #' )
 #' nis_suppress(table, threshold = 10)
 #' @examples
-#' cells <- data.frame(n = c(4, 25), hospitals = c(2, 3), estimate_total = c(20, 125))
-#' nis_suppress(cells, count_col = n, hospital_col = hospitals,
-#'   weighted_cols = tidyselect::starts_with("estimate_"))
+#' nis <- nis_open(nis_example(2020))
+#' cells <- nis_cell_counts(nis, by = DQTR)
+#' nis_suppress(cells, count_col = n, hospital_col = hospitals, by = DQTR)
 nis_suppress <- function(
   .data,
   threshold = 10,

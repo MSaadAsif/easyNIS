@@ -47,7 +47,8 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 head(nis_label(demographics))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/opening-data.html}{Opening NIS data},
+\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
+\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
 
 Other data-access:

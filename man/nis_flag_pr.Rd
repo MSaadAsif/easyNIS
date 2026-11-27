@@ -26,13 +26,13 @@ nis_flag_pr(
 \code{.data} with one logical column per named definition.
 }
 \description{
-Each procedure slot is checked separately, with the same prefix, regular
-expression, exclusion, and \code{system} semantics as \code{\link[=nis_flag_dx]{nis_flag_dx()}}. \code{"icd10"}
-reads \code{I10_PR1}, ...; \code{"icd9"} (experimental) reads \code{PR1}, ...
-Slot suffixes must be positive integers without leading zeros. Malformed
-slot names are ignored; an error is raised if no slots match the requested
-position. The principal slot has suffix \code{1}; sparse and reordered slots
-are supported.
+Flag discharges whose procedure codes match your clinical definition.
+}
+\details{
+Use the \code{\link[=nis_flag_dx]{nis_flag_dx()}} rules for prefixes, exact exclusions, regular
+expressions, and mixed coding eras. For ICD-10 the slots are
+\code{I10_PR1}, \code{I10_PR2}, and so on. For ICD-9 they are \code{PR1}, \code{PR2},
+and so on. Use \code{position = "principal"} to check slot 1 only.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))
@@ -42,7 +42,7 @@ nis |>
   dplyr::collect()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

@@ -1,5 +1,14 @@
 #' Attach an annual NIS companion to Core discharges
 #'
+#' Add selected companion fields to a lazy Core query.
+#'
+#' @details Join Hospital data on `YEAR` and `HOSP_NIS`. Join Severity or
+#' Diagnosis and Procedure Groups data on `YEAR` and `KEY_NIS`. Use the
+#' same release for each annual Core and companion part. Unmatched
+#' discharges remain in the result with missing companion values.
+#' Hospital `TOTAL_DISC` counts sampled discharges and is excluded.
+#' The joined records still represent discharges.
+#'
 #' @param .data A lazy Core query from [nis_open()], including its linkage fields.
 #' @param path Directory containing Parquet for one companion component, using
 #'   the annual or Hive layout accepted by [nis_open()]. Keep Core and each
@@ -11,41 +20,28 @@
 #'   source spelling for bare names or `all_of()`. Selected fields keep
 #'   their source names and must have names distinct from fields in `.data`.
 #'
-#' @details Hospital uses `YEAR` and `HOSP_NIS`. Severity and Diagnosis and
-#'   Procedure Groups use `YEAR` and `KEY_NIS`. Include companion parts for
-#'   every year opened in `.data`. A field supplied only in some of those years
-#'   is missing in the others. A discharge without a matching companion row
-#'   is retained with missing companion values.
-#'
-#'   DuckDB checks for missing, duplicate, or incompatible companion keys
-#'   before constructing the left join. Uniqueness in the Core key types
-#'   guarantees exactly one output row per input discharge. Keep both sets
-#'   of Parquet files in place until the lazy query is evaluated.
-#'
-#'   Use hospital characteristics to describe discharges and compare
-#'   discharge outcomes. The joined rows and weights still represent
-#'   discharges. The Hospital file's `TOTAL_DISC` counts sampled discharges
-#'   and is excluded from this helper. HCUP's post-2011 design does not
-#'   support estimating individual hospital volumes.
-#'
 #' @return A lazy DuckDB-backed Core query with the requested columns added.
-#' @seealso [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
+#' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
+#'   [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 #' @export
 #' @examples
+#' nis <- nis_open(nis_example(2020))
+#' hospitals <- nis |>
+#'   dplyr::distinct(HOSP_NIS, beds = HOSP_BEDSIZE) |>
+#'   dplyr::collect()
+#'
 #' path <- tempfile()
+#' dir.create(path)
 #' con <- DBI::dbConnect(duckdb::duckdb())
-#' write_component <- function(component, fields) {
-#'   folder <- file.path(path, component)
-#'   dir.create(folder, recursive = TRUE)
-#'   file <- DBI::dbQuoteString(con, file.path(folder, "NIS_2020.parquet"))
-#'   DBI::dbExecute(con, paste0("COPY (SELECT ", fields, ") TO ", file, " (FORMAT PARQUET)"))
-#' }
-#' write_component("core", "2020 AS YEAR, 1 AS KEY_NIS, 7 AS HOSP_NIS")
-#' write_component("hospital", "7 AS HOSP_NIS, 2 AS HOSP_BEDSIZE")
+#' DBI::dbWriteTable(con, "hospitals", hospitals)
+#' file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
+#' DBI::dbExecute(con, paste("COPY hospitals TO", file, "(FORMAT PARQUET)"))
 #' DBI::dbDisconnect(con, shutdown = TRUE)
-#' nis_open(file.path(path, "core"), check_release = FALSE) |>
-#'   nis_join_companion(file.path(path, "hospital"), "hospital", nis_vars_hospital()) |>
+#'
+#' nis |>
+#'   nis_join_companion(path, "hospital", beds) |>
+#'   dplyr::count(beds) |>
 #'   dplyr::collect()
 nis_join_companion <- function(.data, path, component, columns) {
   component <- rlang::arg_match(component, c("hospital", "severity", "dx_pr_grps"))

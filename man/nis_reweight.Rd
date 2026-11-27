@@ -22,34 +22,21 @@ reorder or subset the rows first.}
 A filtered \code{srvyr::tbl_svy} survey design.
 }
 \description{
-Multiplies cohort discharge survey weights by supplied propensity weights,
-retains the placeholder rows for hospital-years without cohort discharges,
-and rebuilds the nested survey design. This experimental method is intended
-for analysts who have validated their weighting specification against a
-full-data reference design.
+Multiply the cohort's discharge weights by prespecified analysis factors.
 }
-\section{Weighted totals}{
-
-The result multiplies the discharge weights by \code{weights}, so
-\code{survey_total()} and similar totals no longer estimate national discharge
-counts. Use the result for ratios, means and model estimates, and report
-national counts from the design before reweighting. Each call multiplies the
-weights again, so call \code{nis_reweight()} once on the result of
-\code{\link[=nis_design]{nis_design()}}; calling it on an already reweighted design compounds the
-weights.
+\details{
+The design retains the original hospital and stratum structure.
+Uncertainty estimates treat the supplied factors as fixed.
 }
-
 \examples{
-nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
-design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
-
-# Illustrative weights only; use weights from your own validated model
+nis <- nis_open(nis_example(2019:2020))
+design <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS))
 reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
+srvyr::summarise(reweighted, mean_los = srvyr::survey_mean(LOS))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/survey-design.html}{Survey design and weighting}.
+\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models},
+\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models}.
 
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},

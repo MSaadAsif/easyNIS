@@ -28,99 +28,32 @@ including malformed UTF-8, and allocates memory outside DuckDB's buffer limit.}
 default. Set to \code{FALSE} to skip the check.}
 }
 \value{
-A lazy DuckDB-backed dbplyr table with case-normalized source column
-names. Saved cohorts retain the column names used at export.
-Experimental 2023
-layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
-because the 2023 field is HCUP-adjusted for national estimates and is not
-comparable to earlier-year charges. Opening a query that contains
-\code{TOTCHG_2023} warns once per session. To use it, pass
-\code{charges = "TOTCHG_2023"} to \code{\link[=nis_design]{nis_design()}} or \code{\link[=nis_cost]{nis_cost()}}, or pool
-explicitly with \code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))}.
-
-The 2023 layout facts used here (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and
-\code{HOSP_DIVISION}, sequential \code{NIS_STRATUM}) are UNVERIFIED against official
-HCUP 2023 documentation and real 2023 data; none were available for testing.
+A lazy DuckDB-backed dbplyr table. Annual source column names are
+case-normalized. Saved cohorts retain the column names used at export.
 }
 \description{
-Open annual NIS Parquet files lazily
+Open selected years as a DuckDB query.
 }
 \details{
-\code{nis_open()} reads Parquet directly with DuckDB and returns a
-DuckDB-backed dbplyr table. It accepts annual \verb{NIS_<year>.parquet} files
-or directories and Hive directories named \code{YEAR=YYYY} containing Parquet
-parts. A selected year must not appear in both annual and Hive layouts.
-If a part file
-has a physical \code{YEAR} column, its non-missing values must agree with the
-directory year; missing or absent physical values use the partition year.
-Schemas are combined by column name, including when annual files and Hive
-partitions are mixed. DuckDB combines source fields and promotes annual
-types. For names DuckDB folds as ASCII case-insensitive identifiers, the
-output uses uppercase spelling when any selected source uses uppercase
-ASCII letters. Other names retain the established name normalization,
-including coalescing Unicode case-normalization collisions. Source
-metadata may suggest an additional spelling-only rename; it is applied
-only when its target is unique and does not collide with an output name
-under DuckDB's identifier rules. When annual
-types differ, DuckDB may promote them; for example, an integer field
-combined with a character field is returned as character.
-When present, \code{YEAR} is validated and returned as integer;
-invalid values identify the offending file in an error. The connection
-remains open while the lazy table is in use and closes after it is released.
-Use \code{dplyr::collect()} to return
-data to R. Years before 2016 emit an experimental ICD-9 layout notice once
-per R session. The \code{engine} argument was removed entirely; omit it regardless
-of the value used in older code.
-The default reader fails when a scan encounters malformed UTF-8.
-A lazy query can open successfully and fail later when it reads the
-affected column. Reconvert the correctly encoded source with
-\code{\link[=nis_convert]{nis_convert()}} into a new directory to validate the text before analysis.
-Malformed bytes preserved by Arrow can still cause downstream string
-operations to fail.
+Use annual \verb{NIS_<year>.parquet} files or directories, or Hive
+directories named \code{YEAR=YYYY}. Use one layout per year. The package matches
+columns by name and checks that recorded years agree with their partitions.
+The charge fields for 2023 and 2024 remain separate from \code{TOTCHG}.
 }
 \section{Annual release check}{
 
-DuckDB checks the discharge count, sum of \code{DISCWT}, and distinct
-\code{HOSP_NIS} count against the
-\href{https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp}{HCUP summary statistics}
-for each opened year from 2012 through 2024. Counts must match exactly,
-and the weight sum can differ by half a discharge plus a small allowance
-for floating-point arithmetic because HCUP rounds the published weight sum
-to a whole discharge. Only finite, positive hospital IDs count, and
-optional totals are compared only when every checked part for a year has the
-corresponding column. Files created by \code{\link[=nis_example]{nis_example()}} are excluded from
-these totals. They still undergo the integrity checks below.
-Parquet files with zero discharges across an entire opened year warn.
-When the fields are present, missing \code{YEAR}, \code{YEAR}
-outside the opened years, and \code{NIS_STRATUM} values of zero or less warn
-even for years without published reference totals. If the check cannot
-run, it warns. Discrepancy warnings identify the affected checks or fields.
-The lazy query remains available for use.
-Cohort extracts are expected to differ from the published totals. Use
-\code{check_release = FALSE} to skip the check for an intentional extract.
+For years with published reference totals, the check compares discharges,
+the sum of weights, and distinct hospitals when the relevant fields are
+available. Investigate warnings against the annual release documentation.
+Invented data and extracts created with \code{\link[=nis_write_cohort]{nis_write_cohort()}} are exempt
+from comparisons with published totals.
 }
 
-\section{Large data}{
+\section{Reading into R}{
 
-The query stays in DuckDB until you collect it. Filter, project, and summarize
-before collecting. A memory check applies to \code{\link[dplyr:collect]{dplyr::collect()}}, including
-\code{as.data.frame()} on these lazy tables, and to easyNIS helpers that collect
-DuckDB results. It estimates the size of the result from DuckDB's query plan
-and the projected column types. It uses a small sample to refine text widths
-for simple Parquet reads and counts the result rows before denying a collect.
-Estimates for filtered queries and variable-width
-columns can be inaccurate, and the check cannot predict DuckDB's working
-memory or memory used by subsequent R operations.
-Estimated results from 20\% of available physical memory emit a message; at
-50\% or more the check raises an \code{easyNIS_collect_too_large} error. If system
-memory is unavailable, collection proceeds with a one-time notice. Use
-\code{options(easyNIS.collect_prudence = FALSE)} to skip the check.
-
-Set the named list option \code{easyNIS.duckdb_config} before
-opening to tune \code{memory_limit}, \code{threads}, \code{temp_directory},
-\code{max_temp_directory_size}, or \code{preserve_insertion_order}. The package
-assigns each query its own spill location under the supplied private
-directory, or under the R session's temporary directory by default.
+Select columns and summarize in DuckDB before calling \code{\link[dplyr:collect]{dplyr::collect()}}.
+The default reader rejects malformed UTF-8 when it reads the affected
+column. Reconvert from a correctly encoded source with \code{\link[=nis_convert]{nis_convert()}}.
 }
 
 \examples{
@@ -136,7 +69,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/opening-data.html}{Opening NIS data}.
+\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},

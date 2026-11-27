@@ -54,30 +54,23 @@ are missing for ordinary logical criteria. Pass the flow to
 \code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}} to summarize its code criteria by period.
 }
 \description{
-Applies logical criteria cumulatively and reports remaining and dropped
-discharge counts at each step. The initial row has no preceding step, so its
-dropped counts are \code{NA}. Criteria are evaluated in order; \code{NA} values
-are treated as excluded, matching \code{\link[dplyr:filter]{dplyr::filter()}}. The summary is
-aggregated lazily for DuckDB queries and returned as a collected tibble.
-Missing weights (including \code{NaN}) contribute zero to weighted totals.
-Existing input groups are ignored, including when evaluating criteria.
-Criteria are evaluated over the full input before annual aggregation.
+Count the discharges that remain after each eligibility criterion.
+}
+\details{
+Evaluate criteria in order over the ungrouped input. Missing
+criteria exclude a discharge. Missing weights contribute zero to weighted
+counts. Use \code{.design = TRUE} when the same criteria will define a survey
+cohort. Use \code{\link[=nis_attrition_cohort]{nis_attrition_cohort()}} to reuse the combined expression.
 }
 \examples{
-toy_nis <- dplyr::tibble(
-  AGE = c(16, 45, 60, 72, 55),
-  ELECTIVE = c(1, 1, 0, 1, 1),
-  DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
-  HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
-  NIS_STRATUM = rep(1L, 5),
-  YEAR = rep(2020L, 5)
-)
-nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
-flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
-nis_attrition_cohort(flow)
+nis <- nis_open(nis_example(2020))
+flow <- nis_attrition(nis, adult = AGE >= 18, older = AGE >= 65, .design = TRUE)
+flow
+nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort}.
 
 Other cohort-definition:
 \code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}},

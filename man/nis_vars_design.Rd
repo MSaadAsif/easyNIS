@@ -58,6 +58,8 @@ dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
 dplyr::select(nis, -nis_vars_pr())
 }
 \seealso{
+\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
+\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp}{HCUP NIS File Specifications},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
 }

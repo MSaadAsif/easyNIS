@@ -35,7 +35,8 @@ Each part records the cohort expression, the years opened by the source
 query, and the easyNIS version in its Parquet metadata. The expression is
 recorded as supplied, so also retain the code that defines any flags or
 variables it uses. The release check exempts the extract from comparison
-against HCUP release totals.
+against HCUP release totals. Saved cohorts retain the column names used at
+export, including mixed-case names.
 }
 \examples{
 query <- nis_open(nis_example(years = 2019))

@@ -1,8 +1,11 @@
 #' Report the design and fitted sample for NIS analyses
 #'
-#' Reads the sampling metadata retained by [nis_design()] without querying the
-#' original data. Use it on the design after a domain filter, or on a
-#' [survey::svyglm()] fit from that design to see the fitted sample size.
+#' Report the discharges and survey weights used in a design or fitted model.
+#'
+#' @details Use the report to reconcile input, cohort, and analysis counts.
+#' After filtering a design, the current domain count changes while the
+#' original sample count is retained. Review disclosure before sharing
+#' the report.
 #'
 #' @param x A [nis_design()] result, including a filtered or reweighted design,
 #'   or a [survey::svyglm()] fit made with that design.
@@ -17,12 +20,9 @@
 #'   unweighted count (`n`, from [stats::nobs()]) and the number of records
 #'   the fit omitted for missing model data (`excluded_n`).
 #'
-#' @details
-#' Counts describe the input supplied to [nis_design()]. Filtering that input
-#' before making the design can change the sampling roster. Use a cohort
-#' expression or filter the design to restrict a survey domain.
-#' Review the counts for disclosure before sharing them.
 #' @family survey-design
+#' @seealso [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html),
+#'   [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
 #' @export
 #' @examples
 #' data <- nis_open(nis_example(2019:2020))

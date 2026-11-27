@@ -33,11 +33,10 @@ nis_reweight_data <- function(design, weights_quo, call) {
 
 #' Reweight a cohort survey design
 #'
-#' Multiplies cohort discharge survey weights by supplied propensity weights,
-#' retains the placeholder rows for hospital-years without cohort discharges,
-#' and rebuilds the nested survey design. This experimental method is intended
-#' for analysts who have validated their weighting specification against a
-#' full-data reference design.
+#' Multiply the cohort's discharge weights by prespecified analysis factors.
+#'
+#' @details The design retains the original hospital and stratum structure.
+#' Uncertainty estimates treat the supplied factors as fixed.
 #'
 #' @param design A result of [nis_design()].
 #'   Column selection, renaming, and mutation are supported when cohort rows
@@ -49,27 +48,16 @@ nis_reweight_data <- function(design, weights_quo, call) {
 #'   example, fit the propensity model on `design$variables`) and do not
 #'   reorder or subset the rows first.
 #'
-#' @section Weighted totals:
-#' The result multiplies the discharge weights by `weights`, so
-#' `survey_total()` and similar totals no longer estimate national discharge
-#' counts. Use the result for ratios, means and model estimates, and report
-#' national counts from the design before reweighting. Each call multiplies the
-#' weights again, so call `nis_reweight()` once on the result of
-#' [nis_design()]; calling it on an already reweighted design compounds the
-#' weights.
-#'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @family survey-design
-#' @seealso [Survey design and weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html).
+#' @seealso [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
+#'   [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020)) |>
-#'   nis_flag_dx(heart_failure = "I50")
-#' design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
-#'
-#' # Illustrative weights only; use weights from your own validated model
+#' nis <- nis_open(nis_example(2019:2020))
+#' design <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS))
 #' reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-#' srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
+#' srvyr::summarise(reweighted, mean_los = srvyr::survey_mean(LOS))
 nis_reweight <- function(design, weights) {
   call <- rlang::current_call()
   rows <- nis_reweight_data(design, rlang::enquo(weights), call)

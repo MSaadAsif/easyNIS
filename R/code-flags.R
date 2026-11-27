@@ -1,42 +1,12 @@
 #' Add diagnosis code flags
 #'
-#' Each diagnosis slot is checked separately. Supplied prefixes are
-#' case-insensitive, and periods and spaces in them are ignored. Slot values are
-#' compared as stored, case sensitively, because NIS stores upper-case codes
-#' without periods. Matching stays lazy in DuckDB and avoids per-row text
-#' normalization. A flag definition can also be a list with `prefix`, `regex`,
-#' and `exclude` character vectors. Prefixes and full-code regular expressions
-#' are combined as alternatives; exclusions remove exact codes within each
-#' slot, so a matching code in another slot can still set the flag. Regexes use
-#' RE2-compatible syntax, are case-sensitive by default, and must match the
-#' whole stored code. Character-vector definitions retain the original prefix
-#' behavior.
+#' Flag discharges whose diagnosis codes match your clinical definition.
 #'
-#' `system` picks which slots are tested. `"icd10"` reads `I10_DX1`, `I10_DX2`,
-#' ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as stored in NIS 2012
-#' through Q3 2015. A prefix is only ever compared with slots of the chosen
-#' system, so an ICD-10 flag never matches an ICD-9 slot and the reverse.
-#' Slot suffixes must be positive integers without leading zeros. Malformed
-#' slot names are ignored; an error is raised if no slots match the requested
-#' position. The principal slot has suffix `1`; sparse and reordered slots
-#' are supported.
-#'
-#' In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges carry
-#' ICD-10 codes. HCUP is understood to recommend `DXVER` (9 or 10) to
-#' distinguish them, because `DQTR` can be missing (UNVERIFIED: secondhand); `PRVER` describes the procedure system.
-#' Non-missing version indicators must agree with `system`; non-missing
-#' `YEAR` and, in 2015, `DQTR` must also agree. Conflicting or invalid
-#' indicators yield `FALSE`. Missing indicators rely on the slot namespace:
-#' callers must preserve the official names and leave inapplicable slots
-#' missing. Shared slots containing both systems are not supported.
-#' `FALSE` means "not flagged under the requested code system or systems".
-#' For a study spanning October 2015, use `system = "both"` and supply one
-#' named `icd9` and one named `icd10` definition per flag. Each definition
-#' applies to its own eligible records and slots. A match in either system
-#' sets the flag. Both sets of slot columns must be present for the requested
-#' position. Use a single-system call on files containing only that system.
-#' The analyst supplies both definitions and reviews comparability at the
-#' transition.
+#' @details Supply prefixes or a list of `prefix`, `regex`, and `exclude`.
+#' Regular expressions match the whole stored code. An exclusion removes an
+#' exact code from the match in that slot. Another diagnosis slot can still
+#' set the flag. Specify `position = "principal"` to search slot 1 only.
+#' Use separate definitions and `system = "both"` for mixed coding eras.
 #'
 #' @template dot-data
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`. For
@@ -46,7 +16,7 @@
 #'   `regex`, and `exclude` can each be character vectors. Prefix and regex
 #'   matches are combined; exclusions are exact and apply within each slot.
 #'   With `system = "both"`, nest those definitions under `icd9` and `icd10`,
-#'   for example `flag = list(icd9 = "12345", icd10 = "I50")`.
+#'   for example `flag = list(icd9 = "428", icd10 = "I50")`.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
@@ -54,7 +24,7 @@
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+#' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))
@@ -89,13 +59,12 @@ nis_flag_dx <- function(
 
 #' Add procedure code flags
 #'
-#' Each procedure slot is checked separately, with the same prefix, regular
-#' expression, exclusion, and `system` semantics as [nis_flag_dx()]. `"icd10"`
-#' reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
-#' Slot suffixes must be positive integers without leading zeros. Malformed
-#' slot names are ignored; an error is raised if no slots match the requested
-#' position. The principal slot has suffix `1`; sparse and reordered slots
-#' are supported.
+#' Flag discharges whose procedure codes match your clinical definition.
+#'
+#' Use the [nis_flag_dx()] rules for prefixes, exact exclusions, regular
+#' expressions, and mixed coding eras. For ICD-10 the slots are
+#' `I10_PR1`, `I10_PR2`, and so on. For ICD-9 they are `PR1`, `PR2`,
+#' and so on. Use `position = "principal"` to check slot 1 only.
 #'
 #' @template dot-data
 #' @param ... Named flag definitions, such as `ablation = "02L"`; see
@@ -106,7 +75,7 @@ nis_flag_dx <- function(
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+#' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))

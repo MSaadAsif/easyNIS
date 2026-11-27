@@ -22,12 +22,11 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 
 #' Summarize diagnosis-position sensitivity
 #'
-#' Summarizes unweighted and weighted presentation counts and outcome rates for
-#' principal, secondary-only, and any-position diagnosis flags. These are
-#' descriptive point estimates, not design-based survey estimates; use
-#' [nis_design()] when standard errors are needed. Small cells must go through
-#' [nis_suppress()] before reporting under the HCUP Data Use Agreement, which
-#' prohibits reporting cells of 1–10.
+#' Compare principal, secondary-only, and any-position diagnosis definitions.
+#'
+#' @details The result describes how the diagnosis position changes counts
+#' and selected outcome rates. Use [nis_design()] to estimate standard
+#' errors. Review disclosure before sharing the results.
 #'
 #' @template dot-data
 #' @param code Non-missing character vector of diagnosis prefixes.
@@ -48,7 +47,8 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #'   weighted sums; missing outcomes are excluded from that outcome's denominator.
 #'   Rates with zero denominators are missing.
 #' @family cohort-definition
-#' @seealso [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
+#' @seealso [Years and coding eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
+#'   [Years and coding eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))

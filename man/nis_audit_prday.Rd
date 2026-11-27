@@ -36,13 +36,9 @@ This is a descriptive completeness summary: it does not impute days or
 judge whether the observed completeness is acceptable.
 }
 \examples{
-toy <- data.frame(
-  YEAR = c(2020L, 2020L, 2021L),
-  I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ"),
-  I10_PR2 = c("0JH604Z", "OTHER", "0JH604Z"),
-  PRDAY1 = c(0L, -99L, 1L), PRDAY2 = c(1L, NA_integer_, -88L)
-)
-nis_audit_prday(toy, c("02UG0", "0JH60"))
+nis <- nis_open(nis_example(2020)) |>
+  dplyr::mutate(PRDAY1 = 0L, PRDAY2 = 1L)
+nis_audit_prday(nis, pr = "0270")
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.

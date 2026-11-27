@@ -22,15 +22,13 @@ unweighted count (\code{n}, from \code{\link[stats:nobs]{stats::nobs()}}) and th
 the fit omitted for missing model data (\code{excluded_n}).
 }
 \description{
-Reads the sampling metadata retained by \code{\link[=nis_design]{nis_design()}} without querying the
-original data. Use it on the design after a domain filter, or on a
-\code{\link[survey:svyglm]{survey::svyglm()}} fit from that design to see the fitted sample size.
+Report the discharges and survey weights used in a design or fitted model.
 }
 \details{
-Counts describe the input supplied to \code{\link[=nis_design]{nis_design()}}. Filtering that input
-before making the design can change the sampling roster. Use a cohort
-expression or filter the design to restrict a survey domain.
-Review the counts for disclosure before sharing them.
+Use the report to reconcile input, cohort, and analysis counts.
+After filtering a design, the current domain count changes while the
+original sample count is retained. Review disclosure before sharing
+the report.
 }
 \examples{
 data <- nis_open(nis_example(2019:2020))
@@ -39,6 +37,9 @@ nis_design_report(design)
 nis_design_report(survey::svyglm(LOS ~ AGE, design = design))
 }
 \seealso{
+\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort},
+\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort}
+
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},
 \code{\link[=nis_reweight]{nis_reweight()}},

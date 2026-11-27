@@ -1,9 +1,11 @@
 #' Add standard discharge outcomes
 #'
-#' Derive in-hospital mortality, length of stay, and discharge disposition
-#' from the numeric NIS Core fields. Each outcome uses its own source field.
-#' Missing or unrecognized codes become `NA`, including negative HCUP
-#' sentinels and non-integer values.
+#' Derive in-hospital death, length of stay, and discharge disposition.
+#'
+#' @details In-hospital death uses `DIED`. Discharge disposition uses
+#' `DISPUNIFORM`. Length of stay uses `LOS`, including zero for same-day
+#' stays. Missing values, HCUP sentinel values, and invalid codes produce
+#' missing outcomes.
 #'
 #' @param .data A data frame or lazy DuckDB table with numeric `LOS` and
 #'   `DISPUNIFORM` fields and numeric or logical `DIED`. Apply this before
@@ -23,7 +25,8 @@
 #'     enforcement) and 99 (alive, destination unknown) are valid codes.
 #'
 #'   For a lazy DuckDB input, the result is a lazy query.
-#' @seealso [Hospitalization outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.html), [nis_cost()]
+#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
+#'   [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html), [nis_cost()]
 #' @export
 #' @examples
 #' nis_open(nis_example(years = 2024)) |>
