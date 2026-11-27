@@ -11,7 +11,7 @@ and keep the columns needed by the summary and model.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdxSPiy/duckdb
+#> ℹ /tmp/Rtmpp724MV/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +19,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdxSPiy/duckdb
+#> ℹ /tmp/Rtmpp724MV/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -199,3 +199,46 @@ weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md),
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
 and [Disclosure and
 suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
+
+## Whole-sample estimation on a laptop
+
+Use
+[`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
+to estimate means and totals when discharge rows would take too much
+memory. It uses a nested Taylor design with hospital-year PSUs and
+year-specific strata. DuckDB scans the Parquet data and sends weighted
+PSU sums to R. Use [`subset()`](https://rdrr.io/r/base/subset.html) or
+[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
+on the design to estimate a domain. Filtering the query before
+constructing the design changes the sample.
+
+``` r
+
+whole <- nis_survey(nis_open(nis_example(2019:2020)))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpp724MV/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpp724MV/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+survey::svyby(~LOS, ~YEAR, subset(whole, AGE >= 65), survey::svymean)
+#>      YEAR      LOS        se
+#> 2019 2019 4.577143 0.4142243
+#> 2020 2020 4.577143 0.4142243
+```
+
+Use
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+for row-level cohort analysis, including quantiles, chi-square tests,
+[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html),
+and IPTW. Use the disclosure workflow before sharing results.

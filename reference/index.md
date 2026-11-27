@@ -61,6 +61,8 @@ Build survey designs and apply optional reweighting.
 
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   : Prepare a cohort survey design
+- [`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
+  : Create a lazy whole-sample NIS survey design
 - [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   : Reweight a cohort survey design
 - [`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md)
