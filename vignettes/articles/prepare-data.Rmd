@@ -73,6 +73,21 @@ the diagnosis and procedure columns used in your study. If one fails
 with malformed UTF-8, reconvert from the correctly encoded source into
 a new directory and review the release check.
 
+Use `nis_open(reader = "arrow")` when you need to preserve the source bytes,
+including malformed UTF-8. During an Arrow-backed query, easyNIS caps Arrow's
+CPU worker pool at the DuckDB thread count from when the source was opened.
+Set `options(easyNIS.duckdb_config = list(threads = 4L, memory_limit = "4 GiB"))`
+before opening the data to use a four-thread DuckDB profile. A smaller
+`threads` value can reduce scan memory further.
+
+DuckDB's `memory_limit` governs its buffer manager. Budget separately for
+Arrow's decoded Parquet batches, which depend on the projected columns and
+file layout, and for the R objects created by collection. Both readers
+materialize cohort rows in R for `nis_design()`. Keep only the years and
+columns needed for the analysis and pass the needed analysis columns in
+`keep`. For estimators supported by `nis_survey()`, leaving the discharge
+rows in DuckDB avoids materializing the cohort in R.
+
 ## Join companion files
 
 ```{r existing-fields}
