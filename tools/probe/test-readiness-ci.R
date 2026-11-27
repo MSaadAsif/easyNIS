@@ -3,6 +3,7 @@ source(file.path("tools", "probe", "readiness-ci.R"))
 synthetic_commit <- "synthetic-commit"
 main_run <- list(
   name = "R-CMD-check",
+  event = "push",
   status = "completed",
   conclusion = "success",
   headSha = synthetic_commit
@@ -14,11 +15,12 @@ stopifnot(
   !ci_runs_succeeded(synthetic_response, "different-commit")
 )
 
-for (field in c("name", "status", "conclusion", "headSha")) {
+for (field in c("name", "event", "status", "conclusion", "headSha")) {
   altered_run <- main_run
   altered_run[[field]] <- switch(
     field,
     name = "Lint",
+    event = "pull_request",
     status = "in_progress",
     conclusion = "failure",
     headSha = "different-commit"
@@ -32,7 +34,7 @@ similar_workflow$name <- "backup R-CMD-check"
 stopifnot(!ci_runs_succeeded(jsonlite::toJSON(list(similar_workflow), auto_unbox = TRUE), synthetic_commit))
 
 suffix_only <- stats::setNames(main_run, paste0(names(main_run), "_other"))
-duplicate <- '{"name":"R-CMD-check","headSha":"synthetic-commit","status":"completed","conclusion":"success","conclusion":"failure"}'
+duplicate <- '{"name":"R-CMD-check","event":"push","headSha":"synthetic-commit","status":"completed","conclusion":"success","conclusion":"failure"}'
 stopifnot(
   !ci_runs_succeeded(jsonlite::toJSON(list(suffix_only), auto_unbox = TRUE), synthetic_commit),
   !ci_runs_succeeded(paste0("[", duplicate, "]"), synthetic_commit)

@@ -25,6 +25,7 @@ list.files(path)
 \href{articles/opening-data.html}{Opening NIS data}.
 
 Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
 \code{\link[=nis_label]{nis_label()}},
 \code{\link[=nis_open]{nis_open()}}
 }

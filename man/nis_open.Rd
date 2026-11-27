@@ -100,7 +100,20 @@ Cohort extracts are expected to differ from the published totals. Use
 \section{Large data}{
 
 The query stays in DuckDB until you collect it. Filter, project, and summarize
-before collecting. Set the named list option \code{easyNIS.duckdb_config} before
+before collecting. A memory check applies to \code{\link[dplyr:collect]{dplyr::collect()}}, including
+\code{as.data.frame()} on these lazy tables, and to easyNIS helpers that collect
+DuckDB results. It estimates the size of the result from DuckDB's query plan
+and the projected column types. It uses a small sample to refine text widths
+for simple Parquet reads and counts the result rows before denying a collect.
+Estimates for filtered queries and variable-width
+columns can be inaccurate, and the check cannot predict DuckDB's working
+memory or memory used by subsequent R operations.
+Estimated results from 20\% of available physical memory emit a message; at
+50\% or more the check raises an \code{easyNIS_collect_too_large} error. If system
+memory is unavailable, collection proceeds with a one-time notice. Use
+\code{options(easyNIS.collect_prudence = FALSE)} to skip the check.
+
+Set the named list option \code{easyNIS.duckdb_config} before
 opening to tune \code{memory_limit}, \code{threads}, \code{temp_directory},
 \code{max_temp_directory_size}, or \code{preserve_insertion_order}. The package
 assigns each query its own spill location under the supplied private
@@ -123,6 +136,7 @@ nis_open(path, years = 2020) |>
 \href{articles/opening-data.html}{Opening NIS data}.
 
 Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
 \code{\link[=nis_example]{nis_example()}},
 \code{\link[=nis_label]{nis_label()}}
 }

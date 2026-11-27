@@ -116,7 +116,9 @@ check_private_data <- function() {
   marked <- scan_staged_blobs(sizes[sizes <= limit], input, output, private_strings)
   paths <- index$path
   synthetic <- grepl("^inst/extdata/synthetic(/|$)", paths)
-  data_file <- !synthetic & grepl(data_extension, paths, ignore.case = TRUE)
+  # Public AHRQ CCSR reference tables.
+  public_ccsr <- paths %in% c("inst/ccsr/map.parquet", "inst/ccsr/categories.parquet")
+  data_file <- !(synthetic | public_ccsr) & grepl(data_extension, paths, ignore.case = TRUE)
   findings <- c(
     sprintf("data extension: %s", paths[data_file]),
     sprintf("larger than 1 MB (%0.2f MB): %s", sizes[index$id[large]] / limit, paths[large])

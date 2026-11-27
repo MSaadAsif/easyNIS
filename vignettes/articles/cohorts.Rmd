@@ -31,26 +31,31 @@ a principal-only diagnosis flag, call `nis_flag_dx()` with
 `position = "principal"`; use `"secondary"` for slots after the principal one.
 `nis_flag_pr()` supports `"any"` and `"principal"`.
 
-## Use a CCSR reference file
+## Classify diagnoses and procedures with CCSR
 
-easyNIS does not ship clinical code lists. `nis_ccsr_codes()` reads an
-analyst-supplied HCUP reference file; the example below writes a tiny invented
-CSV file and removes it after use.
+`nis_add_ccsr()` matches complete ICD-10 codes to the bundled AHRQ mappings
+in DuckDB. An any-slot search returns a list of distinct categories for
+each discharge. Supply `categories` to keep only the categories relevant to
+the study. For a mutually exclusive grouping by principal diagnosis, use
+`position = "default"` to return the inpatient default category.
 
 ```{r ccsr}
-reference <- tempfile(fileext = ".csv")
-writeLines(c(
-  "'ICD-10-CM CODE','CCSR CATEGORY 1','DEFAULT CCSR CATEGORY IP'",
-  "'I5022','CIR019','CIR019'",
-  "'I509','CIR019','CIR019'"
-), reference)
-codes <- nis_ccsr_codes(reference, "CIR019", default_only = TRUE)
-unlink(reference)
-codes
+nis |>
+  nis_add_ccsr(categories = "CIR019", name = "hf_categories") |>
+  nis_add_ccsr(position = "default", name = "principal_ccsr") |>
+  dplyr::filter(length(hf_categories) > 0L) |>
+  dplyr::count(principal_ccsr) |>
+  dplyr::collect()
 ```
 
-The returned values are codes from the invented mapping. Check supported
-layouts and version assumptions in [`nis_ccsr_codes()`](../reference/nis_ccsr_codes.html).
+Use `type = "pr"` for procedures. The default release selection covers Q4
+2015 and calendar years 2016–2024 with the bundled v2025.1. ICD-9 and years
+outside the bundled coverage yield missing results. Pin `version = "2025.1"`
+to use the same definitions across years and to include Q1–Q3 2025 if `DQTR`
+is present. Report the CCSR version in the study methods. [Agency for
+Healthcare Research and Quality, Healthcare Cost and Utilization Project.
+Clinical Classifications Software Refined (CCSR), v2025.1, November
+2024.](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccsr_archive.jsp)
 
 ## Add procedure timing
 
@@ -74,18 +79,62 @@ known day.
 
 ## Count cohort steps
 
-`nis_attrition()` reports sequential unweighted and weighted counts for
-conditions supplied in order.
+Define the eligibility rules once in `nis_attrition()`. With `.design = TRUE`,
+the baseline includes discharges with valid survey design fields. Missing
+criterion values exclude discharges at that step. Inject the combined rule
+with `!!nis_attrition_cohort(flow)` to use the same eligibility criteria in
+`nis_design()`.
 
 ```{r attrition}
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
-nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure)
+flow <- nis_attrition(
+  nis, adults = AGE >= 18, heart_failure = heart_failure, .design = TRUE
+)
+flow
+
+design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
+dplyr::summarise(design, discharges = srvyr::unweighted(dplyr::n()))
 ```
 
-Each row shows the remaining fixture discharges after applying that step.
+Pass the same input to both calls so the last unweighted attrition count is
+the survey domain denominator. The design retains the sampling structure of
+hospital-years with zero eligible discharges. Leave `.design` at its default
+when the attrition table should start with every discharge in the input.
 For alternate diagnosis positions and changes over time, see [Code transitions
 and sensitivity](code-transitions.html).
+
+## Save a cohort for another session
+
+Pass the full lazy sample and the eligibility rule to `nis_write_cohort()`.
+Keep the columns you expect to use in later analyses. The writer creates a
+new directory with yearly Parquet parts and saves the eligibility expression,
+source years, and easyNIS version in each part's metadata.
+
+```{r save-cohort}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
+                         keep = c(AGE, LOS))
+
+# In a later session
+design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
+design |>
+  dplyr::filter(AGE >= 65) |>
+  dplyr::summarise(discharges = srvyr::survey_total())
+```
+
+The saved cohort carries one placeholder per sampled hospital-year with no
+eligible discharge. This preserves the survey variance structure, including
+whole strata and years where the cohort is empty. Annualization still uses
+all years with valid design records. Keep the original design run if you need
+its invalid-design exclusion counts or full-sample quarter coverage.
+
+Apply additional patient filters to the survey design after reopening.
+When inspecting raw Parquet rows, use `dplyr::filter(.in_cohort)` before
+counting discharges. To re-save a cohort with fewer columns, pass its reopened
+query to `nis_write_cohort()` and omit `cohort`. To change the eligibility rule,
+return to the source sample.
 
 ## Common pitfalls
 

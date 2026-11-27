@@ -81,5 +81,10 @@ nis_reweight <- function(design, weights) {
     nis_cost_provenance(design)
   )
   nis_cohort_check_rebuild(design, reweighted, call)
+  input <- attr(design, "nis_design_input", exact = TRUE)
+  if (!is.null(input)) {
+    input$reweighted <- TRUE
+    attr(reweighted, "nis_design_input") <- input
+  }
   reweighted
 }

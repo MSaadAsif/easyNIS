@@ -1,0 +1,1 @@
+- `nis_write_cohort()` saves cohort discharges and hospital-year placeholders as Parquet for reuse in `nis_design()` without rescanning the original sample.

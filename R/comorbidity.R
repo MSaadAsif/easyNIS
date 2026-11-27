@@ -1,238 +1,204 @@
-#' Add AHRQ Elixhauser comorbidity columns (experimental)
+#' Add comorbidity indicators and scores (experimental)
 #'
-#' Reshapes the wide `I10_DX1`, `I10_DX2`, ... columns of a collected data frame
-#' to one row per code, hands them to [medicalcoder::comorbidities()], and
-#' joins the result back in the original row order. All code-to-condition
-#' mapping and index weights come from the
-#' [medicalcoder](https://CRAN.R-project.org/package=medicalcoder) package, which
-#' ships the AHRQ Elixhauser Comorbidity Software Refined for ICD-10-CM tables;
-#' easyNIS holds no clinical code lists. Install it with
-#' `install.packages("medicalcoder")`.
+#' DuckDB unpivots diagnosis slots, maps codes to conditions, and applies
+#' present-on-admission and hierarchy rules within each discharge. Lazy queries
+#' stay in DuckDB. The function runs a key and diagnosis-availability check
+#' before returning the score query. Collected data frames keep their row order.
 #'
-#' The function is experimental: the default method and the assumptions below
-#' remain pending scientific approval.
-#'
-#' @section Assumptions:
-#' * **Present on admission uses available diagnosis indicators.** Matching
-#'   `DXPOAn` columns are aligned with `I10_DXn`; `Y` and `W` map to present,
-#'   while `N` and `U` map to not present. Other values, including `1` and
-#'   invalid UTF-8 values, are treated as unknown. `medicalcoder` applies its
-#'   POA-exempt code table, based
-#'   on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
-#'   adjusted for discharge date, so exempt-code results can differ slightly
-#'   from AHRQ software across fiscal years. If a matching POA column is absent,
-#'   that diagnosis is assumed present to retain compatibility with older years
-#'   and inputs that did not keep POA fields. A warning names the affected slots;
-#'   their POA-dependent comorbidities may include conditions acquired in
-#'   hospital. AHRQ's refined software requires POA to assign 18 of 38 measures
-#'   and returns missing results when required POA data are unavailable
-#'   ([AHRQ User Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
-#'   Thus, results can change for inputs that include POA fields: AHRQ's refined
-#'   Elixhauser method requires POA for 18 of its 38 measures.
-#' * **Principal diagnosis** is `I10_DX1`. It is passed as the primary
-#'   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for example, a
-#'   condition is not flagged from the principal diagnosis alone where AHRQ
-#'   excludes it). Codes in `I10_DX2` onward are secondary.
-#'   Only positive slot suffixes without leading zeros are recognized;
-#'   malformed names such as `I10_DX0` and `I10_DX01` are ignored.
-#' * **ICD-10 only.** Only the `I10_DX*` columns are read. A discharge with no
-#'   usable `I10_DX*` code (all blank, missing or invalid UTF-8), such as an ICD-9
-#'   discharge from before October 2015, gets `NA` in every added column, and
-#'   the function warns with the number of such rows. Do not treat those `NA`
-#'   values as "no comorbidity".
-#' * Codes are upper-cased with periods and spaces removed. Blank, missing or
-#'   invalid UTF-8 codes are ignored, and an unmapped code adds no condition. A
-#'   discharge with at least one usable but unmapped code gets zeros.
-#' * The long reshaping holds about 40 diagnosis columns by every row in memory.
-#'   Use it on a cohort, not on the full national file.
-#'
-#' @section Differences from the Stata-derived columns:
-#' NIS studies often already carry `ynel*` indicators and `elixsum`, derived in
-#' Stata from an earlier Elixhauser release. They are not reproduced here and
-#' should not be expected to agree: the AHRQ Refined software uses different
-#' condition definitions and categories (for example, hypertension with and
-#' without heart failure or renal failure, and separate liver, neurological and
-#' cancer subtypes), POA-dependent flagging, and the principal-diagnosis rule
-#' above. Do not mix the two sets of indicators in one model.
+#' @section Coding and present on admission:
+#' * Use ICD-10-CM `I10_DX*` or ICD-9-CM `DX*` slots as supported by the
+#'   method. The first slot identifies the principal diagnosis and is excluded
+#'   from flags. When supplied, `YEAR`, `DQTR` and `DXVER` identify eligible
+#'   diagnosis slots. Deyo also reads eligible ICD-9-CM `PR*` slots when
+#'   available and mapped. Keep ICD-9 codes as strings to retain leading zeros.
+#' * Codes use uppercase with periods and ASCII whitespace removed. Rows with
+#'   usable codes that map to no conditions receive zeros. Rows without usable
+#'   codes for the method receive missing scores and trigger a warning.
+#' * Refined AHRQ and Charlson align `DXPOAn` to the diagnosis suffix `n`.
+#'   `Y` and `W` mean present, `N` and `U` mean absent, and other values
+#'   including `1` mean unknown. Refined AHRQ also uses code-specific
+#'   exemptions. For methods sourced from medicalcoder, repeated diagnoses
+#'   that map to the same category and exemption state follow its data.frame
+#'   precedence (unknown, then present, then absent).
+#' * If a matching POA field is absent, easyNIS warns and assumes those
+#'   diagnoses were present. NIS releases generally lack POA indicators, so
+#'   this assumption can count conditions acquired during a hospital stay.
+#'   AHRQ's software leaves 18 of 38 measures unset when POA is unavailable.
+#' * `elixhauser_ahrq2027` selects its exemption list using the discharge
+#'   fiscal year (calendar `YEAR` plus one for `DQTR == 4`). When the
+#'   quarter is missing it uses the calendar year. When the year is missing
+#'   or after the release, it uses the latest fiscal year in the release.
+#'   The other refined methods use medicalcoder's fixed exemptions.
 #'
 #' @section Use with `nis_design()`:
-#' `nis_design()` needs the whole hospital-year frame to build placeholder rows,
-#' so do not collect and enrich the cohort before calling it. Keep the diagnosis
-#' columns in the design instead, then pass the design here:
+#' Retain diagnosis slots and available POA fields using `keep`, then pass
+#' the design to `nis_comorbidity()`. For a `tbl_svy`, only the design's
+#' variables are enriched. The clusters, strata and weights are preserved.
 #'
-#' ```r
-#' design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
-#' design <- nis_comorbidity(design)
-#' ```
+#' @param .data A data frame, a `tbl_svy` from [nis_design()], or a lazy DuckDB
+#'   query. Lazy input requires non-missing, unique `KEY_NIS`, or unique pairs
+#'   of `YEAR` and `KEY_NIS` when `YEAR` is present. Keep `YEAR` when
+#'   pooling years.
+#' @param method Comorbidity definition. The default `"elixhauser_ahrq_icd10"`
+#'   uses the medicalcoder ICD-10-CM union. `"elixhauser_ahrq2022"` through
+#'   `"elixhauser_ahrq2027"` select a specific release. Use
+#'   `"charlson_quan2005"` for Quan coding with original Charlson weights,
+#'   `"charlson_quan2011"` for the same coding with Quan 2011 weights, and
+#'   `"charlson_deyo1992"` for Deyo ICD-9-CM coding with original weights.
+#'   `"elixhauser_quan2005"` uses Quan ICD-9-CM or ICD-10 coding and legacy
+#'   AHRQ weights. `"elixhauser_ahrq_web"` and `"elixhauser_elixhauser1998"`
+#'   replicate medicalcoder's legacy ICD-9 code-based algorithms. All methods
+#'   except FY2027 require the optional medicalcoder package.
+#' @param prefix Prefix for the added columns. Choose a prefix that does not
+#'   collide with an existing name.
 #'
-#' For a `tbl_svy` the function replaces `design$variables` and leaves the
-#' design (clusters, strata, weights) untouched.
-#'
-#' @param .data A collected data frame with `I10_DX1`, `I10_DX2`, ... columns,
-#'   or a `tbl_svy` from [nis_design()] that kept them. Lazy DuckDB queries are
-#'   not accepted; call `dplyr::collect()` first.
-#' @param method A `medicalcoder` Elixhauser method name. The default,
-#'   `"elixhauser_ahrq_icd10"`, is the union of every ICD-10 code AHRQ has
-#'   listed since FY2022, which suits NIS years pooled across code-set updates.
-#'   Use `"elixhauser_ahrq2022"` through `"elixhauser_ahrq2026"` to pin one
-#'   AHRQ release.
-#' @param prefix Prefix for the added columns. Existing columns are never
-#'   replaced.
-#'
-#' @return `.data` with one logical column per condition (`<prefix>hf`, ...),
-#'   `<prefix>n` (conditions flagged), `<prefix>any`, and the integer
-#'   `<prefix>mortality_index` and `<prefix>readmission_index` scores, using the
-#'   names and weights from `medicalcoder`. Rows with no usable `I10_DX*` code
-#'   are `NA` in all of them; see the Assumptions section.
+#' @return `.data` with logical condition flags and `<prefix>any`, the
+#'   integer count `<prefix>n`, and either `<prefix>mortality_index` and
+#'   `<prefix>readmission_index` (Elixhauser) or `<prefix>cci` (Charlson).
+#'   Charlson scores are based on diagnoses and any mapped procedures without
+#'   an age adjustment.
 #' @family comorbidity
 #' @seealso [Comorbidity indicators](articles/comorbidity.html).
 #' @export
-#' @examplesIf rlang::is_installed("medicalcoder", version = "0.10.0")
-#' discharges <- nis_open(nis_example(years = 2019)) |>
-#'   dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
-#'   dplyr::collect()
-#' comorbid <- nis_comorbidity(discharges)
-#' comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+#' @examples
+#' discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")
+#' nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
 nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_") {
-  rlang::check_installed("medicalcoder", version = "0.10.0", reason = "to compute AHRQ Elixhauser comorbidities.")
-  nis_comorbidity_method(method)
-  nis_comorbidity_prefix(prefix)
+  rlang::check_installed("medicalcoder", version = "0.10.0", reason = "to look up comorbidity mappings.")
+  spec <- nis_comorbidity_spec(method)
+  if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
+    cli::cli_abort("`prefix` must be a single string.")
+  }
   design <- inherits(.data, "tbl_svy")
   records <- if (design) .data$variables else .data
-  columns <- nis_comorbidity_validate_data(records)
-  result <- nis_comorbidity_score(records, method, prefix, columns$slots, columns$slot_number)
-  if (!design) {
-    return(result)
+  slots <- nis_comorbidity_slots(records, spec)
+  added <- paste0(prefix, c(tolower(spec$conditions), "n", "any", names(spec$weights)))
+  lazy <- inherits(records, "tbl_sql")
+  nis_comorbidity_check_clash(added, colnames(records), lazy)
+  if (lazy) {
+    return(nis_comorbidity_lazy(records, spec, slots, added))
   }
-  .data$variables <- result
+
+  records[added] <- nis_comorbidity_frame(records, spec, slots, added)
+  if (!design) {
+    return(records)
+  }
+  .data$variables <- records
   .data
 }
 
-nis_comorbidity_method <- function(method) {
-  valid <- is.character(method) && length(method) == 1L && !is.na(method) && startsWith(method, "elixhauser_")
-  if (!valid) {
-    cli::cli_abort("`method` must be one Elixhauser method name, such as {.val elixhauser_ahrq_icd10}.")
-  }
-}
-
-nis_comorbidity_prefix <- function(prefix) {
-  valid <- is.character(prefix) && length(prefix) == 1L && !is.na(prefix)
-  if (!valid) {
-    cli::cli_abort("`prefix` must be a single string.")
-  }
-}
-
-nis_comorbidity_validate_data <- function(.data) {
-  if (!is.data.frame(.data)) {
-    cli::cli_abort("`.data` must be a collected data frame or a {.cls tbl_svy}; call {.fn dplyr::collect} first.")
+nis_comorbidity_slots <- function(records, spec) {
+  lazy <- inherits(records, "tbl_sql") && inherits(dbplyr::remote_con(records), "duckdb_connection")
+  if (!lazy && !is.data.frame(records)) {
+    cli::cli_abort("`.data` must be a collected data frame, a {.cls tbl_svy}, or a lazy DuckDB query.")
   }
 
-  slot_ids <- nis_code_slots(names(.data), "I10_DX")
-  slots <- names(slot_ids)
-  if (length(slots) == 0L) {
+  fields <- colnames(records)
+  slots <- lapply(spec$systems, function(system) {
+    stem <- nis_code_stem("DX", paste0("icd", system))
+    ids <- nis_code_slots(fields, stem)
+    if (!length(ids)) {
+      return(NULL)
+    }
+    if (!"1" %in% ids) {
+      cli::cli_abort(c(
+        "{.field {paste0(stem, '1')}} is required because it identifies the principal diagnosis.",
+        i = "When using `nis_design()`, retain the principal diagnosis with `keep`."
+      ))
+    }
+    data.frame(
+      name = names(ids),
+      kind = "DX",
+      version = system,
+      principal = ids == "1",
+      poa = if (spec$poa) paste0("DXPOA", ids) else NA_character_
+    )
+  })
+  slots <- do.call(rbind, slots)
+  if (is.null(slots)) {
+    era <- paste(paste0("ICD-", spec$systems), collapse = " or ")
     cli::cli_abort(c(
-      "`.data` has no ICD-10 diagnosis columns (`I10_DX1`, `I10_DX2`, ...).",
-      i = "When using `nis_design()`, retain them with `keep = dplyr::starts_with('I10_DX')`."
+      "`.data` has no {era} diagnosis columns.",
+      i = "When using `nis_design()`, retain them with `keep`."
     ))
   }
-  slot_number <- unname(slot_ids)
-  if (!"I10_DX1" %in% slots) {
-    cli::cli_abort(c(
-      "`I10_DX1` is required because it identifies the principal diagnosis.",
-      i = "When using `nis_design()`, retain it with `keep = dplyr::starts_with('I10_DX')`."
-    ))
+  if (isTRUE(spec$procedures) && 9L %in% slots$version) {
+    pr <- names(nis_code_slots(fields, "PR"))
+    if (length(pr)) {
+      slots <- rbind(slots, data.frame(name = pr, kind = "PR", version = 9L, principal = FALSE, poa = NA_character_))
+    }
   }
-  list(slots = slots, slot_number = slot_number)
+  slots
 }
 
-nis_comorbidity_score <- function(.data, method, prefix, slots, slot_number) {
-  n <- nrow(.data)
-  long <- nis_comorbidity_long(.data, slots, slot_number, n)
-  long <- long[!is.na(long$code) & nzchar(long$code), , drop = FALSE]
+nis_comorbidity_lazy <- function(records, spec, slots, added) {
+  keys <- intersect(c("YEAR", "KEY_NIS"), colnames(records))
+  if (!"KEY_NIS" %in% keys) {
+    cli::cli_abort("Lazy comorbidity scoring requires `KEY_NIS`. Retain `YEAR` when pooling years.")
+  }
+  con <- dbplyr::remote_con(records)
+  inputs <- nis_cmrb_inputs(records, slots, keys, spec$fiscal_exemptions)
+  quoted_keys <- DBI::dbQuoteIdentifier(con, keys)
+  unusable <- nis_cmrb_validate_keys(con, inputs, quoted_keys, keys)
+  nis_comorbidity_warn_poa(slots, colnames(records))
+  nis_comorbidity_warn_unusable(unusable, spec$systems)
+  sql <- nis_cmrb_score_sql(con, inputs, quoted_keys, spec, added)
+  scores <- dplyr::tbl(con, dbplyr::sql(sql), vars = c(keys, added))
+  dplyr::left_join(records, scores, by = keys)
+}
 
-  result <- medicalcoder::comorbidities(
-    long,
-    icd.codes = "code",
-    id.vars = ".row",
-    method = method,
-    icdv = 10L,
-    dx = 1L,
-    poa.var = "poa",
-    primarydx.var = "primary"
-  )
-  added <- nis_comorbidity_columns(result, n, long$.row, prefix)
-  clash <- intersect(names(added), names(.data))
+nis_comorbidity_frame <- function(records, spec, slots, added) {
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  nis_comorbidity_warn_poa(slots, names(records))
+  extra <- intersect(c("YEAR", "DQTR", "DXVER", "PRVER"), names(records))
+  fields <- intersect(c(slots$name, slots$poa), names(records))
+  input <- as.data.frame(records[unique(c(fields, extra))])
+  input[fields] <- lapply(input[fields], function(value) {
+    value <- as.character(value)
+    value[!validUTF8(value)] <- NA_character_
+    value
+  })
+  input$.nis_cmrb_row <- seq_len(nrow(records))
+  duckdb::duckdb_register(con, "discharges", input)
+
+  key <- ".nis_cmrb_row"
+  inputs <- nis_cmrb_inputs(dplyr::tbl(con, "discharges"), slots, key, spec$fiscal_exemptions)
+  sql <- nis_cmrb_score_sql(con, inputs, DBI::dbQuoteIdentifier(con, key), spec, added)
+  scores <- DBI::dbGetQuery(con, sql)
+  rows <- match(input$.nis_cmrb_row, scores$.nis_cmrb_row)
+  nis_comorbidity_warn_unusable(sum(is.na(rows)), spec$systems)
+  as.list(scores[rows, added, drop = FALSE])
+}
+
+nis_comorbidity_check_clash <- function(added, existing, lazy) {
+  clash <- if (lazy) {
+    added[nis_sql_identifier_key(added) %in% nis_sql_identifier_key(existing)]
+  } else {
+    intersect(added, existing)
+  }
   if (length(clash) > 0L) {
     cli::cli_abort(c(
       "Comorbidity columns would replace existing column{?s} {.val {clash}}.",
       i = "Choose a different `prefix`."
     ))
   }
-  .data[names(added)] <- added
-  .data
 }
 
-nis_comorbidity_long <- function(.data, slots, slot_number, n) {
-  codes <- unlist(lapply(.data[slots], as.character), use.names = FALSE)
-  codes[!validUTF8(codes)] <- NA_character_
-  poa_fields <- paste0("DXPOA", slot_number)
-  missing_poa <- poa_fields[!poa_fields %in% names(.data)]
-  if (length(missing_poa) > 0L) {
-    missing_slots <- paste(sub("DXPOA", "I10_DX", missing_poa), collapse = ", ")
+nis_comorbidity_warn_poa <- function(slots, existing) {
+  missing <- slots$name[!is.na(slots$poa) & !slots$poa %in% existing]
+  if (length(missing) > 0L) {
+    missing_slots <- paste(missing, collapse = ", ")
     cli::cli_warn(c(
-      paste0(
-        "No matching POA column for ",
-        length(missing_poa),
-        " diagnosis slots: ",
-        missing_slots,
-        ". Assuming present."
-      ),
+      "No matching POA column for {length(missing)} diagnosis slots: {missing_slots}. Assuming present.",
       i = "POA-dependent comorbidities may include conditions acquired in hospital."
     ))
   }
-  poa <- unlist(
-    lapply(seq_along(slot_number), function(i) {
-      field <- poa_fields[[i]]
-      if (!field %in% names(.data)) {
-        return(rep(1L, n))
-      }
-      value <- as.character(.data[[field]])
-      value[!validUTF8(value)] <- NA_character_
-      value <- toupper(value)
-      unname(c(N = 0L, U = 0L, W = 1L, Y = 1L)[value])
-    }),
-    use.names = FALSE
-  )
-  data.frame(
-    .row = rep(seq_len(n), times = length(slots)),
-    code = toupper(gsub("[.[:space:]]", "", codes)),
-    primary = as.integer(rep(slot_number == 1L, each = n)),
-    poa = poa,
-    stringsAsFactors = FALSE
-  )
 }
 
-nis_comorbidity_columns <- function(result, n, usable_rows, prefix) {
-  result <- as.data.frame(result)
-  counts <- c("num_cmrb", "mortality_index", "readmission_index")
-  columns <- setdiff(names(result), ".row")
-  usable <- seq_len(n) %in% usable_rows
-  unusable_count <- sum(!usable)
-  if (unusable_count > 0L) {
-    cli::cli_warn(c(
-      "{unusable_count} row{?s} {?has/have} no usable `I10_DX*` code; comorbidity columns are `NA` for {?it/them}.",
-      i = "Pre-October-2015 (ICD-9) discharges have no ICD-10 diagnoses, so they cannot be scored."
-    ))
+nis_comorbidity_warn_unusable <- function(count, systems) {
+  if (count > 0L) {
+    era <- paste(paste0("ICD-", systems), collapse = " or ")
+    cli::cli_warn("{count} row{?s} {?has/have} no usable {era} code; comorbidity columns are `NA` for {?it/them}.")
   }
-  added <- lapply(stats::setNames(columns, columns), function(column) {
-    value <- result[[column]][match(seq_len(n), result$.row)]
-    value[usable & is.na(value)] <- 0L
-    value[!usable] <- NA
-    if (column %in% counts) as.integer(value) else value == 1L
-  })
-  names(added) <- paste0(
-    prefix,
-    ifelse(columns == "num_cmrb", "n", ifelse(columns == "cmrb_flag", "any", tolower(columns)))
-  )
-  added
 }

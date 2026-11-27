@@ -2,9 +2,18 @@
 % Please edit documentation in R/attrition.R
 \name{nis_attrition}
 \alias{nis_attrition}
+\alias{nis_attrition_cohort}
 \title{Summarize sequential cohort attrition}
 \usage{
-nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
+nis_attrition(
+  .data,
+  ...,
+  by_year = FALSE,
+  weight_var = "DISCWT",
+  .design = FALSE
+)
+
+nis_attrition_cohort(flow)
 }
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query.}
@@ -16,10 +25,22 @@ expressions use their deparsed text as the criterion label.}
 
 \item{weight_var}{Name of the discharge weight column. Defaults to
 \code{"DISCWT"}.}
+
+\item{.design}{If \code{TRUE}, count only discharges with valid survey design
+fields, using the policy in \code{\link[=nis_design]{nis_design()}}. Criteria still evaluate over
+the full ungrouped input. Use \code{cohort = !!nis_attrition_cohort(flow)} with
+the same input to build the survey design from the rules in \code{flow}. Use
+deterministic criteria, since they are evaluated by both functions.}
+
+\item{flow}{Result from \code{nis_attrition(..., .design = TRUE)}.}
 }
 \value{
-A tibble with one initial row (\code{step = 0}) and one row per
-criterion. When \code{by_year = TRUE}, \code{YEAR} is the first column.
+\code{nis_attrition()} returns a tibble with one initial row (\code{step = 0})
+and one row per criterion. When \code{by_year = TRUE}, \code{YEAR} is the first
+column. With \code{.design = TRUE}, the initial row counts valid design
+discharges and the tibble stores the combined cohort expression.
+\code{nis_attrition_cohort()} extracts that expression for injection with \verb{!!}
+into \code{cohort} in \code{\link[=nis_design]{nis_design()}}.
 }
 \description{
 Applies logical criteria cumulatively and reports remaining and dropped
@@ -36,9 +57,13 @@ toy_nis <- dplyr::tibble(
   AGE = c(16, 45, 60, 72, 55),
   ELECTIVE = c(1, 1, 0, 1, 1),
   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
+  HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
+  NIS_STRATUM = rep(1L, 5),
   YEAR = rep(2020L, 5)
 )
 nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
+flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
+nis_attrition_cohort(flow)
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.

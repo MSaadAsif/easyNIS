@@ -112,6 +112,8 @@ manual_guide_pass <- with(
     nis_prefix_consistent &&
     identical(exports_without_data_first_argument, "nis_example")
 )
+run_evidence$working_tree_clean <- isTRUE(run_evidence$working_tree_clean) &&
+  identical(run_evidence, git_evidence())
 records <- lapply(checks, quality_record, evidence = run_evidence)
 records[[length(records) + 1L]] <- list(
   step = quality_receipt_ids[["export_documentation"]],
@@ -130,7 +132,7 @@ records[[length(records) + 1L]] <- list(
   evidence = checklist
 )
 coverage_check <- checks$coverage
-coverage_record <- coverage_percent_record(coverage_check, run_evidence, covr::percent_coverage, provenance_pass)
+coverage_record <- coverage_percent_record(coverage_check, run_evidence, covr::percent_coverage)
 if (!is.null(coverage_record)) {
   records[[length(records) + 1L]] <- coverage_record
 }

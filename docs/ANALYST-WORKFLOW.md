@@ -9,8 +9,8 @@ easyNIS provides pipe-friendly tools for preparing National Inpatient Sample
 
 Open annual Parquet files with `nis_open()`. The package preserves the source
 records and offers helpers for diagnosis and procedure flags, labels,
-comorbidity scores, and inflation-adjusted costs. `nis_ccsr_codes()` reads an
-HCUP CCSR reference file so analysts can build study-specific code lists.
+comorbidity scores, and inflation-adjusted costs. `nis_add_ccsr()` classifies
+ICD-10 diagnoses and procedures in DuckDB using bundled HCUP mappings.
 Use `nis_example()` to explore the API with invented data.
 
 ## Design and estimate

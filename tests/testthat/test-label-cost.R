@@ -25,7 +25,7 @@ test_that("cost adjustment validates inputs and preserves missing amounts", {
 
 test_that("nis_label maps common codes and preserves existing labels", {
   data <- dplyr::tibble(
-    DIED = c(0, 1, 0),
+    DIED = c(0, 1, NA),
     FEMALE = c(0, 1, 0),
     RACE = c(1, 2, 3),
     PAY1 = c(1, 2, 3),
@@ -37,17 +37,16 @@ test_that("nis_label maps common codes and preserves existing labels", {
     ynel1 = structure(c(0, 1, NA_real_), label = "Existing Elixhauser label")
   )
 
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DISPUNIFORM")
-  expect_identical(levels(labelled$DIED), c("No", "Yes"))
-  expect_identical(as.character(labelled$DIED), c("No", "Yes", "No"))
-  expect_identical(levels(labelled$FEMALE), c("Male", "Female"))
+  expect_no_warning(labelled <- nis_label(data))
+  expect_identical(as.vector(labelled$DIED), c(FALSE, TRUE, NA))
+  expect_identical(as.vector(labelled$FEMALE), c(FALSE, TRUE, FALSE))
   expect_identical(levels(labelled$RACE)[[1L]], "White")
   expect_identical(levels(labelled$PAY1)[[1L]], "Medicare")
   expect_identical(
     as.character(labelled$DISPUNIFORM),
     c(
       "Died in hospital",
-      "Code 21",
+      "Discharged/transferred to court/law enforcement",
       "Alive, destination unknown"
     )
   )
@@ -62,14 +61,13 @@ test_that("nis_label maps common codes and preserves existing labels", {
   expect_identical(nis_label(labelled), labelled)
 })
 
-test_that("nis_label maps logical fields and skips internal columns", {
+test_that("nis_label preserves logical fields and skips internal columns", {
   data <- dplyr::tibble(
     ready = c(TRUE, FALSE, NA),
     `.internal` = c("leave", "as", "is")
   )
   labelled <- nis_label(data)
-  expect_identical(as.character(labelled$ready), c("Yes", "No", NA))
-  expect_identical(levels(labelled$ready), c("No", "Yes"))
+  expect_identical(labelled$ready, data$ready)
   expect_identical(labelled$.internal, data$.internal)
 })
 
@@ -150,8 +148,8 @@ test_that("nis_label applies audited labels without guessing unsupported codes",
       "One comorbidity"
     )
   )
-  expect_identical(as.character(labelled$ynel3), c("No", "Yes", "No", "Yes", "No"))
-  expect_identical(as.character(labelled$ynch2), c("Yes", "No", "Yes", "No", "Yes"))
+  expect_identical(as.vector(labelled$ynel3), c(FALSE, TRUE, FALSE, TRUE, FALSE))
+  expect_identical(as.vector(labelled$ynch2), c(TRUE, FALSE, TRUE, FALSE, TRUE))
   expect_identical(attr(labelled$ynel3, "label"), "Existing Elixhauser label")
   expect_identical(attr(labelled$ynch2, "label"), "Existing Charlson label")
   expect_identical(attr(labelled$PAY1, "label"), "Expected primary payer")
@@ -316,8 +314,20 @@ test_that("common labels and cost adjustment work in experimental ICD-9 years", 
   )
   labelled <- nis_label(data)
   expect_identical(as.character(labelled$PAY1), rep("Medicare", 4L))
-  expect_identical(as.character(labelled$DIED), c("No", "Yes", "No", "Yes"))
+  expect_identical(as.vector(labelled$DIED), c(FALSE, TRUE, FALSE, TRUE))
   expect_identical(labelled$DX1, data$DX1)
   adjusted <- nis_cost(data, dollars = 2024)
   expect_equal(as.numeric(adjusted$cost_adj), 250 * 313.689 / c(229.594, 232.957, 236.736, 237.017))
+})
+
+test_that("binary code definitions decode valid values and warn for invalid codes", {
+  input <- data.frame(DIED = c(0, 1, NA, NaN, 2, -9, 0.5), TRAN_IN = c(0L, 1L, rep(NA_integer_, 5)))
+  expect_warning(labelled <- nis_label(input), "Unknown code.*DIED.*2, -9, 0.5")
+  expect_identical(as.vector(labelled$DIED), c(FALSE, TRUE, rep(NA, 5)))
+  expect_identical(
+    as.character(labelled$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", rep(NA_character_, 5))
+  )
+  expect_length(levels(labelled$TRAN_IN), 3L)
+  expect_identical(nis_label(labelled), labelled)
 })

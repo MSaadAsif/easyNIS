@@ -518,12 +518,19 @@ local({
   root <- tempfile("synthetic-package-")
   dir.create(file.path(root, "man"), recursive = TRUE)
   on.exit(unlink(root, recursive = TRUE))
-  writeLines("export(example)", file.path(root, "NAMESPACE"))
+  writeLines(c("export(example)", "export(shared)", "export(missing)"), file.path(root, "NAMESPACE"))
   writeLines(
-    c("\\name{example}", "\\examples{", "\\dontrun{", "example()", "}", "}"),
+    c("\\name{example}", "\\alias{example}", "\\examples{", "\\dontrun{", "example()", "}", "}"),
     file.path(root, "man", "example.Rd")
   )
-  stopifnot(!exported_example_status(root)$has_examples[[1L]])
+  writeLines(
+    c("\\name{topic}", "\\alias{shared}", "\\examples{", "shared()", "}"),
+    file.path(root, "man", "topic.Rd")
+  )
+  stopifnot(identical(
+    exported_example_status(root)$has_examples,
+    c(example = FALSE, shared = TRUE, missing = FALSE)
+  ))
 })
 
 local({
@@ -564,13 +571,21 @@ local({
   manual$step <- "ropensci_manual_subset"
   complexity <- baseline
   complexity$step <- "installed_namespace_complexity"
+  ci_run <- list(
+    name = "R-CMD-check",
+    event = "push",
+    headSha = baseline$commit,
+    status = "completed",
+    conclusion = "success"
+  )
   encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE, null = "null"))
   run_readiness <- function(
     extra = character(),
     coverage = baseline,
     subset = manual,
     clean = TRUE,
-    extra_raw = raw()
+    extra_raw = raw(),
+    ci = encode(list(ci_run))
   ) {
     writeLines(c(vapply(list(coverage, pkg, subset, complexity), encode, character(1)), extra), quality_file)
     append_raw_receipt(quality_file, extra_raw)
@@ -587,14 +602,40 @@ local({
       if (identical(args[[1L]], "issue")) {
         return("[]")
       }
-      '[{"name":"R-CMD-check","headSha":"invented-head","status":"completed","conclusion":"success"}]'
+      if (inherits(ci, "error")) {
+        stop(ci)
+      }
+      ci
     }
     output <- capture.output(sys.source("tools/probe/readiness.R", envir = env))
-    stopifnot(nrow(env$criteria) == 8L, !any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
+    stopifnot(!any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
     env$criteria
   }
   assert_reconcile_cases(run_readiness, encode)
   ready <- run_readiness()
+  ci_criteria <- c("R CMD check --as-cran: 0/0/0 on CI", "Every export has runnable examples")
+  ci_statuses <- function(result) result$status[match(ci_criteria, result$criterion)]
+  stopifnot(identical(ci_statuses(ready), rep("ready", 2L)))
+  performance_rows <- ready[startsWith(ready$criterion, "9 Performance / "), ]
+  stopifnot(nrow(performance_rows) == 16L, all(performance_rows$status == "fail"))
+
+  # A stale, failed, pending, or merge-ref run cannot verify HEAD.
+  for (change in list(
+    list(headSha = "invented-old"),
+    list(conclusion = "failure"),
+    list(status = "in_progress"),
+    list(event = "pull_request")
+  )) {
+    result <- run_readiness(ci = encode(list(utils::modifyList(ci_run, change))))
+    stopifnot(identical(ci_statuses(result), rep("not verified", 2L)))
+  }
+  # Missing runs, an unavailable gh command, or a failed query provide no evidence.
+  for (response in list("[]", simpleError("gh unavailable"), structure(encode(list(ci_run)), status = 1L))) {
+    stopifnot(identical(ci_statuses(run_readiness(ci = response)), rep("not verified", 2L)))
+  }
+  # A dirty checkout cannot borrow passing CI or coverage evidence from HEAD.
+  dirty <- run_readiness(clean = FALSE)
+  stopifnot(identical(ci_statuses(dirty), rep("not verified", 2L)), !coverage_is_ready(dirty))
   stopifnot(
     coverage_is_ready(ready),
     guide_is_ready(ready),
@@ -658,12 +699,11 @@ local({
   clean_below_threshold <- coverage_percent_record(
     list(value = synthetic_coverage, error_class = ""),
     list(commit = "invented-head", working_tree_clean = TRUE),
-    percent_coverage = synthetic_percent,
-    provenance_pass_fn = provenance_pass
+    percent_coverage = synthetic_percent
   )
   clean_below_result <- run_readiness(coverage = clean_below_threshold)
   stopifnot(
-    identical(clean_below_threshold$status, "not_verified"),
+    identical(clean_below_threshold$status, "completed"),
     identical(clean_below_threshold$pass, FALSE),
     identical(clean_below_threshold$value, 50),
     identical(readiness_status(clean_below_result, "Test coverage >= 90%"), "not met")
@@ -671,8 +711,7 @@ local({
   dirty_below_threshold <- coverage_percent_record(
     list(value = synthetic_coverage, error_class = ""),
     list(commit = "invented-head", working_tree_clean = FALSE),
-    percent_coverage = synthetic_percent,
-    provenance_pass_fn = provenance_pass
+    percent_coverage = synthetic_percent
   )
   dirty_only_result <- run_readiness(coverage = dirty_below_threshold, clean = FALSE)
   stopifnot(
@@ -811,11 +850,6 @@ local({
   dirty_failure$pass <- FALSE
   dirty_failure$working_tree_clean <- FALSE
   stopifnot(coverage_is_ready(run_readiness(extra = encode(dirty_failure))))
-  contradictory_provenance <- baseline
-  contradictory_provenance$provenance <- "nested_unverified"
-  stopifnot(!coverage_is_ready(run_readiness(coverage = contradictory_provenance)))
-  contradictory_provenance$provenance <- list("nested_unverified")
-  stopifnot(!coverage_is_ready(run_readiness(coverage = contradictory_provenance)))
 })
 
 cat("Probe-helper tests passed.\n")

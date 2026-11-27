@@ -1,4 +1,24 @@
-nis_design_validate <- function(.data, charges, annualize, call) {
+nis_design_input <- function(data) {
+  if (!inherits(data, "tbl_sql")) {
+    return(data)
+  }
+  query <- data$lazy_query
+  # Reuse the rendered projection across the design queries. Preserve
+  # dbplyr's original query when row selection or window context is pending.
+  keep_query <- c(
+    !inherits(query, "lazy_select_query"),
+    isTRUE(query$distinct),
+    !is.null(query$limit),
+    length(dbplyr::op_sort(data)) > 0L,
+    !is.null(dbplyr::op_frame(data))
+  )
+  if (any(keep_query)) {
+    return(data)
+  }
+  nis_duckdb_translate_errors(dplyr::collapse(data))
+}
+
+nis_design_validate <- function(.data, charges, annualize, call, saved = FALSE) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.", call = call)
   }
@@ -7,7 +27,7 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   }
   reserved <- c(
     .nis_cohort_structure_fields,
-    ".in_cohort",
+    if (!saved) ".in_cohort",
     ".nis_cohort",
     ".nis_valid",
     unname(.nis_design_invalid_fields)
@@ -121,6 +141,9 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' exclusion counts, and quarter coverage when annualizing. The cohort scan
 #' evaluates the cohort expression once over the full data and collects the
 #' retained analysis columns.
+#' For a dataset written with [nis_write_cohort()], omit `cohort`. The saved
+#' membership flag excludes placeholders from the analysis. Original
+#' exclusion counts and full-sample quarter coverage are unavailable.
 #'
 #' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
 #'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
@@ -157,7 +180,9 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design. The analysis data contains
 #'   the required design fields, the columns selected by `keep`, and any
-#'   computed cost columns. Use [stats::weights()] for the survey weights.
+#'   computed cost columns. [nis_label()] keeps binary indicators logical and
+#'   converts known multi-level codes to factors. Use [stats::weights()] for the
+#'   survey weights.
 #' @family survey-design
 #' @seealso [Survey design and weighting](articles/survey-design.html).
 #' @export
@@ -177,10 +202,32 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' )
 nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, charges = "TOTCHG") {
   call <- rlang::current_call()
+  prepared <- nis_design_prepare(.data, rlang::enquo(cohort), rlang::enquo(keep), annualize, charges, call)
+  nis_design_build(prepared$sample, prepared$fields, annualize, dollars, charges, call)
+}
+
+nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, inspect_quarters = annualize) {
   .data <- dplyr::ungroup(.data)
-  nis_design_validate(.data, charges, annualize, call)
-  fields <- nis_design_fields(.data, rlang::enquo(keep), call)
-  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
+  saved <- !is.null(nis_saved_cohort(.data, call))
+  cohort <- nis_cohort_membership(cohort, saved, call)
+  nis_design_validate(.data, charges, annualize, call, saved)
+  .data <- nis_design_input(.data)
+  fields <- nis_design_fields(.data, keep, call)
+  sample <- nis_design_sample(
+    .data,
+    cohort,
+    fields$selected,
+    fields$quarter_prototype,
+    annualize,
+    call,
+    inspect_quarters,
+    saved
+  )
+  sample$cohort <- nis_design_cohort_text(cohort)
+  list(sample = sample, fields = fields)
+}
+
+nis_design_build <- function(sample, fields, annualize, dollars, charges, call) {
   hospital_rows <- sample$hospital_rows
   cohort_rows <- sample$cohort_rows
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
@@ -265,5 +312,18 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
     .nis_stratum = factor(stratum)[indices],
     .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
   )
-  nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
+  design <- nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
+  attr(design, "nis_design_input") <- list(
+    cohort = sample$cohort,
+    years = sample$years,
+    rows = sample$input_rows,
+    divisor = divisor,
+    annualize = annualize,
+    reweighted = FALSE
+  )
+  design
+}
+
+nis_design_cohort_text <- function(cohort) {
+  paste(trimws(deparse(rlang::quo_get_expr(cohort), width.cutoff = 500L)), collapse = " ")
 }

@@ -140,8 +140,6 @@ test_that("invalid UTF-8 POA indicators are treated as unknown", {
   malformed <- rawToChar(as.raw(c(0x59, 0xff)))
   data <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = malformed)
 
-  long <- nis_comorbidity_long(data, "I10_DX1", 1L, nrow(data))
-  expect_true(is.na(long$poa[[1L]]))
   expect_no_error(nis_comorbidity(data))
 })
 
@@ -253,7 +251,6 @@ test_that("method and prefix options and input errors are explicit", {
   expect_true(pinned$e_aids)
   expect_false(any(grepl("^cmrb_", names(pinned))))
 
-  expect_error(nis_comorbidity(data, method = "charlson_quan2011"), "Elixhauser")
   expect_error(suppressWarnings(nis_comorbidity(data, method = "elixhauser_nonsense")))
   expect_error(nis_comorbidity(data, prefix = NA_character_), "prefix")
   expect_error(suppressWarnings(nis_comorbidity(suppressWarnings(nis_comorbidity(data)))), "replace existing")
@@ -266,7 +263,7 @@ test_that("method and prefix options and input errors are explicit", {
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
   write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
-  expect_error(nis_comorbidity(open_duckdb_dataset(path)), "collect")
+  expect_error(nis_comorbidity(open_duckdb_dataset(path)), "KEY_NIS")
 })
 
 test_that("comorbidity columns preserve survey design and support reweighting", {
@@ -350,4 +347,98 @@ test_that("comorbidity columns preserve survey design and support reweighting", 
     survey::SE(survey::svymean(~AGE, reference))
   )
   expect_identical(survey::degf(reweighted), survey::degf(reference))
+})
+test_that("DuckDB scoring preserves flags and both indices across years", {
+  skip_if_not_installed("medicalcoder", minimum_version = "0.10.0")
+  n <- 25003L
+  hf <- unname(single_codes("HF")[[1L]])
+  fixtures <- dplyr::tibble(
+    YEAR = rep(c(2020L, 2021L), each = n),
+    KEY_NIS = rep(seq_len(n), 2L),
+    I10_DX1 = rep(c("ZZZ99", "ZZZ99", hf, " ", NA, "ZZZ99", "ZZZ99"), length.out = 2L * n),
+    I10_DX2 = rep(c(hf, hf, NA, NA, NA, hf, hf), length.out = 2L * n),
+    DXPOA1 = "Y",
+    DXPOA2 = rep(c("Y", "N", "Y", "W", "U", "1", "W"), length.out = 2L * n),
+    I10_DX10 = ifelse(seq_len(2L * n) %% 11L == 0L, "E119", NA_character_),
+    payload = seq_len(2L * n)
+  )
+  con <- DBI::dbConnect(duckdb::duckdb())
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+  query <- dplyr::copy_to(con, fixtures, "discharges") |>
+    dplyr::filter(payload != 2L) |>
+    dplyr::group_by(YEAR)
+
+  warnings <- function(expr) {
+    messages <- character()
+    result <- withCallingHandlers(expr, warning = function(cnd) {
+      messages <<- c(messages, conditionMessage(cnd))
+      invokeRestart("muffleWarning")
+    })
+    list(result = result, messages = messages)
+  }
+  method <- "elixhauser_ahrq2026"
+  expected <- warnings(nis_comorbidity(dplyr::collect(query), method, "e_"))
+  observed <- warnings(nis_comorbidity(query, method, "e_"))
+  expect_s3_class(observed$result, "tbl_sql")
+  expect_identical(observed$messages, expected$messages)
+  expect_length(observed$messages, 2L)
+  sort_discharges <- function(data) dplyr::arrange(data, YEAR, KEY_NIS)
+  expect_identical(
+    dplyr::collect(sort_discharges(observed$result)),
+    sort_discharges(expected$result)
+  )
+
+  # An invalid expression on an unneeded field would fail a wide collection.
+  query <- dplyr::mutate(query, unused = dbplyr::sql("CAST('bad' AS INTEGER)"))
+  scored <- suppressWarnings(nis_comorbidity(query, method, "e_"))
+  expect_identical(
+    dplyr::collect(dplyr::select(sort_discharges(scored), YEAR, KEY_NIS, e_n)),
+    dplyr::select(sort_discharges(expected$result), YEAR, KEY_NIS, e_n)
+  )
+})
+
+test_that("DuckDB scoring keeps empty types and rejects ambiguous keys and column names", {
+  skip_if_not_installed("medicalcoder", minimum_version = "0.10.0")
+  con <- DBI::dbConnect(duckdb::duckdb())
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+  data <- dplyr::tibble(
+    KEY_NIS = c(3L, 1L, 2L),
+    I10_DX1 = c("ZZZ99", "", NA),
+    DXPOA1 = "Y"
+  )
+  query <- dplyr::copy_to(con, data, "discharges")
+  empty <- dplyr::filter(query, FALSE)
+  expect_identical(dplyr::collect(nis_comorbidity(empty)), nis_comorbidity(dplyr::collect(empty)))
+
+  tables <- DBI::dbListTables(con)
+  expect_error(nis_comorbidity(dplyr::mutate(query, KEY_NIS = 1L)), "unique")
+  expect_error(nis_comorbidity(dplyr::mutate(query, KEY_NIS = NA_integer_)), "non-missing")
+  expect_error(nis_comorbidity(dplyr::mutate(query, CMRB_N = 0L)), "replace existing")
+  expect_identical(DBI::dbListTables(con), tables)
+})
+
+test_that("lazy comorbidity survives garbage collection and other queries", {
+  fixture <- nis_example(2019)
+  withr::defer(unlink(fixture, recursive = TRUE))
+
+  scored <- local({
+    discharges <- nis_open(fixture) |>
+      dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
+      dplyr::compute()
+    invisible(gc())
+    suppressWarnings(nis_comorbidity(discharges, "elixhauser_ahrq2027"))
+  })
+  invisible(gc())
+  other <- nis_open(fixture)
+  expected <- suppressWarnings(nis_comorbidity(dplyr::collect(other), "elixhauser_ahrq2027"))
+  observed <- dplyr::collect(dplyr::select(scored, cmrb_n, cmrb_mortality_index, cmrb_readmission_index))
+  expect_identical(
+    dplyr::arrange(observed, cmrb_n, cmrb_mortality_index, cmrb_readmission_index),
+    dplyr::arrange(
+      dplyr::select(expected, dplyr::all_of(names(observed))),
+      cmrb_n,
+      cmrb_mortality_index,
+      cmrb_readmission_index
+    )
+  )
 })

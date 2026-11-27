@@ -1,1 +1,48 @@
 Copyright (C) 2026 Muhammad Saad and Ali Salman.
+
+Bundled CCSR reference tables
+
+Source: Agency for Healthcare Research and Quality (AHRQ), Healthcare Cost
+and Utilization Project (HCUP), Clinical Classifications Software Refined
+(CCSR). The federal classification references are freely available with
+source attribution. These tables contain reference definitions only.
+
+DXCCSR for ICD-10-CM diagnoses, v2025.1, released 2024-11-13
+https://hcup-us.ahrq.gov/toolssoftware/ccsr/DXCCSR_v2025-1.zip
+
+PRCCSR for ICD-10-PCS procedures, v2025.1, released 2024-11-13
+https://hcup-us.ahrq.gov/toolssoftware/ccsr/PRCCSR_v2025-1.zip
+
+Files: inst/extdata/elixhauser-2027-codes.csv
+       inst/extdata/elixhauser-2027-weights.csv
+Source: AHRQ HCUP Elixhauser Comorbidity Software Refined for ICD-10-CM,
+        v2027.1 (November 2026).
+        https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/comorbidity_icd10.jsp
+Distribution: Episodes of Care Solutions, LLC, revision
+        bee56e8dc292b6c8986ef01f47bb4e13da8698cf (MIT).
+        https://huggingface.co/datasets/EOCS-LTD/elixhauser-icd10-mapping
+        The diagnosis table retains the positive code-to-measure entries;
+        bit 0 of exempt_versions represents FY2016 and bit 11 FY2027. The
+        weights table retains the published POA requirements and index weights.
+
+MIT License
+
+Copyright (c) 2025-2026 Episodes of Care Solutions, LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
