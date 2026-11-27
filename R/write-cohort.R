@@ -67,7 +67,7 @@ nis_write_cohort <- function(.data, cohort, path, keep) {
     } else {
       paste(rlang::expr_deparse(rlang::get_expr(membership)), collapse = "\n")
     },
-    easyNIS_source_years = paste(sort(query$src$.easyNIS_years), collapse = ","),
+    easyNIS_source_years = paste(sort(.data$src$.easyNIS_years), collapse = ","),
     easyNIS_version = as.character(utils::packageVersion("easyNIS"))
   )
   count <- nis_cohort_copy(query, membership, fields$selected, temp, metadata, call)
