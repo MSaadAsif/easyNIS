@@ -12,7 +12,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(death = as.integer(DIED))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1Mz7et/duckdb
+#> ℹ /tmp/Rtmp663wtj/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp1Mz7et/duckdb
+#> ℹ /tmp/Rtmp663wtj/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -65,29 +65,6 @@ srvyr::summarise(
 
 All values come from invented rows and illustrate output shape only.
 
-## Build a Table 1
-
-[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-formats weighted descriptive statistics. These optional packages are
-needed for this section.
-
-``` r
-
-table_one <- gtsummary::tbl_svysummary(
-  design,
-  by = heart_failure,
-  include = c(AGE, FEMALE, LOS, DIED)
-) |>
-  gtsummary::add_overall()
-table_one
-```
-
-[TABLE]
-
-The columns compare the flag groups with an overall column. Inspect the
-unweighted cell counts before sharing; the table is not automatically
-disclosure-cleared.
-
 ## Fit a survey-weighted model
 
 [`survey::svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html) fits
@@ -127,6 +104,79 @@ summary(fit)
 Coefficients describe model associations under the survey design; they
 do not establish causality. The synthetic data are too small and
 artificial for substantive conclusions.
+
+## Tables with gtsummary
+
+The examples below use gtsummary 2.6.1 or later.
+
+Pass the result of
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+directly to
+[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
+The design supplies cohort discharges for unweighted sample sizes,
+missing counts, and category counts. Hospital placeholders contribute to
+the variance structure only. This table uses a survey t-test for mean
+age and the design-adjusted chi-squared test for sex. The header shows
+unweighted sample sizes, alongside weighted summaries in the table body.
+
+``` r
+
+gtsummary::tbl_svysummary(
+  design,
+  by = heart_failure,
+  include = c(AGE, FEMALE),
+  statistic = AGE ~ "{mean} ({mean.std.error})",
+  missing_stat = "{N_miss_unweighted}"
+) |>
+  gtsummary::add_p(test = list(AGE ~ "svy.t.test", FEMALE ~ "svy.chisq.test")) |>
+  gtsummary::add_overall() |>
+  gtsummary::modify_header(gtsummary::all_stat_cols() ~ "**{level}** (unweighted N = {n_unweighted})")
+```
+
+[TABLE]
+
+Use `tbl_regression()` to format your fitted models and
+`tbl_uvregression()` to fit and format a separate survey model for each
+predictor. The logistic table reports odds ratios and the linear tables
+report differences in mean length of stay.
+
+``` r
+
+gtsummary::tbl_regression(fit, exponentiate = TRUE)
+```
+
+[TABLE]
+
+``` r
+
+
+los_fit <- survey::svyglm(LOS ~ heart_failure + AGE + FEMALE, design = design)
+gtsummary::tbl_regression(los_fit)
+```
+
+[TABLE]
+
+``` r
+
+
+gtsummary::tbl_uvregression(
+  design,
+  y = LOS,
+  include = c(heart_failure, AGE, FEMALE),
+  method = survey::svyglm
+)
+```
+
+[TABLE]
+
+For Parquet inputs, start with
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+and then use
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+to build the in-memory cohort design used here. Passing a DuckDB-backed
+survey `DBIsvydesign` directly to `tbl_svysummary()` fails with
+gtsummary 2.6.1. Review unweighted cell counts and apply disclosure
+rules before sharing.
 
 ## Common pitfalls
 

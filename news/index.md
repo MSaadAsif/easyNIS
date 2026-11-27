@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- The descriptives and regression article shows how to use
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  with gtsummary for survey summaries, group comparisons, and regression
+  tables. The workflow test checks cohort counts and full-sample survey
+  results.
+
 - [`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md)
   adds selected Hospital, Severity, or Diagnosis and Procedure Groups
   fields to lazy Core queries using checked annual keys.
