@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
+  now scores lazy DuckDB cohorts in bounded batches and returns the
+  scores joined to the original query by discharge key.
+
 - The survey design article demonstrates analytic domains with
   [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
   on a

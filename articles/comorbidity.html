@@ -87,18 +87,23 @@ mapping. easyNIS does not distribute clinical code lists. This
 computation is experimental and its assumptions need scientific
 review.</p>
 <div class="section level2">
-<h2 id="score-a-collected-cohort">Score a collected cohort<a class="anchor" aria-label="anchor" href="#score-a-collected-cohort"></a>
+<h2 id="score-a-duckdb-cohort">Score a DuckDB cohort<a class="anchor" aria-label="anchor" href="#score-a-duckdb-cohort"></a>
 </h2>
-<p>The function accepts a collected data frame with
-<code>I10_DX1</code>, <code>I10_DX2</code>, and other diagnosis
-columns.</p>
+<p>Keep <code>KEY_NIS</code> and, for pooled years, <code>YEAR</code>
+with the diagnosis columns. The function scores batches of up to 25,000
+discharges, reading only the keys, diagnoses and available POA fields
+into the scoring workflow. The result remains a DuckDB query with the
+original columns and the added indicators. Select the columns you need
+before collecting.</p>
+<p>The example assigns stable keys to the invented fixture. NIS files
+already include <code>KEY_NIS</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">discharges</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"DXPOA"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>KEY_NIS <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/row_number.html" class="external-link">row_number</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">compute</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHZbSrs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5CoBAq/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -106,7 +111,7 @@ columns.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHZbSrs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5CoBAq/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -121,20 +126,28 @@ columns.</p>
 <span><span class="co">#&gt; I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,</span></span>
 <span><span class="co">#&gt; I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> POA-dependent comorbidities may include conditions acquired in hospital.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">scored</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AGE"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_any"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 3</span></span></span>
-<span><span class="co">#&gt;     AGE cmrb_n cmrb_any</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    28      1 TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>    35      1 TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>    42      1 TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>    49      0 FALSE   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>    56      1 TRUE    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>    63      1 TRUE</span></span></code></pre></div>
+<span><span class="va">scored</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">cmrb_n</span>, <span class="va">cmrb_any</span>, <span class="va">cmrb_mortality_index</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 4</span></span></span>
+<span><span class="co">#&gt;     AGE cmrb_n cmrb_any cmrb_mortality_index</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>                   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    28      1 TRUE                       14</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>    35      1 TRUE                        0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>    42      1 TRUE                        0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>    49      0 FALSE                       0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>    56      1 TRUE                       14</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>    63      1 TRUE                        0</span></span></code></pre></div>
 <p>The added columns report the number of flagged conditions and whether
 any were flagged. Values are computed from invented codes. Rows without
 usable ICD-10 codes have missing results rather than “no
 comorbidity.”</p>
+<p>Scores are computed when you call <code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> and
+kept in a temporary table for the input connection. DuckDB reads the
+original query again when you use its output, so score a stable cohort
+with unique, non-missing keys. Collected data frames are also supported
+and keep their original row order.</p>
 </div>
 <div class="section level2">
 <h2 id="add-scores-after-design-construction">Add scores after design construction<a class="anchor" aria-label="anchor" href="#add-scores-after-design-construction"></a>
@@ -146,7 +159,7 @@ This preserves the design object.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHZbSrs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5CoBAq/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -154,7 +167,7 @@ This preserves the design object.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHZbSrs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5CoBAq/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -189,35 +202,52 @@ This preserves the design object.</p>
 gain comorbidity indicators.</p>
 </div>
 <div class="section level2">
-<h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
+<h2 id="present-on-admission">Present on admission<a class="anchor" aria-label="anchor" href="#present-on-admission"></a>
 </h2>
-<blockquote>
-<p><strong>Common pitfalls</strong></p>
-<ul>
-<li>The function uses ICD-10 slots only; pre-October 2015 ICD-9 records
-cannot be scored and receive missing values.</li>
-<li>When matching diagnosis present-on-admission fields
-(<code>DXPOA1</code>, <code>DXPOA2</code>, and so on) are available, the
-helper aligns them with the diagnosis slots. <code>Y</code> and
-<code>W</code> count as present on admission; <code>N</code> and
-<code>U</code> do not. Other values are unknown, and POA-exempt codes
-are handled by <code>medicalcoder</code>. If a matching POA field is
-absent, the corresponding diagnosis is assumed present to preserve
-behavior for years and inputs without POA fields. A warning names the
-affected diagnosis slots; their POA-dependent comorbidities may include
-conditions acquired in hospital. AHRQ’s refined software requires POA to
-assign 18 of 38 measures and returns missing results when required POA
-information is unavailable (<a href="https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf" class="external-link">AHRQ
-User Guide</a>). <code>medicalcoder</code> uses an exemption mapping
-covering AHRQ fiscal years 2022–2026, with POA-exemption status
-consistent across those releases. It does not adjust exemptions for
-discharge date, so exempt-code results can differ slightly from AHRQ
-software across fiscal years. As POA availability varies, results can
-differ between inputs with and without those fields.</li>
-<li>Do not assume agreement with older Stata-derived <code>ynel*</code>
-and <code>elixsum</code> fields; definitions and versions differ.</li>
-</ul>
-</blockquote>
+<p>AHRQ assigns 18 of its 38 refined Elixhauser measures using POA for
+nonexempt secondary diagnoses. For those diagnoses, <code>Y</code> and
+<code>W</code> qualify. NIS files lack POA indicators. AHRQ leaves those
+18 measures missing when POA inputs are unavailable and requires all 38
+to calculate its indices. Beginning in 2019, the NIS Diagnosis and
+Procedure Groups file includes the available HCUP-derived measures. <a href="https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf" class="external-link">AHRQ
+User Guide</a>, <a href="https://hcup-us.ahrq.gov/db/vars/sedddistnote.jsp?var=cmr_aaa" class="external-link">HCUP
+POA availability</a>, <a href="https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2019.jsp" class="external-link">2019
+NIS introduction</a>.</p>
+<p><code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> retains its experimental assumption
+that a diagnosis was present on admission when its entire
+<code>DXPOAn</code> field is absent. The warning identifies the affected
+slots. This assumption can count conditions that arose during the stay
+and alter the mortality and readmission scores. When a matching field is
+present, <code>Y</code> and <code>W</code> count as POA, <code>N</code>
+and <code>U</code> do not, and other values are unknown. In pooled data,
+a missing value in an existing POA column remains unknown.
+<code>medicalcoder</code> supplies the exempt-code mapping, which is
+shared across AHRQ releases in that package and is applied without
+looking up the fiscal year for each discharge.</p>
+<p>Pre-October 2015 ICD-9 records receive missing results. Older
+Stata-derived <code>ynel*</code> and <code>elixsum</code> fields use
+different definitions and versions.</p>
+</div>
+<div class="section level2">
+<h2 id="charlson-in-nis-studies">Charlson in NIS studies<a class="anchor" aria-label="anchor" href="#charlson-in-nis-studies"></a>
+</h2>
+<p>Charlson serves different purposes across studies. The national
+inpatient norms study used Quan’s ICD-10 algorithms to describe
+comorbidity burden by demographic groups. The NIS hepatitis C pregnancy
+study used the Charlson–Deyo score as an adjustment covariate, grouping
+it into 0, 1–2, and above 2. <a href="https://doi.org/10.1093/gerona/glac087" class="external-link">National norms study</a>,
+<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10362466/" class="external-link">hepatitis C
+pregnancy study</a>.</p>
+<p>easyNIS defers a Charlson option until it can specify and verify the
+mapping, weights, diagnosis inclusion, and POA assumptions for a named
+variant. <code>medicalcoder</code> supplies Quan 2005 and 2011 variants,
+with distinct weights and explicit POA and principal-diagnosis inputs.
+The <code>comorbidity</code> package offers a Quan ICD-10 map with
+separately selectable original or revised weights and a severity
+hierarchy. For a replication, choose these inputs using the study’s
+methods. <a href="https://cran.r-project.org/web/packages/medicalcoder/vignettes/charlson.html" class="external-link"><code>medicalcoder</code>
+Charlson vignette</a>, <a href="https://cran.r-project.org/web/packages/comorbidity/comorbidity.pdf" class="external-link"><code>comorbidity</code>
+manual</a>.</p>
 <p>See <a href="../reference/nis_comorbidity.html"><code>nis_comorbidity()</code></a>
 and <a href="year-notes.html">Data notes by year</a>.</p>
 </div>

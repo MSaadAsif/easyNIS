@@ -1,10 +1,16 @@
 # Add AHRQ Elixhauser comorbidity columns (experimental)
 
-Reshapes the wide `I10_DX1`, `I10_DX2`, ... columns of a collected data
-frame to one row per code, hands them to
-[`medicalcoder::comorbidities()`](http://www.peteredewitt.com/medicalcoder/reference/comorbidities.md),
-and joins the result back in the original row order. All
-code-to-condition mapping and index weights come from the
+Reshapes the wide `I10_DX1`, `I10_DX2`, ... columns to one row per code
+and scores them with
+[`medicalcoder::comorbidities()`](http://www.peteredewitt.com/medicalcoder/reference/comorbidities.md).
+For a lazy DuckDB query, the function projects the discharge keys and
+diagnosis and POA fields, scores up to 25,000 discharges at a time in R,
+then joins the scores back in DuckDB. Scores are materialized when this
+function runs and live in a temporary table on the input connection. The
+returned query remains lazy. Use stable keys and filters, and arrange
+the result by key if you need a specific order. For a collected input,
+row order is preserved. All code-to-condition mapping and index weights
+come from the
 [medicalcoder](https://CRAN.R-project.org/package=medicalcoder) package,
 which ships the AHRQ Elixhauser Comorbidity Software Refined for
 ICD-10-CM tables; easyNIS holds no clinical code lists. Install it with
@@ -20,12 +26,12 @@ nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
 
 - .data:
 
-  A collected data frame with `I10_DX1`, `I10_DX2`, ... columns, or a
-  `tbl_svy` from
-  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-  that kept them. Lazy DuckDB queries are not accepted; call
-  [`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
-  first.
+  A data frame, a `tbl_svy` from
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
+  or a lazy DuckDB query with `I10_DX1`, `I10_DX2`, ... columns. Lazy
+  input requires non-missing, unique discharge keys (`YEAR` and
+  `KEY_NIS` when `YEAR` is present, otherwise `KEY_NIS` alone). Keep
+  `YEAR` when pooling years.
 
 - method:
 
@@ -61,16 +67,15 @@ below remain pending scientific approval.
   applies its POA-exempt code table, based on AHRQ fiscal-year 2022
   through 2026 mappings; its exemption status is not adjusted for
   discharge date, so exempt-code results can differ slightly from AHRQ
-  software across fiscal years. If a matching POA column is absent, that
-  diagnosis is assumed present to retain compatibility with older years
-  and inputs that did not keep POA fields. A warning names the affected
-  slots; their POA-dependent comorbidities may include conditions
-  acquired in hospital. AHRQ's refined software requires POA to assign
-  18 of 38 measures and returns missing results when required POA data
-  are unavailable ([AHRQ User
-  Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf)).
-  Thus, results can change for inputs that include POA fields: AHRQ's
-  refined Elixhauser method requires POA for 18 of its 38 measures.
+  software across fiscal years. If a matching POA column is absent,
+  easyNIS retains the existing assumption that diagnoses in that slot
+  were present on admission and warns once per call. NIS release files
+  lack POA indicators, so this assumption can count hospital-acquired
+  conditions and affect both scores. AHRQ leaves 18 of 38 measures unset
+  when POA inputs are unavailable and requires all 38 to calculate its
+  indices. NIS Diagnosis and Procedure Groups files provide the
+  available HCUP-derived measures beginning in 2019. See the [AHRQ User
+  Guide](https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf).
 
 - **Principal diagnosis** is `I10_DX1`. It is passed as the primary
   diagnosis, and `medicalcoder` applies the AHRQ rule for it (for
@@ -90,8 +95,8 @@ below remain pending scientific approval.
   condition. A discharge with at least one usable but unmapped code gets
   zeros.
 
-- The long reshaping holds about 40 diagnosis columns by every row in
-  memory. Use it on a cohort, not on the full national file.
+- Collected inputs are reshaped and scored in one pass. Use the DuckDB
+  path to bound the size of the R batches for large cohorts.
 
 ## Differences from the Stata-derived columns
 
@@ -125,11 +130,13 @@ indicators](https://msaadasif.github.io/easyNIS/reference/articles/comorbidity.m
 ## Examples
 
 ``` r
+# Assign stable keys to this invented fixture. NIS files supply KEY_NIS.
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::select(AGE, dplyr::starts_with("I10_DX"), dplyr::starts_with("DXPOA")) |>
-  dplyr::collect()
+  dplyr::filter(AGE >= 18) |>
+  dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
+  dplyr::compute()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppToZZ5/duckdb
+#> ℹ /tmp/Rtmp4hTv13/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -137,7 +144,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppToZZ5/duckdb
+#> ℹ /tmp/Rtmp4hTv13/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -152,7 +159,7 @@ comorbid <- nis_comorbidity(discharges)
 #> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,
 #> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.
 #> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
-comorbid[c("AGE", "cmrb_n", "cmrb_any")] |> head()
+comorbid |> dplyr::select(AGE, cmrb_n, cmrb_any) |> head() |> dplyr::collect()
 #> # A tibble: 6 × 3
 #>     AGE cmrb_n cmrb_any
 #>   <dbl>  <int> <lgl>   
