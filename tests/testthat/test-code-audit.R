@@ -72,14 +72,14 @@ test_that("code transition audit validates named groups and columns", {
   expect_error(nis_audit_code_transition(data, duplicate_codes), "unique")
   expect_error(nis_audit_code_transition(data, list(a = NA_character_)), "non-missing")
   data$n_unweighted <- 1L
-  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = "n_unweighted"), "summary column")
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = n_unweighted), "summary column")
 })
 
 test_that("code transition audit validates periods, weights, and every code group", {
   data <- dplyr::tibble(YEAR = 2020L, I10_PR1 = "02UG0JZ", DISCWT = 1)
 
-  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = NA_character_), "`by`")
-  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = "MISSING"), "`by`")
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = NA_character_), "missing")
+  expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), by = MISSING), "MISSING")
   expect_error(nis_audit_code_transition(data, c(a = "02UG0JZ"), weight_var = "MISSING"), "`weight_var`")
   expect_error(nis_audit_code_transition(data, list(a = character())), "non-missing character")
   expect_error(nis_audit_code_transition(data, list(a = 1)), "non-missing character")
@@ -96,7 +96,7 @@ test_that("code transition audit avoids temporary names in user data", {
     DISCWT = c(3, 4)
   )
 
-  result <- nis_audit_code_transition(data, c(myectomy = "02UG0JZ"), by = ".nis_audit_cohort")
+  result <- nis_audit_code_transition(data, c(myectomy = "02UG0JZ"), by = .nis_audit_cohort)
 
   expect_equal(result$n_cohort_unweighted, 2L)
   expect_equal(result$n_unweighted, 1L)
@@ -174,7 +174,7 @@ test_that("audit weight validation includes rows without a matching code", {
           source,
           c(target = "A"),
           output = format,
-          by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT")
+          by = c(YEAR, .NIS_AUDIT_INVALID_WEIGHT)
         ),
         "finite, non-missing"
       )
@@ -182,7 +182,7 @@ test_that("audit weight validation includes rows without a matching code", {
         source,
         c(target = "A"),
         output = format,
-        by = c("YEAR", ".NIS_AUDIT_INVALID_WEIGHT"),
+        by = c(YEAR, .NIS_AUDIT_INVALID_WEIGHT),
         cohort = YEAR == 2020L
       )
       expect_equal(result$n_weighted, 2)
@@ -208,7 +208,7 @@ test_that("multi-column periods are sorted and carry no year-over-year change", 
     I10_PR1 = c("A1", "A1", "A1", "B1", "A1", "A1"),
     DISCWT = rep(2, 6)
   )
-  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"))
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c(YEAR, DQTR))
 
   expect_named(
     result,
@@ -237,13 +237,13 @@ test_that("multi-column periods do not invent changes across regions or quarters
     I10_PR1 = c(rep(c("A1", "A1", "B1", "B1"), 4L), rep(c("A1", "B1", "B1", "B1"), 4L)),
     DISCWT = 1
   )
-  result <- nis_audit_code_transition(data, c(a = "A"), by = c("REGION", "DQTR"))
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c(REGION, DQTR))
 
   expect_equal(result$pct_within_year, rep(c(50, 25), each = 4L))
   expect_equal(result$yoy_pct_change, rep(NA_real_, 8L))
-  by_quarter_first <- nis_audit_code_transition(data, c(a = "A"), by = c("DQTR", "REGION"))
+  by_quarter_first <- nis_audit_code_transition(data, c(a = "A"), by = c(DQTR, REGION))
   expect_equal(by_quarter_first$yoy_pct_change, rep(NA_real_, 8L))
-  expect_equal(nis_audit_code_transition(data, c(a = "A"), by = "REGION")$yoy_pct_change, c(NA, -50))
+  expect_equal(nis_audit_code_transition(data, c(a = "A"), by = REGION)$yoy_pct_change, c(NA, -50))
 })
 
 test_that("periods with a missing component stay explicit and never anchor a change", {
@@ -253,7 +253,7 @@ test_that("periods with a missing component stay explicit and never anchor a cha
     I10_PR1 = c("A1", "A1", NA, "A1"),
     DISCWT = rep(1, 4)
   )
-  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"))
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c(YEAR, DQTR))
 
   expect_equal(result$YEAR, c(2019L, 2020L, 2019L, 2020L))
   expect_equal(result$DQTR, c(1L, 1L, NA, NA))
@@ -275,8 +275,8 @@ test_that("multi-column periods agree between data frames and lazy DuckDB", {
 
   for (output in c("summary", "inventory")) {
     expect_identical(
-      nis_audit_code_transition(query, c(a = "A"), by = c("YEAR", "DQTR"), output = output),
-      nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"), output = output)
+      nis_audit_code_transition(query, c(a = "A"), by = c(YEAR, DQTR), output = output),
+      nis_audit_code_transition(data, c(a = "A"), by = c(YEAR, DQTR), output = output)
     )
   }
 })
@@ -294,8 +294,8 @@ test_that("inventory preserves a period column that is also the weight", {
   query <- open_duckdb_dataset(path)
 
   for (output in c("summary", "inventory")) {
-    from_frame <- nis_audit_code_transition(data, c(a = "A"), by = "DISCWT", output = output)
-    from_duckdb <- nis_audit_code_transition(query, c(a = "A"), by = "DISCWT", output = output)
+    from_frame <- nis_audit_code_transition(data, c(a = "A"), by = DISCWT, output = output)
+    from_duckdb <- nis_audit_code_transition(query, c(a = "A"), by = DISCWT, output = output)
     expect_identical(from_duckdb, from_frame)
     if (output == "summary") {
       expect_equal(from_frame$DISCWT, c(2, 3))
@@ -307,7 +307,7 @@ test_that("inventory preserves a period column that is also the weight", {
   }
 })
 
-test_that("named period inputs retain original names across audit paths", {
+test_that("external period names are preserved across audit paths", {
   data <- data.frame(
     `calendar year` = c(2020L, 2020L, 2021L),
     `quarter label` = c(1L, 2L, 1L),
@@ -326,22 +326,28 @@ test_that("named period inputs retain original names across audit paths", {
   write_duckdb_parquet(data, file.path(path, "part-0.parquet"))
   query <- open_duckdb_dataset(path)
   period_args <- list(
-    c(period = "calendar year"),
-    c(period = "calendar year", quarter = "quarter label")
+    "calendar year",
+    c("calendar year", "quarter label")
   )
 
   for (by in period_args) {
     for (output in c("summary", "inventory")) {
-      from_frame <- nis_audit_code_transition(data, c(a = "A"), by = by, weight_var = "survey weight", output = output)
+      from_frame <- nis_audit_code_transition(
+        data,
+        c(a = "A"),
+        by = tidyselect::all_of(by),
+        weight_var = "survey weight",
+        output = output
+      )
       from_duckdb <- nis_audit_code_transition(
         query,
         c(a = "A"),
-        by = by,
+        by = tidyselect::all_of(by),
         weight_var = "survey weight",
         output = output
       )
       expect_identical(from_duckdb, from_frame)
-      expect_true(all(c(unname(by), "n_weighted") %in% names(from_frame)))
+      expect_true(all(c(by, "n_weighted") %in% names(from_frame)))
       expect_equal(sum(from_frame$n_weighted), 6)
     }
   }
@@ -352,13 +358,12 @@ test_that("code transition audit validates multi-column periods", {
   codes <- c(a = "A")
 
   expect_error(nis_audit_code_transition(data, codes, by = character()), "`by`")
-  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "YEAR")), "`by`")
-  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "MISSING")), "`by`")
-  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", NA_character_)), "`by`")
-  expect_error(nis_audit_code_transition(data, codes, by = 2020L), "`by`")
+  expect_error(nis_audit_code_transition(data, codes, by = c(YEAR, MISSING)), "MISSING")
+  expect_error(nis_audit_code_transition(data, codes, by = c(YEAR, NA_character_)), "missing")
+  expect_error(nis_audit_code_transition(data, codes, by = 2020L), "past the end")
   data$status <- 1L
-  expect_error(nis_audit_code_transition(data, codes, by = c("YEAR", "status"), output = "inventory"), "summary column")
-  expect_no_error(nis_audit_code_transition(data, codes, by = c("YEAR", "status")))
+  expect_error(nis_audit_code_transition(data, codes, by = c(YEAR, status), output = "inventory"), "summary column")
+  expect_no_error(nis_audit_code_transition(data, codes, by = c(YEAR, status)))
 })
 
 test_that("code inventory lists observed codes with absent and sparse periods", {
@@ -492,7 +497,7 @@ test_that("code inventory agrees between data frames and lazy DuckDB", {
       query,
       groups,
       type = "dx",
-      by = c("YEAR", "DQTR"),
+      by = c(YEAR, DQTR),
       cohort = AGE >= 18,
       sparse_n = 1L,
       output = "inventory"
@@ -501,7 +506,7 @@ test_that("code inventory agrees between data frames and lazy DuckDB", {
       data,
       groups,
       type = "dx",
-      by = c("YEAR", "DQTR"),
+      by = c(YEAR, DQTR),
       cohort = AGE >= 18,
       sparse_n = 1L,
       output = "inventory"
@@ -544,7 +549,7 @@ test_that("code inventory tracks multi-column periods and missing components", {
     I10_PR1 = c("A1", "A1", "A2"),
     DISCWT = rep(1, 3)
   )
-  result <- nis_audit_code_transition(data, c(a = "A"), by = c("YEAR", "DQTR"), output = "inventory")
+  result <- nis_audit_code_transition(data, c(a = "A"), by = c(YEAR, DQTR), output = "inventory")
 
   expect_equal(result$code, rep(c("A1", "A2"), each = 3L))
   expect_equal(result$YEAR, rep(c(2019L, 2020L, 2019L), 2L))

@@ -99,7 +99,7 @@ test_that("annual totals validate retained sample coverage and supply disclosure
     as.data.frame()
   expect_error(nis_annual_totals(frame), "Supply.*cohort")
   annual <- nis_annual_totals(nis_label(frame), TRUE)
-  counts <- nis_cell_counts(frame, by = "YEAR")
+  counts <- nis_cell_counts(frame, by = YEAR)
   expect_equal(annual[c("YEAR", "n", "hospitals")], counts)
   expect_warning(empty <- nis_annual_totals(frame, FALSE), "No cohort discharges")
   expect_equal(empty$n, c(0L, 0L))
@@ -107,9 +107,9 @@ test_that("annual totals validate retained sample coverage and supply disclosure
   expect_equal(empty$discharges, c(NA_real_, NA_real_))
   masked <- nis_suppress(
     empty,
-    count_col = "n",
-    hospital_col = "hospitals",
-    weighted_cols = c("discharges", "discharges_se")
+    count_col = n,
+    hospital_col = hospitals,
+    weighted_cols = c(discharges, discharges_se)
   )
   expect_equal(masked$discharges, rep("\u226410", 2L))
 

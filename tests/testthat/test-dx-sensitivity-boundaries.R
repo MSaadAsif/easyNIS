@@ -47,7 +47,7 @@ test_that("Local and DuckDB empty and unmatched summaries have zero totals", {
       expect_true(all(is.na(out$DIED_rate_unweighted)))
       expect_true(all(is.na(out$DIED_rate_weighted)))
     }
-    out <- nis_audit_dx_position(dplyr::filter(data, FALSE), "A1", outcomes = character())
+    out <- nis_audit_dx_position(dplyr::filter(data, FALSE), "A1", outcomes = NULL)
     expect_named(out, c("presentation", "n_unweighted", "n_weighted", "pct_of_any_unweighted", "pct_of_any_weighted"))
   }
 })
@@ -65,11 +65,11 @@ test_that("Local and DuckDB outcome rates are independent of names and order", {
       "odd outcome"
     )
     alone <- lapply(outcomes, function(outcome) {
-      nis_audit_dx_position(data, "A1", outcomes = outcome)
+      nis_audit_dx_position(data, "A1", outcomes = tidyselect::all_of(outcome))
     })
     names(alone) <- outcomes
     for (order in list(outcomes, rev(outcomes))) {
-      out <- nis_audit_dx_position(data, "A1", outcomes = order)
+      out <- nis_audit_dx_position(data, "A1", outcomes = tidyselect::all_of(order))
       expect_named(
         out,
         c(
@@ -158,7 +158,7 @@ test_that("sensitivity does not alter input metadata", {
 test_that("sensitivity does not overwrite or reject analyst fields named like flags", {
   data <- dplyr::tibble(YEAR = 2020L, I10_DX1 = c("I50", "Z99"), DISCWT = c(2, 5), .NIS_DX_ANY = c(1, 0))
   for (input in list(data, duckdb_query_fixture(data))) {
-    result <- nis_audit_dx_position(input, "I50", outcomes = ".NIS_DX_ANY")
+    result <- nis_audit_dx_position(input, "I50", outcomes = .NIS_DX_ANY)
     expect_identical(result$n_unweighted, c(1, 0, 1))
     expect_equal(result[[".NIS_DX_ANY_rate_unweighted"]], c(1, NA, 1))
   }

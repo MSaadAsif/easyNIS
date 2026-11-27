@@ -10,7 +10,8 @@ nis_cell_counts(.data, by = NULL)
 \item{.data}{Record-level data frame, lazy DuckDB query, or result of \code{\link[=nis_design]{nis_design()}}.}
 
 \item{by}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Cell-defining columns.
-Omit for overall counts. The summary names \code{n} and \code{hospitals} are reserved.}
+Omit or select no columns for overall counts. Use name-based selectors on
+DuckDB queries. The summary names \code{n} and \code{hospitals} are reserved.}
 }
 \value{
 A data frame with the columns in \code{by}, \code{n} (unweighted discharges),

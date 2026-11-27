@@ -28,8 +28,8 @@ under the checkout's ignored verification directory.
 
 A mismatch exits nonzero and writes `counterexample.R`. Read its threshold,
 `secondary`, input, expected output, and actual output. Replay the input
-through `nis_suppress()` with `count_col = "n"`, `weighted_cols = "estimate"`,
-`by = c("case", "stratum")`, and `hospital_col = "hospitals"` if present.
+through `nis_suppress()` with `count_col = n`, `weighted_cols = estimate`,
+`by = c(case, stratum)`, and `hospital_col = hospitals` if present.
 If the single case passes, replay it in `batch-input.R` before ruling it out.
 A mismatch with the product contract is a finding. Correct the checker
 only when the expected result differs from the documented contract.

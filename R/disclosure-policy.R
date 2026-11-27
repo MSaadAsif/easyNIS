@@ -6,11 +6,20 @@ nis_disclosure_masks <- function(counts, hospitals, threshold) {
 
 .nis_hospital_fields <- c("YEAR", "HOSP_NIS")
 
-nis_validate_hospital_columns <- function(.data, by = character()) {
-  required <- c(.nis_hospital_fields, by)
-  absent <- setdiff(required, nis_names(.data))
+nis_validate_hospital_columns <- function(.data) {
+  absent <- setdiff(.nis_hospital_fields, nis_names(.data))
   if (length(absent)) {
     cli::cli_abort("Column{?s} {.val {absent}} required by `nis_cell_counts()` not found.")
+  }
+}
+
+nis_validate_hospital_types <- function(data) {
+  keys <- dplyr::select(dplyr::ungroup(data), tidyselect::all_of(.nis_hospital_fields))
+  sql <- dbplyr::sql_render(keys)
+  types <- DBI::dbGetQuery(dbplyr::remote_con(data), paste("DESCRIBE", sql))$column_type
+  numeric <- grepl("^U?(TINYINT|SMALLINT|INTEGER|BIGINT|HUGEINT)$|^(FLOAT|DOUBLE|DECIMAL\\()", types)
+  if (!all(numeric)) {
+    nis_invalid_hospital_ids()
   }
 }
 

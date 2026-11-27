@@ -59,9 +59,9 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 annual <- nis_annual_totals(nis, heart_failure)
 nis_suppress(
   annual,
-  count_col = "n",
-  hospital_col = "hospitals",
-  weighted_cols = c("discharges", "discharges_se")
+  count_col = n,
+  hospital_col = hospitals,
+  weighted_cols = c(discharges, discharges_se)
 )
 ```
 
