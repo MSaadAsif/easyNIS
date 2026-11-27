@@ -223,6 +223,7 @@ nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, in
     inspect_quarters,
     saved
   )
+  sample$cohort <- nis_design_cohort_text(cohort)
   list(sample = sample, fields = fields)
 }
 
@@ -311,5 +312,18 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
     .nis_stratum = factor(stratum)[indices],
     .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
   )
-  nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
+  design <- nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
+  attr(design, "nis_design_input") <- list(
+    cohort = sample$cohort,
+    years = sample$years,
+    rows = sample$input_rows,
+    divisor = divisor,
+    annualize = annualize,
+    reweighted = FALSE
+  )
+  design
+}
+
+nis_design_cohort_text <- function(cohort) {
+  paste(trimws(deparse(rlang::quo_get_expr(cohort), width.cutoff = 500L)), collapse = " ")
 }
