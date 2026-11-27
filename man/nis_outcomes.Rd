@@ -7,23 +7,24 @@
 nis_outcomes(.data)
 }
 \arguments{
-\item{.data}{A data frame or lazy DuckDB table with numeric \code{DIED}, \code{LOS},
-and \code{DISPUNIFORM} fields. Apply this before converting the fields to labels.}
+\item{.data}{A data frame or lazy DuckDB table with numeric \code{LOS} and
+\code{DISPUNIFORM} fields and numeric or logical \code{DIED}. Apply this before
+labelling disposition.}
 }
 \value{
 The input with three columns added or replaced:
 \itemize{
-\item \code{in_hospital_death}: 0 for discharge alive and 1 for in-hospital death
+\item \code{in_hospital_death}: \code{FALSE} for discharge alive and \code{TRUE} for in-hospital death
 from \code{DIED}.
 \item \code{los_days}: elapsed days from \code{LOS}, including zero for same-day stays.
 Values outside the HCUP inpatient range of 0 to 365 whole days become
 missing.
-\item \code{discharge_disposition}: character labels from \code{DISPUNIFORM} using
-the same labels as \code{\link[=nis_label]{nis_label()}}. Codes
+\item \code{discharge_disposition}: numeric codes from \code{DISPUNIFORM}. Use \code{\link[=nis_label]{nis_label()}}
+after collecting or \code{\link[=nis_design]{nis_design()}} to attach factor labels. Codes
 1, 2, 5, 6, 7, and 20 distinguish routine home/self-care, short-term
 hospital transfer, other facility transfer, home health care, discharge
 against medical advice, and in-hospital death. Codes 21 (court/law
-enforcement) and 99 (alive, destination unknown) retain their own labels.
+enforcement) and 99 (alive, destination unknown) are valid codes.
 }
 
 For a lazy DuckDB input, the result is a lazy query.
@@ -38,7 +39,8 @@ sentinels and non-integer values.
 nis_open(nis_example(years = 2024)) |>
   nis_outcomes() |>
   dplyr::count(discharge_disposition) |>
-  dplyr::collect()
+  dplyr::collect() |>
+  nis_label()
 }
 \seealso{
 \href{articles/outcomes.html}{Hospitalization outcomes}, \code{\link[=nis_cost]{nis_cost()}}

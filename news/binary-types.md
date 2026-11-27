@@ -1,0 +1,3 @@
+- `nis_label()` and `nis_design()` now keep logical indicators as `TRUE`/`FALSE` and decode audited binary HCUP and comorbidity codes to logical. Invalid binary codes warn and become `NA`. Update factor-level comparisons and model term names accordingly.
+- `nis_outcomes()` now returns logical `in_hospital_death` and numeric `discharge_disposition` codes. Apply `nis_label()` after collecting or use `nis_design()` for disposition factor labels.
+- `nis_suppress()` now checks both the displayed level and its non-missing complement in dichotomous survey rows.

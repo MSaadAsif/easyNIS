@@ -284,6 +284,7 @@ if (!has_cohort) {
       study_design,
       by = dplyr::all_of(exposure),
       include = dplyr::all_of(variables),
+      label = FEMALE ~ "Female",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       gtsummary::add_p() |>
@@ -293,6 +294,7 @@ if (!has_cohort) {
     gtsummary::tbl_svysummary(
       study_design,
       include = dplyr::all_of(variables),
+      label = FEMALE ~ "Female",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       nis_suppress(threshold = disclosure_limit)
@@ -354,13 +356,10 @@ if (!has_cohort) {
   )
 } else {
 trend <- study_design |>
-  dplyr::mutate(
-    .died = as.numeric(DIED == "Yes"),
-    .one = 1
-  ) |>
+  dplyr::mutate(.one = 1) |>
   dplyr::group_by(YEAR) |>
   dplyr::summarise(
-    mortality = srvyr::survey_mean(.died, vartype = "ci", na.rm = TRUE),
+    mortality = srvyr::survey_mean(DIED, vartype = "ci", na.rm = TRUE),
     mean_los = srvyr::survey_mean(LOS, vartype = "ci", na.rm = TRUE),
     n_unweighted = dplyr::n(),
     weighted_n = srvyr::survey_total(.one, vartype = NULL),

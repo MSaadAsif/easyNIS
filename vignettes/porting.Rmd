@@ -74,8 +74,8 @@ where the suffix matters.
 If a local cleaning helper used `case_when()` to turn known HCUP codes such as
 sex, payer, or discharge disposition into labels, remove those repeated
 recodes. `nis_design()` calls `nis_label()` on the collected analysis data.
-Known value codes become factors and receive variable labels; unknown values
-are not given guessed labels. You can call `nis_label()` directly on a
+Known binary codes become logical, and multi-level codes become factors.
+Both receive variable labels. You can call `nis_label()` directly on a
 collected data frame when you need the same recoding outside `nis_design()`.
 
 Keep custom study-derived variables in `mutate()`. Set their factor order
@@ -93,13 +93,6 @@ study_design <- nis_flagged |>
     dollars = 2020
   ) |>
   dplyr::mutate(
-    exposed = forcats::fct_relevel(
-      factor(
-        dplyr::if_else(as.character(exposure) == "Yes", "Yes", "No"),
-        levels = c("No", "Yes")
-      ),
-      "No"
-    ),
     age_band = forcats::fct_relevel(
       factor(dplyr::if_else(AGE >= 65, "65 or older", "Under 65")),
       "Under 65"
@@ -113,9 +106,10 @@ cover the common coded fields:
 ```{r table-labels, eval=rlang::is_installed(c("forcats", "gtsummary", "cardx", "survey", "gt"))}
 table_one <- gtsummary::tbl_svysummary(
   study_design,
-  by = exposed,
+  by = exposure,
   include = c(AGE, FEMALE, age_band, DIED, LOS, cost_adj),
   label = list(
+    FEMALE ~ "Female",
     age_band ~ "Illustrative age group",
     cost_adj ~ "Hospital cost in 2020 USD"
   )

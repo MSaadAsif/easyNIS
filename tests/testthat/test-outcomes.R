@@ -12,22 +12,9 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
   )
   expected <- dplyr::mutate(
     codes,
-    in_hospital_death = c(0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, NA, NA, NA, NA),
+    in_hospital_death = c(rep(FALSE, 5), TRUE, FALSE, FALSE, rep(NA, 4)),
     los_days = c(0, 1, 2, 4, 8, 16, NA, 365, NA, NA, NA, NA),
-    discharge_disposition = c(
-      "Routine discharge to home/self-care",
-      "Transfer to another short-term hospital",
-      "Transfer to SNF, intermediate care, or another facility",
-      "Home health care",
-      "Left against medical advice",
-      "Died in hospital",
-      "Discharged/transferred to court/law enforcement",
-      "Alive, destination unknown",
-      NA,
-      NA,
-      NA,
-      NA
-    )
+    discharge_disposition = c(1, 2, 5, 6, 7, 20, 21, 99, rep(NA_real_, 4))
   )
   input <- nis |>
     dplyr::select(-c(DIED, LOS, DISPUNIFORM)) |>
@@ -35,6 +22,9 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
     dplyr::mutate(CCR_NIS = dplyr::if_else(.data$HOSP_NIS == 2L, NA_real_, .data$CCR_NIS))
   outcomes <- nis_outcomes(input)
   expect_s3_class(outcomes, "tbl_lazy")
+  sql <- as.character(dbplyr::sql_render(outcomes))
+  expect_match(sql, "READ_PARQUET|read_parquet")
+  expect_false(grepl("Routine discharge|Transfer to", sql))
 
   observed <- outcomes |>
     dplyr::select(YEAR, DQTR, dplyr::all_of(names(expected))) |>
@@ -49,11 +39,18 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
   design <- suppressMessages(nis_design(
     outcomes,
     cohort = TRUE,
-    keep = c(in_hospital_death, los_days, discharge_disposition, TOTCHG, CCR_NIS),
+    keep = c(in_hospital_death, los_days, discharge_disposition, TOTCHG, CCR_NIS, I10_DELIVERY, DQTR),
     dollars = 2024
   ))
-  mortality <- survey::svymean(~in_hospital_death, design, na.rm = TRUE)
-  expect_equal(unname(stats::coef(mortality)), 1.1 / 9.6)
+  expect_type(design$variables$in_hospital_death, "logical")
+  delivery <- design$variables$I10_DELIVERY
+  mixed_icd9 <- design$variables$YEAR == 2015L & design$variables$DQTR != "Q4"
+  expect_type(delivery, "logical")
+  expect_identical(is.na(delivery), mixed_icd9)
+  expect_false(any(delivery[!mixed_icd9]))
+  expect_s3_class(design$variables$discharge_disposition, "factor")
+  mortality <- dplyr::summarise(design, rate = srvyr::survey_mean(in_hospital_death, na.rm = TRUE))
+  expect_equal(mortality$rate, 1.1 / 9.6)
   expect_equal(
     unname(stats::coef(survey::svyquantile(~los_days, design, 0.5, ci = FALSE, na.rm = TRUE))),
     4
@@ -62,7 +59,7 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
     is.na(design$variables$cost_adj),
     design$variables$discharge_disposition %in% "Transfer to another short-term hospital"
   )
-  deaths <- design$variables$cost_adj[which(design$variables$in_hospital_death == 1L)]
+  deaths <- design$variables$cost_adj[which(design$variables$in_hospital_death)]
   expect_length(deaths, 16L)
   expect_gt(min(deaths), 0)
 })

@@ -8,11 +8,14 @@ expect_gtsummary_statistics <- function(card, expected) {
 
 expect_gtsummary_model <- function(body, reference, exponentiate = FALSE) {
   coefficients <- summary(reference)$coefficients
+  rownames(coefficients) <- sub("^exposureYes$", "exposureTRUE", rownames(coefficients))
   terms <- setdiff(rownames(coefficients), "(Intercept)")
   body <- body[!is.na(body$estimate), ]
   expect_setequal(body$term, terms)
   coefficients <- coefficients[body$term, , drop = FALSE]
-  interval <- stats::confint(reference)[body$term, , drop = FALSE]
+  interval <- stats::confint(reference)
+  rownames(interval) <- sub("^exposureYes$", "exposureTRUE", rownames(interval))
+  interval <- interval[body$term, , drop = FALSE]
   estimate <- coefficients[, 1L]
   if (exponentiate) {
     estimate <- exp(estimate)
@@ -34,7 +37,7 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
     dplyr::mutate(
       age_years = dplyr::if_else(LOS == 0L, NA_real_, as.double(AGE)),
       category = dplyr::case_when(LOS == 1L ~ NA_character_, FEMALE == 1L ~ "Female", TRUE ~ "Male"),
-      event = as.integer(LOS %in% c(2L, 5L, 9L))
+      event = dplyr::if_else(LOS == 1L, NA, LOS %in% c(2L, 5L, 9L))
     )
   expect_s3_class(query, "tbl_lazy")
   design <- nis_design(query, eligible, keep = c(exposure, age_years, category, LOS, event))
@@ -46,7 +49,8 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
     dplyr::mutate(
       psu = interaction(YEAR, HOSP_NIS),
       stratum = interaction(YEAR, NIS_STRATUM),
-      exposure = factor(exposure, levels = c(FALSE, TRUE), labels = c("No", "Yes"))
+      exposure = factor(exposure, levels = c(FALSE, TRUE), labels = c("No", "Yes")),
+      event = factor(event, levels = c(FALSE, TRUE), labels = c("No", "Yes"))
     )
   reference <- survey::svydesign(~psu, strata = ~stratum, weights = ~DISCWT, data = sample, nest = TRUE) |>
     subset(eligible)
@@ -54,7 +58,7 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
   table <- gtsummary::tbl_svysummary(
     design,
     by = exposure,
-    include = c(age_years, category),
+    include = c(age_years, category, event),
     statistic = list(age_years ~ "{mean} ({mean.std.error})", category ~ "{n_unweighted} ({p}%)"),
     missing = "always",
     missing_stat = "{N_miss_unweighted}"
@@ -63,10 +67,20 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
     gtsummary::add_overall() |>
     gtsummary::modify_header(gtsummary::all_stat_cols() ~ "{level}: {n_unweighted}")
 
+  event_rows <- table$table_body[table$table_body$variable == "event", ]
+  expect_identical(event_rows$var_type[event_rows$row_type == "label"], "dichotomous")
+  expect_false(any(event_rows$row_type == "level"))
+  expect_identical(table$inputs$value$event, TRUE)
+
+  rate <- dplyr::summarise(design, event_rate = srvyr::survey_mean(event, na.rm = TRUE))
+  rate_ref <- survey::svymean(~event, reference, na.rm = TRUE)
+  expect_lte(abs(rate$event_rate - coef(rate_ref)[["eventYes"]]), 1e-12)
+  expect_lte(abs(rate$event_rate_se - survey::SE(rate_ref)[["eventYes"]]), 1e-12)
+
   groups <- list(
     Overall = reference,
-    No = subset(reference, exposure == "No"),
-    Yes = subset(reference, exposure == "Yes")
+    `FALSE` = subset(reference, exposure == "No"),
+    `TRUE` = subset(reference, exposure == "Yes")
   )
   header <- table$table_styling$header
   body <- table$table_body
@@ -77,7 +91,7 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
     expect_equal(heading$label, paste0(group, ": ", nrow(rows)))
     expect_lt(abs(heading$modify_stat_n - sum(stats::weights(domain))), 1e-8)
     expect_equal(
-      body[[heading$column]][body$row_type == "missing"],
+      body[[heading$column]][body$row_type == "missing" & body$variable != "event"],
       as.character(colSums(is.na(rows[c("age_years", "category")])))
     )
 
@@ -126,6 +140,8 @@ test_that("gtsummary tables preserve cohort counts and full-sample survey result
 
   logistic <- survey::svyglm(event ~ age_years + exposure, design, family = stats::quasibinomial())
   logistic_ref <- survey::svyglm(event ~ age_years + exposure, reference, family = stats::quasibinomial())
+  expect_lte(max(abs(unname(coef(logistic)) - unname(coef(logistic_ref)))), 1e-12)
+  expect_lte(max(abs(unname(survey::SE(logistic)) - unname(survey::SE(logistic_ref)))), 1e-12)
   expect_gtsummary_model(gtsummary::tbl_regression(logistic, exponentiate = TRUE)$table_body, logistic_ref, TRUE)
 
   linear <- survey::svyglm(LOS ~ age_years + exposure, design)
