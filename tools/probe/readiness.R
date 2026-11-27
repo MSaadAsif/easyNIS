@@ -60,4 +60,5 @@ criteria <- evaluate_readiness(
   ci_configured,
   ci_runs
 )
-print(rbind(criteria, performance_readiness(loop_dir, current_evidence)), row.names = FALSE)
+criteria <- rbind(criteria, performance_readiness(loop_dir, current_evidence))
+print(criteria, row.names = FALSE)

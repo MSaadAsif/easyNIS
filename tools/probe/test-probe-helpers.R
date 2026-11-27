@@ -518,12 +518,19 @@ local({
   root <- tempfile("synthetic-package-")
   dir.create(file.path(root, "man"), recursive = TRUE)
   on.exit(unlink(root, recursive = TRUE))
-  writeLines("export(example)", file.path(root, "NAMESPACE"))
+  writeLines(c("export(example)", "export(shared)", "export(missing)"), file.path(root, "NAMESPACE"))
   writeLines(
-    c("\\name{example}", "\\examples{", "\\dontrun{", "example()", "}", "}"),
+    c("\\name{example}", "\\alias{example}", "\\examples{", "\\dontrun{", "example()", "}", "}"),
     file.path(root, "man", "example.Rd")
   )
-  stopifnot(!exported_example_status(root)$has_examples[[1L]])
+  writeLines(
+    c("\\name{topic}", "\\alias{shared}", "\\examples{", "shared()", "}"),
+    file.path(root, "man", "topic.Rd")
+  )
+  stopifnot(identical(
+    exported_example_status(root)$has_examples,
+    c(example = FALSE, shared = TRUE, missing = FALSE)
+  ))
 })
 
 local({
@@ -601,7 +608,7 @@ local({
       ci
     }
     output <- capture.output(sys.source("tools/probe/readiness.R", envir = env))
-    stopifnot(nrow(env$criteria) == 8L, !any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
+    stopifnot(!any(grepl("INVENTED_PRIVATE_MARKER", output, fixed = TRUE)))
     env$criteria
   }
   assert_reconcile_cases(run_readiness, encode)
@@ -609,6 +616,8 @@ local({
   ci_criteria <- c("R CMD check --as-cran: 0/0/0 on CI", "Every export has runnable examples")
   ci_statuses <- function(result) result$status[match(ci_criteria, result$criterion)]
   stopifnot(identical(ci_statuses(ready), rep("ready", 2L)))
+  performance_rows <- ready[startsWith(ready$criterion, "9 Performance / "), ]
+  stopifnot(nrow(performance_rows) == 16L, all(performance_rows$status == "fail"))
 
   # A stale, failed, pending, or merge-ref run cannot verify HEAD.
   for (change in list(
