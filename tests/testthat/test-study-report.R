@@ -10,11 +10,12 @@ test_that("a generated study masks unsupported mortality while reporting support
     survey.lonely.psu = "fail",
     survey.adjust.domain.lonely = FALSE
   )
-  for (package in c("purrr", "srvyr", "survey", "gtsummary")) {
-    if (!paste0("package:", package) %in% search()) {
-      suppressWarnings(withr::local_package(package))
+  attached <- search()
+  withr::defer({
+    for (package in setdiff(search(), attached)) {
+      detach(package, character.only = TRUE)
     }
-  }
+  })
   study <- nis_new_study(file.path(withr::local_tempdir(), "report"))
   withr::local_dir(study)
   # Knit the shipped analysis in this process. The assertions are on the
