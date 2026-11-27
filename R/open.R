@@ -64,7 +64,19 @@
 #'
 #' @section Large data:
 #' The query stays in DuckDB until you collect it. Filter, project, and summarize
-#' before collecting. Set the named list option `easyNIS.duckdb_config` before
+#' before collecting. A memory check applies to [dplyr::collect()], including
+#' `as.data.frame()` on these lazy tables, and to easyNIS helpers that collect
+#' DuckDB results. It estimates the size of the result from DuckDB's query plan
+#' and the projected column types. It uses a small sample to refine text widths
+#' for simple Parquet reads. Estimates for filtered queries and variable-width
+#' columns can be inaccurate, and the check cannot predict DuckDB's working
+#' memory or memory used by subsequent R operations.
+#' Estimated results from 20% of available physical memory emit a message; at
+#' 50% or more the check raises an `easyNIS_collect_too_large` error. If system
+#' memory is unavailable, collection proceeds with a one-time notice. Use
+#' `options(easyNIS.collect_prudence = FALSE)` to skip the check.
+#'
+#' Set the named list option `easyNIS.duckdb_config` before
 #' opening to tune `memory_limit`, `threads`, `temp_directory`,
 #' `max_temp_directory_size`, or `preserve_insertion_order`. The package
 #' assigns each query its own spill location under the supplied private
@@ -116,6 +128,9 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   }
   query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
+  if (reader == "duckdb") {
+    query$src$con@collect_source <- as.character(dbplyr::sql_render(query))
+  }
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   query$src$.easyNIS_years <- dataset$years
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)

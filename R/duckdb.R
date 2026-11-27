@@ -2,7 +2,11 @@
 #' @importFrom DBI dbBind dbSendQuery
 NULL
 
-methods::setClass("nis_duckdb_connection", contains = "duckdb_connection")
+methods::setClass(
+  "nis_duckdb_connection",
+  contains = "duckdb_connection",
+  slots = c(collect_source = "character")
+)
 methods::setClass("nis_duckdb_result", contains = "duckdb_result")
 
 # DuckDB executes in dbSendQuery() or, for deferred parameters, dbBind().

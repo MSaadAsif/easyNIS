@@ -90,5 +90,11 @@ nis_collect <- function(x) {
   if (is.data.frame(x)) {
     return(x)
   }
+  if (inherits(x, "tbl_sql")) {
+    con <- dbplyr::remote_con(x)
+    if (inherits(con, "duckdb_connection") && !inherits(con, "nis_duckdb_connection")) {
+      nis_collect_check(con, dbplyr::sql_render(x))
+    }
+  }
   nis_duckdb_translate_errors(dplyr::collect(x))
 }
