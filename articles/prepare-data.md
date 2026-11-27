@@ -29,7 +29,7 @@ made from invented data.
 
 source <- nis_open(nis_example(years = 2019)) |> collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRIgIE2/duckdb
+#> ℹ /tmp/RtmpDY6M3B/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -37,7 +37,7 @@ source <- nis_open(nis_example(years = 2019)) |> collect()
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRIgIE2/duckdb
+#> ℹ /tmp/RtmpDY6M3B/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -50,7 +50,7 @@ annual <- tempfile("nis-annual-")
 dir.create(annual)
 nis_convert(stata, annual)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRIgIE2/duckdb
+#> ℹ /tmp/RtmpDY6M3B/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -70,7 +70,7 @@ encoding override cannot repair damaged bytes.
 
 nis <- nis_open(annual, years = 2019, check_release = FALSE)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRIgIE2/duckdb
+#> ℹ /tmp/RtmpDY6M3B/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -112,14 +112,33 @@ nis |> count(I10_PR1, sort = TRUE) |> head(5) |> collect()
 #> # A tibble: 2 × 2
 #>   I10_PR1     n
 #>   <chr>   <dbl>
-#> 1 0JH60DZ    48
-#> 2 02703ZZ    48
+#> 1 02703ZZ    48
+#> 2 0JH60DZ    48
 ```
 
 A query can open before DuckDB reads text from the code fields. Check
 the diagnosis and procedure columns used in your study. If one fails
 with malformed UTF-8, reconvert from the correctly encoded source into a
 new directory and review the release check.
+
+Use `nis_open(reader = "arrow")` when you need to preserve the source
+bytes, including malformed UTF-8. During an Arrow-backed query, easyNIS
+caps Arrow’s CPU worker pool at the DuckDB thread count from when the
+source was opened. Set
+`options(easyNIS.duckdb_config = list(threads = 4L, memory_limit = "4 GiB"))`
+before opening the data to use a four-thread DuckDB profile. A smaller
+`threads` value can reduce scan memory further.
+
+DuckDB’s `memory_limit` governs its buffer manager. Budget separately
+for Arrow’s decoded Parquet batches, which depend on the projected
+columns and file layout, and for the R objects created by collection.
+Both readers materialize cohort rows in R for
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+Keep only the years and columns needed for the analysis and pass the
+needed analysis columns in `keep`. For estimators supported by
+[`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md),
+leaving the discharge rows in DuckDB avoids materializing the cohort in
+R.
 
 ## Join companion files
 

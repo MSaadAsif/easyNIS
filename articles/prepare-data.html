@@ -104,7 +104,7 @@ invented data.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">source</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpRIgIE2/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDY6M3B/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -112,7 +112,7 @@ invented data.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpRIgIE2/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDY6M3B/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -125,7 +125,7 @@ invented data.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">annual</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/nis_convert.html">nis_convert</a></span><span class="op">(</span><span class="va">stata</span>, <span class="va">annual</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpRIgIE2/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDY6M3B/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -143,7 +143,7 @@ input. An encoding override cannot repair damaged bytes.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">annual</span>, years <span class="op">=</span> <span class="fl">2019</span>, check_release <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpRIgIE2/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDY6M3B/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -181,12 +181,27 @@ works</a></p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
 <span><span class="co">#&gt;   I10_PR1     n</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 0JH60DZ    48</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 02703ZZ    48</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 02703ZZ    48</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 0JH60DZ    48</span></span></code></pre></div>
 <p>A query can open before DuckDB reads text from the code fields. Check
 the diagnosis and procedure columns used in your study. If one fails
 with malformed UTF-8, reconvert from the correctly encoded source into a
 new directory and review the release check.</p>
+<p>Use <code>nis_open(reader = "arrow")</code> when you need to preserve
+the source bytes, including malformed UTF-8. During an Arrow-backed
+query, easyNIS caps Arrow’s CPU worker pool at the DuckDB thread count
+from when the source was opened. Set
+<code>options(easyNIS.duckdb_config = list(threads = 4L, memory_limit = "4 GiB"))</code>
+before opening the data to use a four-thread DuckDB profile. A smaller
+<code>threads</code> value can reduce scan memory further.</p>
+<p>DuckDB’s <code>memory_limit</code> governs its buffer manager. Budget
+separately for Arrow’s decoded Parquet batches, which depend on the
+projected columns and file layout, and for the R objects created by
+collection. Both readers materialize cohort rows in R for
+<code><a href="../reference/nis_design.html">nis_design()</a></code>. Keep only the years and columns needed for
+the analysis and pass the needed analysis columns in <code>keep</code>.
+For estimators supported by <code><a href="../reference/nis_survey.html">nis_survey()</a></code>, leaving the
+discharge rows in DuckDB avoids materializing the cohort in R.</p>
 </div>
 <div class="section level2">
 <h2 id="join-companion-files">Join companion files<a class="anchor" aria-label="anchor" href="#join-companion-files"></a>
