@@ -49,7 +49,7 @@ reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
 srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
 }
 \seealso{
-\href{../articles/survey-design.html}{Survey design and weighting}.
+\href{https://msaadasif.github.io/easyNIS/articles/survey-design.html}{Survey design and weighting}.
 
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},

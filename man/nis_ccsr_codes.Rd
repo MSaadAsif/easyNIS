@@ -53,7 +53,7 @@ have no default assignment.
 head(nis_ccsr_codes("CIR019"))
 }
 \seealso{
-\href{../articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

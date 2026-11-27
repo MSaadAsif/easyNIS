@@ -44,5 +44,5 @@ design <- nis_design(nis_open(path), keep = LOS)
 dplyr::summarise(design, discharges = srvyr::survey_total())
 }
 \seealso{
-\code{\link[=nis_design]{nis_design()}}, \href{../articles/cohorts.html}{Defining cohorts}.
+\code{\link[=nis_design]{nis_design()}}, \href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
 }

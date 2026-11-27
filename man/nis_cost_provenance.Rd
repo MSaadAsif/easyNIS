@@ -30,7 +30,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
 nis_cost_provenance(charges)
 }
 \seealso{
-\href{../articles/costs.html}{Charges, costs, and provenance}.
+\href{https://msaadasif.github.io/easyNIS/articles/costs.html}{Charges, costs, and provenance}.
 
 Other costs:
 \code{\link[=nis_cost]{nis_cost()}}

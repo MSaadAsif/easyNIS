@@ -56,7 +56,7 @@ nis_study_copy_template <- function(path, call) {
 #' @param path A new local directory path for the study.
 #' @return The normalized path to the created study directory.
 #' @family study-setup
-#' @seealso [Get started with easyNIS](../articles/getting-started.html).
+#' @seealso [Get started with easyNIS](https://msaadasif.github.io/easyNIS/articles/getting-started.html).
 #' @export
 #' @examples
 #' study_path <- tempfile("nis-study-example-")

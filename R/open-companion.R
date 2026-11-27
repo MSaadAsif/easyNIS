@@ -29,7 +29,7 @@
 #'   support estimating individual hospital volumes.
 #'
 #' @return A lazy DuckDB-backed Core query with the requested columns added.
-#' @seealso [Opening NIS data](../articles/opening-data.html),
+#' @seealso [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 #' @export
 #' @examples

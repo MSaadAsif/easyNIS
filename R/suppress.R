@@ -60,7 +60,7 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   character. For `gtsummary` results, the table with primary and secondary
 #'   masks and a footnote describing them.
 #' @family disclosure
-#' @seealso [Disclosure and suppression](../articles/disclosure.html).
+#' @seealso [Disclosure and suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 #' @export
 #' @examplesIf rlang::is_installed(c("gtsummary", "cardx", "survey"))
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>

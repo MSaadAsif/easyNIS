@@ -90,7 +90,7 @@ nis_suppress(cells, count_col = n, hospital_col = hospitals,
   weighted_cols = tidyselect::starts_with("estimate_"))
 }
 \seealso{
-\href{../articles/disclosure.html}{Disclosure and suppression}.
+\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Disclosure and suppression}.
 
 Other disclosure:
 \code{\link[=nis_cell_counts]{nis_cell_counts()}}

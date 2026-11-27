@@ -62,6 +62,6 @@ nis_open(file.path(path, "core"), check_release = FALSE) |>
   dplyr::collect()
 }
 \seealso{
-\href{../articles/opening-data.html}{Opening NIS data},
+\href{https://msaadasif.github.io/easyNIS/articles/opening-data.html}{Opening NIS data},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp}{HCUP NIS File Specifications}.
 }

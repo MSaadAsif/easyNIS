@@ -48,7 +48,7 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #'   weighted sums; missing outcomes are excluded from that outcome's denominator.
 #'   Rates with zero denominators are missing.
 #' @family cohort-definition
-#' @seealso [Code transitions and sensitivity](../articles/code-transitions.html).
+#' @seealso [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))

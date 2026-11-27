@@ -77,7 +77,7 @@ flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
 nis_attrition_cohort(flow)
 }
 \seealso{
-\href{../articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
 
 Other cohort-definition:
 \code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}},
