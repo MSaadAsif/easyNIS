@@ -44,6 +44,7 @@ reference:
     contents:
       - nis_example
       - nis_open
+      - nis_join_companion
       - nis_label
   - title: 2. Define cohorts
     desc: Flag codes, timing, and eligibility; audit cohort definitions.

@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_join_companion()` adds selected Hospital, Severity, or Diagnosis and
+  Procedure Groups fields to lazy Core queries using checked annual keys.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
