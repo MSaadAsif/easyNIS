@@ -1,0 +1,1 @@
+- Procedure timing and completeness checks treat infinite PRDAY values as missing.

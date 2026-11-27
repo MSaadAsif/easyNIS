@@ -107,3 +107,31 @@ test_that("decoded factor missing and invalid days obey each policy", {
     }
   }
 })
+
+test_that("non-finite procedure days follow the missing-day policy", {
+  data <- data.frame(
+    id = 1:5,
+    I10_PR1 = "IX",
+    I10_PR2 = "OUT",
+    PRDAY1 = c(0, Inf, -Inf, 1, 0),
+    PRDAY2 = c(Inf, 1, 1, 2, -Inf)
+  )
+  path <- withr::local_tempdir()
+  write_duckdb_parquet(data, file.path(path, "NIS_2020.parquet"))
+  query <- nis_open(path, check_release = FALSE)
+  expected <- list(
+    exclude = c(FALSE, FALSE, FALSE, TRUE, FALSE),
+    assume_same_day = c(FALSE, TRUE, TRUE, TRUE, FALSE),
+    indeterminate = c(NA, NA, NA, TRUE, NA)
+  )
+
+  for (input in list(data, query)) {
+    for (policy in names(expected)) {
+      result <- nis_flag_pr_timing(input, "IX", "OUT", relation = "after", missing_day = policy)
+      if (inherits(result, "tbl_sql")) {
+        result <- dplyr::collect(dplyr::arrange(result, id))
+      }
+      expect_identical(result$outcome_post_index, expected[[policy]], info = policy)
+    }
+  }
+})
