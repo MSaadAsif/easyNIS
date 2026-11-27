@@ -107,6 +107,26 @@ test_that("AHRQ FY2027 uses its published measures, hierarchies and weights", {
   expect_false(nis_comorbidity(input, "elixhauser_ahrq2027")$cmrb_wghtloss[5L])
 })
 
+test_that("bundled AHRQ FY2027 scores work without medicalcoder", {
+  input <- data.frame(
+    I10_DX1 = "ZZZ99",
+    I10_DX2 = "C78.31",
+    DXPOA1 = "Y",
+    DXPOA2 = "N",
+    YEAR = 2027L
+  )
+  detect_installed <- getFromNamespace("detect_installed", "rlang")
+  local_mocked_bindings(
+    detect_installed = function(info) detect_installed(info) & info$pkg != "medicalcoder",
+    .package = "rlang"
+  )
+  expect_identical(nis_comorbidity(input, "elixhauser_ahrq2027")$cmrb_mortality_index, 22L)
+  methods <- c("elixhauser_ahrq_icd10", "elixhauser_ahrq2026", "charlson_quan2005", "elixhauser_quan2005")
+  for (method in methods) {
+    expect_error(nis_comorbidity(input, method), "medicalcoder.*required", class = "rlib_error_package_not_found")
+  }
+})
+
 test_that("Charlson and legacy Elixhauser agree with the ICD-9 and ICD-10 reference", {
   skip_if_not_installed("medicalcoder", minimum_version = "0.10.0")
   methods <- list(
