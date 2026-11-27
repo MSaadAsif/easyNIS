@@ -1,0 +1,73 @@
+---
+title: "Years and coding eras"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Years and coding eras}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r audits}
+library(easyNIS)
+library(dplyr)
+library(srvyr)
+
+nis <- nis_open(nis_example(years = 2015))
+nis_audit_code_transition(
+  nis, codes = c(heart_failure = "I50"), system = "icd10",
+  by = c("YEAR", "DQTR")
+)
+nis_audit_dx_position(nis, "I50", system = "icd10")
+```
+
+The examples use invented data. The transition audit counts matches by
+quarter. The position audit compares principal, secondary-only, and
+any-position definitions. Both give descriptive counts or rates. Use a
+survey design for standard errors.
+
+## The 2012 redesign
+
+Starting in 2012, the NIS samples discharges across hospitals in its sampling
+frame. Earlier releases sampled hospitals and retained their discharges.
+For a trend spanning the redesign, HCUP supplies `TRENDWT` for the applicable
+pre-2012 data. Use `DISCWT` from 2012 onward. easyNIS handles 2012 and later
+and does not apply historical trend weights.
+[HCUP trend weight guidance](https://hcup-us.ahrq.gov/db/nation/nis/trendwghts.jsp)
+
+## The October 2015 coding change
+
+Quarters 1 through 3 of 2015 use ICD-9-CM. Quarter 4 uses ICD-10-CM for
+diagnoses and ICD-10-PCS for procedures. Specify separate code sets for
+the two systems. `system = "both"` requires separate ICD-9 and ICD-10 slots.
+Review matches by quarter before interpreting a change in prevalence.
+[HCUP NIS documentation](https://hcup-us.ahrq.gov/db/nation/nis/nisdbdocumentation.jsp)
+
+## Quarter coverage
+
+Aggregate by `YEAR` and `DQTR` to see which quarters contribute. With
+`DQTR` available, `nis_design()` flags incomplete coverage during annualization
+and identifies a cohort restricted to one 2015 coding era. The annualization
+divisor counts a partial year once. Report a quarter-specific or era-specific
+estimate as such.
+
+## The 2023 and 2024 Core layouts
+
+The package uses the Core layouts from the HCUP SAS load programs.
+`TOTCHG_2023` and `TOTCHG_2024` are separate from the earlier `TOTCHG` field.
+Select the charge field for the year you analyze and check comparability
+before combining fields. The package layouts for these years have been
+checked against the load programs. Conversion on licensed annual files for
+these layouts has yet to be verified.
+[HCUP NIS load programs](https://hcup-us.ahrq.gov/db/nation/nis/nisloadprog.jsp)
+
+## Annual links for companions and cost-to-charge ratios
+
+Join the Hospital file by `YEAR` and `HOSP_NIS` and the Severity file by
+`YEAR` and `KEY_NIS`. Obtain the matching [HCUP cost-to-charge ratio
+file](https://hcup-us.ahrq.gov/db/ccr/ip-ccr/ip-ccr.jsp) for each data year.
+Prepare it with the hospital key in its release documentation, then link
+by `YEAR` and `HOSP_NIS`. Check which years and hospitals lack a match.

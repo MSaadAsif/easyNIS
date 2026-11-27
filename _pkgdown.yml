@@ -33,6 +33,12 @@ articles:
       - '"articles/code-transitions"'
       - '"articles/year-notes"'
       - '"articles/glossary"'
+  - title: Concepts
+    navbar: Articles
+    contents:
+      - '"articles/how-easynis-works"'
+      - '"articles/nis-design"'
+      - '"articles/years-and-eras"'
   - title: More about easyNIS
     navbar: Articles
     contents:
