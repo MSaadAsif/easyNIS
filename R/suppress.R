@@ -31,7 +31,7 @@ validate_suppress_dots <- function(dots, error_call) {
 #' function errors. Data-frame behavior uses the supplied `count_col` and
 #' optional `hospital_col` as described below.
 #'
-#' @param x A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
+#' @param .data A `gtsummary::tbl_svysummary()` result, optionally with `add_p()`
 #'   or `add_overall()`, or a data frame/tibble.
 #' @param threshold Maximum unweighted cell count to suppress.
 #' @param ... Reserved for compatibility; unused arguments are errors.
@@ -69,7 +69,7 @@ validate_suppress_dots <- function(dots, error_call) {
 #' )
 #' nis_suppress(table, threshold = 10)
 nis_suppress <- function(
-  x,
+  .data,
   threshold = 10,
   ...,
   count_col,
@@ -82,9 +82,9 @@ nis_suppress <- function(
   dots <- rlang::dots_list(...)
   validate_suppress_dots(dots, error_call)
   validate_suppress_threshold(threshold, error_call)
-  if (is.data.frame(x) && !inherits(x, "tbl_svysummary")) {
+  if (is.data.frame(.data) && !inherits(.data, "tbl_svysummary")) {
     return(suppress_dataframe(
-      x,
+      .data,
       threshold,
       count_col,
       weighted_cols,
@@ -95,7 +95,7 @@ nis_suppress <- function(
       error_call
     ))
   }
-  validate_survey_suppress_input(x, error_call)
+  validate_survey_suppress_input(.data, error_call)
   validate_survey_suppress_args(
     count_col,
     weighted_cols,
@@ -105,5 +105,5 @@ nis_suppress <- function(
     missing(count_col),
     error_call
   )
-  suppress_survey_table(x, threshold, error_call)
+  suppress_survey_table(.data, threshold, error_call)
 }

@@ -25,11 +25,12 @@ The query stays in DuckDB. The diagnosis flag checks every slot by default.
 
 ```{r cohort}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  dplyr::select(nis_vars_design(), nis_vars_dx(), AGE, FEMALE, LOS, DIED) |>
+  dplyr::select(nis_vars_design(), nis_vars_dx(), AGE, FEMALE, LOS, DIED, DISPUNIFORM) |>
   nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(adult = AGE >= 18, death = as.integer(DIED))
+  nis_outcomes() |>
+  dplyr::mutate(adult = AGE >= 18)
 
-nis_attrition(nis, adult = adult, heart_failure = heart_failure, by_year = TRUE)
+nis_attrition(nis, adult = adult, by_year = TRUE, .design = TRUE)
 ```
 
 `nis_vars_design()` keeps `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, `DISCWT` and,
@@ -47,13 +48,13 @@ groups compare adult discharges with and without a matching diagnosis.
 
 ```{r design}
 design <- nis |>
-  nis_design(cohort = adult, keep = c(heart_failure, AGE, FEMALE, LOS, DIED, death))
+  nis_design(cohort = adult, keep = c(heart_failure, AGE, FEMALE, los_days, in_hospital_death))
 
 estimates <- design |>
   dplyr::group_by(heart_failure) |>
   dplyr::summarise(
     discharges = srvyr::survey_total(),
-    mean_los = srvyr::survey_mean(LOS, na.rm = TRUE)
+    mean_los = srvyr::survey_mean(los_days, na.rm = TRUE)
   )
 ```
 
@@ -70,13 +71,13 @@ sample and missingness when reporting a real analysis.
 
 ```{r table-one, eval=rlang::is_installed(c("gtsummary", "cardx", "gt"))}
 table_one <- design |>
-  gtsummary::tbl_svysummary(by = heart_failure, include = c(AGE, FEMALE, LOS, DIED))
+  gtsummary::tbl_svysummary(by = heart_failure, include = c(AGE, FEMALE, los_days, in_hospital_death))
 nis_suppress(table_one)
 ```
 
 ```{r model}
 fit <- survey::svyglm(
-  death ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  in_hospital_death ~ heart_failure + AGE + FEMALE + factor(YEAR),
   design = design,
   family = quasibinomial()
 )
@@ -91,7 +92,7 @@ counts for the records contributing to that mean.
 
 ```{r disclosure}
 reviewed <- estimates |>
-  dplyr::left_join(nis_cell_counts(design, by = "heart_failure"), by = "heart_failure") |>
+  dplyr::left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
   nis_suppress(
     count_col = "n",
     hospital_col = "hospitals",
