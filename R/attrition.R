@@ -83,7 +83,7 @@ nis_attrition_metrics <- function(data, criteria_count) {
 }
 
 .nis_attrition_rows <- function(counts, labels, by_year, metrics) {
-  steps <- seq.int(0L, length(labels))
+  steps <- seq_along(labels) - 1L
   rows <- rep(seq_len(nrow(counts)), each = length(steps))
   step <- rep(steps, times = nrow(counts))
   gather <- function(columns) {
@@ -97,7 +97,7 @@ nis_attrition_metrics <- function(data, criteria_count) {
   denominator <- as.numeric(counts[[metrics$n[[1L]]]])[rows]
   result <- dplyr::tibble(
     step = step,
-    criterion = c("All discharges", labels)[step + 1L],
+    criterion = labels[step + 1L],
     n_unweighted = as.integer(n),
     n_dropped_unweighted = as.integer(n[previous] - n),
     n_weighted = weight,
@@ -105,6 +105,15 @@ nis_attrition_metrics <- function(data, criteria_count) {
     pct_retained = dplyr::if_else(denominator == 0, NA_real_, 100 * n / denominator)
   )
   if (by_year) dplyr::mutate(result, YEAR = counts$YEAR[rows], .before = 1L) else result
+}
+
+.nis_attrition_design_sample <- function(.data) {
+  absent <- setdiff(.nis_design_fields, nis_names(.data))
+  if (length(absent) > 0L) {
+    cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.")
+  }
+  any_invalid <- reduce_or(nis_design_invalid_exprs(.data))
+  dplyr::filter(.data, !(!!any_invalid))
 }
 
 #' Summarize sequential cohort attrition
@@ -124,9 +133,19 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #' @param by_year If `TRUE`, calculate each step within `YEAR`.
 #' @param weight_var Name of the discharge weight column. Defaults to
 #'   `"DISCWT"`.
+#' @param .design If `TRUE`, count only discharges with valid survey design
+#'   fields, using the policy in [nis_design()]. Criteria still evaluate over
+#'   the full ungrouped input. Use `cohort = !!nis_attrition_cohort(flow)` with
+#'   the same input to build the survey design from the rules in `flow`. Use
+#'   deterministic criteria, since they are evaluated by both functions.
+#' @param flow Result from `nis_attrition(..., .design = TRUE)`.
 #'
-#' @return A tibble with one initial row (`step = 0`) and one row per
-#'   criterion. When `by_year = TRUE`, `YEAR` is the first column.
+#' @return `nis_attrition()` returns a tibble with one initial row (`step = 0`)
+#'   and one row per criterion. When `by_year = TRUE`, `YEAR` is the first
+#'   column. With `.design = TRUE`, the initial row counts valid design
+#'   discharges and the tibble stores the combined cohort expression.
+#'   `nis_attrition_cohort()` extracts that expression for injection with `!!`
+#'   into `cohort` in [nis_design()].
 #' @family cohort-definition
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
@@ -138,16 +157,21 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #'   YEAR = rep(2020L, 5)
 #' )
 #' nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
-nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
+nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT", .design = FALSE) {
   criteria <- rlang::enquos(..., .named = TRUE)
   if (length(criteria) == 0L) {
     cli::cli_abort("Supply at least one attrition criterion.")
   }
   .nis_attrition_validate(.data, by_year, weight_var)
-  labels <- names(criteria)
+  if (!rlang::is_bool(.design)) {
+    cli::cli_abort("`.design` must be `TRUE` or `FALSE`.")
+  }
   keep_names <- .nis_attrition_keep_names(.data, length(criteria))
   keep_exprs <- .nis_attrition_keep_exprs(criteria, keep_names)
   prepared <- dplyr::mutate(dplyr::ungroup(.data), !!!keep_exprs)
+  if (.design) {
+    prepared <- .nis_attrition_design_sample(prepared)
+  }
   missing_weight <- nis_is_missing_expr(prepared, weight_var)
   weight <- rlang::expr(dplyr::if_else(
     !!missing_weight,
@@ -160,5 +184,20 @@ nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT") {
   if (by_year && anyNA(counts$YEAR)) {
     cli::cli_abort("`YEAR` must not contain missing values when `by_year` is `TRUE`.")
   }
-  .nis_attrition_rows(counts, labels, by_year, metrics)
+  baseline <- if (.design) "Valid design discharges" else "All discharges"
+  result <- .nis_attrition_rows(counts, c(baseline, names(criteria)), by_year, metrics)
+  if (.design) {
+    attr(result, "nis_cohort") <- Reduce(function(left, right) rlang::expr((!!left) & (!!right)), criteria)
+  }
+  result
+}
+
+#' @rdname nis_attrition
+#' @export
+nis_attrition_cohort <- function(flow) {
+  cohort <- attr(flow, "nis_cohort", exact = TRUE)
+  if (is.null(cohort)) {
+    cli::cli_abort("Pass the result of `nis_attrition(..., .design = TRUE)`.")
+  }
+  cohort
 }
