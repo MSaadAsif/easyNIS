@@ -121,7 +121,10 @@ left over. The 8 GB and 16 GB commit limits come from the machine profiles.
 The provisional wall and disk limits use that stopped trial with the same
 margin and rounding. The two reference attempts ended at the system commit
 headroom check, so reference whole-sample performance remains unverified.
-The in-database estimator prototype tracks this gap separately.
+We expect the whole-sample step to meet criterion 9 once the
+[in-database estimator](adr/0001-in-database-survey-estimation.md) lands.
+Re-run the six-year probe on both profiles to verify all limits, including
+the provisional time limit.
 
 ## Scope decisions
 
@@ -137,6 +140,10 @@ The in-database estimator prototype tracks this gap separately.
 - Keep easyNIS focused on a simple NIS analyst workflow built on established
   packages including `survey`, `srvyr`, `gtsummary`,
   `medicalcoder` and `duckdb`.
+- Use [in-database Taylor linearization](adr/0001-in-database-survey-estimation.md)
+  for whole-sample and large-domain totals, means, grouped estimates, and
+  canonical-link GLMs. Keep cohort-scale and row-level methods on
+  `nis_design()` with `survey`, `srvyr`, and `gtsummary`.
 
 ## Completed history
 
