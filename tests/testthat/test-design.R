@@ -75,7 +75,7 @@ test_that("nis_design carries cost provenance through the survey workflow", {
     }
   )
   expect_true(any(grepl(
-    "1 cohort row has missing or invalid `CCR_NIS`; `cost_adj` is `NA`",
+    "Missing or invalid `CCR_NIS`; `cost_adj` is `NA`",
     informs,
     fixed = TRUE
   )))
@@ -255,7 +255,7 @@ test_that("annualization distinguishes data coverage from cohort quarter coverag
   prefilt_q1_q3 <- full_year[full_year$DQTR <= 3L, ]
   expect_warning(
     nis_design(prefilt_q1_q3, eligible, keep = YEAR, annualize = TRUE),
-    "Annualization includes year\\(s\\) with incomplete data-quarter coverage: 2016"
+    "Annualization includes incomplete quarter coverage"
   )
 
   # Full 2015 data coverage plus a Q4-only cohort signals the ICD-10 era.
@@ -319,7 +319,7 @@ test_that("annualized weights divide by the number of years and missing cohorts 
   )
   expect_message(
     domain <- nis_design(data, eligible, keep = c(AGE)),
-    "1 missing cohort value"
+    "missing cohort values"
   )
   expect_equal(nrow(domain$variables), 1L)
 })
@@ -393,16 +393,21 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
 
   expected <- nis_design(valid, heart_failure, keep = c(AGE, LOS))
   warning <- NULL
+  messages <- character()
   from_frame <- withCallingHandlers(
     nis_design(invalid, heart_failure, keep = c(AGE, LOS)),
     warning = function(condition) {
       warning <<- conditionMessage(condition)
       invokeRestart("muffleWarning")
+    },
+    message = function(condition) {
+      messages <<- c(messages, conditionMessage(condition))
+      invokeRestart("muffleMessage")
     }
   )
-  expect_match(warning, "Excluded 17 discharges")
-  expect_match(warning, "YEAR: 3, HOSP_NIS: 4, NIS_STRATUM: 4, DISCWT: 7")
-  expect_match(warning, "Affected valid years:")
+  expect_match(warning, "Excluded discharges with invalid design fields")
+  expect_false(any(grepl("[[:digit:]]", c(warning, messages))))
+  expect_match(warning, "YEAR.*HOSP_NIS.*NIS_STRATUM.*DISCWT")
   expect_match(warning, "can fail more than one field")
   expect_match(warning, "before cohort filtering")
   expect_equal(attr(from_frame, "nis_excluded")$total, 17)
@@ -420,7 +425,7 @@ test_that("nis_design excludes discharges with invalid design fields and warns",
       heart_failure,
       keep = c(AGE, LOS)
     ),
-    "Excluded 17 discharges"
+    "Excluded discharges with invalid design fields"
   )
   expect_equal(attr(from_duckdb, "nis_excluded"), attr(from_frame, "nis_excluded"))
 
@@ -593,7 +598,7 @@ test_that("nis_design warns when the charge column is missing for a whole year",
   )
   expect_warning(
     design <- nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2020),
-    "entirely missing in year 2017"
+    "entirely missing in some cohort years"
   )
   expect_true(all(is.na(design$variables$cost_adj[design$variables$YEAR == 2017])))
 
@@ -613,7 +618,7 @@ test_that("nis_design warns about years with hospitals but no cohort discharges"
   )
   expect_warning(
     suppressMessages(nis_design(data, eligible, keep = YEAR)),
-    "No cohort discharges in year 2014"
+    "No cohort discharges in some sample years"
   )
   data$eligible[1L] <- TRUE
   expect_no_warning(suppressMessages(nis_design(data, eligible, keep = YEAR)))
