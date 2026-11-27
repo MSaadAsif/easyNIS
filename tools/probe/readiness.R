@@ -3,6 +3,7 @@ source(file.path("tools", "probe", "probe-modules.R"))
 source(file.path("tools", "probe", "readiness-ci.R"))
 source(file.path("tools", "probe", "quality-checks.R"))
 source(file.path("tools", "probe", "readiness-criteria.R"))
+source(file.path("tools", "probe", "performance-results.R"))
 loop_dir <- probe_workspace(root)
 quality_files <- list.files(loop_dir, pattern = "^quality[.]jsonl$", recursive = TRUE, full.names = TRUE)
 quality_files <- quality_files[order(file.info(quality_files)$mtime)]
@@ -59,4 +60,4 @@ criteria <- evaluate_readiness(
   ci_configured,
   ci_runs
 )
-print(criteria, row.names = FALSE)
+print(rbind(criteria, performance_readiness(loop_dir, current_evidence)), row.names = FALSE)

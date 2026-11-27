@@ -1,0 +1,17 @@
+profile	step	commit_MB	wall_s	temp_MB
+minimum	open_1	300	7	1
+reference	open_1	300	7	1
+minimum	open_5	300	14	1
+reference	open_5	350	10	1
+minimum	cohort	500	60	1
+reference	cohort	600	30	1
+minimum	design	750	121	1
+reference	design	750	79	1
+minimum	mean_by	850	13	1
+reference	mean_by	850	14	1
+minimum	glm	1000	14	1
+reference	glm	1000	13	1
+minimum	table	1000	88	1
+reference	table	1000	80	1
+minimum	whole_sample	8000	166	1
+reference	whole_sample	16000	166	1

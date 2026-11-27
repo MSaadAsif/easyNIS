@@ -37,7 +37,7 @@ test_that("nis_label maps common codes and preserves existing labels", {
     ynel1 = structure(c(0, 1, NA_real_), label = "Existing Elixhauser label")
   )
 
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DISPUNIFORM")
+  expect_no_warning(labelled <- nis_label(data))
   expect_identical(levels(labelled$DIED), c("No", "Yes"))
   expect_identical(as.character(labelled$DIED), c("No", "Yes", "No"))
   expect_identical(levels(labelled$FEMALE), c("Male", "Female"))
@@ -47,7 +47,7 @@ test_that("nis_label maps common codes and preserves existing labels", {
     as.character(labelled$DISPUNIFORM),
     c(
       "Died in hospital",
-      "Code 21",
+      "Discharged/transferred to court/law enforcement",
       "Alive, destination unknown"
     )
   )
