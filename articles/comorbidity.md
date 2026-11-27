@@ -44,7 +44,7 @@ no compilation and has no additional mandatory package dependencies.
 discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::filter(AGE >= 18)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp22kUkv/duckdb
+#> ℹ /tmp/RtmpUVsEcM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -52,7 +52,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp22kUkv/duckdb
+#> ℹ /tmp/RtmpUVsEcM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -99,7 +99,7 @@ preserved.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp22kUkv/duckdb
+#> ℹ /tmp/RtmpUVsEcM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -107,7 +107,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp22kUkv/duckdb
+#> ℹ /tmp/RtmpUVsEcM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -122,7 +122,7 @@ design <- nis_design(
 #> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
 scored_design <- nis_comorbidity(design, method = "elixhauser_ahrq2027")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp22kUkv/duckdb
+#> ℹ /tmp/RtmpUVsEcM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -155,13 +155,13 @@ A discharge without a usable code for the selected definition gets
 missing scores. Keep the original ICD-9-CM codes as strings so that
 leading zeros survive.
 
-For refined Elixhauser and Charlson, `Y` and `W` count as present on
-admission, `N` and `U` mean absent, and other values including `1` are
-unknown. Refined Elixhauser uses its code-level exemptions. The
-medicalcoder-based releases use its fixed exemption mapping. FY2027 uses
-`YEAR` plus one for October through December, the calendar year if the
-quarter is missing, or the latest available exemption list if the year
-is missing or beyond that release.
+For diagnosis codes that require POA, the refined Elixhauser and
+Charlson scorers count only `Y` and `W` as eligible when the
+corresponding field is available. Refined Elixhauser also uses
+code-level exemptions. The medicalcoder-based releases use its fixed
+exemption mapping. FY2027 uses `YEAR` plus one for October through
+December, the calendar year if the quarter is missing, or the latest
+available exemption list if the year is missing or beyond that release.
 
 If a matching POA column is absent, easyNIS assumes the corresponding
 diagnoses were present and warns which slots are affected. The
@@ -172,6 +172,66 @@ when publishing results.
 
 NIS studies may carry Stata-derived `ynel*` and `elixsum` columns. They
 use earlier definitions, so their values may differ from these scores.
+
+### Check POA eligibility under a pinned release
+
+Record the method string, mapping release, secondary slots, and POA
+availability by source year. This invented example uses the pinned
+v2027.1 definition. `D6911` requires POA for the coagulopathy measure.
+`C7831` qualifies for the metastatic cancer measure under a POA
+exemption. A value of `N` therefore has different implications for the
+two codes.
+
+``` r
+
+poa_cases <- data.frame(
+  YEAR = 2027L, DQTR = 1L,
+  I10_DX1 = "J189",
+  DXPOA1 = "Y",
+  I10_DX2 = c("D6911", "D6911", "C7831"),
+  DXPOA2 = c("Y", "N", "N")
+)
+poa_scored <- nis_comorbidity(poa_cases, method = "elixhauser_ahrq2027")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpUVsEcM/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+poa_scored[c("I10_DX2", "DXPOA2", "cmrb_n", "cmrb_mortality_index")]
+#>   I10_DX2 DXPOA2 cmrb_n cmrb_mortality_index
+#> 1   D6911      Y      1                   14
+#> 2   D6911      N      0                    0
+#> 3   C7831      N      1                   22
+
+# This sensitivity calculation invokes the missing-slot assumption.
+without_poa <- nis_comorbidity(
+  dplyr::select(poa_cases, -DXPOA2),
+  method = "elixhauser_ahrq2027"
+)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpUVsEcM/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> Warning: No matching POA column for 1 diagnosis slots: I10_DX2. Assuming present.
+#> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
+without_poa[c("I10_DX2", "cmrb_n", "cmrb_mortality_index")]
+#>   I10_DX2 cmrb_n cmrb_mortality_index
+#> 1   D6911      1                   14
+#> 2   D6911      1                   14
+#> 3   C7831      1                   22
+```
+
+Dropping the POA field changes the second discharge’s score. When POA is
+unavailable, consider an analysis that excludes the affected year or
+uses a comorbidity definition appropriate to the fields available.
+Document how that choice changes eligibility or adjustment.
 
 See [the function
 reference](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)

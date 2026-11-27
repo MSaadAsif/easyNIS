@@ -173,7 +173,7 @@ dependencies.</p>
 <code class="sourceCode R"><span><span class="va">discharges</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp22kUkv/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -181,7 +181,7 @@ dependencies.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp22kUkv/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -226,7 +226,7 @@ preserved.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp22kUkv/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -234,7 +234,7 @@ preserved.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp22kUkv/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -249,7 +249,7 @@ preserved.</p>
 <span><span class="co">#&gt; Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.</span></span>
 <span><span class="va">scored_design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_comorbidity.html">nis_comorbidity</a></span><span class="op">(</span><span class="va">design</span>, method <span class="op">=</span> <span class="st">"elixhauser_ahrq2027"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp22kUkv/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -281,14 +281,14 @@ preserved.</p>
 scores. A discharge without a usable code for the selected definition
 gets missing scores. Keep the original ICD-9-CM codes as strings so that
 leading zeros survive.</p>
-<p>For refined Elixhauser and Charlson, <code>Y</code> and
-<code>W</code> count as present on admission, <code>N</code> and
-<code>U</code> mean absent, and other values including <code>1</code>
-are unknown. Refined Elixhauser uses its code-level exemptions. The
-medicalcoder-based releases use its fixed exemption mapping. FY2027 uses
-<code>YEAR</code> plus one for October through December, the calendar
-year if the quarter is missing, or the latest available exemption list
-if the year is missing or beyond that release.</p>
+<p>For diagnosis codes that require POA, the refined Elixhauser and
+Charlson scorers count only <code>Y</code> and <code>W</code> as
+eligible when the corresponding field is available. Refined Elixhauser
+also uses code-level exemptions. The medicalcoder-based releases use its
+fixed exemption mapping. FY2027 uses <code>YEAR</code> plus one for
+October through December, the calendar year if the quarter is missing,
+or the latest available exemption list if the year is missing or beyond
+that release.</p>
 <p>If a matching POA column is absent, easyNIS assumes the corresponding
 diagnoses were present and warns which slots are affected. The
 assumption can include conditions acquired during a hospital stay. AHRQ
@@ -298,8 +298,65 @@ when publishing results.</p>
 <p>NIS studies may carry Stata-derived <code>ynel*</code> and
 <code>elixsum</code> columns. They use earlier definitions, so their
 values may differ from these scores.</p>
+<div class="section level3">
+<h3 id="check-poa-eligibility-under-a-pinned-release">Check POA eligibility under a pinned release<a class="anchor" aria-label="anchor" href="#check-poa-eligibility-under-a-pinned-release"></a>
+</h3>
+<p>Record the method string, mapping release, secondary slots, and POA
+availability by source year. This invented example uses the pinned
+v2027.1 definition. <code>D6911</code> requires POA for the coagulopathy
+measure. <code>C7831</code> qualifies for the metastatic cancer measure
+under a POA exemption. A value of <code>N</code> therefore has different
+implications for the two codes.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">poa_cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  YEAR <span class="op">=</span> <span class="fl">2027L</span>, DQTR <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  I10_DX1 <span class="op">=</span> <span class="st">"J189"</span>,</span>
+<span>  DXPOA1 <span class="op">=</span> <span class="st">"Y"</span>,</span>
+<span>  I10_DX2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"D6911"</span>, <span class="st">"D6911"</span>, <span class="st">"C7831"</span><span class="op">)</span>,</span>
+<span>  DXPOA2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Y"</span>, <span class="st">"N"</span>, <span class="st">"N"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">poa_scored</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_comorbidity.html">nis_comorbidity</a></span><span class="op">(</span><span class="va">poa_cases</span>, method <span class="op">=</span> <span class="st">"elixhauser_ahrq2027"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="va">poa_scored</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"I10_DX2"</span>, <span class="st">"DXPOA2"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_mortality_index"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   I10_DX2 DXPOA2 cmrb_n cmrb_mortality_index</span></span>
+<span><span class="co">#&gt; 1   D6911      Y      1                   14</span></span>
+<span><span class="co">#&gt; 2   D6911      N      0                    0</span></span>
+<span><span class="co">#&gt; 3   C7831      N      1                   22</span></span>
+<span></span>
+<span><span class="co"># This sensitivity calculation invokes the missing-slot assumption.</span></span>
+<span><span class="va">without_poa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_comorbidity.html">nis_comorbidity</a></span><span class="op">(</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">poa_cases</span>, <span class="op">-</span><span class="va">DXPOA2</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"elixhauser_ahrq2027"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUVsEcM/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; Warning: No matching POA column for 1 diagnosis slots: I10_DX2. Assuming present.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> POA-dependent comorbidities may include conditions acquired in hospital.</span></span>
+<span><span class="va">without_poa</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"I10_DX2"</span>, <span class="st">"cmrb_n"</span>, <span class="st">"cmrb_mortality_index"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   I10_DX2 cmrb_n cmrb_mortality_index</span></span>
+<span><span class="co">#&gt; 1   D6911      1                   14</span></span>
+<span><span class="co">#&gt; 2   D6911      1                   14</span></span>
+<span><span class="co">#&gt; 3   C7831      1                   22</span></span></code></pre></div>
+<p>Dropping the POA field changes the second discharge’s score. When POA
+is unavailable, consider an analysis that excludes the affected year or
+uses a comorbidity definition appropriate to the fields available.
+Document how that choice changes eligibility or adjustment.</p>
 <p>See <a href="../reference/nis_comorbidity.html">the function
 reference</a> and <a href="year-notes.html">Data notes by year</a>.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

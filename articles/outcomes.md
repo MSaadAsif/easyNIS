@@ -16,7 +16,7 @@ in the derived outcomes.
 outcomes <- nis_open(nis_example(years = 2024)) |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgRiUCi/duckdb
+#> ℹ /tmp/RtmpLhokta/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -24,7 +24,7 @@ outcomes <- nis_open(nis_example(years = 2024)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgRiUCi/duckdb
+#> ℹ /tmp/RtmpLhokta/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -124,6 +124,59 @@ A NIS heart failure study reported geometric means after substituting a
 small positive value for zeros, an analysis choice to document when
 reproducing that study. [Heart failure utilization
 study](https://pmc.ncbi.nlm.nih.gov/articles/PMC6676288/)
+
+## Define and audit a timed procedure outcome
+
+A secondary diagnosis marks a condition recorded during the stay. Even
+with POA information, its slot gives no date relative to an index
+procedure. For a procedure-based outcome, use the day recorded for its
+matched procedure slot. The example uses two timing rules on invented
+discharges. Both outcome procedures have the same recorded code, and
+only the first has a known day.
+
+``` r
+
+timing_cases <- data.frame(
+  YEAR = 2020L,
+  I10_DX1 = "I509",
+  I10_DX2 = "N179",
+  I10_PR1 = "02703ZZ",
+  I10_PR2 = "0JH60DZ",
+  PRDAY1 = 1L,
+  PRDAY2 = c(1L, NA_integer_)
+)
+day_audit <- nis_audit_prday(timing_cases, pr = "0JH60")
+day_audit
+#> # A tibble: 2 × 8
+#>    YEAR  slot matched_slots known_day missing_day sentinel_invalid_day
+#>   <int> <int>         <int>     <int>       <int>                <int>
+#> 1  2020     1             0         0           0                    0
+#> 2  2020     2             2         1           1                    0
+#> # ℹ 2 more variables: absent_prday_column <int>, pct_known <dbl>
+
+timed <- timing_cases |>
+  nis_flag_dx(recorded_aki = "N17", position = "secondary") |>
+  nis_flag_pr_timing(
+    index_pr = "02703", outcome_pr = "0JH60",
+    name = "on_or_after", relation = "on_or_after", missing_day = "indeterminate"
+  ) |>
+  nis_flag_pr_timing(
+    index_pr = "02703", outcome_pr = "0JH60",
+    name = "strictly_after", relation = "after", missing_day = "indeterminate"
+  )
+timed[c("PRDAY1", "PRDAY2", "on_or_after", "strictly_after", "recorded_aki")]
+#>   PRDAY1 PRDAY2 on_or_after strictly_after recorded_aki
+#> 1      1      1        TRUE          FALSE         TRUE
+#> 2      1     NA          NA             NA         TRUE
+```
+
+The same-day case meets the on-or-after definition. The strict-after
+definition excludes it. The missing-day case is unknown under both
+rules. The secondary acute kidney injury code is recorded in both cases
+and has unknown timing relative to the procedure. State the code sets,
+slots, timing rule, and missing-day treatment. Report how many matched
+slots have known days and how many discharges enter each timing
+analysis.
 
 ## Report costs and the analysis denominator
 
