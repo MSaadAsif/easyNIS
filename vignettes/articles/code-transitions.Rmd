@@ -52,7 +52,7 @@ nis_audit_code_transition(
   toy,
   codes = c(heart_failure = "I50"),
   type = "dx",
-  by = c("YEAR", "DQTR")
+  by = c(YEAR, DQTR)
 )
 ```
 
@@ -118,7 +118,7 @@ denominator, for example adults with a known age.
 
 ```{r audit-flow, eval=FALSE}
 attr(flow, "nis_criteria")
-nis_audit_code_transition(nis, codes = flow, by = c("YEAR", "DQTR"))
+nis_audit_code_transition(nis, codes = flow, by = c(YEAR, DQTR))
 ```
 
 For the invented example, any-slot counts in Q3 and Q4 are 24 and 19.

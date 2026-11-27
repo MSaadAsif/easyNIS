@@ -140,7 +140,7 @@ ccsr_bundled_codes <- function(categories, default_only, type, version, call) {
   }
   release <- ccsr_releases(type, version, call)$version[1L]
   con <- nis_duckdb_connect(config = list(threads = "1"))
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   available <- DBI::dbGetQuery(
     con,
     paste(

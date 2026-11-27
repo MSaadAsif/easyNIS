@@ -42,9 +42,9 @@ check_batch <- function(cases, indices, stratum, threshold, secondary, evidence)
     expected_rows(counts[i, ], if (!is.null(hospitals)) hospitals[i, ], stratum,
       threshold, secondary)
   }, character(size)))
-  actual <- easyNIS::nis_suppress(input, threshold = threshold, count_col = "n",
-    hospital_col = if (!is.null(hospitals)) "hospitals", weighted_cols = "estimate",
-    by = c("case", "stratum"), secondary = secondary)
+  actual <- easyNIS::nis_suppress(input, threshold = threshold, count_col = n,
+    hospital_col = tidyselect::any_of("hospitals"), weighted_cols = estimate,
+    by = c(case, stratum), secondary = secondary)
 
   expected <- input
   replacements <- c(count = paste0("\u2264", threshold), hospital = "<2 hospitals",

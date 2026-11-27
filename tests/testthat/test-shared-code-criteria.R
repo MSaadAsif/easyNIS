@@ -38,7 +38,7 @@ test_that("code criteria agree across attrition, a survey model, and the transit
   fit <- survey::svyglm(LOS ~ AGE, design = design)
   expect_equal(stats::nobs(fit), tail(flow$n_unweighted, 1L))
 
-  audit <- nis_audit_code_transition(nis, codes = flow, by = c("YEAR", "DQTR"))
+  audit <- nis_audit_code_transition(nis, codes = flow, by = c(YEAR, DQTR))
   expect_identical(audit$n_cohort_unweighted, rep(24L, 16L))
   expect_identical(
     audit$n_unweighted,
@@ -56,7 +56,7 @@ test_that("single-system code criteria use their own slots and eras", {
     )
   )
   expect_identical(flow$n_unweighted, c(96L, 36L, 0L))
-  audit <- nis_audit_code_transition(nis, flow, by = c("YEAR", "DQTR"))
+  audit <- nis_audit_code_transition(nis, flow, by = c(YEAR, DQTR))
   expect_identical(audit$n_unweighted, c(18L, 9L, 9L, 0L, 0L, 0L, 0L, 24L))
   expect_error(nis_audit_code_transition(nis, flow, output = "inventory"), "summary")
   expect_error(nis_audit_code_transition(nis, flow, system = "icd9"), "system")

@@ -58,7 +58,8 @@ nis_hospital_count_query <- function(data, by) {
 #'
 #' @param .data Record-level data frame, lazy DuckDB query, or result of [nis_design()].
 #' @param by <[tidy-select][dplyr::dplyr_tidy_select]> Cell-defining columns.
-#'   Omit for overall counts. The summary names `n` and `hospitals` are reserved.
+#'   Omit or select no columns for overall counts. Use name-based selectors on
+#'   DuckDB queries. The summary names `n` and `hospitals` are reserved.
 #'
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).
@@ -72,18 +73,11 @@ nis_hospital_count_query <- function(data, by) {
 #' nis_cell_counts(records, by = group)
 nis_cell_counts <- function(.data, by = NULL) {
   .data <- .nis_cell_count_records(.data)
-  schema <- if (inherits(.data, "tbl_sql")) {
-    nis_collect(utils::head(dplyr::ungroup(.data), 0L))
-  } else {
-    .data
-  }
-  by <- names(tidyselect::eval_select(rlang::enquo(by), schema, allow_rename = FALSE))
+  by <- nis_select_columns(.data, rlang::enquo(by))
   .nis_cell_count_validate_by(by)
-  nis_validate_hospital_columns(.data, by)
+  nis_validate_hospital_columns(.data)
   if (inherits(.data, "tbl_sql")) {
-    if (!all(vapply(schema[.nis_hospital_fields], is.numeric, logical(1)))) {
-      nis_invalid_hospital_ids()
-    }
+    nis_validate_hospital_types(.data)
     return(nis_hospital_count_query(.data, by))
   }
   nis_validate_hospital_ids(.data)

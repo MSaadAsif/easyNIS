@@ -71,12 +71,12 @@ test_that("suppression thresholds preserve scalar validation", {
   data <- data.frame(n = 1L, estimate = 40)
   for (name in names(inputs)) {
     if (expected[[name]]) {
-      result <- nis_suppress(data, threshold = inputs[[name]], count_col = "n")
+      result <- nis_suppress(data, threshold = inputs[[name]], count_col = n)
       label <- if (inputs[[name]] == 0) "1" else paste0("\u2264", inputs[[name]])
       expect_identical(result$n, label, info = name)
     } else {
       expect_error(
-        nis_suppress(data, threshold = inputs[[name]], count_col = "n"),
+        nis_suppress(data, threshold = inputs[[name]], count_col = n),
         "non-negative whole number",
         info = name
       )
@@ -163,7 +163,7 @@ test_that("nis_suppress handles data frames and paired weighted columns", {
     n = c(4, 20, 0),
     estimate = c(8.25, 40.5, 0)
   )
-  result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate", by = "group", secondary = FALSE)
+  result <- nis_suppress(data, count_col = n, weighted_cols = estimate, by = group, secondary = FALSE)
 
   expect_s3_class(result, "tbl_df")
   expect_identical(result$group, data$group)
@@ -177,7 +177,7 @@ test_that("nis_suppress applies data-frame complementary masking by stratum", {
     n = c(4, 20, 30, 1, 6, 40),
     estimate = c(4.5, 20.5, 30.5, 1.5, 6.5, 40.5)
   )
-  result <- nis_suppress(data, threshold = 5, count_col = "n", weighted_cols = "estimate", by = "group")
+  result <- nis_suppress(data, threshold = 5, count_col = n, weighted_cols = estimate, by = group)
 
   expect_identical(result$n, c("\u22645", "Masked", "30", "\u22645", "Masked", "40"))
   expect_identical(result$estimate, c("\u22645", "Masked", "30.5", "\u22645", "Masked", "40.5"))
@@ -194,9 +194,9 @@ test_that("nis_suppress applies the two-hospital rule to data-frame cells", {
   )
   result <- nis_suppress(
     data,
-    count_col = "n",
-    hospital_col = "hospitals",
-    weighted_cols = "estimate",
+    count_col = n,
+    hospital_col = hospitals,
+    weighted_cols = estimate,
     secondary = FALSE
   )
 
@@ -206,7 +206,7 @@ test_that("nis_suppress applies the two-hospital rule to data-frame cells", {
 
 test_that("zero-count cells are suppressed", {
   data <- data.frame(n = c(0, 14), hospitals = c(0, 1))
-  result <- nis_suppress(data, count_col = "n", hospital_col = "hospitals")
+  result <- nis_suppress(data, count_col = n, hospital_col = hospitals)
   expect_identical(result$n, c("\u226410", "<2 hospitals"))
   expect_identical(result$hospitals, c("\u226410", "<2 hospitals"))
 })
@@ -216,7 +216,7 @@ test_that("nis_suppress rejects invalid data-frame discharge counts", {
   for (count in invalid_counts) {
     data <- data.frame(n = count)
     expect_error(
-      nis_suppress(data, count_col = "n"),
+      nis_suppress(data, count_col = n),
       "finite, non-negative whole counts without missing values"
     )
   }
@@ -231,10 +231,10 @@ test_that("hospital primary masks join complementary masking", {
   )
   result <- nis_suppress(
     data,
-    count_col = "n",
-    hospital_col = "hospitals",
-    weighted_cols = "estimate",
-    by = "group"
+    count_col = n,
+    hospital_col = hospitals,
+    weighted_cols = estimate,
+    by = group
   )
   expect_identical(result$n, c("<2 hospitals", "Masked", "25"))
   expect_identical(result$estimate, c("<2 hospitals", "Masked", "25.5"))
@@ -243,7 +243,7 @@ test_that("hospital primary masks join complementary masking", {
 test_that("nis_suppress rejects missing hospital counts explicitly", {
   data <- data.frame(n = 14, hospitals = NA_real_)
   expect_error(
-    nis_suppress(data, count_col = "n", hospital_col = "hospitals"),
+    nis_suppress(data, count_col = n, hospital_col = hospitals),
     "without missing values"
   )
 })
@@ -254,14 +254,14 @@ test_that("nis_cell_counts uses year-scoped hospital identities", {
     HOSP_NIS = c(rep(1, 7), rep(c(1, 2), c(4, 3)), 2),
     group = c(rep("A", 14), "B")
   )
-  counts <- nis_cell_counts(records, by = "group")
+  counts <- nis_cell_counts(records, by = group)
   expect_identical(counts$group, c("A", "B"))
   expect_identical(counts$n, c(14L, 1L))
   expect_identical(counts$hospitals, c(3L, 1L))
   masked <- nis_suppress(
     counts,
-    count_col = "n",
-    hospital_col = "hospitals",
+    count_col = n,
+    hospital_col = hospitals,
     secondary = FALSE
   )
   expect_identical(masked$n, c("14", "\u226410"))
@@ -278,8 +278,8 @@ test_that("nis_cell_counts excludes zero-domain placeholder rows", {
     group = c("A", "A", "A")
   )
   design <- nis_design(data, eligible, keep = group)
-  counts <- nis_cell_counts(design, by = "group")
-  cohort_counts <- nis_cell_counts(data[data$eligible, ], by = "group")
+  counts <- nis_cell_counts(design, by = group)
+  cohort_counts <- nis_cell_counts(data[data$eligible, ], by = group)
 
   expect_equal(counts, cohort_counts)
   expect_identical(counts$n, 2L)
@@ -294,7 +294,7 @@ test_that("nis_cell_counts handles an unstratified cell and validates its inputs
   expect_equal(overall$n, 3L)
   expect_equal(overall$hospitals, 3L)
   expect_error(nis_cell_counts(records, by = NA_character_), "missing values")
-  expect_error(nis_cell_counts(records, by = "missing"), "missing")
+  expect_error(nis_cell_counts(records, by = absent), "absent")
   expect_error(nis_cell_counts(records["YEAR"], by = character()), "HOSP_NIS")
   expect_error(nis_cell_counts(list(records), by = character()), "record-level data frame")
   expect_error(nis_cell_counts(transform(records, YEAR = "2020"), by = character()), "finite positive")
@@ -310,7 +310,7 @@ test_that("nis_suppress groups interleaved data-frame strata without reordering"
     n = c(2, 3, 20, 30),
     estimate = c(2.5, 3.5, 20.5, 30.5)
   )
-  result <- nis_suppress(data, threshold = 5, count_col = "n", weighted_cols = "estimate", by = "group")
+  result <- nis_suppress(data, threshold = 5, count_col = n, weighted_cols = estimate, by = group)
 
   expect_identical(class(result), class(data))
   expect_identical(result$group, data$group)
@@ -320,14 +320,14 @@ test_that("nis_suppress groups interleaved data-frame strata without reordering"
 
 test_that("nis_suppress skips complementary masking with multiple primary rows", {
   data <- data.frame(n = c(1, 4, 20), estimate = c(1.5, 4.5, 20.5))
-  result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate")
+  result <- nis_suppress(data, count_col = n, weighted_cols = estimate)
   expect_identical(result$n, c("\u226410", "\u226410", "20"))
   expect_identical(result$estimate, c("\u226410", "\u226410", "20.5"))
 
   no_secondary <- nis_suppress(
     data.frame(n = c(4, 20), estimate = c(4.5, 20.5)),
-    count_col = "n",
-    weighted_cols = "estimate",
+    count_col = n,
+    weighted_cols = estimate,
     secondary = FALSE
   )
   expect_identical(no_secondary$n, c("\u226410", "20"))
@@ -337,10 +337,10 @@ test_that("nis_suppress skips complementary masking with multiple primary rows",
 test_that("nis_suppress validates data-frame columns and input-specific options", {
   data <- data.frame(n = 4, estimate = 4.5)
   expect_error(nis_suppress(data), "count_col")
-  expect_error(nis_suppress(transform(data, n = "4"), count_col = "n"), "numeric")
-  expect_error(nis_suppress(data, count_col = "missing"), "not found")
-  expect_error(nis_suppress(data, count_col = "n", weighted_cols = "missing"), "not found")
-  expect_error(nis_suppress(data, count_col = "n", by = "missing"), "not found")
+  expect_error(nis_suppress(transform(data, n = "4"), count_col = n), "numeric")
+  expect_error(nis_suppress(data, count_col = absent), "absent")
+  expect_error(nis_suppress(data, count_col = n, weighted_cols = absent), "absent")
+  expect_error(nis_suppress(data, count_col = n, by = absent), "absent")
 })
 
 test_that("nis_suppress masks a low level in a two-level categorical variable", {
@@ -703,25 +703,22 @@ test_that("nis_suppress masks the overall cell for continuous and missing rows",
 test_that("nis_suppress preserves data-frame argument and value validation", {
   data <- data.frame(n = c(4, 20), estimate = c(4.5, 20.5), hospitals = c(2, 3), group = c("A", "A"))
 
-  expect_error(nis_suppress(data, count_col = "n", unused = TRUE), "Unused arguments")
+  expect_error(nis_suppress(data, count_col = n, unused = TRUE), "Unused arguments")
   for (threshold in list(-1, NA_real_, Inf, 0.5, "10", c(1, 2))) {
-    expect_error(nis_suppress(data, count_col = "n", threshold = threshold), "non-negative whole number")
+    expect_error(nis_suppress(data, count_col = n, threshold = threshold), "non-negative whole number")
   }
-  for (count_col in list(NULL, character(), c("n", "estimate"), NA_character_, "")) {
-    expect_error(nis_suppress(data, count_col = count_col), "count_col")
-  }
-  expect_error(nis_suppress(data, count_col = "n", secondary = NA), "secondary")
-  expect_error(nis_suppress(data, count_col = "n", secondary = 1), "secondary")
-  expect_error(nis_suppress(data, count_col = "n", weighted_cols = 1), "character vector")
-  expect_error(nis_suppress(data, count_col = "n", weighted_cols = NA_character_), "character vector")
-  expect_error(nis_suppress(data, count_col = "n", by = 1), "character vector")
-  expect_error(nis_suppress(data, count_col = "n", hospital_col = c("hospitals", "n")), "must name one column")
-  expect_error(nis_suppress(data, count_col = "n", hospital_col = "group"), "numeric")
+  expect_error(nis_suppress(data, count_col = NULL), "count_col")
+  expect_error(nis_suppress(data, count_col = c(n, estimate)), "count_col")
+  expect_error(nis_suppress(data, count_col = n, secondary = NA), "secondary")
+  expect_error(nis_suppress(data, count_col = n, secondary = 1), "secondary")
+  expect_error(nis_suppress(data, count_col = n, weighted_cols = NA_character_), "missing")
+  expect_error(nis_suppress(data, count_col = n, hospital_col = c(hospitals, n)), "must name one column")
+  expect_error(nis_suppress(data, count_col = n, hospital_col = group), "numeric")
 
   for (hospital_count in list(NA_real_, Inf, -1, 1.5)) {
     invalid <- data.frame(n = 20, hospitals = hospital_count)
     expect_error(
-      nis_suppress(invalid, count_col = "n", hospital_col = "hospitals"),
+      nis_suppress(invalid, count_col = n, hospital_col = hospitals),
       "finite, non-negative whole counts without missing values"
     )
   }
@@ -729,17 +726,17 @@ test_that("nis_suppress preserves data-frame argument and value validation", {
 
 test_that("nis_suppress preserves survey-summary input errors and notices", {
   table <- structure(list(cards = list(tbl_svysummary = data.frame())), class = "tbl_svysummary")
-  expect_error(nis_suppress(table, count_col = "n"), "apply only to data frames")
-  expect_error(nis_suppress(table, weighted_cols = "estimate"), "apply only to data frames")
-  expect_error(nis_suppress(table, by = "group"), "apply only to data frames")
-  expect_error(nis_suppress(table, hospital_col = "hospitals"), "apply only to data frames")
+  expect_error(nis_suppress(table, count_col = n), "apply only to data frames")
+  expect_error(nis_suppress(table, weighted_cols = estimate), "apply only to data frames")
+  expect_error(nis_suppress(table, by = group), "apply only to data frames")
+  expect_error(nis_suppress(table, hospital_col = hospitals), "apply only to data frames")
   expect_error(nis_suppress(table, secondary = FALSE), "applies only to data frames")
   expect_error(nis_suppress(list()), "tbl_svysummary")
 })
 
 test_that("data-frame complementary suppression leaves safe strata unchanged", {
   data <- data.frame(n = c(20, 30), estimate = c(20.5, 30.5))
-  result <- nis_suppress(data, count_col = "n", weighted_cols = "estimate")
+  result <- nis_suppress(data, count_col = n, weighted_cols = estimate)
   expect_identical(result$n, c("20", "30"))
   expect_identical(result$estimate, c("20.5", "30.5"))
 })
@@ -873,23 +870,23 @@ test_that("survey suppression counts hospitals by year and group encounter order
 test_that("nis_suppress validation errors retain the public call", {
   data <- data.frame(n = 1, estimate = 1, group = "A", hospitals = 2)
   threshold_error <- tryCatch(
-    nis_suppress(data, count_col = "n", threshold = -1),
+    nis_suppress(data, count_col = n, threshold = -1),
     error = identity
   )
   oversized_threshold_error <- tryCatch(
-    nis_suppress(data, count_col = "n", threshold = 2147483648),
+    nis_suppress(data, count_col = n, threshold = 2147483648),
     error = identity
   )
   missing_count_col_error <- tryCatch(nis_suppress(data), error = identity)
   invalid_count_error <- tryCatch(
-    nis_suppress(transform(data, n = -1), count_col = "n"),
+    nis_suppress(transform(data, n = -1), count_col = n),
     error = identity
   )
   column_errors <- list(
-    tryCatch(nis_suppress(data, count_col = "missing"), error = identity),
-    tryCatch(nis_suppress(data, count_col = "n", weighted_cols = "missing"), error = identity),
-    tryCatch(nis_suppress(data, count_col = "n", by = "missing"), error = identity),
-    tryCatch(nis_suppress(data, count_col = "n", hospital_col = "missing"), error = identity)
+    tryCatch(nis_suppress(data, count_col = absent), error = identity),
+    tryCatch(nis_suppress(data, count_col = n, weighted_cols = absent), error = identity),
+    tryCatch(nis_suppress(data, count_col = n, by = absent), error = identity),
+    tryCatch(nis_suppress(data, count_col = n, hospital_col = absent), error = identity)
   )
 
   expect_identical(rlang::call_name(conditionCall(threshold_error)), "nis_suppress")

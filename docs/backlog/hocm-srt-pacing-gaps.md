@@ -428,7 +428,7 @@ nis_audit_code_transition(
   .data,
   codes,
   cohort = NULL,
-  by = "YEAR",
+  by = YEAR,
   system = c("icd10", "icd9")
 )
 ```
@@ -494,7 +494,7 @@ toy_data <- tibble::tibble(
 toy_data |>
   nis_audit_code_transition(
     codes = c(myectomy = "02UG0JZ", ablation = "02803ZZ"),
-    by = "YEAR"
+    by = YEAR
   )
 ```
 
@@ -643,7 +643,8 @@ summary_df <- tibble::tibble(
 summary_df |>
   nis_suppress(
     threshold = 10,
-    weighted_cols = "weighted_n"
+    count_col = unweighted_n,
+    weighted_cols = weighted_n
   )
 ```
 

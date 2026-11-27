@@ -1,7 +1,8 @@
 #' Select NIS column groups
 #'
-#' Use these tidyselect helpers inside [dplyr::select()] or the `keep`
-#' argument of [nis_design()]. Groups use HCUP field names from 2012 onward.
+#' Use these helpers inside [dplyr::select()] and easyNIS tidy-select
+#' arguments, such as `keep` in [nis_design()] or `columns` in
+#' [nis_join_companion()]. Groups use HCUP field names from 2012 onward.
 #' Each helper selects the columns present in the input. Combine groups
 #' with `c()` or exclude them with `-`.
 #'
