@@ -1,71 +1,61 @@
 # Contributing
 
-Thanks for helping improve easyNIS. Changes should be reviewable, supported by invented public fixtures, and consistent with the package's documented limitations.
+Work on a focused branch. From the repository root, install development
+dependencies with `pak::pak(".", dependencies = TRUE)` in R. Install
+`devtools`, `callr`, and `cyclocomp` for checks, and put
+[Air 0.13.0](https://posit-dev.github.io/air/cli.html) and
+[Jarl 0.7.1](https://jarl.etiennebacher.com/#installation) on your PATH.
 
-## Setup
+## Verify a change
 
-1. Fork the repository and create a branch for your change.
-2. Open the repository root in RStudio or set it as your working directory.
-3. Install development dependencies with `pak::pak(".", dependencies = TRUE)`.
-4. For documentation changes, install `roxygen2` and `pkgdown`. For local
-   checks, install `callr` and `cyclocomp` in R and put
-   [Air 0.13.0](https://posit-dev.github.io/air/cli.html) and
-   [Jarl 0.7.1](https://jarl.etiennebacher.com/#installation) on your PATH.
+- Before writing code, list what could fail. Prefer end-to-end tests of the
+  public workflow with invented fixtures. Keep the inputs, exact command,
+  platform, transcript, and observed results for each run. Follow
+  [AGENTS.md](AGENTS.md) when a test needs isolation.
+- Run relevant tests with `devtools::test()`. Keep tests fast and safe to run in
+  parallel. Put slow tests behind `EASYNIS_FULL_TESTS` and keep CI on each push
+  under 10 minutes.
+- If roxygen comments change, run `devtools::document()` and commit the generated
+  changes. Use the roxygen2 version in `DESCRIPTION`.
+- Put changelog bullets in one unique `news/<topic-slug>.md` fragment. Leave `NEWS.md` for collection.
+  An optional first `##` heading must match a development section in `NEWS.md`.
+- Before committing, run `Rscript --vanilla tools/check-package.R --lint` for
+  Air formatting, Jarl lint, and installed-package cyclomatic complexity of 15
+  or less.
+- Before opening the PR, run `Rscript --vanilla tools/check-package.R --full`.
+  It runs `devtools::check()` on the exact commit with `EASYNIS_FULL_TESTS`
+  enabled, isolated from the working tree and ignored data.
 
-## Change and verify
-
-- Keep each branch focused and describe the user-visible behavior in the pull request.
-- Add or update focused `testthat` coverage using invented fixtures. Do not create examples from licensed NIS inputs or record-derived output.
-- Regenerate documentation with `devtools::document()` when roxygen comments change, and include the generated `man/` and `NAMESPACE` changes.
-- Run relevant tests with `devtools::test()`. From the repository root, run
-  `Rscript --vanilla tools/check-package.R` after committing changes and before
-  requesting review. It runs `devtools::check()` on the exact commit, away
-  from the checkout's ignored data and working files. Before committing, run
-  `Rscript --vanilla tools/check-package.R --lint` to check Air formatting,
-  Jarl findings, and the installed package's cyclomatic complexity limit of 15.
-  Use `air format .` to apply formatting and `pkgdown::check_pkgdown()` for
-  pkgdown configuration changes.
-- Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.
-- Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.
-
-### Resource-intensive tests
-
-The regular suite checks DuckDB workload settings, spill-limit enforcement and
-cleanup, and every procedure timing policy and relation. The full tier also
-checks procedure timing on a 25-slot Parquet fixture. Set `EASYNIS_FULL_TESTS`
-to `true`, `TRUE`, or `1` to include that check.
-
-Run the full suite with `Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()`
-or run the committed package check with
-`Rscript --vanilla tools/check-package.R --full`. The latter is the command for
-scheduled or manually triggered full checks.
+Describe what changed, how you verified it, and any remaining limitations in
+the [PR template](.github/PULL_REQUEST_TEMPLATE.md). See the
+[improvement loop](docs/LOOP.md) for orchestrated work and review.
 
 ## Where changes belong
 
-R loads package source from the flat `R/` directory. Use the domain in the
-filename and put focused tests next to that domain's other tests in
-`tests/testthat/`.
+Package code lives in `R/`, with related tests in `tests/testthat/`.
 
 | To change | Start here |
 | --- | --- |
-| Annual and Hive discovery | `R/open-discovery.R` for part ownership, `R/open-parquet.R` for scan planning and year validation, and `R/duckdb.R` for connections and spill storage |
-| Diagnosis or procedure selection | `R/code-layout.R` for slot names and code-system eligibility, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
-| Survey design or weights | `R/design.R` for input selection, `R/design-sample.R` for sample and cohort scans, `R/cohort-design.R` for survey objects, and `R/reweight.R` for factor validation and application |
-| Disclosure | `R/disclosure-policy.R` for primary masks and hospital identity, `R/cell-counts.R` for cell summaries, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for format-specific masking |
-| Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for cache inputs, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
-| Improvement probes | `tools/probe/` for commands, `quality-checks.R` for check definitions, `quality-receipts.R` for evidence, and `readiness-criteria.R` for decisions |
+| Opening annual or Hive data | `R/open.R` for the entry point, `R/open-discovery.R` for part ownership, `R/open-parquet.R` for scans, `R/open-release.R` for annual release checks, and `R/duckdb.R` for connections and spill storage |
+| Diagnosis or procedure selection | `R/code-layout.R` for slots and code systems, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
+| Survey design or weights | `R/design.R` for input selection, `R/design-sample.R` for scans, `R/cohort-design.R` for survey objects, and `R/reweight.R` for reweighting |
+| Disclosure | `R/disclosure-policy.R` for policy, `R/cell-counts.R` for summaries, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for masking |
+| Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for caching, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
+| Improvement probes | `tools/probe/quality-checks.R` for checks, `tools/probe/quality-receipts.R` for evidence, and `tools/probe/readiness-criteria.R` for readiness |
 
-Keep I/O and format-specific code at the entry points. Put a rule in a shared
-module when multiple callers need the same rule, and exercise it through the
-normal user-facing functions.
-
-When changing Parquet scan planning or DuckDB workload settings, run the
+For scan planning or DuckDB workload changes, run the
 [bounded scan check and spill benchmark](.agents/skills/duckdb-parquet-scans/SKILL.md).
 
 ## Privacy and licensing
 
-Use invented fixtures and independently authored code compatible with the project's AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.
+Keep licensed HCUP inputs, real records, private paths, and local validation
+receipts out of the repository and public material. Never publish output from
+real-data runs, including estimates, counts, or any record-derived values, in
+issues, PRs, commits, or docs. Keep those outputs in Git-ignored `local/loop/`.
+Review tables for primary and complementary disclosure risks. Follow the HCUP
+Data Use Agreement and institutional requirements, and contribute independently
+authored code compatible with AGPL-3.0-only.
 
-## Pull requests
-
-Explain the behavior changed, relevant verification, and remaining methodological or annual-layout limitations. Use the pull request checklist and keep the change focused.
+Before posting an issue or PR body, save the text locally and run
+`Rscript --vanilla tools/check-public-text.R path/to/body.md`. Check the text
+yourself for private material even when the scanner passes.

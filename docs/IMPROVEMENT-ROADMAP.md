@@ -27,6 +27,101 @@ real NIS results.
    The readiness criterion shows pass/fail and coarse relative discrepancies.
    Keep estimates, standard errors, and receipts local.
 8. **Issue severity:** no open P0 or P1 issues. See `No open P0/P1 issues`.
+9. **Performance.** Every workload step meets the
+   [performance budgets](#performance-budgets) under both profile settings.
+   Each repeat must meet all three limits and leave zero temporary files.
+
+## Performance budgets
+
+The minimum Windows profile has 8 GB RAM, 4 cores, and 20 GB free disk.
+The reference Windows profile has 16 GB RAM, 8 cores, and 20 GB free disk.
+The probe sets DuckDB to 4 GiB and 4 threads for minimum, and 8 GiB and
+8 threads for reference. Both use a 16 GB DuckDB spill cap. The settings
+simulate the profiles on a shared host. The probe samples the process commit
+ceiling and leaves host RAM, CPU scheduling and the OS file cache unmanaged.
+
+With the package's development dependencies and `gtsummary` installed, run
+the probe and readiness report from the repository root.
+
+```sh
+Rscript --vanilla tools/probe/probe-performance.R
+Rscript --vanilla tools/probe/readiness.R
+```
+
+The probe installs easyNIS into an isolated library and generates six annual
+Parquet files of seven million invented discharges each (2017–2022). Each file
+has 120 columns, including 40 diagnosis and 25 procedure slots. The typical
+cohort uses five years (2018–2022) and matches about 1% of discharges on an
+I50 diagnosis in any slot. The invented cohort is concentrated in a subset
+of hospitals and exercises the survey design's hospital placeholders.
+The cohort-building step forces a SQL scan with a count. The design step
+retains age, sex, mortality and length of stay.
+The weighted descriptive step estimates mean length of stay overall and by
+sex. The mortality model uses age, sex and year. The summary table reports
+age, length of stay and mortality by sex. Both open steps use the default
+annual release checks.
+
+Each step runs three times per profile in a fresh R interpreter. Wall time
+measures the named operation. For downstream steps, opening, flagging and
+constructing the required design happen before timing starts. The six-year
+whole-sample step times design construction and fitting together. Windows
+process peak commit (`PeakPagedMemorySize64`) includes startup and prerequisites.
+Temporary disk is the largest observed total file size in the dedicated
+scratch directory, sampled about every 50 ms. The process exit check counts
+any leftover files before the probe removes scratch. Sampling can miss
+short-lived files. Each run records individual repeats, medians and maxima
+under the Git-ignored `local/loop/` directory.
+
+Use `--smoke` for one small invented run per step and profile. For optional
+licensed validation, set `EASYNIS_DATA` to a local NIS Parquet root containing
+2017–2022 and run with `--real`. The probe reads that root and keeps only
+resource measurements and run status. Readiness uses the full invented run
+for the current clean commit.
+
+### Limits
+
+Each cell lists peak commit in decimal MB, wall time in seconds, and temporary
+disk in decimal MB. Each repeat must also leave zero temporary files.
+The runner reads the same limits from
+[`performance-budgets.tsv`](../tools/probe/performance-budgets.tsv).
+
+| Step | Minimum (MB / s / MB) | Reference (MB / s / MB) |
+| --- | ---: | ---: |
+| `nis_open()`, 1 year | 300 / 7 / 1 | 300 / 7 / 1 |
+| `nis_open()`, 5 years | 300 / 14 / 1 | 350 / 10 / 1 |
+| Build the cohort | 500 / 60 / 1 | 600 / 30 / 1 |
+| `nis_design()`, cohort | 750 / 121 / 1 | 750 / 79 / 1 |
+| `svymean()` and `svyby()`, cohort | 850 / 13 / 1 | 850 / 14 / 1 |
+| `svyglm()`, cohort | 1000 / 14 / 1 | 1000 / 13 / 1 |
+| `tbl_svysummary()`, cohort | 1000 / 88 / 1 | 1000 / 80 / 1 |
+| `nis_design()` and `svyglm()`, whole sample, 6 years | 8000 / 166 / 1 | 16000 / 166 / 1 |
+
+The core limits use the largest observed value plus 25%, rounded up to the
+next 50 MB of commit, whole second, or whole MB of disk, with a 1 MB disk
+floor. The shared Windows calibration host had 33.6 GB RAM and 16 logical
+cores. Other jobs were active during the run, and some repeats overlapped.
+Each profile completed three repeats of each core step. Below, commit and wall
+time are median / maximum. Temporary disk was 0 / 0 MB for every core step at
+both profiles, and every repeat left zero temporary files.
+
+| Step | Min. commit (MB) | Min. wall (s) | Ref. commit (MB) | Ref. wall (s) |
+| --- | ---: | ---: | ---: | ---: |
+| Open 1 year | 206.8 / 206.9 | 4.29 / 4.81 | 231.1 / 233.1 | 4.33 / 5.19 |
+| Open 5 years | 223.6 / 223.7 | 9.40 / 10.49 | 256.1 / 257.3 | 6.87 / 7.57 |
+| Cohort | 374.8 / 378.2 | 43.74 / 47.39 | 443.4 / 445.5 | 23.30 / 23.38 |
+| Design | 571.9 / 572.6 | 94.22 / 96.52 | 561.3 / 562.6 | 54.36 / 62.45 |
+| Weighted means | 664.3 / 676.7 | 9.29 / 9.89 | 667.9 / 672.2 | 9.25 / 10.48 |
+| Model | 792.4 / 793.9 | 10.42 / 10.46 | 788.8 / 790.0 | 9.32 / 10.25 |
+| Summary table | 779.8 / 783.1 | 63.39 / 69.84 | 774.5 / 774.9 | 59.68 / 63.67 |
+
+**Known minimum-profile failure.** The six-year whole-sample survey workflow
+crossed 8 GB peak commit. The calibration stopped it at 8004 MB after 132.34
+seconds of process time, with zero observed temporary bytes and zero files
+left over. The 8 GB and 16 GB commit limits come from the machine profiles.
+The provisional wall and disk limits use that stopped trial with the same
+margin and rounding. The two reference attempts ended at the system commit
+headroom check, so reference whole-sample performance remains unverified.
+The in-database estimator prototype tracks this gap separately.
 
 ## Scope decisions
 
