@@ -180,7 +180,7 @@ nis_example <- function(years = 2017:2022) {
   }
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   complete <- FALSE
-  on.exit(if (!complete) nis_remove_owned_directory(path))
+  on.exit(if (!complete) nis_remove_owned_directory(path), add = TRUE)
 
   con <- nis_duckdb_connect(config = list(threads = "1"))
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE, after = FALSE)

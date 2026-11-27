@@ -28,7 +28,7 @@ nis_convert_ascii_layout <- function(year) {
 nis_convert_ascii_count <- function(path, layout) {
   width <- sum(layout$width)
   input <- file(path, "rb")
-  on.exit(close(input))
+  on.exit(close(input), add = TRUE)
   rows <- 0L
   carry <- raw()
   crlf <- NULL

@@ -3,7 +3,7 @@
 # The code page identifiers follow haven's bundled ReadStat format definitions.
 nis_convert_declared_encoding <- function(path) {
   input <- file(path, "rb")
-  on.exit(close(input))
+  on.exit(close(input), add = TRUE)
   format <- tolower(tools::file_ext(path))
   switch(
     format,
