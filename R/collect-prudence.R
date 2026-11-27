@@ -37,13 +37,10 @@ nis_collect_check <- function(con, sql, n = -1) {
   # Leave at least half of available RAM for DuckDB's result, temporary copies
   # during conversion to R, and allocations made after collect(). At a fifth
   # of available RAM there is still room to proceed, but users should know the cost.
-  gib <- 1024^3
-  size <- format(round(bytes / 1024^2, 1), nsmall = 1, trim = TRUE)
-  memory <- format(round(available / gib, 2), nsmall = 2, trim = TRUE)
   if (bytes >= available * 0.5) {
     cli::cli_abort(
       c(
-        "Collect would use an estimated {size} MiB for {estimate$columns} column{?s} with {memory} GiB of available RAM.",
+        "Collect would use too much available memory.",
         i = paste(
           "Use {.fn dplyr::filter} or {.fn dplyr::select} before collecting.",
           "For survey analysis, use {.fn nis_design} with a narrower cohort and fewer retained columns."
@@ -53,9 +50,7 @@ nis_collect_check <- function(con, sql, n = -1) {
       class = "easyNIS_collect_too_large"
     )
   }
-  cli::cli_inform(
-    "Collecting {estimate$columns} column{?s} from DuckDB (estimated {size} MiB; {memory} GiB of RAM available)."
-  )
+  cli::cli_inform("Collecting a large result from DuckDB.")
   invisible(NULL)
 }
 
@@ -78,7 +73,7 @@ nis_collect_estimate <- function(con, sql, n) {
   }
   schema <- DBI::dbGetQuery(con, paste("DESCRIBE", sql))
   widths <- nis_collect_widths(con, sql, plan, schema)
-  list(rows = rows, row_width = sum(widths), columns = length(widths))
+  list(rows = rows, row_width = sum(widths))
 }
 
 nis_collect_count <- function(con, sql, n) {

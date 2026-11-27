@@ -46,8 +46,8 @@ nis_duckdb_translate_errors <- function(query) {
       c(
         paste0("Malformed UTF-8", location, "."),
         i = paste(
-          'Use {.code nis_open(reader = "arrow")} to work around this.',
-          "Regenerate the Parquet file with the correct source encoding to fix it."
+          "Use {.fn nis_convert} to regenerate validated Parquet from the correctly encoded source in a new directory.",
+          "The Arrow reader preserves malformed bytes and allocates memory outside DuckDB's buffer limit."
         )
       ),
       class = "easyNIS_invalid_utf8",

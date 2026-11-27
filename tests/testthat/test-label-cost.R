@@ -215,7 +215,7 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
   expect_identical(
     informs,
     paste0(
-      "4 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
+      "Missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
     )
   )
 
@@ -333,7 +333,7 @@ test_that("common labels and cost adjustment work in experimental ICD-9 years", 
 
 test_that("binary code definitions decode valid values and warn for invalid codes", {
   input <- data.frame(DIED = c(0, 1, NA, NaN, 2, -9, 0.5), TRAN_IN = c(0L, 1L, rep(NA_integer_, 5)))
-  expect_warning(labelled <- nis_label(input), "Unknown code.*DIED.*2, -9, 0.5")
+  expect_warning(labelled <- nis_label(input), "Unknown code.*DIED.*Converted to missing")
   expect_identical(as.vector(labelled$DIED), c(FALSE, TRUE, rep(NA, 5)))
   expect_identical(
     as.character(labelled$TRAN_IN),

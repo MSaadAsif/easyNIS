@@ -1,6 +1,6 @@
 ---
 title: "Trends"
-description: "Estimate annual discharge totals and model change over calendar time."
+description: "Estimate discharge totals, rates, and means by period, and model change over calendar time."
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Trends}
@@ -53,7 +53,8 @@ counts identify years with no valid cohort discharges in the design.
 
 ```{r annual}
 nis <- nis_open(nis_example(years = 2018:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_outcomes()
 
 annual <- nis_annual_totals(nis, heart_failure)
 nis_suppress(
@@ -67,6 +68,98 @@ nis_suppress(
 Report the calendar years, cohort definition, weight, and design used to
 compute standard errors. Apply [disclosure rules](disclosure.html) before
 sharing estimates, plots, or tests. The examples use invented discharges.
+
+## Estimate a rate with a population denominator
+
+A population rate needs an external population aligned to the numerator's
+calendar year, geography, and age range. The following denominators are
+invented national all-age populations. This rate counts hospitalizations
+involving heart failure per 100,000 residents. A resident can contribute
+multiple discharges.
+
+```{r population-rate}
+population <- data.frame(YEAR = 2018:2020, residents = c(3e8, 3.01e8, 3.02e8))
+stopifnot(
+  !anyDuplicated(population$YEAR),
+  identical(sort(population$YEAR), seq.int(min(annual$YEAR), max(annual$YEAR))),
+  identical(annual$YEAR, sort(population$YEAR)),
+  all(is.finite(population$residents) & population$residents > 0)
+)
+rates <- annual |>
+  dplyr::left_join(population, by = "YEAR", relationship = "one-to-one") |>
+  dplyr::mutate(
+    rate = 1e5 * discharges / residents,
+    rate_se = 1e5 * discharges_se / residents
+  )
+rates
+```
+
+The rate and its standard error use the same scale factor. This calculation
+treats the external population as fixed. Validate coverage before joining so
+a missing year cannot silently produce a missing denominator. For release,
+apply suppression to the rate and its standard error using the numerator's
+support counts. Review any other tables that share the numerator.
+
+## Estimate a discharge proportion and a mean by period
+
+For the proportion of eligible discharges ending in in-hospital death, take
+the survey mean of the logical death indicator. The second mean estimates
+length of stay in days. Each measure uses its own nonmissing denominator.
+Build the design on the complete sample, restrict the domain, then group.
+
+```{r period-means}
+period_design <- nis_design(
+  nis, heart_failure, keep = c(DQTR, in_hospital_death, los_days)
+)
+period_design |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(
+    proportion_died = srvyr::survey_mean(in_hospital_death, na.rm = TRUE),
+    mean_los = srvyr::survey_mean(los_days, na.rm = TRUE),
+    .groups = "drop"
+  )
+period_design |>
+  dplyr::group_by(YEAR, DQTR) |>
+  dplyr::summarise(
+    proportion_died = srvyr::survey_mean(in_hospital_death, na.rm = TRUE),
+    mean_los = srvyr::survey_mean(los_days, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+These are shares of discharges within each period. Check support for each
+reported measure, including its nonmissing denominator and the event and
+nonevent counts for the proportion. Empty domains may be absent from grouped
+results.
+
+### Keep the two 2015 coding periods separate
+
+For a code-defined cohort in 2015, define each quarter's eligibility using
+its coding system. The example uses principal heart failure codes and keeps
+all four quarters in the sample used to build the design. Compute separate
+estimates for Q1–Q3 and Q4, with unscaled weights.
+
+```{r split-2015}
+transition <- nis_open(nis_example(2015)) |>
+  # Replace the fixture's placeholder code with an ICD-9-CM example.
+  dplyr::mutate(DX1 = dplyr::if_else(DX1 == "12345", "4280", DX1)) |>
+  nis_flag_dx(hf9 = "428", system = "icd9", position = "principal") |>
+  nis_flag_dx(hf10 = "I50", system = "icd10", position = "principal") |>
+  dplyr::mutate(period = dplyr::if_else(DQTR == 4L, "Q4", "Q1-Q3"))
+
+split <- nis_design(
+  transition,
+  cohort = (DQTR <= 3L & hf9) | (DQTR == 4L & hf10),
+  keep = period,
+  annualize = FALSE
+) |>
+  dplyr::group_by(period) |>
+  dplyr::summarise(discharges = srvyr::survey_total())
+split
+```
+
+The totals describe periods of different lengths. Document each code set
+and its coverage before comparing estimates across the transition.
 
 ## Estimate an average annual total
 

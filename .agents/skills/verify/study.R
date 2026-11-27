@@ -46,7 +46,8 @@ drive_study_small <- function(scratch, evidence) {
 }
 
 drive_study_support <- function(scratch, evidence) {
-  cases <- list(missing_died = "DIED", missing_los = "LOS", mixed_invalid = "DISCWT", rare_annual_arm = "exposure")
+  cases <- list(missing_died = "DIED", missing_los = "LOS", mixed_invalid = "DISCWT",
+    observed_los = "observed_los", rare_annual_arm = "exposure", absent_annual_arm = "absent_exposure")
   for (name in names(cases)) {
     run <- file.path(scratch, name)
     proof <- file.path(evidence, name)
@@ -181,15 +182,18 @@ study_disclosure_fixture <- function(scratch, case, one_hospital) {
       AGE = 41L + position %% 37L, FEMALE = position %% 3L == 0L,
       I10_DX1 = principal, I10_DX2 = ifelse(exposed, "Z515", "E119")
     )
-    if (identical(case$support_case, "exposure")) {
+    if (isTRUE(case$support_case %in% c("exposure", "absent_exposure"))) {
       records$DISCWT <- 5 * i
-      records$I10_DX2 <- ifelse(position <= c(3L, 50L)[[i]], "Z515", "E119")
+      sizes <- if (case$support_case == "exposure") c(3L, 50L) else c(0L, 50L)
+      records$I10_DX2 <- ifelse(position <= sizes[[i]], "Z515", "E119")
     } else if (length(case$support_case)) {
       records$DISCWT <- 5
       if (i == 2L) {
         if (case$support_case == "DISCWT") {
           records$DISCWT[1:15] <- NA_real_
           records$NIS_STRATUM[16:18] <- 0L
+        } else if (case$support_case == "observed_los") {
+          records$LOS[1:72] <- NA_real_
         } else {
           records[[case$support_case]][1:3] <- NA
         }
@@ -353,7 +357,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
       '  restricted = exposure_restricted, summary = lapply(list(table_one, outcome_table), function(x) x$table_body$variable),',
       '  models = lapply(model_results[valid_models], function(x) list(formula = stats::formula(x$model),',
       '    family = stats::family(x$model)$family)),',
-      '  chart = if (exists("trend_long")) as.data.frame(trend_long[c("YEAR", "measure")])),',
+      '  chart = if (exists("trend_long")) as.data.frame(trend_long[c("YEAR", "measure", "n")])),',
       '  file = "support-input.R")', "```")
     writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
     stopifnot(file.copy(analysis, evidence, overwrite = TRUE))
@@ -656,6 +660,17 @@ verify_study_cell_support <- function(report, format, evidence, case) {
     stopifnot(length(variables) == length(table$rows))
     for (i in seq_along(variables)) {
       if (any(numeric_cell(table$rows[[i]][-1L]))) stopifnot(valid(variables[[i]]))
+      if (id == "table-1") {
+        for (j in which(grepl("N = ", table$header, fixed = TRUE))) {
+          cell <- table$rows[[i]][[j]]
+          if (!grepl("\\[", cell)) next
+          group <- trimws(sub("N = .*", "", table$header[[j]]))
+          values <- rows[[variables[[i]]]]
+          if (nzchar(group)) values <- values[which(as.character(rows[[proof$exposure]]) == group)]
+          n <- sub(".*\\[(.*/)?([0-9,]+)\\]$", "\\2", cell)
+          stopifnot(parse_count(n) == sum(!is.na(values)))
+        }
+      }
     }
     parse_count(sub("^N = ", "", headers[startsWith(headers, "N = ")]))
   }
@@ -671,13 +686,23 @@ verify_study_cell_support <- function(report, format, evidence, case) {
     annual <- rows[rows$YEAR == cell[[1L]], ]
     if (any(numeric_cell(cell[2:3]))) stopifnot(study_audit_supported(annual))
     if (numeric_cell(cell[[2L]])) stopifnot(parse_count(cell[[2L]]) == nrow(annual))
-    if (numeric_cell(cell[[4L]])) stopifnot(trend_valid(cell[[1L]], "DIED"))
-    if (numeric_cell(cell[[5L]])) stopifnot(trend_valid(cell[[1L]], "LOS"))
+    for (j in 1:2) {
+      variable <- c("DIED", "LOS")[[j]]
+      displayed <- numeric_cell(cell[[3L + j]])
+      stopifnot(displayed == numeric_cell(cell[[5L + j]]))
+      if (displayed) {
+        stopifnot(trend_valid(cell[[1L]], variable),
+          parse_count(cell[[5L + j]]) == sum(!is.na(annual[[variable]])))
+      } else {
+        stopifnot(identical(cell[[3L + j]], cell[[5L + j]]))
+      }
+    }
   }
   chart <- proof$chart
   for (i in seq_len(NROW(chart))) {
     variable <- if (chart$measure[[i]] == "In-hospital mortality") "DIED" else "LOS"
-    stopifnot(trend_valid(chart$YEAR[[i]], variable))
+    stopifnot(trend_valid(chart$YEAR[[i]], variable),
+      chart$n[[i]] == sum(rows$YEAR == chart$YEAR[[i]] & !is.na(rows[[variable]])))
   }
   model_tables <- tables[["multivariable-models"]]
   if (length(model_tables)) {
@@ -686,12 +711,20 @@ verify_study_cell_support <- function(report, format, evidence, case) {
       stopifnot(all(vapply(all.vars(model$formula), valid, logical(1))))
       study_audit_model(rows, model)
     }
+    if (format == "html") {
+      text <- xml2::xml_text(study_report_section(xml2::read_html(report), "multivariable-models"))
+      stopifnot(grepl(paste0("(n = ", format(nrow(rows), big.mark = ","), ")"), text, fixed = TRUE))
+    }
   }
   if (any(case$support_case %in% c("DIED", "LOS"))) {
     variable <- case$support_case
     unaffected <- if (variable == "DIED") "Mean length of stay" else "In-hospital mortality"
     stopifnot(sum(is.na(rows[[variable]]) & rows$YEAR == max(rows$YEAR)) == 3L,
       !valid(variable), unaffected %in% chart$measure)
+  }
+  if (identical(case$support_case, "observed_los")) {
+    point <- chart[chart$YEAR == max(rows$YEAR) & chart$measure == "Mean length of stay", ]
+    stopifnot(identical(point$n, 72L), valid("LOS"))
   }
   flow <- tables[["cohort-flow"]][[1L]]$rows
   flow_final <- verify_study_flow_support(flow, proof, case, numeric_cell)
@@ -703,10 +736,15 @@ verify_study_cell_support <- function(report, format, evidence, case) {
   published_counts <- c(flow_final, table_counts, outcome_counts)
   if (length(yearly_counts) && !anyNA(yearly_counts)) published_counts <- c(published_counts, sum(yearly_counts))
   stopifnot(all(published_counts[!is.na(published_counts)] == nrow(rows)))
-  if (identical(case$support_case, "exposure")) {
-    stopifnot(identical(unname(as.integer(tapply(rows[[proof$exposure]], rows$YEAR, sum))), c(3L, 50L)),
+  if (isTRUE(case$support_case %in% c("exposure", "absent_exposure"))) {
+    sizes <- if (case$support_case == "exposure") c(3L, 50L) else c(0L, 50L)
+    stopifnot(identical(unname(as.integer(tapply(rows[[proof$exposure]], rows$YEAR, sum))), sizes),
       identical(unname(vapply(split(rows$DISCWT, rows$YEAR), unique, numeric(1))), c(5, 10)),
       all(!by_arm), !valid(proof$exposure), length(yearly_counts) == 2L, !anyNA(yearly_counts))
+    stopifnot(!length(model_tables))
+    # The disclosure pathway withholds all arm-specific totals and estimates;
+    # the two displayed annual margins alone leave the arm cells unknown.
+    stopifnot(!length(tables[["table-1"]]))
   }
 }
 

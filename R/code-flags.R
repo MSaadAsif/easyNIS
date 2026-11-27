@@ -132,15 +132,36 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   }
 
   definitions <- lapply(definitions, rlang::eval_tidy)
+  flags <- nis_code_flag_exprs(.data, data_names, slots, position, system, definitions)
+  dplyr::mutate(.data, !!!flags)
+}
+
+nis_code_flag_exprs <- function(data, data_names, slots, position, system, definitions) {
   if (system == "both") {
     definitions <- lapply(definitions, nis_mixed_flag_definition)
-    icd9 <- nis_flag_expressions(.data, data_names, slots, position, "icd9", lapply(definitions, `[[`, "icd9"))
-    icd10 <- nis_flag_expressions(.data, data_names, slots, position, "icd10", lapply(definitions, `[[`, "icd10"))
-    flags <- Map(function(left, right) rlang::expr((!!left) | (!!right)), icd9, icd10)
-  } else {
-    flags <- nis_flag_expressions(.data, data_names, slots, position, system, definitions)
+    icd9 <- nis_flag_expressions(data, data_names, slots, position, "icd9", lapply(definitions, `[[`, "icd9"))
+    icd10 <- nis_flag_expressions(data, data_names, slots, position, "icd10", lapply(definitions, `[[`, "icd10"))
+    return(Map(function(left, right) rlang::expr((!!left) | (!!right)), icd9, icd10))
   }
-  dplyr::mutate(.data, !!!flags)
+  nis_flag_expressions(data, data_names, slots, position, system, definitions)
+}
+
+nis_code_criterion_exprs <- function(data, criteria) {
+  data_names <- nis_names(data)
+  exprs <- lapply(seq_len(nrow(criteria)), function(i) {
+    flags <- nis_code_flag_exprs(
+      data,
+      data_names,
+      toupper(criteria$type[[i]]),
+      criteria$position[[i]],
+      criteria$system[[i]],
+      list(criteria$codes[[i]])
+    )
+    # Keep the mixed-system OR grouped when the flag is inlined into a cohort.
+    flag <- rlang::expr(dplyr::coalesce(!!flags[[1L]], FALSE))
+    rlang::new_quosure(flag, rlang::ns_env("easyNIS"))
+  })
+  rlang::set_names(exprs, criteria$criterion)
 }
 
 nis_mixed_flag_definition <- function(value) {

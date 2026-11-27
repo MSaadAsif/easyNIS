@@ -109,6 +109,39 @@ when the attrition table should start with every discharge in the input.
 For alternate diagnosis positions and changes over time, see [Code transitions
 and sensitivity](code-transitions.html).
 
+## Record eligibility across the 2015 transition
+
+Supply named code criteria in `.codes` to use the same definitions for
+eligibility and the transition audit. The code criteria run in list order
+after the logical criteria in `...`. Here the first code step finds a match
+in any diagnosis slot and the second requires a principal match. These
+definitions illustrate the workflow on invented data.
+
+```{r era-eligibility}
+nis <- nis_open(nis_example(years = 2015))
+prefixes <- list(icd9 = c("123", "12345", "V0001"), icd10 = c("I50", "Z515"))
+flow <- nis_attrition(
+  nis,
+  adults = AGE >= 18,
+  .codes = list(
+    matching_dx = list(type = "dx", system = "both", position = "any", codes = prefixes),
+    principal_dx = list(type = "dx", system = "both", position = "principal", codes = prefixes)
+  ),
+  .design = TRUE
+)
+flow
+attr(flow, "nis_criteria")
+
+design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = c(AGE, LOS))
+fit <- survey::svyglm(LOS ~ AGE, design = design)
+stats::nobs(fit)
+```
+
+The criteria table records the system and slot rule for Methods. Here the
+last attrition count equals the number of observations in the model because
+`AGE` and `LOS` are complete among eligible discharges. See the
+[quarterly audit of these criteria](code-transitions.html#reuse-cohort-criteria).
+
 ## Save a cohort for another session
 
 Pass the full lazy sample and the eligibility rule to `nis_write_cohort()`.

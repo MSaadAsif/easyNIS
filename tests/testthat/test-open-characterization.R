@@ -93,7 +93,7 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
   expect_warning(
     default_pool <- pooled_query |>
       nis_design(eligible, keep = c(AGE, TOTCHG, CCR_NIS), dollars = 2023),
-    "TOTCHG.*entirely missing in year 2023"
+    "TOTCHG.*entirely missing in some cohort years"
   )
   variables <- default_pool$variables
   order_rows <- order(variables$YEAR, variables$HOSP_NIS)
