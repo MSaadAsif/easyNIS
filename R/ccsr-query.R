@@ -134,8 +134,11 @@ ccsr_bundled_codes <- function(categories, default_only, type, version, call) {
     cli::cli_abort("Procedure categories have no default assignment.", call = call)
   }
   release <- ccsr_releases(type, version, call)$version[1L]
-  con <- nis_duckdb_connect(config = list(threads = "1"))
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  con <- NULL
+  on.exit(if (!is.null(con)) DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  suspendInterrupts({
+    con <- nis_duckdb_connect(config = list(threads = "1"))
+  })
   available <- DBI::dbGetQuery(
     con,
     paste(

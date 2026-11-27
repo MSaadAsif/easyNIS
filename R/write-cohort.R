@@ -39,7 +39,8 @@ nis_write_cohort <- function(.data, cohort, path, keep) {
   if (!rlang::is_string(path) || !nzchar(path) || !dir.exists(dirname(path))) {
     cli::cli_abort("`path` must name a new directory in an existing parent directory.", call = call)
   }
-  target <- file.path(normalizePath(dirname(path), winslash = "/", mustWork = TRUE), basename(path))
+  parent <- normalizePath(dirname(path), winslash = "/", mustWork = TRUE)
+  target <- file.path(parent, basename(path))
   nis_convert_check_target(target)
 
   query <- dplyr::ungroup(.data)
@@ -52,12 +53,11 @@ nis_write_cohort <- function(.data, cohort, path, keep) {
     cli::cli_abort("`keep` cannot rename columns. Use `dplyr::rename()` before exporting.", call = call)
   }
 
-  temp <- tempfile(".easynis-cohort-", tmpdir = dirname(target))
+  temp <- nis_owned_temp_path(".easynis-cohort-", parent)
+  on.exit(nis_remove_owned_directory(temp), add = TRUE)
   if (!dir.create(temp, mode = "0700")) {
     cli::cli_abort("Could not create a temporary sibling of {.path {target}}.", call = call)
   }
-  temp <- normalizePath(temp, winslash = "/", mustWork = TRUE)
-  on.exit(nis_remove_owned_directory(temp), add = TRUE)
   stage <- list(temp = temp, target = target)
   metadata <- c(
     nis_non_release_metadata,
@@ -209,8 +209,11 @@ nis_cohort_check_count <- function(temp, expected, call) {
     cli::cli_abort("Could not name the saved cohort's yearly partitions.", call = call)
   }
   dataset <- nis_open_discover(temp, NULL, call)
-  con <- nis_duckdb_connect(config = list(threads = "1"))
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  con <- NULL
+  on.exit(if (!is.null(con)) DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  suspendInterrupts({
+    con <- nis_duckdb_connect(config = list(threads = "1"))
+  })
   count <- DBI::dbGetQuery(
     con,
     paste0(
