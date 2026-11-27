@@ -13,7 +13,7 @@ nis_survey_stat <- function(formula, design, statistic, na.rm, deff, influence, 
   if (!identical(deff, FALSE) || !identical(influence, FALSE)) {
     nis_survey_unsupported("Design effects and discharge influence functions")
   }
-  stats <- nis_survey_sums(design, formula, statistic)
+  stats <- nis_survey_sums(design, formula, statistic, na.rm)
   scores <- nis_survey_scores(stats$data, stats$labels, statistic, na.rm)
   variance <- nis_survey_variance(scores$u, scores$psu, stats$roster)
   structure(scores$estimate, var = variance, statistic = statistic, class = "svystat")
@@ -37,7 +37,7 @@ nis_survey_outcome <- function(design, source, type, variable, label, alias) {
   stats::setNames(sprintf("CAST(%s = %s AS DOUBLE)", alias, values), paste0(label, levels, recycle0 = TRUE))
 }
 
-nis_survey_sums <- function(design, formula, statistic, by = NULL) {
+nis_survey_sums <- function(design, formula, statistic, na.rm, by = NULL) {
   nis_survey_policy()
   outcomes <- nis_survey_formula(formula)
   groups <- if (is.null(by)) list() else nis_survey_formula(by)
@@ -60,7 +60,7 @@ nis_survey_sums <- function(design, formula, statistic, by = NULL) {
     nis_survey_unsupported("Estimation without any outcome levels")
   }
   roster <- nis_survey_roster(design)
-  data <- nis_survey_aggregate(design, source, outcomes_sql, g, statistic)
+  data <- nis_survey_aggregate(design, source, outcomes_sql, g, statistic, na.rm)
   if (any(data$bad_w > 0)) {
     cli::cli_abort("Analysis weights must be finite and positive.")
   }
@@ -86,15 +86,16 @@ nis_survey_sums <- function(design, formula, statistic, by = NULL) {
   list(data = data, roster = roster, labels = names(outcomes_sql), groups = group_keys, domain_psu = domain_psu)
 }
 
-nis_survey_aggregate <- function(design, source, outcomes, groups, statistic) {
+nis_survey_aggregate <- function(design, source, outcomes, groups, statistic, na.rm) {
   n <- length(outcomes)
   x <- paste0("x", seq_len(n))
   weights <- nis_survey_numeric("w")
   keys <- paste(c(.nis_survey_keys, groups), collapse = ", ")
   not_missing <- paste(sprintf("%s IS NOT NULL", x), collapse = " AND ")
+  usable <- if (na.rm) not_missing else "TRUE"
   inside <- paste(c("inside", sprintf("%s IS NOT NULL", groups)), collapse = " AND ")
   projection <- paste(sprintf("%s AS %s", outcomes, x), collapse = ", ")
-  aggregate <- sprintf("coalesce(fsum(weight * %s) FILTER (WHERE %s), 0) AS t%d", x, not_missing, seq_len(n))
+  aggregate <- sprintf("coalesce(fsum(weight * %s) FILTER (WHERE %s), 0) AS t%d", x, usable, seq_len(n))
   if (statistic == "mean") {
     centers <- paste(sprintf("coalesce(favg(%1$s), 0) AS a%2$d", x, seq_len(n)), collapse = ", ")
     anchor <- sprintf("SELECT %s FROM rows", centers)
@@ -106,12 +107,13 @@ nis_survey_aggregate <- function(design, source, outcomes, groups, statistic) {
     }
     aggregate <- c(
       sprintf("any_value(a%d) AS a%d", seq_len(n), seq_len(n)),
-      sprintf("coalesce(fsum(weight * (%s - a%d)) FILTER (WHERE %s), 0) AS t%d", x, seq_len(n), not_missing, seq_len(n))
+      sprintf("coalesce(fsum(weight * (%s - a%d)) FILTER (WHERE %s), 0) AS t%d", x, seq_len(n), usable, seq_len(n))
     )
   } else {
     anchor <- "SELECT 1"
     join <- ""
   }
+  observed <- sprintf("count(%s) AS n%d", x, seq_len(n))
   nis_survey_get(
     design,
     sprintf(
@@ -131,8 +133,8 @@ nis_survey_aggregate <- function(design, source, outcomes, groups, statistic) {
       anchor,
       keys,
       not_missing,
-      not_missing,
-      paste(aggregate, collapse = ", "),
+      usable,
+      paste(c(aggregate, observed), collapse = ", "),
       join,
       keys
     )
@@ -144,17 +146,17 @@ nis_survey_scores <- function(data, labels, statistic, na.rm) {
   active <- if (na.rm) complete else rep(TRUE, nrow(data))
   n <- length(labels)
   totals <- as.matrix(data[paste0("t", seq_len(n))])
+  if (!na.rm) {
+    observed <- as.matrix(data[paste0("n", seq_len(n))])
+    totals[observed < data$domain_n] <- NA_real_
+  }
   estimate <- colSums(totals)
   u <- totals[active, , drop = FALSE]
-  if (statistic == "mean" && any(complete)) {
+  if (statistic == "mean" && any(active)) {
     weight <- sum(data$weight)
     estimate <- estimate / weight
     u <- sweep(u, 2L, estimate, function(t, mean) t - data$weight[active] * mean) / weight
     estimate <- estimate + as.numeric(data[1L, paste0("a", seq_len(n))])
-  }
-  if (!na.rm && any(data$domain_n != data$complete_n)) {
-    estimate[] <- NA_real_
-    u[] <- NA_real_
   }
   colnames(u) <- labels
   list(estimate = stats::setNames(estimate, labels), u = u, psu = data$psu[active])
@@ -189,7 +191,7 @@ svyby.nis_survey <- function(
   if (is.null(by)) {
     nis_survey_unsupported("Grouping without a formula")
   }
-  stats <- nis_survey_sums(design, formula, statistic, by)
+  stats <- nis_survey_sums(design, formula, statistic, na.rm, by)
   groups <- stats$groups
   by_factor <- do.call(interaction, groups)
   active <- if (na.rm.all) stats$data$complete_n > 0 else rep(TRUE, nrow(groups))
@@ -206,9 +208,9 @@ nis_survey_group_result <- function(components, idx, groups, stats, covmat, keep
   out <- groups[first, , drop = FALSE]
   rownames(out) <- if (keep.names) names(idx) else NULL
   n <- length(stats$labels)
-  estimates <- matrix(unlist(lapply(components, `[[`, "estimate")), ncol = n, byrow = TRUE)
+  estimates <- matrix(as.numeric(unlist(lapply(components, `[[`, "estimate"))), ncol = n, byrow = TRUE)
   variances <- lapply(components, function(x) nis_survey_variance(x$u, x$psu, stats$roster))
-  errors <- matrix(unlist(lapply(variances, function(v) sqrt(diag(v)))), ncol = n, byrow = TRUE)
+  errors <- matrix(as.numeric(unlist(lapply(variances, function(v) sqrt(diag(v))))), ncol = n, byrow = TRUE)
   out[stats$labels] <- as.data.frame(estimates)
   se_names <- if (n == 1L) "se" else paste0("se.", stats$labels)
   out[se_names] <- as.data.frame(errors)

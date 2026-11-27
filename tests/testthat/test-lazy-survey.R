@@ -16,6 +16,8 @@ test_that("lazy Taylor summaries retain the sampled PSUs through domain and miss
     survey::svytotal(~ los_days + female_flag, reference, na.rm = TRUE)
   )
   expect_lazy_stat(survey::svymean(~los_days, design), survey::svymean(~los_days, reference))
+  expect_lazy_stat(survey::svytotal(~ los_days + AGE, design), survey::svytotal(~ los_days + AGE, reference))
+  expect_lazy_stat(survey::svymean(~ los_days + AGE, design), survey::svymean(~ los_days + AGE, reference))
   expect_lazy_stat(
     survey::svymean(~los_days, subset(design, FALSE)),
     survey::svymean(~los_days, subset(reference, FALSE))

@@ -213,7 +213,7 @@ nis_survey_variance <- function(scores, psu, roster) {
     scores,
     matrix(psu),
     matrix(strata),
-    list(sampsize = matrix(roster$n_psu[psu]), popsize = NULL, pps = FALSE),
+    list(sampsize = matrix(roster$n_psu[psu]), popsize = NULL),
     lonely.psu = nis_survey_policy()
   )
 }
