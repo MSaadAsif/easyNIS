@@ -16,6 +16,11 @@
   now scores lazy DuckDB cohorts in bounded batches and returns the
   scores joined to the original query by discharge key.
 
+- `nis_attrition(..., .design = TRUE)` counts discharges with valid
+  survey design fields. Reuse the same eligibility rules in
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  with `cohort = !!nis_attrition_cohort(flow)`.
+
 - The survey design article demonstrates analytic domains with
   [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
   on a

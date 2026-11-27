@@ -14,7 +14,15 @@ annual aggregation.
 ## Usage
 
 ``` r
-nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
+nis_attrition(
+  .data,
+  ...,
+  by_year = FALSE,
+  weight_var = "DISCWT",
+  .design = FALSE
+)
+
+nis_attrition_cohort(flow)
 ```
 
 ## Arguments
@@ -36,10 +44,29 @@ nis_attrition(.data, ..., by_year = FALSE, weight_var = "DISCWT")
 
   Name of the discharge weight column. Defaults to `"DISCWT"`.
 
+- .design:
+
+  If `TRUE`, count only discharges with valid survey design fields,
+  using the policy in
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+  Criteria still evaluate over the full ungrouped input. Use
+  `cohort = !!nis_attrition_cohort(flow)` with the same input to build
+  the survey design from the rules in `flow`. Use deterministic
+  criteria, since they are evaluated by both functions.
+
+- flow:
+
+  Result from `nis_attrition(..., .design = TRUE)`.
+
 ## Value
 
-A tibble with one initial row (`step = 0`) and one row per criterion.
-When `by_year = TRUE`, `YEAR` is the first column.
+`nis_attrition()` returns a tibble with one initial row (`step = 0`) and
+one row per criterion. When `by_year = TRUE`, `YEAR` is the first
+column. With `.design = TRUE`, the initial row counts valid design
+discharges and the tibble stores the combined cohort expression.
+`nis_attrition_cohort()` extracts that expression for injection with
+`!!` into `cohort` in
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 
 ## See also
 

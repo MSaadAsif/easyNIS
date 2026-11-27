@@ -156,6 +156,7 @@ Flag codes, timing, and eligibility; audit cohort definitions.
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   : ICD-10 codes in HCUP CCSR categories
 - [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
+  [`nis_attrition_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
   : Summarize sequential cohort attrition
 - [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
   : Summarize diagnosis-position sensitivity

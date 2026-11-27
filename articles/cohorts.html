@@ -93,7 +93,7 @@ normalized.</p>
 <span>              position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>ablation <span class="op">=</span> <span class="st">"02L"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpTekTPG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpfee6O2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -101,7 +101,7 @@ normalized.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpTekTPG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpfee6O2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -167,13 +167,17 @@ summarizes how often matching slots have a known day.</p>
 <div class="section level2">
 <h2 id="count-cohort-steps">Count cohort steps<a class="anchor" aria-label="anchor" href="#count-cohort-steps"></a>
 </h2>
-<p><code><a href="../reference/nis_attrition.html">nis_attrition()</a></code> reports sequential unweighted and
-weighted counts for conditions supplied in order.</p>
+<p>Define the eligibility rules once in <code><a href="../reference/nis_attrition.html">nis_attrition()</a></code>.
+With <code>.design = TRUE</code>, the baseline includes discharges with
+valid survey design fields. Missing criterion values exclude discharges
+at that step. Inject the combined rule with
+<code>!!nis_attrition_cohort(flow)</code> to use the same eligibility
+criteria in <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpTekTPG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpfee6O2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -181,23 +185,38 @@ weighted counts for conditions supplied in order.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpTekTPG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpfee6O2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="fu"><a href="../reference/nis_attrition.html">nis_attrition</a></span><span class="op">(</span><span class="va">nis</span>, adults <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, heart_failure <span class="op">=</span> <span class="va">heart_failure</span><span class="op">)</span></span>
+<span><span class="va">flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_attrition.html">nis_attrition</a></span><span class="op">(</span></span>
+<span>  <span class="va">nis</span>, adults <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, heart_failure <span class="op">=</span> <span class="va">heart_failure</span>, .design <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">flow</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 7</span></span></span>
-<span><span class="co">#&gt;    step criterion      n_unweighted n_dropped_unweighted n_weighted</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     0 All discharges           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 adults                   96                    0      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     2 heart_failure            54                   42       62.4</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: n_dropped_weighted &lt;dbl&gt;, pct_retained &lt;dbl&gt;</span></span></span></code></pre></div>
-<p>Each row shows the remaining fixture discharges after applying that
-step. For alternate diagnosis positions and changes over time, see <a href="code-transitions.html">Code transitions and sensitivity</a>.</p>
+<span><span class="co">#&gt;    step criterion               n_unweighted n_dropped_unweighted n_weighted</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     0 Valid design discharges           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 adults                            96                    0      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     2 heart_failure                     54                   42       62.4</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: n_dropped_weighted &lt;dbl&gt;, pct_retained &lt;dbl&gt;</span></span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, cohort <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="../reference/nis_attrition.html">nis_attrition_cohort</a></span><span class="op">(</span><span class="va">flow</span><span class="op">)</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.</span></span>
+<span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/unweighted.html" class="external-link">unweighted</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 1</span></span></span>
+<span><span class="co">#&gt;   discharges</span></span>
+<span><span class="co">#&gt;        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>         54</span></span></code></pre></div>
+<p>Pass the same input to both calls so the last unweighted attrition
+count is the survey domain denominator. The design retains the sampling
+structure of hospital-years with zero eligible discharges. Leave
+<code>.design</code> at its default when the attrition table should
+start with every discharge in the input. For alternate diagnosis
+positions and changes over time, see <a href="code-transitions.html">Code transitions and sensitivity</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>

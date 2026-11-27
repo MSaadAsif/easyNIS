@@ -13,7 +13,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
               position = "any") |>
   nis_flag_pr(ablation = "02L")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTekTPG/duckdb
+#> ℹ /tmp/Rtmpfee6O2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -21,7 +21,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTekTPG/duckdb
+#> ℹ /tmp/Rtmpfee6O2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -98,16 +98,20 @@ summarizes how often matching slots have a known day.
 
 ## Count cohort steps
 
-[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
-reports sequential unweighted and weighted counts for conditions
-supplied in order.
+Define the eligibility rules once in
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md).
+With `.design = TRUE`, the baseline includes discharges with valid
+survey design fields. Missing criterion values exclude discharges at
+that step. Inject the combined rule with `!!nis_attrition_cohort(flow)`
+to use the same eligibility criteria in
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 
 ``` r
 
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTekTPG/duckdb
+#> ℹ /tmp/Rtmpfee6O2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -115,26 +119,40 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTekTPG/duckdb
+#> ℹ /tmp/Rtmpfee6O2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure)
+flow <- nis_attrition(
+  nis, adults = AGE >= 18, heart_failure = heart_failure, .design = TRUE
+)
+flow
 #> # A tibble: 3 × 7
-#>    step criterion      n_unweighted n_dropped_unweighted n_weighted
-#>   <int> <chr>                 <int>                <int>      <dbl>
-#> 1     0 All discharges           96                   NA      114. 
-#> 2     1 adults                   96                    0      114. 
-#> 3     2 heart_failure            54                   42       62.4
+#>    step criterion               n_unweighted n_dropped_unweighted n_weighted
+#>   <int> <chr>                          <int>                <int>      <dbl>
+#> 1     0 Valid design discharges           96                   NA      114. 
+#> 2     1 adults                            96                    0      114. 
+#> 3     2 heart_failure                     54                   42       62.4
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
+
+design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
+#> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
+dplyr::summarise(design, discharges = srvyr::unweighted(dplyr::n()))
+#> # A tibble: 1 × 1
+#>   discharges
+#>        <int>
+#> 1         54
 ```
 
-Each row shows the remaining fixture discharges after applying that
-step. For alternate diagnosis positions and changes over time, see [Code
-transitions and
+Pass the same input to both calls so the last unweighted attrition count
+is the survey domain denominator. The design retains the sampling
+structure of hospital-years with zero eligible discharges. Leave
+`.design` at its default when the attrition table should start with
+every discharge in the input. For alternate diagnosis positions and
+changes over time, see [Code transitions and
 sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.md).
 
 ## Common pitfalls
