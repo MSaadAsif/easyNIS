@@ -92,10 +92,21 @@ errors. Use a survey design for inferential comparisons.
 ## Handle the ICD transition
 
 NIS changed from ICD-9-CM to ICD-10-CM/PCS in October 2015. 2015 combines
-ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4. Flag the systems
-separately using the appropriate slot names and version information; easyNIS
-does not supply a crosswalk or clinical equivalence decisions. ICD-9 helpers
-and code-system boundary checks are experimental.
+ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4. For a query
+containing both slot sets, supply the two definitions explicitly. Each
+definition uses its own slots, version information, and eligible quarters.
+These invented codes illustrate the syntax.
+
+```{r mixed-flag}
+nis_open(nis_example(years = 2015)) |>
+  nis_flag_dx(flag = list(icd9 = "12345", icd10 = "I50"), system = "both") |>
+  dplyr::count(DQTR, flag) |>
+  dplyr::collect()
+```
+
+Use a single-system call when only one slot set is present. Review clinical
+equivalence and trends with the study's code sets. Mixed-system flags are
+experimental.
 
 ## Common pitfalls
 
