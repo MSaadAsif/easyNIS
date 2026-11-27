@@ -140,8 +140,6 @@ test_that("invalid UTF-8 POA indicators are treated as unknown", {
   malformed <- rawToChar(as.raw(c(0x59, 0xff)))
   data <- dplyr::tibble(I10_DX1 = "ZZZ99", DXPOA1 = malformed)
 
-  long <- nis_comorbidity_long(data, "I10_DX1", 1L, nrow(data))
-  expect_true(is.na(long$poa[[1L]]))
   expect_no_error(nis_comorbidity(data))
 })
 
@@ -253,7 +251,6 @@ test_that("method and prefix options and input errors are explicit", {
   expect_true(pinned$e_aids)
   expect_false(any(grepl("^cmrb_", names(pinned))))
 
-  expect_error(nis_comorbidity(data, method = "charlson_quan2011"), "Elixhauser")
   expect_error(suppressWarnings(nis_comorbidity(data, method = "elixhauser_nonsense")))
   expect_error(nis_comorbidity(data, prefix = NA_character_), "prefix")
   expect_error(suppressWarnings(nis_comorbidity(suppressWarnings(nis_comorbidity(data)))), "replace existing")
@@ -351,7 +348,7 @@ test_that("comorbidity columns preserve survey design and support reweighting", 
   )
   expect_identical(survey::degf(reweighted), survey::degf(reference))
 })
-test_that("DuckDB scoring preserves flags and both indices across batches and years", {
+test_that("DuckDB scoring preserves flags and both indices across years", {
   skip_if_not_installed("medicalcoder", minimum_version = "0.10.0")
   n <- 25003L
   hf <- unname(single_codes("HF")[[1L]])

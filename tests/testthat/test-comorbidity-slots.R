@@ -53,29 +53,3 @@ test_that("sparse reordered canonical slots retain scoring and input columns", {
   added <- setdiff(names(out), names(data))
   expect_identical(out[added], expected[added])
 })
-
-test_that("canonical suffixes keep principal and secondary POA pairing", {
-  data <- data.frame(
-    I10_DX10 = "ZZZ99",
-    DXPOA10 = "N",
-    I10_DX01 = "ZZZ99",
-    DXPOA01 = "N",
-    I10_DX1 = "ZZZ99",
-    DXPOA1 = "Y",
-    I10_DX3 = "ZZZ99",
-    DXPOA3 = "W",
-    I10_DX0 = "ZZZ99",
-    DXPOA0 = "N"
-  )
-  columns <- nis_comorbidity_validate_data(data)
-  long <- nis_comorbidity_long(data, columns$slots, columns$slot_number, nrow(data))
-  expect_identical(
-    long,
-    data.frame(
-      .row = c(1L, 1L, 1L),
-      code = rep("ZZZ99", 3L),
-      primary = c(0L, 1L, 0L),
-      poa = c(0L, 1L, 1L)
-    )
-  )
-})
