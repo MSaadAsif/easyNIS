@@ -14,9 +14,12 @@ nis_label(data)
 elements as factors, and variable labels in \code{attr(x, "label")}.
 Unknown codes trigger one warning per variable. They become \code{NA} in
 binary fields and \verb{Code <value>} levels in multi-level fields. Existing
-variable labels are preserved. Elements without a table entry, including the 2023
-\code{PL_NCHS2} and \code{TOTCHG_2023} fields, are returned unchanged. The operation
-is idempotent.
+variable labels are preserved. Numeric fields without a table entry
+are returned unchanged. The operation is idempotent.
+
+Residence fields \code{PL_NCHS2006}, \code{PL_NCHS}, and \code{PL_NCHS2} retain their own
+categories. The collapsed \code{PL_NCHS2} uses codes 21 and 22. Code-specific
+labels for \code{I10_BIRTH} and \code{I10_SERVICELINE} follow HCUP's definitions.
 
 Binary codes 0 and 1 become \code{FALSE} and \code{TRUE}, respectively. For example,
 \code{FEMALE} is true for female patients and \code{AWEEKEND} for weekend admissions.
@@ -44,7 +47,8 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 head(nis_label(demographics))
 }
 \seealso{
-\href{articles/opening-data.html}{Opening NIS data}.
+\href{articles/opening-data.html}{Opening NIS data},
+\href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},
