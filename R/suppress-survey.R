@@ -326,7 +326,54 @@ survey_suppression_cells <- function(x, body, stat_columns, threshold, error_cal
       }
     }
   }
-  list(masks = masks, counts = counts)
+  headers <- survey_protected_headers(x, records, cards, stat_columns, threshold, error_call)
+  list(masks = masks, counts = counts, headers = headers)
+}
+
+survey_protected_headers <- function(x, records, cards, columns, threshold, error_call) {
+  protected <- vapply(
+    columns,
+    function(column) {
+      rows <- survey_hospital_group_records(records, x, cards, column, error_call)
+      evidence <- survey_record_counts(records$data[rows, .nis_hospital_fields, drop = FALSE])
+      masks <- nis_disclosure_masks(evidence$n, evidence$hospitals, threshold)
+      masks$count | masks$hospital
+    },
+    logical(1)
+  )
+  # An overall denominator can disclose a protected group by subtraction.
+  protected[columns == "stat_0"] <- any(protected)
+  columns[protected]
+}
+
+survey_mask_headers <- function(x, columns, protected) {
+  if (!length(protected)) {
+    return(x)
+  }
+  header <- x$table_styling$header
+  stats <- header$column %in% columns
+  masked <- header$column %in% protected
+  level <- paste0("**", header$modify_stat_level, "**")
+  prefix <- paste0(level, "  \nN = ")
+  # gtsummary has already interpolated header templates. Only keep a group
+  # heading with a known label or its own denominator.
+  standard <- header$label == level |
+    header$label == header$modify_stat_level |
+    header$label == paste0(prefix, gtsummary::style_number(header$modify_stat_n)) |
+    header$label == paste0(prefix, gtsummary::style_number(header$modify_stat_n_unweighted))
+  reset <- stats & !masked & !(standard %in% TRUE)
+  header$label[reset] <- level[reset]
+  header$label[masked] <- paste0(prefix[masked], "Masked")
+  header$interpret_label[reset | masked] <- "gt::md"
+  # Even non-statistic column templates can interpolate the overall N.
+  defaults <- c(label = "**Characteristic**", p.value = "**p-value**")
+  other <- !stats & !header$hide
+  header$label[other] <- dplyr::coalesce(unname(defaults[header$column[other]]), header$column[other])
+  header$interpret_label[other] <- "gt::md"
+  x$table_styling$header <- header
+  # Spanners can span any subset of groups, independently of their templates.
+  x$table_styling$spanning_header <- x$table_styling$spanning_header[0L, ]
+  x
 }
 
 survey_complete_masks <- function(cells, body, stat_columns) {
@@ -356,6 +403,7 @@ suppress_survey_table <- function(x, threshold, error_call) {
     body[[column]][masked] <- masks[masked, column]
   }
   x <- gtsummary::modify_table_body(x, function(table_body) body)
+  x <- survey_mask_headers(x, stat_columns, cells$headers)
   gtsummary::modify_footnote_header(
     x,
     footnote = paste0(

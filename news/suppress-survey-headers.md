@@ -1,0 +1,1 @@
+* `nis_suppress()` now masks survey-summary denominators for groups with insufficient discharge or hospital support and removes header totals that could reveal them by subtraction. This applies to rendered tables and exported column labels.
