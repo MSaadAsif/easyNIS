@@ -25,7 +25,7 @@ expect_gtsummary_model <- function(body, reference, exponentiate = FALSE) {
 }
 
 test_that("gtsummary tables preserve cohort counts and full-sample survey results", {
-  skip_if_not_installed("gtsummary", minimum_version = "2.0.0")
+  skip_if_not_installed("gtsummary", minimum_version = "2.6.1")
   skip_if_not_installed("broom.helpers")
   skip_if_not_installed("cardx")
 

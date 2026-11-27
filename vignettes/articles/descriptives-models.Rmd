@@ -71,6 +71,8 @@ substantive conclusions.
 
 ## Tables with gtsummary
 
+The examples below use gtsummary 2.6.1 or later.
+
 Pass the result of `nis_design()` directly to `gtsummary::tbl_svysummary()`.
 The design supplies cohort discharges for unweighted sample sizes, missing
 counts, and category counts. Hospital placeholders contribute to the variance
@@ -78,7 +80,7 @@ structure only. This table uses a survey t-test for mean age and the
 design-adjusted chi-squared test for sex. The header shows unweighted sample
 sizes, alongside weighted summaries in the table body.
 
-```{r table, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
+```{r table, eval=rlang::is_installed(c("gtsummary (>= 2.6.1)", "cardx", "survey", "gt"))}
 gtsummary::tbl_svysummary(
   design,
   by = heart_failure,
@@ -96,7 +98,7 @@ Use `tbl_regression()` to format your fitted models and
 predictor. The logistic table reports odds ratios and the linear tables
 report differences in mean length of stay.
 
-```{r model-tables, eval=rlang::is_installed(c("gtsummary", "broom.helpers", "survey", "gt"))}
+```{r model-tables, eval=rlang::is_installed(c("gtsummary (>= 2.6.1)", "broom.helpers", "survey", "gt"))}
 gtsummary::tbl_regression(fit, exponentiate = TRUE)
 
 los_fit <- survey::svyglm(LOS ~ heart_failure + AGE + FEMALE, design = design)
