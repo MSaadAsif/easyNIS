@@ -114,9 +114,8 @@ nis_annual_summary <- function(domain, hospital_rows, years) {
       .groups = "drop"
     ) |>
     nis_collect()
-  missing_count <- sum(as.numeric(cells$missing))
-  if (missing_count > 0L) {
-    cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
+  if (any(cells$missing > 0L)) {
+    cli::cli_inform("Treated missing cohort values as outside the cohort.")
   }
   cells <- cells[cells$n > 0, ]
   absent <- setdiff(years, cells$YEAR)

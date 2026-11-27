@@ -127,3 +127,21 @@ test_that("annual totals validate retained sample coverage and supply disclosure
   invalid <- dplyr::mutate(nis, DISCWT = dplyr::if_else(YEAR == 2019L, NA_real_, DISCWT))
   expect_error(suppressWarnings(nis_annual_totals(invalid, TRUE)), "quarter.*2019")
 })
+
+test_that("missing cohort values leave annual totals without exposing their count in messages", {
+  path <- nis_example(2020L)
+  withr::defer(unlink(path, recursive = TRUE))
+  nis <- nis_open(path)
+  con <- dbplyr::remote_con(nis)
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+
+  messages <- utils::capture.output(
+    {
+      annual <- nis_annual_totals(nis, dplyr::if_else(DQTR == 1L, NA, TRUE))
+    },
+    type = "message"
+  )
+  expect_identical(messages, "Treated missing cohort values as outside the cohort.")
+  expect_equal(annual, nis_annual_totals(nis, DQTR != 1L))
+  expect_no_message(nis_annual_totals(nis, TRUE))
+})
