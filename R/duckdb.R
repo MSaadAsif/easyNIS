@@ -83,6 +83,9 @@ nis_duckdb_open_data <- function() {
   }
   on.exit(release(), add = TRUE)
   con <- nis_duckdb_connect(config)
+  # dbplyr may keep both modern and legacy references to the connection.
+  # Attach the mutable metadata before handing the connection to dbplyr.
+  attr(con, "easyNIS_collect") <- new.env(parent = emptyenv())
   if (!is.null(spill_limit)) {
     # DuckDB 1.5.2 can report a startup cap without enforcing it during spill.
     DBI::dbExecute(con, paste("SET max_temp_directory_size =", DBI::dbQuoteString(con, spill_limit)))
@@ -121,7 +124,17 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   if (length(owners)) {
     tbl$src$.easyNIS_arrow_refs <- owners
   }
+  class(tbl) <- c("tbl_nis", class(tbl))
   tbl
+}
+
+#' @exportS3Method dplyr::compute
+compute.tbl_nis <- function(x, ...) {
+  result <- NextMethod()
+  # dbplyr 2.6 rebuilds the source when returning a materialized table.
+  result$src <- x$src
+  class(result) <- unique(c("tbl_nis", class(result)))
+  result
 }
 
 # Parquet files produced by easyNIS that do not represent an HCUP release.

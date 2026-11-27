@@ -154,9 +154,13 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #'   AGE = c(16, 45, 60, 72, 55),
 #'   ELECTIVE = c(1, 1, 0, 1, 1),
 #'   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
+#'   HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
+#'   NIS_STRATUM = rep(1L, 5),
 #'   YEAR = rep(2020L, 5)
 #' )
 #' nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
+#' flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
+#' nis_attrition_cohort(flow)
 nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT", .design = FALSE) {
   criteria <- rlang::enquos(..., .named = TRUE)
   if (length(criteria) == 0L) {

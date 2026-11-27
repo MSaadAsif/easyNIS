@@ -1,13 +1,28 @@
 ci_run_list_args <- function(commit) {
-  c("run", "list", "--commit", commit, "--json", "name,status,conclusion,headSha", "--limit", "100")
+  c(
+    "run",
+    "list",
+    "--workflow",
+    "R-CMD-check.yaml",
+    "--commit",
+    commit,
+    "--json",
+    "name,event,status,conclusion,headSha",
+    "--limit",
+    "100"
+  )
 }
 
 ci_run_succeeded <- function(run, commit) {
-  fields <- c("name", "headSha", "status", "conclusion")
+  fields <- c("name", "event", "headSha", "status", "conclusion")
+  # On pull_request, actions/checkout uses the merge ref, even if headSha matches.
   is.list(run) &&
     !anyDuplicated(names(run)) &&
     all(fields %in% names(run)) &&
     identical(run$name, "R-CMD-check") &&
+    is.character(run$event) &&
+    length(run$event) == 1L &&
+    run$event %in% c("push", "schedule", "workflow_dispatch") &&
     identical(run$headSha, commit) &&
     identical(run$status, "completed") &&
     identical(run$conclusion, "success")
