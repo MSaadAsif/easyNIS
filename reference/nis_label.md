@@ -20,9 +20,13 @@ nis_label(data)
 factors, and variable labels in `attr(x, "label")`. Unknown codes
 trigger one warning per variable. They become `NA` in binary fields and
 `Code <value>` levels in multi-level fields. Existing variable labels
-are preserved. Elements without a table entry, including the 2023
-`PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The
-operation is idempotent.
+are preserved. Numeric fields without a table entry are returned
+unchanged. The operation is idempotent.
+
+Residence fields `PL_NCHS2006`, `PL_NCHS`, and `PL_NCHS2` retain their
+own categories. The collapsed `PL_NCHS2` uses codes 21 and 22.
+Code-specific labels for `I10_BIRTH` and `I10_SERVICELINE` follow HCUP's
+definitions.
 
 Binary codes 0 and 1 become `FALSE` and `TRUE`, respectively. For
 example, `FEMALE` is true for female patients and `AWEEKEND` for weekend
@@ -44,7 +48,9 @@ label because its origin cannot be recovered after dropping levels.
 ## See also
 
 [Opening NIS
-data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
+data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md),
+[HCUP NIS Description of Data
+Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 
 Other data-access:
 [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
@@ -58,7 +64,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNR91dz/duckdb
+#> ℹ /tmp/RtmpkD45G2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -66,7 +72,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNR91dz/duckdb
+#> ℹ /tmp/RtmpkD45G2/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

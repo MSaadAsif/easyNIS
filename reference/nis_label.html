@@ -78,9 +78,11 @@
 elements as factors, and variable labels in <code>attr(x, "label")</code>.
 Unknown codes trigger one warning per variable. They become <code>NA</code> in
 binary fields and <code>Code &lt;value&gt;</code> levels in multi-level fields. Existing
-variable labels are preserved. Elements without a table entry, including the 2023
-<code>PL_NCHS2</code> and <code>TOTCHG_2023</code> fields, are returned unchanged. The operation
-is idempotent.</p>
+variable labels are preserved. Numeric fields without a table entry
+are returned unchanged. The operation is idempotent.</p>
+<p>Residence fields <code>PL_NCHS2006</code>, <code>PL_NCHS</code>, and <code>PL_NCHS2</code> retain their own
+categories. The collapsed <code>PL_NCHS2</code> uses codes 21 and 22. Code-specific
+labels for <code>I10_BIRTH</code> and <code>I10_SERVICELINE</code> follow HCUP's definitions.</p>
 <p>Binary codes 0 and 1 become <code>FALSE</code> and <code>TRUE</code>, respectively. For example,
 <code>FEMALE</code> is true for female patients and <code>AWEEKEND</code> for weekend admissions.</p>
 <p>Negative numeric sentinels are handled as unknown codes. The supplied
@@ -98,7 +100,8 @@ existing label because its origin cannot be recovered after dropping levels.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><a href="articles/opening-data.html">Opening NIS data</a>.</p>
+    <div class="dont-index"><p><a href="articles/opening-data.html">Opening NIS data</a>,
+<a href="https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp" class="external-link">HCUP NIS Description of Data Elements</a>.</p>
 <p>Other data-access:
 <code><a href="nis_convert.html">nis_convert()</a></code>,
 <code><a href="nis_example.html">nis_example()</a></code>,
@@ -111,7 +114,7 @@ existing label because its origin cannot be recovered after dropping levels.</p>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">RACE</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpNR91dz/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkD45G2/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -119,7 +122,7 @@ existing label because its origin cannot be recovered after dropping levels.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpNR91dz/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkD45G2/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
