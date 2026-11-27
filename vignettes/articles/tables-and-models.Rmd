@@ -111,14 +111,15 @@ rates_for_review <- rates |>
     count_col = min_sampled,
     hospital_col = min_hospitals,
     weighted_cols = c(events_sampled, discharges_sampled, events_weighted,
-                      discharges_weighted, rate, rate_se, rate_low, rate_upp),
-    secondary = FALSE
+                      discharges_weighted, rate, rate_se, rate_low, rate_upp)
   ) |>
   select(-min_sampled, -min_hospitals)
 rates_for_review
 ```
 
-This table displays exposure groups without an overall total. Review
+Complementary suppression is on by default: if one exposure group is
+masked, a second group is masked too, so the masked group can't be
+recovered from the cohort total reported elsewhere. Still review
 overlapping tables, totals, and contrasts for deductions from masked
 cells before sharing. See [disclosure review](disclosure.html).
 
