@@ -87,10 +87,9 @@
   now treats negative, missing, and non-finite charges as invalid,
   reports their count, and retains zero charges.
 
-- [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
-  classifies factor PRDAY values from their labels and counts `NaN` or
-  unparseable day values as missing, matching character, numeric, and
-  DuckDB inputs and
+- `nis_prday_completeness()` classifies factor PRDAY values from their
+  labels and counts `NaN` or unparseable day values as missing, matching
+  character, numeric, and DuckDB inputs and
   [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md).
 
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
@@ -171,9 +170,9 @@
 - Reuse a shared roxygen template for repeated `.data` parameter
   documentation.
 
-- [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
-  now summarizes grouped inputs completely, handles empty DuckDB
-  cohorts, and avoids aggregate collisions between outcome names.
+- `nis_dx_sensitivity()` now summarizes grouped inputs completely,
+  handles empty DuckDB cohorts, and avoids aggregate collisions between
+  outcome names.
 
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   rejects standard CSV records with extra or missing fields before
@@ -212,11 +211,9 @@
 
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
   [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
-  and
-  [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
-  no longer trigger dbplyr’s “Missing values are always removed in SQL
-  aggregation functions” warning on lazy DuckDB inputs. Results are
-  unchanged.
+  and `nis_dx_sensitivity()` no longer trigger dbplyr’s “Missing values
+  are always removed in SQL aggregation functions” warning on lazy
+  DuckDB inputs. Results are unchanged.
 
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   now explains how to retain diagnosis columns with
@@ -342,10 +339,8 @@
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   survey design.
 
-- Added
-  [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
-  for unweighted PRDAY completeness summaries by year and matched
-  procedure slot.
+- Added `nis_prday_completeness()` for unweighted PRDAY completeness
+  summaries by year and matched procedure slot.
 
 - Added
   [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
@@ -365,11 +360,8 @@
   [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
   to summarize code-system transitions.
 
-- Added
-  [`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md)
-  and
-  [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
-  for descriptive point estimates; these are not design-based estimates.
+- Added `nis_flag_dx_position()` and `nis_dx_sensitivity()` for
+  descriptive point estimates; these are not design-based estimates.
 
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   now accepts data frames with `count_col`, `weighted_cols`, and `by`,

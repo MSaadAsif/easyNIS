@@ -101,7 +101,7 @@ nis_audit_code_transition(
 ## Compare diagnosis positions
 
 Principal and secondary diagnoses can capture different presentations.
-[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md)
+[`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md)
 compares counts and selected outcome rates across principal,
 secondary-only, and any-position definitions.
 
@@ -109,7 +109,7 @@ secondary-only, and any-position definitions.
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpyyqfeb/duckdb
+#> ℹ /tmp/RtmpOp1jYf/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -117,14 +117,14 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpyyqfeb/duckdb
+#> ℹ /tmp/RtmpOp1jYf/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-nis_dx_sensitivity(nis, "I50")
+nis_audit_dx_position(nis, "I50")
 #> # A tibble: 3 × 9
 #>   presentation n_unweighted n_weighted pct_of_any_unweighted pct_of_any_weighted
 #>   <chr>               <dbl>      <dbl>                 <dbl>               <dbl>
@@ -154,7 +154,7 @@ nis_open(nis_example(years = 2015)) |>
   dplyr::count(DQTR, flag) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpyyqfeb/duckdb
+#> ℹ /tmp/RtmpOp1jYf/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -165,7 +165,7 @@ nis_open(nis_example(years = 2015)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpyyqfeb/duckdb
+#> ℹ /tmp/RtmpOp1jYf/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -202,8 +202,27 @@ flags are experimental.
 > - Principal and any-position summaries are nested definitions, not
 >   independent groups.
 
+To keep the flags for later analysis, call
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+once for each position, then derive the mutually exclusive
+secondary-only flag.
+
+``` r
+
+nis |>
+  nis_flag_dx(hf_any = "I50") |>
+  nis_flag_dx(hf_principal = "I50", position = "principal") |>
+  dplyr::mutate(hf_secondary_only = hf_any & !hf_principal) |>
+  dplyr::count(hf_principal, hf_secondary_only) |>
+  dplyr::collect()
+#> # A tibble: 2 × 3
+#>   hf_principal hf_secondary_only     n
+#>   <lgl>        <lgl>             <dbl>
+#> 1 FALSE        FALSE                42
+#> 2 TRUE         FALSE                54
+```
+
 See
-[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
-[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
 and
-[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md).
+[`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md).

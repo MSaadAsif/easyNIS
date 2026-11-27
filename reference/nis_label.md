@@ -5,18 +5,18 @@ Apply HCUP labels
 ## Usage
 
 ``` r
-nis_label(data)
+nis_label(.data)
 ```
 
 ## Arguments
 
-- data:
+- .data:
 
   A collected data frame.
 
 ## Value
 
-`data` with binary indicators as logical, multi-level coded elements as
+`.data` with binary indicators as logical, multi-level coded elements as
 factors, and variable labels in `attr(x, "label")`. Unknown codes
 trigger one warning per variable. They become `NA` in binary fields and
 `Code <value>` levels in multi-level fields. Existing variable labels
@@ -64,7 +64,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,7 +72,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

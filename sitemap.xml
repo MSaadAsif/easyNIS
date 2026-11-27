@@ -31,6 +31,8 @@
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_attrition.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.html</loc></url>
+<url><loc>https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.html</loc></url>
+<url><loc>https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.html</loc></url>
@@ -38,10 +40,8 @@
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_cost.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_design.html</loc></url>
-<url><loc>https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_example.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.html</loc></url>
-<url><loc>https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_join_companion.html</loc></url>
@@ -49,7 +49,6 @@
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_new_study.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_open.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_outcomes.html</loc></url>
-<url><loc>https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_reweight.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_suppress.html</loc></url>
 <url><loc>https://msaadasif.github.io/easyNIS/reference/nis_survey.html</loc></url>

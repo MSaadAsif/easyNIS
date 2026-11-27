@@ -24,7 +24,7 @@ errors enter.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -35,7 +35,7 @@ files <- list.files(path, pattern = "part-0[.]parquet$", recursive = TRUE,
                     full.names = TRUE)
 con <- DBI::dbConnect(duckdb::duckdb())
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -76,7 +76,7 @@ no cohort cases from the design.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -87,7 +87,7 @@ nis <- nis_open(path) |>
   nis_flag_dx(heart_failure = "I50") |>
   dplyr::mutate(one = 1L)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -125,7 +125,7 @@ weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md).
 | Mix the ICD-9 and ICD-10 slot namespaces around the 2015 transition | Select the code system explicitly; 2015 checks use year and quarter/version fields when available | `system =` on [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md) / [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md) |
 | Match procedures but lose the slot-specific procedure day | Compare procedure prefixes with their corresponding `PRDAY` fields | [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md) |
 | Recount every inclusion/exclusion step by hand | Produce sequential unweighted and weighted cohort attrition | [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md) |
-| Report only one diagnosis-position definition | Compare principal, secondary-only, and any-position diagnosis summaries | [`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md) |
+| Report only one diagnosis-position definition | Compare principal, secondary-only, and any-position diagnosis summaries | [`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md) |
 | Miss shifts in code frequency between years | Audit code-group prevalence across periods | [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md) |
 | Treat charges as costs or apply an undocumented conversion | Convert charges using CCR and CPI-U and retain provenance | [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md) |
 | Recreate comorbidity indicators from diagnosis slots | Compute the supported ICD-10 Elixhauser indicators | [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md) |
@@ -143,7 +143,7 @@ weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md).
 - [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
   records charge and CCR inputs, CPI-U multipliers, base year, and
   invalid CCR rows; invalid CCR costs are `NA`.
-- [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+- [`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md)
   counts known, missing, negative/sentinel, and absent procedure-day
   fields by year and slot.
 
@@ -159,7 +159,7 @@ cell. It errors when the table cards cannot map a cell to those records.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -168,7 +168,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path) |> nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -200,7 +200,7 @@ See how a cohort definition changes the discharge count at each step:
 
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -208,7 +208,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -236,7 +236,7 @@ principal diagnosis:
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -244,14 +244,14 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpx1W27A/duckdb
+#> ℹ /tmp/RtmpWAUrBU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-nis_dx_sensitivity(nis, "I50")
+nis_audit_dx_position(nis, "I50")
 #> # A tibble: 3 × 9
 #>   presentation n_unweighted n_weighted pct_of_any_unweighted pct_of_any_weighted
 #>   <chr>               <dbl>      <dbl>                 <dbl>               <dbl>

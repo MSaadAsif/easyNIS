@@ -5,12 +5,12 @@ Adjust NIS charges and costs to a reference dollar year
 ## Usage
 
 ``` r
-nis_cost(data, dollars, charges = "TOTCHG")
+nis_cost(.data, dollars, charges = "TOTCHG")
 ```
 
 ## Arguments
 
-- data:
+- .data:
 
   A collected data frame with `YEAR`, the `charges` column, and
   `CCR_NIS`. Lazy DuckDB queries must be collected first.
@@ -29,8 +29,9 @@ nis_cost(data, dollars, charges = "TOTCHG")
 
 ## Value
 
-`data` with `cost_adj` and `charges_adj` in `dollars` USD. The in-memory
-data frame has `nis_cost_provenance` metadata; retrieve it with
+`.data` with `cost_adj` and `charges_adj` in `dollars` USD. The
+in-memory data frame has `nis_cost_provenance` metadata; retrieve it
+with
 [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md).
 
 ## See also
@@ -48,7 +49,7 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -56,7 +57,7 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

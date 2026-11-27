@@ -9,8 +9,8 @@ for exact, year-aware matching on a lazy NIS query.
 
 ``` r
 nis_ccsr_codes(
-  file = NULL,
   categories,
+  file = NULL,
   default_only = FALSE,
   type = c("dx", "pr"),
   version = NULL
@@ -19,15 +19,16 @@ nis_ccsr_codes(
 
 ## Arguments
 
-- file:
-
-  Optional path to an HCUP reference file for a custom or newer release.
-  The file determines the coding system when supplied.
-
 - categories:
 
   Character vector of CCSR category codes, such as `"CIR019"`. Matching
   ignores case.
+
+- file:
+
+  Optional path to an HCUP reference file for a custom or newer release.
+  The file determines whether the mapping is for diagnoses or
+  procedures.
 
 - default_only:
 
@@ -60,9 +61,8 @@ those columns is returned.
 With `default_only = TRUE`, only codes whose default inpatient CCSR
 category is one of `categories` are returned. This matches the HCUP
 assignment of a single category to a principal diagnosis, so combine it
-with `position = "principal"` in
-[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md).
-Procedure reference files have no default assignment.
+with an exact match on the principal diagnosis code. Procedure reference
+files have no default assignment.
 
 ## See also
 
@@ -72,19 +72,18 @@ cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
 [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
-[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
+[`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md),
+[`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md),
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
-[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
-[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
 
 ## Examples
 
 ``` r
-head(nis_ccsr_codes(categories = "CIR019"))
+head(nis_ccsr_codes("CIR019"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

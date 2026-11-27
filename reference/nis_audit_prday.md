@@ -13,7 +13,7 @@ completeness is acceptable.
 ## Usage
 
 ``` r
-nis_prday_completeness(.data, pr, system = c("icd10", "icd9"))
+nis_audit_prday(.data, pr, system = c("icd10", "icd9"))
 ```
 
 ## Arguments
@@ -56,10 +56,9 @@ cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
 [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
+[`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md),
 [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
-[`nis_dx_sensitivity()`](https://msaadasif.github.io/easyNIS/reference/nis_dx_sensitivity.md),
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
-[`nis_flag_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx_position.md),
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
 [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
 
@@ -72,7 +71,7 @@ toy <- data.frame(
   I10_PR2 = c("0JH604Z", "OTHER", "0JH604Z"),
   PRDAY1 = c(0L, -99L, 1L), PRDAY2 = c(1L, NA_integer_, -88L)
 )
-nis_prday_completeness(toy, c("02UG0", "0JH60"))
+nis_audit_prday(toy, c("02UG0", "0JH60"))
 #> # A tibble: 4 × 8
 #>    YEAR  slot matched_slots known_day missing_day sentinel_invalid_day
 #>   <int> <int>         <int>     <int>       <int>                <int>

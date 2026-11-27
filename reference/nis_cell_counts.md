@@ -12,7 +12,7 @@ counts discharges and hospitals and returns only the grouped summary.
 ## Usage
 
 ``` r
-nis_cell_counts(.data, by)
+nis_cell_counts(.data, by = NULL)
 ```
 
 ## Arguments
@@ -24,8 +24,9 @@ nis_cell_counts(.data, by)
 
 - by:
 
-  Character vector of cell-defining columns. The summary names `n` and
-  `hospitals` are reserved and cannot be used as cell-defining columns.
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  Cell-defining columns. Omit for overall counts. The summary names `n`
+  and `hospitals` are reserved.
 
 ## Value
 
@@ -46,7 +47,7 @@ Other disclosure:
 records <- data.frame(
   YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
 )
-nis_cell_counts(records, by = "group")
+nis_cell_counts(records, by = group)
 #> # A tibble: 1 × 3
 #>   group     n hospitals
 #>   <chr> <int>     <int>

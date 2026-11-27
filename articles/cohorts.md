@@ -9,11 +9,11 @@ normalized.
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50", principal_hf = "I50",
-              position = "any") |>
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(ablation = "02L")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -21,20 +21,20 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-nis |> dplyr::count(heart_failure, ablation) |> dplyr::collect()
-#> # A tibble: 3 × 3
-#>   heart_failure ablation     n
-#>   <lgl>         <lgl>    <dbl>
-#> 1 FALSE         FALSE       36
-#> 2 TRUE          FALSE      108
-#> 3 FALSE         TRUE        48
+nis |> dplyr::count(heart_failure, principal_hf, ablation) |> dplyr::collect()
+#> # A tibble: 3 × 4
+#>   heart_failure principal_hf ablation     n
+#>   <lgl>         <lgl>        <lgl>    <dbl>
+#> 1 FALSE         FALSE        FALSE       36
+#> 2 TRUE          TRUE         FALSE      108
+#> 3 FALSE         FALSE        TRUE        48
 ```
 
 The table shows synthetic discharge counts for each flag combination. To
@@ -101,7 +101,7 @@ nis_flag_pr_timing(toy, "02UG0", "0JH60", relation = "after")
 The flag is true when an outcome procedure is documented after the
 earliest index procedure. Missing or sentinel days need an explicit
 `missing_day` policy.
-[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
+[`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md)
 summarizes how often matching slots have a known day.
 
 ## Count cohort steps
@@ -119,7 +119,7 @@ to use the same eligibility criteria in
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -127,7 +127,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -176,7 +176,7 @@ expression, source years, and easyNIS version in each part’s metadata.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -184,7 +184,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -194,7 +194,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
                          keep = c(AGE, LOS))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -205,7 +205,7 @@ path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
 # In a later session
 design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmrSj94/duckdb
+#> ℹ /tmp/Rtmp70LsbZ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -253,4 +253,4 @@ Reference pages:
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
 [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
-[`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md).
+[`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md).

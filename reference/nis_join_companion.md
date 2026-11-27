@@ -5,12 +5,12 @@ Attach an annual NIS companion to Core discharges
 ## Usage
 
 ``` r
-nis_join_companion(x, path, component, columns)
+nis_join_companion(.data, path, component, columns)
 ```
 
 ## Arguments
 
-- x:
+- .data:
 
   A lazy Core query from
   [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
@@ -32,7 +32,7 @@ nis_join_companion(x, path, component, columns)
 
   Character vector of companion fields to add. Names are matched
   case-insensitively using DuckDB's identifier rules. Choose fields with
-  names distinct from fields in `x`.
+  names distinct from fields in `.data`.
 
 ## Value
 
@@ -42,9 +42,9 @@ A lazy DuckDB-backed Core query with the requested columns added.
 
 Hospital uses `YEAR` and `HOSP_NIS`. Severity and Diagnosis and
 Procedure Groups use `YEAR` and `KEY_NIS`. Include companion parts for
-every year opened in `x`. A field supplied only in some of those years
-is missing in the others. A discharge without a matching companion row
-is retained with missing companion values.
+every year opened in `.data`. A field supplied only in some of those
+years is missing in the others. A discharge without a matching companion
+row is retained with missing companion values.
 
 DuckDB checks for missing, duplicate, or incompatible companion keys
 before constructing the left join. Uniqueness in the Core key types
@@ -70,7 +70,7 @@ Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 path <- tempfile()
 con <- DBI::dbConnect(duckdb::duckdb())
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -92,7 +92,7 @@ nis_open(file.path(path, "core"), check_release = FALSE) |>
   nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppvTgxv/duckdb
+#> ℹ /tmp/Rtmpq6TGTC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

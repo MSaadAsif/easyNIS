@@ -42,11 +42,9 @@ no compilation and has no additional mandatory package dependencies.
 ``` r
 
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::filter(AGE >= 18) |>
-  dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
-  dplyr::compute()
+  dplyr::filter(AGE >= 18)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphIyaMc/duckdb
+#> ℹ /tmp/RtmpYWRNlv/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -54,7 +52,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphIyaMc/duckdb
+#> ℹ /tmp/RtmpYWRNlv/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -84,12 +82,11 @@ scored |>
 #> 6    63      1 TRUE                        0
 ```
 
-The example assigns keys to the invented fixture. NIS files supply
-`KEY_NIS`. When pooling years, keep `YEAR` because keys can repeat
-across years. Keep eligible `DX*` and `I10_DX*` slots plus `YEAR`,
-`DQTR`, and `DXVER` where available when scoring data across the October
-2015 transition. The selected method determines which coding systems are
-eligible.
+The fixture includes invented discharge keys in `KEY_NIS`. When pooling
+years, keep `YEAR` because keys can repeat across years. Keep eligible
+`DX*` and `I10_DX*` slots plus `YEAR`, `DQTR`, and `DXVER` where
+available when scoring data across the October 2015 transition. The
+selected method determines which coding systems are eligible.
 
 ## Score a survey design
 
@@ -102,7 +99,7 @@ preserved.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphIyaMc/duckdb
+#> ℹ /tmp/RtmpYWRNlv/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -110,7 +107,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphIyaMc/duckdb
+#> ℹ /tmp/RtmpYWRNlv/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -125,7 +122,7 @@ design <- nis_design(
 #> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
 scored_design <- nis_comorbidity(design, method = "elixhauser_ahrq2027")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphIyaMc/duckdb
+#> ℹ /tmp/RtmpYWRNlv/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
