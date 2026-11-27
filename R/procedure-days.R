@@ -79,14 +79,14 @@ nis_prday_match_sql <- function(con, rule, columns) {
   vapply(
     identifiers,
     function(column) {
-      value <- sprintf("CAST(%s AS VARCHAR)", column)
+      value <- sprintf("TRY_CAST(%s AS VARCHAR)", column)
       tests <- c(
         if (length(prefixes)) sprintf("substr(%s, 1, %d) = %s", column, nchar(rule$prefix), prefixes),
         if (length(regexes)) sprintf("regexp_full_match(%s, %s)", value, regexes)
       )
       match <- paste0("COALESCE(", paste(tests, collapse = " OR "), ", FALSE)")
       if (length(exclusions)) {
-        match <- sprintf("(%s AND %s NOT IN (%s))", match, value, paste(exclusions, collapse = ", "))
+        match <- sprintf("(%s AND NOT COALESCE(%s IN (%s), FALSE))", match, value, paste(exclusions, collapse = ", "))
       }
       match
     },
