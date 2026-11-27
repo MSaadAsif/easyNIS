@@ -2,6 +2,12 @@
 
 [![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml)
+[![Test coverage
+workflow](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml)
+[![Project Status:
+WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Lifecycle:
+experimental](https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
 **A tidy workflow for opening, defining cohorts in, and analyzing HCUP
 National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet
@@ -79,6 +85,8 @@ data before using licensed files.
   cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html)
 - [Survey design and
   weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html)
+  · [Survey design
+  validation](https://msaadasif.github.io/easyNIS/articles/design-validation.html)
 - [Descriptives and
   regression](https://msaadasif.github.io/easyNIS/articles/descriptives-models.html)
 - [Disclosure and

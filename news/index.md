@@ -234,6 +234,11 @@
 
 ### Project metadata
 
+- Added package-level help at
+  [`?easyNIS`](https://msaadasif.github.io/easyNIS/reference/easyNIS-package.md),
+  links to AHRQ’s NIS documentation and survey design validation, and
+  project status badges.
+
 - Set the project license to GNU AGPL-3.0-only, update author names and
   ORCIDs across package metadata.
 
