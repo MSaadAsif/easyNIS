@@ -23,8 +23,9 @@ real NIS results.
    The readiness report requires a passing receipt for the current commit.
 7. **Published-study verification:** reproduce headline estimates from three
    published NIS studies within a stated tolerance. Run verification locally
-   against licensed data; publicly record only pass/fail and tolerance, never
-   estimates or record-derived values. See the matching readiness criterion.
+   against licensed data using the [published-estimate probe](../tools/probe/published-verification/README.md).
+   The readiness criterion shows pass/fail and coarse relative discrepancies.
+   Keep estimates, standard errors, and receipts local.
 8. **Issue severity:** no open P0 or P1 issues. See `No open P0/P1 issues`.
 
 ## Scope decisions
