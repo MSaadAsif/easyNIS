@@ -90,7 +90,7 @@ function errors.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpFxDZtI/duckdb
+#> ℹ /tmp/RtmpglZelx/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -98,7 +98,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpFxDZtI/duckdb
+#> ℹ /tmp/RtmpglZelx/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -136,12 +136,16 @@ The built-in report checks support for each variable across the
 displayed groups, including missing values and dichotomous complements.
 It masks related table cells and withholds linked estimates when they
 could reveal a protected cell. Models require complete data on the
-reporting cohort. Cohort flow checks the discharges excluded between
-steps and counts only valid-design records in weighted totals. The
-receipt describes the generated report and flags decisions that require
-manuscript or release review, including whether counts can be derived
-across tables or from prior releases. Apply disclosure protection to any
-tables you add to the study.
+reporting cohort. Table 1 shows unweighted denominators alongside its
+survey estimates, model headings show the fitted discharge count, and
+each annual plot point shows the number of discharges with the outcome
+measured. These counts are masked with the corresponding estimates.
+Cohort flow checks the discharges excluded between steps and counts only
+valid-design records in weighted totals. The receipt describes the
+generated report and flags decisions that require manuscript or release
+review, including whether counts can be derived across tables or from
+prior releases. Apply disclosure protection to any tables you add to the
+study.
 
 ## Common pitfalls
 

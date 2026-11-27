@@ -18,7 +18,7 @@ they are not NIS estimates.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpqeKVTD/duckdb
+#> ℹ /tmp/RtmpFVWA4N/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -26,7 +26,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpqeKVTD/duckdb
+#> ℹ /tmp/RtmpFVWA4N/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -71,6 +71,20 @@ supplied in the fixture.
 - A Q4-only cohort in 2015 warns that it covers the ICD-10-coded part of
   the year, while a complete cohort year is silent. Without `DQTR`, the
   2015 split cannot be checked and an informational message says so.
+- A rare cohort followed by a narrower hospital domain, with hospital
+  IDs repeated across years and a stratum containing one sampled
+  hospital. Compare totals, ratios, standard errors, degrees of freedom,
+  and confidence intervals with a full-data domain under the same
+  singleton policy.
+- Missing model predictors in that narrower domain. Compare
+  coefficients, standard errors, residual degrees of freedom, confidence
+  intervals and the fitted count. Check that
+  [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md)
+  still reports the original input and cohort counts and that only the
+  model denominator excludes those rows.
+- Build the same rare domain after filtering the input. Verify that the
+  point total agrees but the standard error and reported input count
+  differ.
 
 Quarter coverage is computed by grouping valid-design rows in the lazy
 query by `YEAR` and `DQTR`, then collecting that small summary.
