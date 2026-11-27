@@ -77,8 +77,9 @@ performance_failure <- function(trials, budget) {
   NA_character_
 }
 
-performance_assess <- function(trials) {
+performance_assess <- function(trials, steps = performance_steps) {
   budgets <- utils::read.delim(file.path("tools", "probe", "performance-budgets.tsv"))
+  budgets <- budgets[budgets$step %in% steps, , drop = FALSE]
   failure <- vapply(
     seq_len(nrow(budgets)),
     function(i) {

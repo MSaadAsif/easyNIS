@@ -29,7 +29,7 @@ svyglm.nis_survey <- function(
 
 nis_survey_family <- function(family, env) {
   if (is.character(family)) {
-    family <- get(family, envir = env, mode = "function")
+    family <- get0(family, envir = env, mode = "function")
   }
   if (is.function(family)) {
     family <- family()
@@ -253,9 +253,12 @@ nis_survey_gram_inverse <- function(info, epsilon) {
   # The QR tolerance acts on column norms. Square it for a Gram matrix, with
   # a floor for the precision lost when forming and factoring cross-products.
   qr_tol <- min(1e-7, epsilon / 1000)
-  tol <- max(qr_tol^2, 8 * nrow(info) * .Machine$double.eps)
-  triangular <- suppressWarnings(chol(scaled, pivot = TRUE, tol = tol))
-  if (attr(triangular, "rank") < nrow(info) || rcond(scaled) <= tol) {
+  rank_tol <- max(qr_tol^2, 8 * nrow(info) * .Machine$double.eps)
+  triangular <- suppressWarnings(chol(scaled, pivot = TRUE, tol = rank_tol))
+  # A full-rank Gram matrix can still amplify double-precision rounding
+  # beyond eight digits. Refuse the normal-equation solve in that range.
+  condition_tol <- .Machine$double.eps / 1e-8
+  if (attr(triangular, "rank") < nrow(info) || rcond(scaled) <= condition_tol) {
     cli::cli_abort("Rank deficient or ill-conditioned model matrix. Use `nis_design()` for a row-wise QR fit.")
   }
   order <- order(attr(triangular, "pivot"))

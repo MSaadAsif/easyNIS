@@ -73,12 +73,27 @@ test_that("lazy GLMs back-transform and reject numerically aliased Gram systems"
   expect_equal(unname(stats::coef(shifted)), drop(transform %*% stats::coef(ref)) + offset, tolerance = 1e-8)
   expect_equal(unname(stats::vcov(shifted)), transform %*% stats::vcov(ref) %*% t(transform), tolerance = 1e-8)
 
-  for (delta in c(0, 1e-10, 1e-9, 1e-8, 1e-7)) {
-    tilted <- dplyr::mutate(query, x = AGE / 100, alias_x = x + delta * TOTCHG / 1e5)
-    qr_fit <- survey::svyglm(los_days ~ x + alias_x, lazy_reference(tilted))
-    if (is.na(stats::coef(qr_fit, na.rm = FALSE)[["alias_x"]])) {
-      expect_error(survey::svyglm(los_days ~ x + alias_x, nis_survey(tilted)), "[Rr]ank deficient|[Ii]ll-conditioned")
+  records <- dplyr::collect(query)
+  records$noise <- withr::with_seed(2601, stats::rnorm(nrow(records)))
+  path <- withr::local_tempdir()
+  for (year in sort(unique(records$YEAR))) {
+    write_duckdb_parquet(
+      records[records$YEAR == year, ],
+      file.path(path, sprintf("NIS_%d.parquet", year))
+    )
+  }
+  rank_fixture <- nis_open(path, check_release = FALSE)
+  formula <- los_days ~ AGE + FEMALE + X_NEAR
+  for (delta in c(0, 10^seq.int(-10L, -5L))) {
+    tilted <- dplyr::mutate(rank_fixture, X_NEAR = AGE + 0.3 * FEMALE + !!delta * noise)
+    qr_fit <- survey::svyglm(formula, lazy_reference(tilted))
+    if (delta <= 1e-10) {
+      expect_true(is.na(stats::coef(qr_fit, na.rm = FALSE)[["X_NEAR"]]))
     }
+    if (delta == 1e-5) {
+      expect_true(is.finite(stats::coef(qr_fit)[["X_NEAR"]]))
+    }
+    expect_error(survey::svyglm(formula, nis_survey(tilted)), "[Rr]ank deficient|[Ii]ll-conditioned")
   }
   well_conditioned <- dplyr::mutate(query, x = AGE / 100, alias_x = x + TOTCHG / 1e5)
   expect_lazy_glm(

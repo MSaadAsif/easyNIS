@@ -176,7 +176,7 @@ run_performance_probe <- function(mode, selected_steps) {
   if (mode == "smoke") {
     stopifnot(all(summary$completed == repeats), all(summary$remaining_files == 0L))
   } else {
-    print(performance_assess(do.call(rbind, metrics)), row.names = FALSE)
+    print(performance_assess(do.call(rbind, metrics), selected_steps), row.names = FALSE)
   }
 }
 
