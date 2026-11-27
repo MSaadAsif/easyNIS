@@ -4,6 +4,10 @@
   `nis_vars_design()`, `nis_vars_demographics()`, `nis_vars_dx()`,
   `nis_vars_pr()`, and `nis_vars_hospital()` on data frames and lazy tables.
 
+- The survey design article demonstrates analytic domains with
+  `dplyr::filter()` on a `nis_design()` result and explains how filtering the
+  lazy input can affect variance estimation.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
@@ -173,6 +177,9 @@
   labeling without changing their results.
 
 ## Project metadata
+
+- Added package-level help at `?easyNIS`, links to AHRQ's NIS documentation
+  and survey design validation, and project status badges.
 
 - Set the project license to GNU AGPL-3.0-only, update author names and ORCIDs
   across package metadata.

@@ -163,21 +163,6 @@ append_raw_receipt <- function(path, bytes) {
   invisible(NULL)
 }
 
-synthetic_study_receipt <- function(study, commit) {
-  numeric_value <- match.fun("numeric_reference_value")
-  results <- lapply(study$headline_estimates, function(estimate) {
-    value <- numeric_value(estimate$estimate)
-    list(
-      estimate_id = estimate$id,
-      computed_estimate = value,
-      reference_value = value,
-      reference_ci = vapply(estimate$ci, numeric_value, numeric(1)),
-      tolerance = numeric_value(study$tolerance),
-      comparison_result = "pass"
-    )
-  })
-  list(package_commit_hash = commit, study_id = study$id, verified_at = "2026-11-19T12:00:00Z", results = results)
-}
 
 assert_reconcile_cases <- function(run_readiness, encode) {
   shape_valid <- match.fun("quality_receipt_shape_valid")
@@ -287,167 +272,60 @@ assert_reconcile_cases <- function(run_readiness, encode) {
 local({
   receipt_path <- tempfile(fileext = ".json")
   on.exit(unlink(receipt_path))
-  current_commit <- "synthetic-commit"
-  reference <- list(
-    id = "synthetic-a",
-    doi = "10.1234/synthetic-a",
-    cohort_definition = "Invented fixture cohort",
-    tolerance = 0.05,
-    headline_estimates = list(list(
-      id = "mortality",
-      label = "Synthetic mortality",
-      estimate_printed = "0.50",
-      estimate = "0.50",
-      ci_printed = "0.40 to 0.60",
-      ci = c("0.40", "0.60")
-    ))
-  )
-  receipt <- list(
-    package_commit_hash = current_commit,
-    study_id = reference$id,
-    verified_at = "2026-10-20T12:00:00Z",
-    results = list(list(
-      estimate_id = "mortality",
-      computed_estimate = 0.52,
-      reference_value = 0.50,
-      reference_ci = c(0.40, 0.60),
-      tolerance = 0.05,
-      comparison_result = "pass"
-    ))
-  )
-  write_receipt <- function(value = receipt) {
-    jsonlite::write_json(value, receipt_path, auto_unbox = TRUE)
-    study_verification_ready(receipt_path, current_commit, reference)
-  }
-  stopifnot(valid_reference_study(reference), write_receipt())
-  receipt_json <- as.character(jsonlite::toJSON(receipt, auto_unbox = TRUE))
-  writeBin(c(charToRaw(receipt_json), as.raw(0), charToRaw("junk")), receipt_path)
-  stopifnot(!study_verification_ready(receipt_path, current_commit, reference), write_receipt())
-  boolean_reference <- reference
-  boolean_reference$headline_estimates[[1L]]$estimate <- TRUE
-  stopifnot(!valid_reference_study(boolean_reference))
-  # Values that would pass if TRUE were coerced to one.
-  unit_reference <- reference
-  unit_reference$headline_estimates[[1L]]$estimate <- "1.00"
-  unit_reference$headline_estimates[[1L]]$ci <- c("0.00", "1.00")
-  unit_receipt <- receipt
-  unit_receipt$results[[1L]]$computed_estimate <- 1
-  unit_receipt$results[[1L]]$reference_value <- 1
-  unit_receipt$results[[1L]]$reference_ci <- c(0, 1)
-  jsonlite::write_json(unit_receipt, receipt_path, auto_unbox = TRUE)
-  stopifnot(study_verification_ready(receipt_path, current_commit, unit_reference))
-  string_receipt <- unit_receipt
-  string_receipt$results[[1L]]$computed_estimate <- "1.00"
-  string_receipt$results[[1L]]$reference_value <- "1.00"
-  string_receipt$results[[1L]]$reference_ci <- c("0.00", "1.00")
-  jsonlite::write_json(string_receipt, receipt_path, auto_unbox = TRUE)
-  stopifnot(study_verification_ready(receipt_path, current_commit, unit_reference))
-  for (field in c("computed_estimate", "reference_value", "reference_ci", "tolerance")) {
-    malformed <- unit_receipt
-    malformed$results[[1L]][[field]] <- if (field == "reference_ci") list(FALSE, TRUE) else TRUE
-    jsonlite::write_json(malformed, receipt_path, auto_unbox = TRUE)
-    stopifnot(!study_verification_ready(receipt_path, current_commit, unit_reference))
-  }
-  for (field in c("id", "doi", "cohort_definition", "tolerance", "headline_estimates")) {
-    malformed <- reference
-    malformed[[field]] <- NULL
-    stopifnot(!valid_reference_study(malformed))
-  }
-  malformed <- reference
-  malformed$tolerance <- NA_real_
-  stopifnot(!valid_reference_study(malformed))
-  malformed_estimate <- reference
-  malformed_estimate$headline_estimates[[1L]]$ci <- c("bad", "0.6")
-  stopifnot(!valid_reference_study(malformed_estimate))
-  malformed_estimate$headline_estimates[[1L]]$ci <- c("0.4", "0.6")
-  malformed_estimate$headline_estimates[[1L]]$estimate <- NA_character_
-  stopifnot(!valid_reference_study(malformed_estimate))
-  for (field in c(
-    "estimate_id",
-    "computed_estimate",
-    "reference_value",
-    "reference_ci",
-    "tolerance",
-    "comparison_result"
-  )) {
-    malformed <- receipt
-    malformed$results[[1L]][[field]] <- NULL
-    stopifnot(!write_receipt(malformed))
-  }
-  malformed_id <- receipt
-  malformed_id$results[[1L]]$estimate_id <- NA_character_
-  stopifnot(!write_receipt(malformed_id))
-  stopifnot(!study_verification_ready(receipt_path, "different-commit", reference))
-  note_only_json <- sub(
-    '"package_commit_hash":"synthetic-commit"',
-    '"package_commit_hash_note":"synthetic-commit"',
-    receipt_json,
-    fixed = TRUE
-  )
-  writeLines(note_only_json, receipt_path)
-  stopifnot(!study_verification_ready(receipt_path, current_commit, reference))
-  duplicate_estimate_json <- sub(
-    '"computed_estimate":0.52',
-    '"computed_estimate":0.52,"computed_estimate":true',
-    receipt_json,
-    fixed = TRUE
-  )
-  writeLines(duplicate_estimate_json, receipt_path)
-  stopifnot(!study_verification_ready(receipt_path, current_commit, reference))
-  wrong_reference <- receipt
-  wrong_reference$results[[1L]]$reference_value <- 0.45
-  stopifnot(!write_receipt(wrong_reference))
-  outside_tolerance <- receipt
-  outside_tolerance$results[[1L]]$computed_estimate <- 0.7
-  stopifnot(!write_receipt(outside_tolerance))
-  at_tolerance <- receipt
-  at_tolerance$results[[1L]]$computed_estimate <- 0.5625
-  at_tolerance$results[[1L]]$tolerance <- 0.0625
-  reference$tolerance <- 0.0625
-  stopifnot(write_receipt(at_tolerance))
-  reference$tolerance <- 0.05
-  wrong_ci <- receipt
-  wrong_ci$results[[1L]]$reference_ci <- c(0.41, 0.60)
-  stopifnot(!write_receipt(wrong_ci))
-  wrong_result_type <- receipt
-  wrong_result_type$results <- list("not-an-object")
-  stopifnot(!write_receipt(wrong_result_type))
-  wrong_order <- receipt
-  reference$headline_estimates[[2L]] <- list(
-    id = "second",
-    label = "Synthetic second",
-    estimate_printed = "0.30",
-    estimate = "0.30",
-    ci_printed = "0.20 to 0.40",
-    ci = c("0.20", "0.40")
-  )
-  wrong_order$results <- list(
+  commit <- "invented-commit"
+  studies <- load_reference_studies("tools/probe/reference-studies.yml")
+  stopifnot(valid_reference_studies(studies), !valid_reference_studies(studies[-1L]))
+  ids <- vapply(studies, `[[`, character(1), "id")
+  duplicate_studies <- studies
+  duplicate_studies[[1L]]$id <- ids[[2L]]
+  stopifnot(!valid_reference_studies(duplicate_studies))
+  studies[[1L]]$tolerance <- 0.125
+  references <- as.list(stats::setNames(rep(128, length(ids)), ids))
+  make_receipt <- function(values = c(144, 128, 128)) {
     list(
-      estimate_id = "second",
-      computed_estimate = 0.30,
-      reference_value = 0.30,
-      reference_ci = c(0.20, 0.40),
-      tolerance = 0.05,
-      comparison_result = "pass"
-    ),
-    receipt$results[[1L]]
-  )
-  stopifnot(write_receipt(wrong_order))
-  duplicate_id <- wrong_order
-  duplicate_id$results[[1L]]$estimate_id <- "mortality"
-  stopifnot(!write_receipt(duplicate_id))
-  missing_result <- receipt
-  missing_result$results <- list()
-  stopifnot(!write_receipt(missing_result))
-  reference_studies <- lapply(letters[1:3], function(suffix) {
-    study <- reference
-    study$id <- paste0("synthetic-", suffix)
-    study$doi <- paste0("10.1234/", study$id)
-    study
-  })
-  stopifnot(valid_reference_studies(reference_studies), !valid_reference_studies(reference_studies[-3L]))
-  reference_studies[[3L]]$id <- reference_studies[[2L]]$id
-  stopifnot(!valid_reference_studies(reference_studies))
+      package_commit_hash = commit,
+      results = stats::setNames(
+        lapply(seq_along(ids), function(i) {
+          list(reference = references[[i]], estimate = values[[i]])
+        }),
+        ids
+      )
+    )
+  }
+  receipt <- make_receipt()
+  write_receipt <- function(value) jsonlite::write_json(value, receipt_path, auto_unbox = TRUE)
+  result <- function(head = commit) study_verification_results(receipt_path, head, studies, references)
+  write_receipt(receipt)
+  stopifnot(identical(result()$status, rep("pass", 3L)), identical(result()$relative_error[[1L]], 0.125))
+  stopifnot(is.null(result("different-commit")))
+  write_receipt(make_receipt(c(145, 128, 128)))
+  stopifnot(identical(result()$status, c("fail", "pass", "pass")))
+  for (invalid in list(NULL, TRUE, "128", 0, c(128, 129))) {
+    altered <- receipt
+    altered$results[[ids[[2L]]]]$estimate <- invalid
+    write_receipt(altered)
+    stopifnot(is.null(result()))
+  }
+  altered <- receipt
+  altered$results[[1L]]$reference <- 127
+  write_receipt(altered)
+  stopifnot(is.null(result()))
+  altered <- receipt
+  altered$results[[1L]] <- NULL
+  write_receipt(altered)
+  stopifnot(is.null(result()))
+  receipt_json <- as.character(jsonlite::toJSON(receipt, auto_unbox = TRUE))
+  writeLines(sub('"estimate":144', '"estimate":144,"estimate":0', receipt_json, fixed = TRUE), receipt_path)
+  stopifnot(is.null(result()))
+  writeBin(c(charToRaw(receipt_json), as.raw(0), charToRaw("junk")), receipt_path)
+  stopifnot(is.null(result()))
+  summary <- study_verification_summary(data.frame(
+    id = ids,
+    status = c("pass", "fail", "pass"),
+    relative_error = c(0, 0.12634, 0.000001),
+    tolerance = c(0.125, 0.05, 0.01)
+  ))
+  stopifnot(grepl("pass", summary), grepl("fail", summary), !grepl("0.12634", summary, fixed = TRUE))
 
   empty_issues <- parse_open_issue_query("[]")
   one_issue <- parse_open_issue_query('[{"number":42}]')
@@ -686,20 +564,6 @@ local({
   manual$step <- "ropensci_manual_subset"
   complexity <- baseline
   complexity$step <- "installed_namespace_complexity"
-  synthetic_reference <- list(
-    id = "synthetic-isolation",
-    doi = "10.1234/synthetic-isolation",
-    cohort_definition = "Invented cohort",
-    tolerance = 0.05,
-    headline_estimates = list(list(
-      id = "estimate",
-      label = "Synthetic estimate",
-      estimate_printed = "0.50",
-      estimate = "0.50",
-      ci_printed = "0.40 to 0.60",
-      ci = c("0.40", "0.60")
-    ))
-  )
   encode <- function(item) as.character(jsonlite::toJSON(item, auto_unbox = TRUE, null = "null"))
   run_readiness <- function(
     extra = character(),
@@ -713,7 +577,6 @@ local({
     env <- new.env(parent = globalenv())
     env$source <- function(file) {
       sys.source(file, envir = env)
-      env$load_reference_studies <- function(...) list(synthetic_reference)
       env$find_main_repo <- function(...) normalizePath(".")
       env$read_main_renviron <- function(...) invisible(NULL)
       env$resolve_loop_dir <- function(...) fixture_dir
@@ -760,14 +623,9 @@ local({
       c("coverage_percent", "pkgcheck", "ropensci_manual_subset", "installed_namespace_complexity")
     )
   )
-  study <- synthetic_reference
-  study_path <- file.path(fixture_dir, "private", "study-verification", paste0(study$id, ".json"))
+  study_path <- study_receipt_path(fixture_dir, "invented-head")
   dir.create(dirname(study_path), recursive = TRUE)
-  study_text <- encode(synthetic_study_receipt(study, "invented-head"))
-  writeLines(study_text, study_path, useBytes = TRUE)
-  stopifnot(study_verification_ready(study_path, "invented-head", study))
-  writeBin(c(charToRaw(study_text), as.raw(0), charToRaw("junk")), study_path)
-  stopifnot(!study_verification_ready(study_path, "invented-head", study))
+  writeBin(c(charToRaw('{"INVENTED_PRIVATE_MARKER":123}'), as.raw(0)), study_path)
   scoped_study_result <- run_readiness()
   stopifnot(
     readiness_status(
