@@ -12,10 +12,7 @@ performance_cohort <- function(query) {
   easyNIS::nis_flag_dx(query, heart_failure = "I50")
 }
 
-performance_design <- function(query, whole_sample) {
-  if (whole_sample) {
-    return(easyNIS::nis_design(query, cohort = TRUE, keep = c(AGE, FEMALE, DIED, LOS)))
-  }
+performance_design <- function(query) {
   easyNIS::nis_design(query, cohort = heart_failure, keep = c(AGE, FEMALE, DIED, LOS))
 }
 
@@ -36,7 +33,7 @@ performance_operation <- function(step, path, query, design, years, rows) {
         dplyr::collect()
       stopifnot(count$n > 0, is.na(rows) || count$n == 5 * sum((rows + 299:297) %/% 300))
     },
-    design = stopifnot(inherits(performance_design(query, FALSE), "survey.design")),
+    design = stopifnot(inherits(performance_design(query), "survey.design")),
     mean_by = {
       mean <- survey::svymean(~LOS, design, na.rm = TRUE)
       groups <- survey::svyby(~LOS, ~FEMALE, design, survey::svymean, na.rm = TRUE)
@@ -52,7 +49,7 @@ performance_operation <- function(step, path, query, design, years, rows) {
       )
       stopifnot(inherits(table, "tbl_svysummary"), nrow(table$table_body) >= 3L)
     },
-    whole_sample = performance_glm(performance_design(query, TRUE)),
+    whole_sample = performance_glm(easyNIS::nis_survey(query)),
     stop("Unknown performance step")
   )
 }
@@ -75,7 +72,7 @@ performance_trial <- function(step, path, years, rows, threads, memory, scratch)
     query <- performance_cohort(query)
   }
   if (step %in% c("mean_by", "glm", "table")) {
-    design <- performance_design(query, FALSE)
+    design <- performance_design(query)
   }
   started <- proc.time()[["elapsed"]]
   result <- performance_operation(step, path, query, design, years, rows)

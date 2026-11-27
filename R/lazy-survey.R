@@ -3,47 +3,58 @@
 #' The nested, one-stage Taylor design uses hospital-year PSUs (YEAR × HOSP_NIS)
 #' and year-specific strata (YEAR × NIS_STRATUM), without a finite population
 #' correction. It uses the valid-design discharges in the input query.
-#' Apply eligibility restrictions with `subset()` or [dplyr::filter()] on
-#' the design so hospitals outside the domain still contribute to variance.
+#' Apply eligibility restrictions with [dplyr::filter()] on the design so
+#' hospitals outside the domain still contribute to variance. Use `subset()`
+#' as the survey-style alternative.
 #' A query filtered before construction defines a different sample.
 #'
 #' Use [survey::svymean()], [survey::svytotal()], or [survey::svyby()] with
-#' one-sided formulas. Grouped estimates support means and totals. DuckDB
+#' one-sided formulas. Grouped estimates support means and totals.
+#' Use [survey::svyglm()] for additive models with Gaussian identity,
+#' binomial or quasibinomial logit, and Poisson or quasipoisson log
+#' families. Wald inference uses the sample design degrees of freedom
+#' minus the fitted model rank plus one. DuckDB
 #' computes weighted sums by PSU without collecting discharge records.
 #' The analysis supports the `"fail"` and `"adjust"` values of
 #' `survey.lonely.psu` and honors `survey.adjust.domain.lonely`.
-#' Use [nis_design()] for row-level survey operations and descriptive tables.
+#' Use [nis_design()] for row-level operations such as quantiles, chi-square
+#' tests, model diagnostics, and `gtsummary::tbl_svysummary()`.
 #'
 #' Discharges with missing, non-finite, or nonpositive design fields
 #' (`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT`) are excluded.
 #' Custom analysis weights must be positive and finite within the domain.
 #'
-#' @param query A lazy DuckDB query from [nis_open()].
+#' @param .data A lazy DuckDB query from [nis_open()].
 #' @param weights A data-masked SQL-translatable expression for the analysis
 #'   weights. The default uses discharge weights without annualization.
 #' @return A lazy `nis_survey` design.
 #' @family survey-design
 #' @export
 #' @examples
-#' design <- nis_survey(nis_open(nis_example(2019:2020)))
-#' survey::svymean(~LOS, subset(design, AGE >= 65))
-#' survey::svyby(~LOS, ~YEAR, design, survey::svymean)
-nis_survey <- function(query, weights = DISCWT) {
+#' nis <- nis_open(nis_example(2019:2020))
+#' design <- nis_survey(nis)
+#' older <- dplyr::filter(design, AGE >= 65)
+#' survey::svymean(~LOS, older)
+#' survey::svyby(~LOS, ~YEAR, older, survey::svymean)
+nis_survey <- function(.data, weights = DISCWT) {
   if (
-    !inherits(query, "tbl_sql") ||
-      !inherits(dbplyr::remote_con(query), "nis_duckdb_connection") ||
-      is.null(nis_open_source_paths(query))
+    !inherits(.data, "tbl_sql") ||
+      !inherits(dbplyr::remote_con(.data), "nis_duckdb_connection") ||
+      is.null(nis_open_source_paths(.data))
   ) {
-    cli::cli_abort("`query` must be a DuckDB query from `nis_open()`.")
+    cli::cli_abort(c(
+      "`.data` must be a DuckDB query from `nis_open()`.",
+      i = "Use {.help easyNIS::nis_design} for in-memory data."
+    ))
   }
-  absent <- setdiff(.nis_design_fields, colnames(query))
+  absent <- setdiff(.nis_design_fields, colnames(.data))
   if (length(absent)) {
     cli::cli_abort("Missing design field{?s} {.val {absent}}.")
   }
-  if (!is.null(nis_saved_cohort(query, rlang::current_call()))) {
+  if (!is.null(nis_saved_cohort(.data, rlang::current_call()))) {
     nis_survey_unsupported("Saved cohorts")
   }
-  query <- dplyr::ungroup(query)
+  query <- dplyr::ungroup(.data)
   valid <- lapply(.nis_design_fields, nis_is_positive_finite_expr, data = query)
   query <- dplyr::filter(query, !!!valid)
   structure(
@@ -103,13 +114,11 @@ svychisq.nis_survey <- function(formula, design, ...) {
   nis_survey_unsupported("`svychisq()`")
 }
 
-#' @exportS3Method survey::svyglm
-svyglm.nis_survey <- function(formula, design, ...) {
-  nis_survey_unsupported("`svyglm()`")
-}
-
 nis_survey_unsupported <- function(feature) {
-  cli::cli_abort("{feature} is unsupported for `nis_survey()`. Use `nis_design()`.")
+  cli::cli_abort(c(
+    "{feature} is unsupported for a lazy survey analysis.",
+    i = "Use {.help easyNIS::nis_design} for the row-level workflow."
+  ))
 }
 
 nis_survey_no_dots <- function(...) {
@@ -191,6 +200,26 @@ nis_survey_quos <- function(variables, formula) {
     }
     rlang::new_quosure(expr, environment(formula))
   })
+}
+
+#' @exportS3Method survey::degf
+degf.nis_survey <- function(design, ...) {
+  nis_survey_no_dots(...)
+  if (!length(design$domain)) {
+    roster <- nis_survey_roster(design)
+    return(nrow(roster) - length(unique(roster$stratum)))
+  }
+  query <- nis_survey_project(design, list())
+  keys <- paste(.nis_survey_keys, collapse = ", ")
+  psus <- nis_survey_get(
+    design,
+    sprintf(
+      "SELECT DISTINCT %s FROM %s WHERE inside",
+      keys,
+      nis_survey_sql(query)
+    )
+  )
+  nrow(psus) - nrow(unique(psus[c("YEAR", "NIS_STRATUM")]))
 }
 
 nis_survey_roster <- function(design) {

@@ -83,3 +83,84 @@ test_that("gtsummary displays only the unweighted discharges in the domain", {
     )
   expect_identical(table$table_body$stat_0, as.character(count$n))
 })
+
+test_that("design reporting follows a nested domain and the fitted complete cases", {
+  withr::local_options(list(survey.lonely.psu = "adjust", survey.adjust.domain.lonely = FALSE))
+  query <- nis_open(shared_design_example(2019:2020)) |>
+    nis_flag_dx(heart_failure = "I50", position = "principal") |>
+    dplyr::mutate(
+      DISCWT = dplyr::if_else(YEAR == 2019L & HOSP_NIS == 1L & AGE == 28L, -1, DISCWT),
+      NIS_STRATUM = dplyr::if_else(HOSP_NIS == 2L, 77L, NIS_STRATUM),
+      predictor = dplyr::if_else(AGE %% 5L == 0L, NA_real_, as.double(AGE)),
+      rare = heart_failure & (NIS_STRATUM <= 2L | NIS_STRATUM == 77L)
+    )
+  expect_s3_class(query, "tbl_lazy")
+  full <- dplyr::collect(query)
+  reference_data <- full[full$DISCWT > 0, ] |>
+    dplyr::mutate(
+      psu = interaction(YEAR, HOSP_NIS),
+      stratum = interaction(YEAR, NIS_STRATUM),
+      weight = DISCWT / 2,
+      stay = LOS + 1
+    )
+  expect_true(anyDuplicated(unique(reference_data[c("YEAR", "HOSP_NIS")])$HOSP_NIS) > 0L)
+  expect_true(any(table(unique(reference_data[c("psu", "stratum")])$stratum) == 1L))
+  reference <- survey::svydesign(~psu, strata = ~stratum, weights = ~weight, data = reference_data, nest = TRUE)
+  reference <- subset(reference, rare & HOSP_NIS %% 4L != 1L)
+  expect_warning(
+    base <- nis_design(query, rare, keep = c(LOS, predictor), annualize = TRUE),
+    "invalid design fields"
+  )
+  domain <- base |>
+    dplyr::filter(HOSP_NIS %% 4L != 1L) |>
+    dplyr::mutate(stay = LOS + 1)
+  expect_lt(nrow(domain$variables), nrow(base$variables))
+
+  total <- survey::svytotal(~stay, domain)
+  expected_total <- survey::svytotal(~stay, reference)
+  ratio <- survey::svyratio(~stay, ~LOS, domain)
+  expected_ratio <- survey::svyratio(~stay, ~LOS, reference)
+  for (pair in list(list(total, expected_total), list(ratio, expected_ratio))) {
+    expect_equal(coef(pair[[1L]]), coef(pair[[2L]]), tolerance = 1e-8)
+    expect_equal(survey::SE(pair[[1L]]), survey::SE(pair[[2L]]), tolerance = 1e-8)
+    expect_equal(confint(pair[[1L]]), confint(pair[[2L]]), tolerance = 1e-8)
+  }
+  expect_equal(survey::degf(domain), survey::degf(reference))
+  fit <- survey::svyglm(stay ~ predictor, design = domain, na.action = stats::na.exclude)
+  expected_fit <- survey::svyglm(stay ~ predictor, design = reference, na.action = stats::na.exclude)
+  expect_equal(coef(fit), coef(expected_fit), tolerance = 1e-8)
+  expect_equal(survey::SE(fit), survey::SE(expected_fit), tolerance = 1e-8)
+  expect_equal(stats::df.residual(fit), stats::df.residual(expected_fit))
+  expect_equal(confint(fit), confint(expected_fit), tolerance = 1e-8)
+
+  info <- nis_design_report(domain)
+  expect_equal(info$years, 2019:2020)
+  expect_equal(info$input_n, nrow(full))
+  expect_equal(info$excluded$total, sum(full$DISCWT <= 0))
+  expect_equal(info$cohort_n, nrow(base$variables))
+  expect_equal(info$domain_n, nrow(reference$variables))
+  expect_identical(info$cohort, "rare")
+  expect_true(info$annualize)
+  expect_equal(info$divisor, 2)
+  expect_identical(info$weight, "DISCWT")
+  expect_identical(info$psu, c("YEAR", "HOSP_NIS"))
+  expect_identical(info$strata, c("YEAR", "NIS_STRATUM"))
+  expect_true(info$nest)
+  model_info <- nis_design_report(fit)
+  expect_equal(model_info$domain_n, info$domain_n)
+  expect_gt(model_info$model$excluded_n, 0L)
+  expect_equal(model_info$model$n, sum(!is.na(reference$variables$predictor)))
+  expect_equal(model_info$model$n + model_info$model$excluded_n, info$domain_n)
+
+  prefiltered <- nis_design(
+    dplyr::filter(query, DISCWT > 0, rare, HOSP_NIS %% 4L != 1L),
+    TRUE,
+    keep = LOS,
+    annualize = TRUE
+  ) |>
+    dplyr::mutate(stay = LOS + 1)
+  wrong_total <- survey::svytotal(~stay, prefiltered)
+  expect_equal(coef(wrong_total), coef(total), tolerance = 1e-8)
+  expect_gt(abs(as.numeric(survey::SE(wrong_total) - survey::SE(total))), 1e-8)
+  expect_lt(nis_design_report(prefiltered)$input_n, info$input_n)
+})
