@@ -4,7 +4,13 @@
 \alias{nis_comorbidity}
 \title{Add comorbidity indicators and scores (experimental)}
 \usage{
-nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
+nis_comorbidity(
+  .data,
+  method = "elixhauser_ahrq_icd10",
+  prefix = "cmrb_",
+  count_distinct = FALSE,
+  exclude_conditions = character()
+)
 }
 \arguments{
 \item{.data}{A data frame, a \code{tbl_svy} from \code{\link[=nis_design]{nis_design()}}, or a lazy DuckDB
@@ -25,6 +31,16 @@ except \code{"elixhauser_ahrq2027"} require the medicalcoder package.}
 
 \item{prefix}{Prefix for the added columns. Choose a prefix that does not
 collide with an existing name.}
+
+\item{count_distinct}{Set to \code{TRUE} to add the integer count
+\verb{<prefix>n_distinct}. Each condition represented by any true flag counts
+once, using \code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}}. A discharge with usable
+codes and no included conditions receives zero. A discharge without
+usable codes receives \code{NA}.}
+
+\item{exclude_conditions}{Character vector of unprefixed condition IDs
+to omit from the distinct count. Requires \code{count_distinct = TRUE} when
+nonempty. Exclusions affect only the distinct count.}
 }
 \value{
 \code{.data} with logical condition flags and \verb{<prefix>any}, the
@@ -62,5 +78,8 @@ nis_comorbidity(nis, method = "elixhauser_ahrq2027") |>
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs},
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.
+
+Other comorbidity:
+\code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}}
 }
 \concept{comorbidity}
