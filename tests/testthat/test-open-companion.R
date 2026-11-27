@@ -22,9 +22,9 @@ test_that("companions enrich discharges lazily using the keys for each year", {
   core <- nis_open(file.path(path, "core"), check_release = FALSE)
   enriched <- core |>
     dplyr::filter(KEY_NIS < 3L | YEAR == 2020L) |>
-    nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
-    nis_join_companion(file.path(path, "severity"), "severity", "APRDRG_SEVERITY") |>
-    nis_join_companion(file.path(path, "groups"), "dx_pr_grps", "DX_GROUP")
+    nis_join_companion(file.path(path, "hospital"), "hospital", HOSP_BEDSIZE) |>
+    nis_join_companion(file.path(path, "severity"), "severity", APRDRG_Severity) |>
+    nis_join_companion(file.path(path, "groups"), "dx_pr_grps", DX_GROUP)
 
   expect_s3_class(enriched, "tbl_sql")
   expect_identical(dbplyr::remote_con(enriched), dbplyr::remote_con(core))
@@ -34,21 +34,21 @@ test_that("companions enrich discharges lazily using the keys for each year", {
     dplyr::collect()
   expect_equal(observed$KEY_NIS, c(1L, 2L, 1L, 2L, 3L))
   expect_equal(observed$HOSP_BEDSIZE, c(1L, 1L, 2L, 2L, NA))
-  expect_equal(observed$APRDRG_SEVERITY, c(1L, NA, 2L, NA, NA))
+  expect_equal(observed$APRDRG_Severity, c(1L, NA, 2L, NA, NA))
   expect_equal(observed$DX_GROUP, c(NA, "group-2019", NA, "group-2020", NA))
   expect_equal(observed$DISCWT, rep(5, 5))
 
   expect_error(
-    nis_join_companion(core, file.path(path, "hospital"), "hospital", "DISCWT"),
+    nis_join_companion(core, file.path(path, "hospital"), "hospital", DISCWT),
     "already in the discharge query"
   )
   expect_error(
-    nis_join_companion(core, file.path(path, "hospital"), "hospital", "TOTAL_DISC"),
+    nis_join_companion(core, file.path(path, "hospital"), "hospital", TOTAL_DISC),
     "sampled discharge count"
   )
   hospitals <- nis_open(file.path(path, "hospital"), check_release = FALSE)
   expect_error(
-    nis_join_companion(hospitals, file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE"),
+    nis_join_companion(hospitals, file.path(path, "hospital"), "hospital", HOSP_BEDSIZE),
     "KEY_NIS"
   )
 })
@@ -67,13 +67,13 @@ test_that("bad companion keys and wrong annual files fail before collection", {
     bad <- file.path(path, paste0("bad-", i))
     write_duckdb_parquet(data.frame(KEY_NIS = bad_keys[[i]], FLAG = 1L), file.path(bad, annual))
     expect_error(
-      nis_join_companion(core, bad, "severity", "FLAG"),
+      nis_join_companion(core, bad, "severity", FLAG),
       class = "easynis_companion_key"
     )
   }
 
   wrong_year <- file.path(path, "wrong-year")
   write_duckdb_parquet(data.frame(YEAR = 2019L, KEY_NIS = 1L, FLAG = 1L), file.path(wrong_year, annual))
-  expect_error(nis_join_companion(core, wrong_year, "severity", "FLAG"), "physical `YEAR` values conflict")
-  expect_error(nis_join_companion(core, core_path, "severity", "FLAG"), "separate")
+  expect_error(nis_join_companion(core, wrong_year, "severity", FLAG), "physical `YEAR` values conflict")
+  expect_error(nis_join_companion(core, core_path, "severity", FLAG), "separate")
 })

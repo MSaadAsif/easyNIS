@@ -122,8 +122,8 @@ matching release revisions. [HCUP NIS File Specifications](https://hcup-us.ahrq.
 ```{r companions, eval=FALSE}
 core <- nis_open(core_path, years = 2019:2020)
 discharges <- core |>
-  nis_join_companion(hospital_path, "hospital", "HOSP_BEDSIZE") |>
-  nis_join_companion(severity_path, "severity", "APRDRG_SEVERITY")
+  nis_join_companion(hospital_path, "hospital", HOSP_BEDSIZE) |>
+  nis_join_companion(severity_path, "severity", tidyselect::matches("^APRDRG_SEVERITY$"))
 ```
 
 Hospital linkage uses `YEAR` and `HOSP_NIS` because hospital IDs are specific

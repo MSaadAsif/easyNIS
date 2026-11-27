@@ -111,11 +111,11 @@ drive_disclosure <- function(scratch, evidence) {
       key %in% c(2L, 5L, 6L) ~ "companion",
       TRUE ~ "other"
     ))
-  cells <- easyNIS::nis_cell_counts(rows, by = "category") |>
+  cells <- easyNIS::nis_cell_counts(rows, by = category) |>
     dplyr::arrange(category) |>
     dplyr::mutate(estimate = 10 * n)
   suppressed <- easyNIS::nis_suppress(cells, threshold = 1L,
-    count_col = "n", hospital_col = "hospitals", weighted_cols = "estimate")
+    count_col = n, hospital_col = hospitals, weighted_cols = estimate)
   stopifnot(identical(cells$category, c("companion", "other", "small")),
     identical(as.integer(cells$hospitals), c(2L, 2L, 1L)),
     identical(suppressed$n, c("Masked", "4", "\u22641")),

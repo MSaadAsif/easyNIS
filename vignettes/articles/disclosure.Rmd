@@ -55,9 +55,9 @@ Cells with fewer than two hospitals are marked as such.
 ```{r dataframe}
 nis_suppress(
   cells,
-  count_col = "n",
-  weighted_cols = "estimate",
-  hospital_col = "hospitals"
+  count_col = n,
+  weighted_cols = estimate,
+  hospital_col = hospitals
 )
 ```
 

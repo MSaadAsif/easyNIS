@@ -69,10 +69,10 @@ conventions and srvyr's distinction between survey construction and estimation.
    argument, tidyselect for cell-count keys, and categories first in the CCSR
    lookup. Keep diagnostics together under `nis_audit_*`, and use
    `nis_flag_dx()` for position-specific flags.
-3. **Extend tidyselect at the remaining column boundaries.** Resolve
-   selections once for suppression, companion fields, and diagnostic
-   outcome and period columns. Preserve source names and add tests for
-   external vectors, column groups, absent fields, and lazy schemas.
+3. **Extend tidyselect at the remaining column boundaries (done).** Suppression
+   columns, companion fields, and diagnostic outcomes and periods resolve
+   selections once and keep source names. Invented-data tests cover external
+   vectors, column groups, absent fields, and lazy schemas.
 4. **Keep the current cost boundary explicit.** `nis_outcomes()` derives
    Core measures, while `nis_design(dollars = ...)` and `nis_cost()` share
    the cost implementation and provenance. A lazy cost verb would need an
