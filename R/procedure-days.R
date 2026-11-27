@@ -38,8 +38,7 @@ nis_decode_procedure_day <- function(column, data) {
   }
   field <- rlang::sym(column)
   if (inherits(data, "tbl_sql")) {
-    identifier <- DBI::dbQuoteIdentifier(dbplyr::remote_con(data), column)
-    value <- paste0("TRY_CAST(", identifier, " AS DOUBLE)")
+    value <- nis_prday_cast_sql(dbplyr::remote_con(data), column)
     return(list(
       value = dbplyr::sql(value),
       missing = dbplyr::sql(paste0("(", value, " IS NULL OR NOT isfinite(", value, "))"))
@@ -50,4 +49,64 @@ nis_decode_procedure_day <- function(column, data) {
   }
   value <- rlang::expr(as.double(!!field))
   list(value = value, missing = rlang::expr(!is.finite(!!value)))
+}
+
+nis_prday_duckdb <- function(data) {
+  inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")
+}
+
+nis_prday_cast_sql <- function(con, columns) {
+  sprintf("TRY_CAST(%s AS DOUBLE)", DBI::dbQuoteIdentifier(con, columns))
+}
+
+nis_prday_day_sql <- function(con, columns, nonnegative = FALSE) {
+  days <- rep("NULL::DOUBLE", length(columns))
+  present <- !is.na(columns)
+  cast <- nis_prday_cast_sql(con, columns[present])
+  condition <- sprintf("isfinite(%s)", cast)
+  if (nonnegative) {
+    condition <- sprintf("%s AND %s >= 0", condition, cast)
+  }
+  days[present] <- sprintf("CASE WHEN %s THEN %s END", condition, cast)
+  days
+}
+
+nis_prday_match_sql <- function(con, rule, columns) {
+  identifiers <- DBI::dbQuoteIdentifier(con, columns)
+  prefixes <- DBI::dbQuoteString(con, rule$prefix)
+  regexes <- DBI::dbQuoteString(con, rule$regex)
+  exclusions <- DBI::dbQuoteString(con, rule$exclude)
+  vapply(
+    identifiers,
+    function(column) {
+      value <- sprintf("TRY_CAST(%s AS VARCHAR)", column)
+      tests <- c(
+        if (length(prefixes)) sprintf("substr(%s, 1, %d) = %s", column, nchar(rule$prefix), prefixes),
+        if (length(regexes)) sprintf("regexp_full_match(%s, %s)", value, regexes)
+      )
+      match <- paste0("COALESCE(", paste(tests, collapse = " OR "), ", FALSE)")
+      if (length(exclusions)) {
+        match <- sprintf("(%s AND NOT COALESCE(%s IN (%s), FALSE))", match, value, paste(exclusions, collapse = ", "))
+      }
+      match
+    },
+    character(1)
+  )
+}
+
+nis_prday_eligible_sql <- function(con, condition, result) {
+  if (is.null(condition)) {
+    return(result)
+  }
+  predicate <- dbplyr::translate_sql(!!condition, con = con, window = FALSE)
+  sprintf("CASE WHEN %s THEN %s ELSE FALSE END", predicate, result)
+}
+
+nis_prday_tbl <- function(data, sql, columns) {
+  out <- dplyr::tbl(dbplyr::remote_con(data), dbplyr::sql(sql), vars = columns)
+  out$src <- data$src
+  if (inherits(data, "tbl_nis")) {
+    class(out) <- c("tbl_nis", class(out))
+  }
+  out
 }

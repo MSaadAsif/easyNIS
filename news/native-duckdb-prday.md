@@ -1,0 +1,1 @@
+- `nis_flag_pr_timing()` and `nis_audit_prday()` prepare wide procedure-day queries faster by building their DuckDB SQL directly.
