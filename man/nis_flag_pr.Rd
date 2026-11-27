@@ -8,7 +8,7 @@ nis_flag_pr(
   .data,
   ...,
   position = c("any", "principal"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9", "both")
 )
 }
 \arguments{
@@ -20,7 +20,7 @@ nis_flag_pr(
 \item{position}{Slots to check: all slots or the principal slot only.}
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
-\code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
+\code{"icd9"} (experimental, NIS 2012 to Q3 2015), or \code{"both"} (experimental).}
 }
 \value{
 \code{.data} with one logical column per named definition.

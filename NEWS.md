@@ -1,5 +1,7 @@
 # easyNIS (development version)
 
+- `nis_flag_dx()` and `nis_flag_pr()` can combine separate ICD-9 and ICD-10
+  definitions in one flag with experimental `system = "both"`.
 - The descriptives and regression article shows how to use `nis_design()`
   with gtsummary for survey summaries, group comparisons, and regression
   tables. The workflow test checks cohort counts and full-sample survey results.
