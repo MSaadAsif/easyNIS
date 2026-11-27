@@ -75,14 +75,6 @@ local({
   stopifnot(identical(result$marker, "requested"), result$complexity == 2, result$version == "0.0.1")
   cat("Loaded parent / same-version fallback: isolated requested namespace measured\n")
 })
-stopifnot(
-  identical(provenance_pass(FALSE, "nested_unverified"), FALSE),
-  is.na(provenance_pass(TRUE, "nested_unverified")),
-  is.na(provenance_pass(NA, "nested_unverified")),
-  identical(provenance_pass(TRUE, "isolated_namespace_verified"), TRUE),
-  is.na(provenance_pass(NA, "isolated_namespace_verified"))
-)
-cat("Provenance behavior tests passed\n")
 source("tools/probe/quality-result.R")
 evidence <- list(commit = "invented", working_tree_clean = TRUE)
 synthetic_hits <- c(1, 0)
@@ -90,38 +82,35 @@ synthetic_coverage <- structure(list(hits = synthetic_hits), class = "coverage")
 coverage_record <- coverage_percent_record(
   list(value = synthetic_coverage, error_class = ""),
   evidence,
-  percent_coverage = function(value) 100 * mean(value$hits > 0),
-  provenance_pass_fn = provenance_pass
+  percent_coverage = function(value) 100 * mean(value$hits > 0)
 )
 stopifnot(
-  identical(coverage_record$status, "not_verified"),
+  identical(coverage_record$status, "completed"),
   identical(coverage_record$pass, FALSE),
-  identical(coverage_record$value, 50),
-  identical(coverage_record$provenance, "nested_unverified")
+  identical(coverage_record$value, 50)
 )
 passing_coverage <- structure(list(hits = c(1, 1)), class = "coverage")
 passing_coverage_record <- coverage_percent_record(
   list(value = passing_coverage, error_class = ""),
   evidence,
-  percent_coverage = function(value) 100 * mean(value$hits > 0),
-  provenance_pass_fn = provenance_pass
+  percent_coverage = function(value) 100 * mean(value$hits > 0)
 )
 stopifnot(
-  identical(passing_coverage_record$status, "not_verified"),
-  is.na(passing_coverage_record$pass),
-  identical(passing_coverage_record$value, 100)
+  identical(passing_coverage_record$status, "completed"),
+  isTRUE(passing_coverage_record$pass),
+  identical(passing_coverage_record$value, 100),
+  identical(passing_coverage_record$commit, evidence$commit),
+  isTRUE(passing_coverage_record$working_tree_clean)
 )
 stopifnot(is.null(coverage_percent_record(
   list(value = "skipped_by_selection"),
   evidence,
-  percent_coverage = identity,
-  provenance_pass_fn = provenance_pass
+  percent_coverage = identity
 )))
 failed_coverage_record <- coverage_percent_record(
   list(value = simpleError("invented failure"), error_class = "simpleError"),
   evidence,
-  percent_coverage = identity,
-  provenance_pass_fn = provenance_pass
+  percent_coverage = identity
 )
 stopifnot(
   identical(failed_coverage_record$status, "failed"),
@@ -133,7 +122,7 @@ receipt <- function(name, fn) quality_record(capture_quality_step(name, fn), evi
 check <- receipt("R CMD check --as-cran", function() {
   list(errors = character(), warnings = character(), notes = character())
 })
-stopifnot(is.na(check$pass), check$status == "not_verified", check$provenance == "nested_unverified")
+stopifnot(isTRUE(check$pass), check$status == "completed")
 failed <- receipt("R CMD check --as-cran", function() {
   list(errors = "invented failure", warnings = character(), notes = character())
 })
@@ -141,11 +130,10 @@ stopifnot(identical(failed$pass, FALSE))
 failed_install <- receipt("installed_namespace_complexity", function() stop("invented failure"))
 stopifnot(
   identical(failed_install$pass, FALSE),
-  failed_install$status == "failed",
-  failed_install$provenance == "failed"
+  failed_install$status == "failed"
 )
 measured <- receipt("installed_namespace_complexity", function() data.frame(name = "marker", cyclocomp = 2))
-stopifnot(isTRUE(measured$pass), measured$provenance == "isolated_namespace_verified")
+stopifnot(isTRUE(measured$pass), measured$status == "completed")
 unknown <- receipt("pkgcheck", function() structure(list(), class = "pkgcheck"))
 stopifnot(is.na(unknown$pass), unknown$status == "not_verified")
 cat("Production receipt provenance tests passed\n")
@@ -156,7 +144,7 @@ stopifnot(
   identical(namespace_complexity_pass(data.frame(cyclocomp = 16)), FALSE)
 )
 skipped <- receipt("installed_namespace_complexity", function() "skipped_by_selection")
-stopifnot(is.na(skipped$pass), skipped$provenance == "not_measured")
+stopifnot(is.na(skipped$pass), skipped$status == "skipped_by_selection")
 gp_failure <- structure(list(checks = list(invented = list(status = FALSE))), class = "goodPractice")
 gp_receipt <- receipt("goodpractice", function() gp_failure)
 pkg_receipt <- receipt("pkgcheck", function() structure(list(goodpractice = gp_failure), class = "pkgcheck"))

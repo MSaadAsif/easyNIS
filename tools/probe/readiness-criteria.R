@@ -20,41 +20,47 @@ evaluate_readiness <- function(
       quality_evidence_valid(item, current_commit, current_tree_clean)
   }
   coverage <- quality_by_step[[quality_receipt_ids[["coverage_percent"]]]]
-  coverage_value <- if (is.null(coverage)) NA_real_ else coverage_percent_value(coverage)
+  coverage_value <- if (quality_evidence_valid(coverage, current_commit, current_tree_clean)) {
+    coverage_percent_value(coverage)
+  } else {
+    NA_real_
+  }
   exports <- export_docs$exports
   man_examples <- export_docs$has_examples
   issues_clean <- length(issue_queries) == 2L &&
     all(vapply(issue_queries, `[[`, logical(1), "ok")) &&
     all(vapply(issue_queries, `[[`, integer(1), "count") == 0L)
-  ci_runs_ok <- ci_configured && ci_runs_succeeded(ci_runs, current_commit)
+  ci_runs_ok <- current_tree_clean &&
+    valid_nonempty_string(current_commit) &&
+    ci_configured &&
+    ci_runs_succeeded(ci_runs, current_commit)
   pkgcheck <- quality_by_step[[quality_receipt_ids[["pkgcheck"]]]]
   manual_pass <- check_pass("guide")
   pkgcheck_available <- !is.null(pkgcheck) && !identical(pkgcheck$status, "skipped_not_installed")
   pkgcheck_pass <- pkgcheck_available && check_pass("pkgcheck") && manual_pass
   coverage_ready <- is.finite(coverage_value) && coverage_value >= 90 && check_pass("coverage_percent")
-  examples_ready <- all(man_examples) && check_pass("as_cran")
   pkgdown_ready <- check_pass("pkgdown") && workflow_documented
-  local_as_cran_ready <- check_pass("as_cran")
-  as_cran_status <- function(ci_pass, local_pass) {
-    if (ci_pass && local_pass) {
-      return("ready")
-    }
-    "not met"
-  }
+  ci_status <- if (ci_runs_ok) "ready" else "not verified"
   as_cran_evidence <- function() {
     if (!ci_configured) {
       return("No CI workflow runs --as-cran")
     }
     if (!current_tree_clean) {
-      return("Working tree is dirty; clean evidence is required")
+      return("Working tree is dirty")
     }
-    if (inherits(ci_runs, "error")) {
+    if (!valid_nonempty_string(current_commit)) {
+      return("Could not identify HEAD")
+    }
+    if (inherits(ci_runs, "error") || !is.null(attr(ci_runs, "status", exact = TRUE))) {
       return("Unable to query CI run status")
     }
-    paste("Requires successful CI and local zero-error/warning/note evidence for", current_commit)
+    if (ci_runs_ok) {
+      return(paste("R-CMD-check succeeded on", current_commit))
+    }
+    paste("No successful R-CMD-check run found for", current_commit)
   }
   rbind(
-    record("R CMD check --as-cran: 0/0/0 on CI", as_cran_status(ci_runs_ok, local_as_cran_ready), as_cran_evidence()),
+    record("R CMD check --as-cran: 0/0/0 on CI", ci_status, as_cran_evidence()),
     record(
       "rOpenSci packaging-guide conformance",
       if (pkgcheck_pass) {
@@ -80,24 +86,20 @@ evaluate_readiness <- function(
         "not met"
       },
       if (!is.finite(coverage_value)) {
-        "Latest covr run unavailable"
+        "No measured covr result from a clean checkout of HEAD"
       } else {
-        paste(
-          "Latest covr percentage:",
-          coverage_value,
-          "on commit",
-          if (identical(coverage$commit, current_commit)) current_commit else "unknown"
-        )
+        paste("Latest covr percentage:", coverage_value, "on commit", current_commit)
       }
     ),
     record(
       "Every export has runnable examples",
-      if (examples_ready) "ready" else "not met",
+      if (length(exports) && all(man_examples)) ci_status else "not met",
       paste(
         sum(man_examples),
         "of",
         length(exports),
-        "exports have examples; a clean current-commit package check is required"
+        "exports have examples.",
+        as_cran_evidence()
       )
     ),
     record(

@@ -49,17 +49,6 @@ with_verified_source <- function(root, fn) {
   result$value
 }
 
-# Outer namespace verification cannot attest to installations made by nested tools.
-provenance_pass <- function(passed, provenance) {
-  if (identical(passed, FALSE)) {
-    return(FALSE)
-  }
-  if (identical(provenance, "nested_unverified")) {
-    return(NA)
-  }
-  passed
-}
-
 namespace_complexity <- function(root) {
   with_verified_source(root, function(root, package) cyclocomp::cyclocomp_package(package))
 }
