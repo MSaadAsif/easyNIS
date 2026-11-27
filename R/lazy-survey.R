@@ -8,7 +8,11 @@
 #' A query filtered before construction defines a different sample.
 #'
 #' Use [survey::svymean()], [survey::svytotal()], or [survey::svyby()] with
-#' one-sided formulas. Grouped estimates support means and totals. DuckDB
+#' one-sided formulas. Grouped estimates support means and totals.
+#' Use [survey::svyglm()] for additive models with Gaussian identity,
+#' binomial or quasibinomial logit, and Poisson or quasipoisson log
+#' families. Wald inference uses the sample design degrees of freedom
+#' minus the fitted model rank plus one. DuckDB
 #' computes weighted sums by PSU without collecting discharge records.
 #' The analysis supports the `"fail"` and `"adjust"` values of
 #' `survey.lonely.psu` and honors `survey.adjust.domain.lonely`.
@@ -101,11 +105,6 @@ svyquantile.nis_survey <- function(x, design, ...) {
 #' @exportS3Method survey::svychisq
 svychisq.nis_survey <- function(formula, design, ...) {
   nis_survey_unsupported("`svychisq()`")
-}
-
-#' @exportS3Method survey::svyglm
-svyglm.nis_survey <- function(formula, design, ...) {
-  nis_survey_unsupported("`svyglm()`")
 }
 
 nis_survey_unsupported <- function(feature) {

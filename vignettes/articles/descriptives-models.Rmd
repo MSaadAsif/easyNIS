@@ -134,7 +134,7 @@ See [Survey design and weighting](survey-design.html),
 
 ## Whole-sample estimation on a laptop
 
-Use `nis_survey()` to estimate means and totals when discharge rows would
+Use `nis_survey()` to estimate means, totals, or regression coefficients when discharge rows would
 take too much memory. It uses a nested Taylor design with hospital-year PSUs
 and year-specific strata. DuckDB scans the Parquet data and sends weighted
 PSU sums to R. Use `subset()` or `dplyr::filter()` on the design to estimate
@@ -143,6 +143,8 @@ a domain. Filtering the query before constructing the design changes the sample.
 ```{r}
 whole <- nis_survey(nis_open(nis_example(2019:2020)))
 survey::svyby(~LOS, ~YEAR, subset(whole, AGE >= 65), survey::svymean)
+fit <- survey::svyglm(LOS ~ AGE + factor(YEAR), whole)
+broom::tidy(fit, conf.int = TRUE)
 ```
 
 Use `nis_design()` for row-level cohort analysis, including quantiles,

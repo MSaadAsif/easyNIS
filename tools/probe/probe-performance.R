@@ -5,7 +5,7 @@ source(file.path("tools", "probe", "git-evidence.R"))
 source(file.path("tools", "probe", "performance-results.R"))
 
 performance_usage <- function() {
-  stop("Usage: Rscript --vanilla tools/probe/probe-performance.R [--real | --smoke]", call. = FALSE)
+  stop("Usage: Rscript --vanilla tools/probe/probe-performance.R [--real | --smoke] [--whole-sample]", call. = FALSE)
 }
 
 performance_files <- function(path) {
@@ -83,7 +83,7 @@ performance_measure <- function(run_dir, trial, max_commit, repeat_id) {
   )
 }
 
-run_performance_probe <- function(mode) {
+run_performance_probe <- function(mode, selected_steps) {
   if (.Platform$OS.type != "windows") {
     stop("The performance probe requires Windows process peak commit counters.", call. = FALSE)
   }
@@ -148,7 +148,7 @@ run_performance_probe <- function(mode) {
     auto_unbox = TRUE,
     pretty = TRUE
   )
-  steps <- expand.grid(step = performance_steps, profile = names(performance_profiles), stringsAsFactors = FALSE)
+  steps <- expand.grid(step = selected_steps, profile = names(performance_profiles), stringsAsFactors = FALSE)
   metrics <- list()
   for (repeat_id in seq_len(repeats)) {
     order <- seq_len(nrow(steps))
@@ -181,6 +181,8 @@ run_performance_probe <- function(mode) {
 }
 
 args <- commandArgs(trailingOnly = TRUE)
+selected_steps <- if ("--whole-sample" %in% args) "whole_sample" else performance_steps
+args <- args[args != "--whole-sample"]
 mode <- if (!length(args)) {
   "invented"
 } else if (identical(args, "--real")) {
@@ -190,4 +192,4 @@ mode <- if (!length(args)) {
 } else {
   performance_usage()
 }
-run_performance_probe(mode)
+run_performance_probe(mode, selected_steps)

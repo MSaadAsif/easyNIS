@@ -25,7 +25,11 @@ A query filtered before construction defines a different sample.
 }
 \details{
 Use \code{\link[survey:svymean]{survey::svymean()}}, \code{\link[survey:svytotal]{survey::svytotal()}}, or \code{\link[survey:svyby]{survey::svyby()}} with
-one-sided formulas. Grouped estimates support means and totals. DuckDB
+one-sided formulas. Grouped estimates support means and totals.
+Use \code{\link[survey:svyglm]{survey::svyglm()}} for additive models with Gaussian identity,
+binomial or quasibinomial logit, and Poisson or quasipoisson log
+families. Wald inference uses the sample design degrees of freedom
+minus the fitted model rank plus one. DuckDB
 computes weighted sums by PSU without collecting discharge records.
 The analysis supports the \code{"fail"} and \code{"adjust"} values of
 \code{survey.lonely.psu} and honors \code{survey.adjust.domain.lonely}.
