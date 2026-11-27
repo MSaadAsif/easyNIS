@@ -22,7 +22,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(pci = "0270")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -30,7 +30,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -38,7 +38,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -71,7 +71,7 @@ mixed <- nis_open(nis_example(years = 2014:2016)) |>
   )) |>
   nis_flag_dx(hf = list(icd9 = "428", icd10 = "I50"), system = "both")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -82,7 +82,7 @@ mixed <- nis_open(nis_example(years = 2014:2016)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -168,7 +168,7 @@ timing |>
   count(outcome_post_index) |>
   collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -215,7 +215,7 @@ eligible <- nis_attrition_cohort(flow)
 export <- nis |> mutate(stayDays = LOS)
 path <- nis_write_cohort(export, !!eligible, tempfile(), keep = c(AGE, stayDays))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -224,7 +224,7 @@ path <- nis_write_cohort(export, !!eligible, tempfile(), keep = c(AGE, stayDays)
 #> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis_open(path), keep = stayDays)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9IDsEL/duckdb
+#> ℹ /tmp/Rtmp3Pddvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
