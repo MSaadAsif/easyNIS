@@ -1,29 +1,16 @@
-nis_annual_years <- function(.data, call) {
-  required <- c("YEAR", "DQTR")
-  missing <- setdiff(required, nis_names(.data))
-  if (length(missing)) {
-    cli::cli_abort("Annual totals require {.field {missing}}.", call = call)
+nis_annual_years <- function(sample, call) {
+  if (sample$excluded$by_field[["YEAR"]] > 0L) {
+    cli::cli_abort("Annual totals require nonmissing, finite `YEAR` values.", call = call)
   }
-  quarters <- as.character(1:4)
-  periods <- .data |>
-    dplyr::transmute(
-      YEAR = .data$YEAR,
-      DQTR = dplyr::if_else(.data$DQTR %in% quarters, .data$DQTR, NA)
-    ) |>
-    dplyr::distinct() |>
-    nis_collect()
-
-  years <- sort(unique(periods$YEAR))
-  if (!length(years) || !is.numeric(years) || any(!is.finite(years) | years != trunc(years) | years < 2012L)) {
+  years <- sort(union(sample$years, sample$excluded$by_year$YEAR))
+  if (any(years != trunc(years) | years < 2012L)) {
     cli::cli_abort("Annual totals require whole calendar years from 2012 onward.", call = call)
   }
-  coverage <- periods |>
-    dplyr::filter(!is.na(.data$DQTR)) |>
-    dplyr::count(.data$YEAR)
-  partial <- setdiff(years, coverage$YEAR[coverage$n == 4L])
+  complete <- sample$years[lengths(sample$coverage) == 4L]
+  partial <- setdiff(years, complete)
   if (length(partial)) {
     cli::cli_abort(
-      "All four discharge quarters must be present in each input year. Check {.val {partial}}.",
+      "All four discharge quarters must have valid design records in each input year. Check {.val {partial}}.",
       call = call
     )
   }
@@ -35,13 +22,25 @@ nis_check_coding_era <- function(years, call) {
     cli::cli_abort(
       c(
         "2015 spans the ICD-9-CM to ICD-10-CM/PCS transition.",
-        i = "Select complete years on one side, or use `coding = \"independent\"` for a coding-independent analysis."
+        i = "Select complete years within one era, or document comparability and set `coding = \"verified_comparable\"`."
       ),
       call = call
     )
   }
   if (min(years) < 2015L && max(years) > 2015L) {
     cli::cli_abort("Select one coding era for annual totals spanning ICD-9-CM and ICD-10-CM/PCS years.", call = call)
+  }
+}
+
+nis_check_2015_cohort <- function(quarters, call) {
+  if (anyNA(quarters)) {
+    cli::cli_abort("The 2015 cohort has missing or unrecognized discharge quarters.", call = call)
+  }
+  if (identical(quarters, 4L)) {
+    cli::cli_abort("The 2015 cohort includes only ICD-10-CM/PCS discharges (Q4).", call = call)
+  }
+  if (length(quarters) && !4L %in% quarters) {
+    cli::cli_abort("The 2015 cohort includes only ICD-9-CM discharges (Q1-Q3).", call = call)
   }
 }
 
@@ -53,38 +52,71 @@ nis_check_coding_era <- function(years, call) {
 #' hospital and stratum identifiers, as in [nis_design()].
 #'
 #' @param .data A data frame or lazy DuckDB query with the standard NIS design
-#'   fields and `DQTR`. All four discharge quarters must be represented in
-#'   each year. This coverage check cannot verify that the sample is complete.
+#'   fields and `DQTR` (quarter numbers or `Q1`–`Q4` labels). All four
+#'   quarters must have valid design records in each year. This coverage check
+#'   cannot verify that the sample is complete.
 #' @param cohort Logical expression defining the domain, passed to [nis_design()].
 #' @param coding Use `"single_era"` to require years within 2012–2014 or
-#'   2016 onward. Use `"independent"` if both the cohort definition and the
-#'   analysis are independent of diagnosis and procedure coding. This allows
-#'   complete 2015 data and spanning the ICD transition.
+#'   2016 onward. Use `"verified_comparable"` to acknowledge the transition and
+#'   confirm that the definition is coding-independent or an audit found no
+#'   coding discontinuity between 2015 Q3 and Q4. A 2015 cohort confined to
+#'   one coding era or with unknown discharge quarters is rejected.
 #'
-#' @return A tibble ordered by `YEAR`, with `discharges` and `discharges_se`.
-#'   Input years without valid cohort discharges have missing estimates and
-#'   standard errors. Apply disclosure rules before sharing annual estimates.
+#' @return A tibble ordered by `YEAR`, with `discharges`, `discharges_se`,
+#'   unweighted `n`, and distinct contributing `hospitals`. Years without
+#'   valid cohort discharges have zero support counts and missing estimates
+#'   and standard errors. Use the support counts with [nis_suppress()] before
+#'   sharing annual estimates.
 #' @seealso [Trends](articles/trends.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>
 #'   nis_flag_dx(heart_failure = "I50")
 #' nis_annual_totals(nis, heart_failure)
-nis_annual_totals <- function(.data, cohort, coding = c("single_era", "independent")) {
+nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_comparable")) {
   coding <- match.arg(coding)
-  .data <- dplyr::ungroup(.data)
   call <- rlang::current_call()
-  years <- nis_annual_years(.data, call)
+  if (missing(cohort)) {
+    cli::cli_abort("Supply a logical `cohort` expression. Use `TRUE` for all discharges.", call = call)
+  }
+  if (!"DQTR" %in% nis_names(.data)) {
+    cli::cli_abort("Annual totals require `DQTR`.", call = call)
+  }
+  prepared <- nis_design_prepare(
+    .data,
+    rlang::enquo(cohort),
+    rlang::quo(YEAR),
+    annualize = FALSE,
+    charges = "TOTCHG",
+    call = call,
+    inspect_quarters = TRUE
+  )
+  sample <- prepared$sample
+  years <- nis_annual_years(sample, call)
   if (coding == "single_era") {
     nis_check_coding_era(years, call)
   }
-  design <- nis_design(.data, {{ cohort }}, keep = YEAR, annualize = FALSE)
-  annual <- dplyr::tibble(YEAR = years)
+  nis_check_2015_cohort(sample$cohort_2015_quarters, call)
+  design <- nis_design_build(
+    sample,
+    prepared$fields,
+    annualize = FALSE,
+    dollars = NULL,
+    charges = "TOTCHG",
+    call = call
+  )
+  nis_annual_summary(design, years)
+}
+
+nis_annual_summary <- function(design, years) {
+  annual <- dplyr::tibble(YEAR = years, discharges = NA_real_, discharges_se = NA_real_, n = 0L, hospitals = 0L)
   if (nrow(design$variables) == 0L) {
-    return(dplyr::mutate(annual, discharges = NA_real_, discharges_se = NA_real_))
+    return(annual)
   }
   totals <- design |>
-    dplyr::group_by(.data$YEAR) |>
+    dplyr::group_by(YEAR) |>
     dplyr::summarise(discharges = srvyr::survey_total(), .groups = "drop")
-  dplyr::left_join(annual, totals, by = "YEAR")
+  counts <- nis_cell_counts(design, by = "YEAR")
+  estimates <- dplyr::left_join(totals, counts, by = "YEAR")
+  dplyr::rows_update(annual, estimates, by = "YEAR")
 }

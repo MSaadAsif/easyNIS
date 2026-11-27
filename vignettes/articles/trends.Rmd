@@ -31,9 +31,11 @@ coding era (2012–2014 or 2016 onward). Run separate analyses to describe both
 eras. If a study must include the transition, examine quarterly frequencies
 for discontinuities and report how the definition and coverage change. Read
 HCUP's recommendations before combining quarters or fitting a model across
-the break. For coding-independent analyses, such as total adult discharges
-using age alone, `coding = "independent"` allows complete 2015 data and years
-on both sides. The argument records the analyst's choice.
+the break. Set `coding = "verified_comparable"` only when the definition is
+coding-independent, such as total adult discharges based on age, or a
+quarterly audit found no coding discontinuity between Q3 and Q4. Report the
+coding change and the basis for comparability. The function rejects a 2015
+cohort confined to either side of the transition.
 [HCUP recommendations for reporting trends](https://hcup-us.ahrq.gov/datainnovations/HCUP_RecomForReportingTrends_070517.pdf).
 
 Check the Known Data Issues section for corrections to the releases you
@@ -45,16 +47,21 @@ for changes to variable availability and definitions.
 
 Open the complete annual samples and pass the cohort as a logical expression.
 `nis_annual_totals()` uses each year's original discharge weights. It checks
-whether all four quarter labels are represented in each input year. Verify
-sample completeness separately. Missing estimates identify years with no
-valid cohort discharges in the design. Review data and cohort coverage before
-interpreting those years.
+whether all four quarters have valid design records in each input year.
+Verify sample completeness separately. Missing estimates and zero support
+counts identify years with no valid cohort discharges in the design.
 
 ```{r annual}
 nis <- nis_open(nis_example(years = 2018:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 
-nis_annual_totals(nis, heart_failure)
+annual <- nis_annual_totals(nis, heart_failure)
+nis_suppress(
+  annual,
+  count_col = "n",
+  hospital_col = "hospitals",
+  weighted_cols = c("discharges", "discharges_se")
+)
 ```
 
 Report the calendar years, cohort definition, weight, and design used to
@@ -74,7 +81,7 @@ Report the denominator in proportions, for example all eligible discharges
 for a share of NIS discharges.
 
 ```{r pooled}
-pooled <- nis_design(nis, heart_failure, keep = LOS, annualize = TRUE)
+pooled <- nis_design(nis, heart_failure, keep = YEAR, annualize = TRUE)
 srvyr::summarise(pooled, annual_discharges = srvyr::survey_total())
 ```
 

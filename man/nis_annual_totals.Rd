@@ -4,24 +4,32 @@
 \alias{nis_annual_totals}
 \title{Estimate annual national discharge totals}
 \usage{
-nis_annual_totals(.data, cohort, coding = c("single_era", "independent"))
+nis_annual_totals(
+  .data,
+  cohort,
+  coding = c("single_era", "verified_comparable")
+)
 }
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query with the standard NIS design
-fields and \code{DQTR}. All four discharge quarters must be represented in
-each year. This coverage check cannot verify that the sample is complete.}
+fields and \code{DQTR} (quarter numbers or \code{Q1}–\code{Q4} labels). All four
+quarters must have valid design records in each year. This coverage check
+cannot verify that the sample is complete.}
 
 \item{cohort}{Logical expression defining the domain, passed to \code{\link[=nis_design]{nis_design()}}.}
 
 \item{coding}{Use \code{"single_era"} to require years within 2012–2014 or
-2016 onward. Use \code{"independent"} if both the cohort definition and the
-analysis are independent of diagnosis and procedure coding. This allows
-complete 2015 data and spanning the ICD transition.}
+2016 onward. Use \code{"verified_comparable"} to acknowledge the transition and
+confirm that the definition is coding-independent or an audit found no
+coding discontinuity between 2015 Q3 and Q4. A 2015 cohort confined to
+one coding era or with unknown discharge quarters is rejected.}
 }
 \value{
-A tibble ordered by \code{YEAR}, with \code{discharges} and \code{discharges_se}.
-Input years without valid cohort discharges have missing estimates and
-standard errors. Apply disclosure rules before sharing annual estimates.
+A tibble ordered by \code{YEAR}, with \code{discharges}, \code{discharges_se},
+unweighted \code{n}, and distinct contributing \code{hospitals}. Years without
+valid cohort discharges have zero support counts and missing estimates
+and standard errors. Use the support counts with \code{\link[=nis_suppress]{nis_suppress()}} before
+sharing annual estimates.
 }
 \description{
 Estimates one national total and design-based standard error per calendar

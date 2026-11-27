@@ -197,11 +197,28 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' )
 nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, charges = "TOTCHG") {
   call <- rlang::current_call()
+  prepared <- nis_design_prepare(.data, rlang::enquo(cohort), rlang::enquo(keep), annualize, charges, call)
+  nis_design_build(prepared$sample, prepared$fields, annualize, dollars, charges, call)
+}
+
+nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, inspect_quarters = annualize) {
   .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
   .data <- nis_design_input(.data)
-  fields <- nis_design_fields(.data, rlang::enquo(keep), call)
-  sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
+  fields <- nis_design_fields(.data, keep, call)
+  sample <- nis_design_sample(
+    .data,
+    cohort,
+    fields$selected,
+    fields$quarter_prototype,
+    annualize,
+    call,
+    inspect_quarters
+  )
+  list(sample = sample, fields = fields)
+}
+
+nis_design_build <- function(sample, fields, annualize, dollars, charges, call) {
   hospital_rows <- sample$hospital_rows
   cohort_rows <- sample$cohort_rows
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)

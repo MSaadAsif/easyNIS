@@ -1,10 +1,18 @@
 .nis_design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
 .nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields), .nis_design_fields)
 
-nis_design_sample <- function(data, cohort, selected, quarter_prototype, annualize, call) {
+nis_design_sample <- function(
+  data,
+  cohort,
+  selected,
+  quarter_prototype,
+  annualize,
+  call,
+  inspect_quarters = annualize
+) {
   cohort_quo <- nis_design_cohort_expr(cohort, call)
   prepared <- nis_sample_fields(data, cohort_quo)
-  quarters <- if (annualize) quarter_prototype
+  quarters <- if (inspect_quarters) quarter_prototype
   summary <- nis_sample_summary(prepared, quarters, call)
   check_transition <- !is.null(quarters) && 2015L %in% summary$years
   collected_fields <- if (check_transition) union(selected, "DQTR") else selected
@@ -16,7 +24,9 @@ nis_design_sample <- function(data, cohort, selected, quarter_prototype, annuali
     cohort_rows = collected[selected],
     hospital_rows = summary$hospital_rows,
     years = summary$years,
-    excluded = summary$excluded
+    excluded = summary$excluded,
+    coverage = summary$coverage,
+    cohort_2015_quarters = if (check_transition) nis_cohort_2015_quarters(collected) else integer()
   )
 }
 
@@ -65,7 +75,7 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
     cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
   }
   years <- sort(unique(hospital_rows$YEAR))
-  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags), quarter_prototype)
+  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags))
   list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage)
 }
 
@@ -73,27 +83,24 @@ nis_sample_quarter_flags <- function(prototype) {
   if (is.null(prototype)) {
     return(list())
   }
-  factor_quarters <- is.factor(prototype)
-  quarter_field <- if (factor_quarters) rlang::expr(as.character(DQTR)) else rlang::sym("DQTR")
-  quarters <- if (factor_quarters) as.character(1:4) else 1:4
-  flags <- if (factor_quarters || is.numeric(prototype) || is.logical(prototype)) {
-    lapply(quarters, function(quarter) {
-      rlang::expr(any(.nis_valid & dplyr::coalesce(!!quarter_field == !!quarter, FALSE), na.rm = TRUE))
-    })
-  } else {
-    rep(list(rlang::expr(FALSE)), 4L)
-  }
+  flags <- lapply(1:4, function(quarter) {
+    matches <- if (is.character(prototype) || is.factor(prototype)) {
+      rlang::expr(as.character(DQTR) %in% !!c(as.character(quarter), paste0("Q", quarter)))
+    } else {
+      rlang::expr(DQTR == !!quarter)
+    }
+    rlang::expr(any(.nis_valid & dplyr::coalesce(!!matches, FALSE), na.rm = TRUE))
+  })
   stats::setNames(flags, paste0(".nis_quarter_", 1:4))
 }
 
-nis_sample_quarter_coverage <- function(summary, years, flags, prototype) {
+nis_sample_quarter_coverage <- function(summary, years, flags) {
   if (!length(flags)) {
     return(NULL)
   }
-  labels <- if (is.logical(prototype)) rep(TRUE, 4L) else 1:4
   lapply(years, function(year) {
     matches <- summary[summary$YEAR == year, flags, drop = FALSE]
-    labels[vapply(matches, any, logical(1))]
+    which(vapply(matches, any, logical(1)))
   })
 }
 
@@ -230,10 +237,14 @@ nis_design_quarter_warning <- function(quarter_coverage, design_years) {
   }
 }
 
+nis_cohort_2015_quarters <- function(collected) {
+  quarters <- collected$DQTR[collected$YEAR == 2015L]
+  unique(match(sub("^Q", "", as.character(quarters)), as.character(1:4)))
+}
+
 nis_design_2015_warning <- function(design_years, collected) {
   if (2015L %in% design_years) {
-    quarters <- collected$DQTR[collected$YEAR == 2015L]
-    cohort_quarters <- sort(unique(quarters[is.finite(quarters) & quarters %in% 1:4]))
+    cohort_quarters <- sort(nis_cohort_2015_quarters(collected))
     if (length(cohort_quarters) == 1L && cohort_quarters == 4L) {
       cli::cli_warn(c(
         paste0(
