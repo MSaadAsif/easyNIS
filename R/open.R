@@ -85,7 +85,8 @@
 #' assigns each query its own spill location under the supplied private
 #' directory, or under the R session's temporary directory by default.
 #'
-#' @return A lazy DuckDB-backed dbplyr table with case-normalized columns.
+#' @return A lazy DuckDB-backed dbplyr table with case-normalized source column
+#'   names. Saved cohorts retain the column names used at export.
 #'   Experimental 2023
 #'   layouts keep `TOTCHG_2023` as its own column and leave `TOTCHG` untouched,
 #'   because the 2023 field is HCUP-adjusted for national estimates and is not
@@ -127,13 +128,19 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
   release <- if (check_release) nis_open_check_release(plan, dataset) else "skipped"
-  query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
+  paths <- unique(dataset$parts$path)
+  definitions <- nis_cohort_definitions(connection$con, paths)
+  query <- plan$query
+  if (anyNA(definitions) || length(definitions) != length(paths)) {
+    query <- nis_open_normalize_names(query, unlist(plan$names_by_part, use.names = FALSE))
+  }
   nis_open_warn_2023(query)
   if (reader == "duckdb") {
     collect <- attr(connection$con, "easyNIS_collect")
     collect$source <- as.character(dbplyr::sql_render(query))
   }
-  query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
+  query$src$.easyNIS_source_paths <- paths
+  query$src$.easyNIS_cohort_definitions <- definitions
   query$src$.easyNIS_years <- dataset$years
   query$src$.easyNIS_release_check <- release
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)

@@ -58,6 +58,11 @@ test_that("saved cohorts preserve the full variance design and count only patien
 test_that("an export failure leaves no target and the source remains usable", {
   parent <- nis_example(2019L)
   source <- nis_open(parent)
+  con <- dbplyr::remote_con(source)
+  settings <- function() {
+    DBI::dbGetQuery(con, "SELECT current_setting('partitioned_write_flush_threshold') AS flush")
+  }
+  initial_settings <- settings()
   contents <- list.files(parent, all.files = TRUE, no.. = TRUE)
   path <- file.path(parent, "cohort")
   expect_error(
@@ -69,10 +74,12 @@ test_that("an export failure leaves no target and the source remains usable", {
     ),
     "export interrupted"
   )
+  expect_identical(settings(), initial_settings)
   expect_identical(list.files(parent, all.files = TRUE, no.. = TRUE), contents)
   expect_equal(nrow(dplyr::collect(source)), 96L)
 
   nis_write_cohort(source, AGE >= 65, path, LOS)
+  expect_identical(settings(), initial_settings)
   expect_equal(nrow(dplyr::collect(nis_open(parent))), 96L)
   expect_lt(nrow(dplyr::collect(nis_open(path))), 96L)
 })
@@ -146,4 +153,42 @@ test_that("an enriched example can be saved and reopened as a survey domain", {
   expected <- survey::svymean(~LOS, reference)
   expect_equal(coef(actual), coef(expected))
   expect_equal(vcov(actual), vcov(expected))
+})
+
+test_that("saved cohort field names survive reopen and resave verbatim", {
+  root <- withr::local_tempdir()
+  raw <- file.path(root, "source")
+  dir.create(raw)
+  write_duckdb_parquet(
+    data.frame(
+      YEAR = 2019L,
+      HOSP_NIS = 1:2,
+      NIS_STRATUM = 1L,
+      DISCWT = 5,
+      Source_Field = c(1L, 9L)
+    ),
+    file.path(raw, "NIS_2019.parquet")
+  )
+  source <- nis_open(raw, check_release = FALSE)
+  expect_true("SOURCE_FIELD" %in% colnames(source))
+  source <- dplyr::mutate(source, display_Label = SOURCE_FIELD > 2L)
+  saved <- nis_write_cohort(source, SOURCE_FIELD > 2L, file.path(root, "saved"), display_Label)
+  reopened <- nis_open(saved)
+  selected <- dplyr::collect(dplyr::select(reopened, tidyselect::all_of("display_Label"), .in_cohort))
+  expect_identical(selected$display_Label[selected$.in_cohort], TRUE)
+  expect_identical(selected$display_Label[!selected$.in_cohort], NA)
+  resaved <- nis_write_cohort(reopened, path = file.path(root, "resaved"), keep = display_Label)
+  expect_identical(colnames(nis_open(resaved)), colnames(reopened))
+})
+
+test_that("a cohort export rejects conflicting strata even for cohort hospitals", {
+  root <- withr::local_tempdir()
+  write_duckdb_parquet(
+    data.frame(YEAR = 2019L, HOSP_NIS = 1L, NIS_STRATUM = 1:2, DISCWT = 5, LOS = 2L),
+    file.path(root, "NIS_2019.parquet")
+  )
+  source <- nis_open(root, check_release = FALSE)
+  path <- file.path(root, "cohort")
+  expect_error(nis_write_cohort(source, TRUE, path, LOS), "Each hospital must map to one stratum")
+  expect_false(dir.exists(path))
 })

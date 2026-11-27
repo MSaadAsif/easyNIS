@@ -28,7 +28,8 @@ including malformed UTF-8, and allocates memory outside DuckDB's buffer limit.}
 default. Set to \code{FALSE} to skip the check.}
 }
 \value{
-A lazy DuckDB-backed dbplyr table with case-normalized columns.
+A lazy DuckDB-backed dbplyr table with case-normalized source column
+names. Saved cohorts retain the column names used at export.
 Experimental 2023
 layouts keep \code{TOTCHG_2023} as its own column and leave \code{TOTCHG} untouched,
 because the 2023 field is HCUP-adjusted for national estimates and is not

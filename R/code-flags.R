@@ -173,20 +173,23 @@ nis_mixed_flag_definition <- function(value) {
 
 nis_flag_expressions <- function(data, data_names, slots, position, system, definitions) {
   rules <- lapply(definitions, normalize_flag_definition)
-  regexes <- unique(unlist(lapply(rules, `[[`, "regex"), use.names = FALSE))
-  if (length(regexes)) {
-    validate_flag_regex(regexes)
-  }
-
+  nis_validate_flag_rules(rules)
   slot_names <- nis_flag_slot_names(data_names, slots, system, position)
   flags <- lapply(rules, nis_code_match, data = data, slot_names = slot_names)
   eligibility <- code_system_filter(data, data_names, slots, system)
   lapply(flags, nis_in_code_system, eligibility = eligibility)
 }
 
-normalize_flag_definition <- function(value) {
+nis_validate_flag_rules <- function(rules) {
+  regexes <- unique(unlist(lapply(rules, `[[`, "regex"), use.names = FALSE))
+  if (length(regexes)) {
+    validate_flag_regex(regexes)
+  }
+}
+
+normalize_flag_definition <- function(value, arg = NULL) {
   if (is.character(value)) {
-    return(nis_prefix_rule(normalize_prefixes(value)))
+    return(nis_prefix_rule(normalize_prefixes(value, arg)))
   }
   validate_flag_definition_list(value)
   normalize_flag_definition_list(value)
