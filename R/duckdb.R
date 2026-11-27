@@ -68,21 +68,23 @@ nis_duckdb_open_data <- function() {
     cli::cli_abort("The DuckDB `temp_directory` must name an existing directory.")
   }
   root <- normalizePath(root, winslash = "/", mustWork = TRUE)
-  spill <- tempfile("easynis-spill-", tmpdir = root)
-  if (!dir.create(spill, mode = "0700")) {
-    cli::cli_abort("Could not create a private DuckDB spill directory.")
-  }
-  spill <- normalizePath(spill, winslash = "/", mustWork = TRUE)
-  config$temp_directory <- spill
-  spill_limit <- config$max_temp_directory_size
-  config$max_temp_directory_size <- NULL
+  spill <- nis_owned_temp_path("easynis-spill-", root)
   con <- NULL
   release <- function() {
     on.exit(nis_remove_owned_directory(spill), add = TRUE)
     if (!is.null(con) && DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
   }
   on.exit(release(), add = TRUE)
-  con <- nis_duckdb_connect(config)
+  if (!dir.create(spill, mode = "0700")) {
+    cli::cli_abort("Could not create a private DuckDB spill directory.")
+  }
+  config$temp_directory <- spill
+  spill_limit <- config$max_temp_directory_size
+  config$max_temp_directory_size <- NULL
+  # Let the exit handler see the connection before a pending interrupt unwinds.
+  suspendInterrupts({
+    con <- nis_duckdb_connect(config)
+  })
   # dbplyr may keep both modern and legacy references to the connection.
   # Attach the mutable metadata before handing the connection to dbplyr.
   attr(con, "easyNIS_collect") <- new.env(parent = emptyenv())
@@ -90,8 +92,14 @@ nis_duckdb_open_data <- function() {
     # DuckDB 1.5.2 can report a startup cap without enforcing it during spill.
     DBI::dbExecute(con, paste("SET max_temp_directory_size =", DBI::dbQuoteString(con, spill_limit)))
   }
+  db <- list(con = con, release = release)
   on.exit(NULL, add = FALSE)
-  list(con = con, release = release)
+  db
+}
+
+nis_owned_temp_path <- function(prefix, parent) {
+  # Keep the path canonical before creation, including for a drive root on Windows.
+  paste0(sub("/$", "", parent), "/", basename(tempfile(prefix, tmpdir = parent)))
 }
 
 nis_remove_owned_directory <- function(path) {

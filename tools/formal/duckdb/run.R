@@ -56,6 +56,12 @@ mutations <- function(lake, evidence) {
     "def registerStageHandler : Bool := false"
   )
   run(
+    "writer-db-exit",
+    "Lifetime",
+    "def registerDbHandler : Bool := true",
+    "def registerDbHandler : Bool := false"
+  )
+  run(
     "writer-cleanup-order",
     "Lifetime",
     "def closeBeforeUnlink : Bool := true",
