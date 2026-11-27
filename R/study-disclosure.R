@@ -25,7 +25,7 @@ nis_study_trend_support <- function(data, threshold) {
       supported <- function(selected) nis_study_supported(rows[which(selected), ], threshold)
       dplyr::tibble(
         count_mask = nis_study_support(rows, threshold)$mask,
-        mortality_ok = supported(rows$DIED == "Yes") && supported(rows$DIED == "No"),
+        mortality_ok = supported(rows$DIED) && supported(!rows$DIED),
         los_ok = supported(is.finite(rows$LOS))
       )
     }) |>

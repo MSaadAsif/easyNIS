@@ -26,6 +26,7 @@ the [privacy and text-scanning rules](../CONTRIBUTING.md#privacy-and-licensing).
   model when useful, and requests changes as needed. Once review and required
   checks pass on the up-to-date branch, the orchestrator squash-merges the PR
   and removes the worktree and local branch.
+- Reviewers check the [data type rules](../CONTRIBUTING.md#data-types) in DuckDB and at the R boundary.
 - Periodically and before release, the orchestrator runs `Rscript --vanilla tools/news-collect.R`
   from the repository root and opens a PR with the updated `NEWS.md` and deleted fragments.
 

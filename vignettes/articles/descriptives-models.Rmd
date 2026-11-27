@@ -20,12 +20,11 @@ summary and model.
 
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(death = as.integer(DIED))
+  nis_flag_dx(heart_failure = "I50")
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, death, heart_failure),
+  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
   annualize = TRUE
 )
 ```
@@ -46,7 +45,7 @@ srvyr::summarise(
   design,
   discharges = srvyr::survey_total(),
   mean_age = srvyr::survey_mean(AGE),
-  death_rate = srvyr::survey_mean(death)
+  death_rate = srvyr::survey_mean(DIED)
 )
 ```
 
@@ -58,7 +57,7 @@ All values come from invented rows and illustrate output shape only.
 
 ```{r model, eval=rlang::is_installed("survey")}
 fit <- survey::svyglm(
-  death ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  DIED ~ heart_failure + AGE + FEMALE + factor(YEAR),
   design = design,
   family = quasibinomial()
 )
@@ -85,6 +84,7 @@ gtsummary::tbl_svysummary(
   design,
   by = heart_failure,
   include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female",
   statistic = AGE ~ "{mean} ({mean.std.error})",
   missing_stat = "{N_miss_unweighted}"
 ) |>

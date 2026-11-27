@@ -15,7 +15,9 @@ validate_suppress_dots <- function(dots, error_call) {
 #' For a `gtsummary::tbl_svysummary()` result, replaces displayed statistics
 #' when their corresponding unweighted count is at or below `threshold`. The
 #' count is the smaller of the summary card count and the number of matching
-#' records in the supplied survey design. Continuous2 statistic rows use the
+#' records in the supplied survey design. A dichotomous row whose displayed
+#' level passes both rules is marked `Masked` if its non-missing complement
+#' fails the count or hospital rule. Continuous2 statistic rows use the
 #' non-missing count for their corresponding output column. If that count is
 #' absent, ambiguous, or non-finite for a displayed statistic, the function
 #' errors; blank statistic cells do not require a count. When a by-group cell

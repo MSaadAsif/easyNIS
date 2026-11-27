@@ -5,21 +5,22 @@
 #' Missing or unrecognized codes become `NA`, including negative HCUP
 #' sentinels and non-integer values.
 #'
-#' @param .data A data frame or lazy DuckDB table with numeric `DIED`, `LOS`,
-#'   and `DISPUNIFORM` fields. Apply this before converting the fields to labels.
+#' @param .data A data frame or lazy DuckDB table with numeric `LOS` and
+#'   `DISPUNIFORM` fields and numeric or logical `DIED`. Apply this before
+#'   labelling disposition.
 #'
 #' @return The input with three columns added or replaced:
-#'   - `in_hospital_death`: 0 for discharge alive and 1 for in-hospital death
+#'   - `in_hospital_death`: `FALSE` for discharge alive and `TRUE` for in-hospital death
 #'     from `DIED`.
 #'   - `los_days`: elapsed days from `LOS`, including zero for same-day stays.
 #'     Values outside the HCUP inpatient range of 0 to 365 whole days become
 #'     missing.
-#'   - `discharge_disposition`: character labels from `DISPUNIFORM` using
-#'     the same labels as [nis_label()]. Codes
+#'   - `discharge_disposition`: numeric codes from `DISPUNIFORM`. Use [nis_label()]
+#'     after collecting or [nis_design()] to attach factor labels. Codes
 #'     1, 2, 5, 6, 7, and 20 distinguish routine home/self-care, short-term
 #'     hospital transfer, other facility transfer, home health care, discharge
 #'     against medical advice, and in-hospital death. Codes 21 (court/law
-#'     enforcement) and 99 (alive, destination unknown) retain their own labels.
+#'     enforcement) and 99 (alive, destination unknown) are valid codes.
 #'
 #'   For a lazy DuckDB input, the result is a lazy query.
 #' @seealso [Hospitalization outcomes](articles/outcomes.html), [nis_cost()]
@@ -28,7 +29,8 @@
 #' nis_open(nis_example(years = 2024)) |>
 #'   nis_outcomes() |>
 #'   dplyr::count(discharge_disposition) |>
-#'   dplyr::collect()
+#'   dplyr::collect() |>
+#'   nis_label()
 nis_outcomes <- function(.data) {
   required <- c("DIED", "LOS", "DISPUNIFORM")
   missing <- setdiff(required, nis_names(.data))
@@ -37,22 +39,19 @@ nis_outcomes <- function(.data) {
       "`.data` is missing required column{?s} {.val {missing}}."
     )
   }
-  disposition <- .hcup_labels[.hcup_labels$variable == "DISPUNIFORM" & !is.na(.hcup_labels$code), ]
-  disposition_cases <- Map(
-    function(code, label) rlang::expr(.data$DISPUNIFORM == !!code ~ !!label),
-    disposition$code,
-    disposition$value_label
-  )
+  disposition_codes <- .hcup_labels$code[.hcup_labels$variable == "DISPUNIFORM"]
 
   dplyr::mutate(
     .data,
     in_hospital_death = dplyr::case_when(
-      .data$DIED == 0L ~ 0L,
-      .data$DIED == 1L ~ 1L
+      .data$DIED == 0L ~ FALSE,
+      .data$DIED == 1L ~ TRUE
     ),
     los_days = dplyr::case_when(
       dplyr::between(.data$LOS, 0L, 365L) & .data$LOS == floor(.data$LOS) ~ as.double(.data$LOS)
     ),
-    discharge_disposition = dplyr::case_when(!!!disposition_cases)
+    discharge_disposition = dplyr::case_when(
+      .data$DISPUNIFORM %in% disposition_codes ~ .data$DISPUNIFORM
+    )
   )
 }

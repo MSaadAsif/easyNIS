@@ -55,7 +55,9 @@ calling; either choice mixes charge definitions across years.}
 \value{
 A filtered \code{srvyr::tbl_svy} survey design. The analysis data contains
 the required design fields, the columns selected by \code{keep}, and any
-computed cost columns. Use \code{\link[stats:weights]{stats::weights()}} for the survey weights.
+computed cost columns. \code{\link[=nis_label]{nis_label()}} keeps binary indicators logical and
+converts known multi-level codes to factors. Use \code{\link[stats:weights]{stats::weights()}} for the
+survey weights.
 }
 \description{
 Collects cohort rows and one zero-domain placeholder per hospital-year with
