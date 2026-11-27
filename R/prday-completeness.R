@@ -77,7 +77,7 @@ nis_prday_audit_sql <- function(data, layout, columns, pr, system) {
 }
 
 nis_prday_slot_counts_sql <- function(match, day, absent, pos) {
-  count <- function(predicate) sprintf("count(*) FILTER (WHERE %s)", predicate)
+  count <- function(predicate) sprintf("sum(CASE WHEN %s THEN 1 ELSE 0 END)", predicate)
   matched <- count(match)
   counts <- c(
     matched_slots = matched,

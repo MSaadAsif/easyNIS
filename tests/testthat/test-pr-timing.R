@@ -279,7 +279,9 @@ test_that("procedure timing can outlive and compose with its grouped source", {
       dplyr::filter(id > 1L) |>
       dplyr::group_by(YEAR) |>
       dplyr::arrange(dplyr::desc(id))
-    nis_flag_pr_timing(source, "IX", "OUT", name = 'a "flag"', relation = "after")
+    result <- nis_flag_pr_timing(source, "IX", "OUT", name = 'a "flag"', relation = "after")
+    rm(source)
+    result
   })
   invisible(gc())
   expect_s3_class(flagged, "tbl_nis")
