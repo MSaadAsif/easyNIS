@@ -233,7 +233,7 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
   no_cohort_years <- setdiff(sample$years, cohort_rows$YEAR)
   if (length(no_cohort_years) > 0L) {
     cli::cli_warn(c(
-      "No cohort discharges in {cli::qty(length(no_cohort_years))}year{?s} {.val {no_cohort_years}}.",
+      "No cohort discharges in some sample years.",
       i = "Those years contribute only placeholder rows, but still count as a year for `annualize`."
     ))
   }
@@ -268,8 +268,7 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
     if (length(missing_charge_years) > 0L) {
       cli::cli_warn(c(
         paste0(
-          "`{charges}` is entirely missing in ",
-          "{cli::qty(length(missing_charge_years))}year{?s} {.val {sort(missing_charge_years)}}; ",
+          "`{charges}` is entirely missing in some cohort years; ",
           "adjusted costs and charges are `NA` there."
         ),
         i = "Name the right column with `charges`, or build one pooled column with `dplyr::mutate()` first."
@@ -285,12 +284,7 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
     cost_provenance <- NULL
   }
 
-  hospitals <- sum(has_cohort)
-  weighted_n <- sum(discharge_weights) / divisor
-  cli::cli_inform(paste0(
-    "Cohort: {nrow(cohort_rows)} discharges; weighted N {format(weighted_n, big.mark = ',')}; ",
-    "{hospitals} hospitals across {year_count} years."
-  ))
+  cli::cli_inform("Preparing the cohort survey design.")
   cohort_rows <- nis_design_aliases(cohort_rows, fields, cost_fields, alias_sources, call)
 
   # Form the nested labels once per hospital-year. Factor codes retain the

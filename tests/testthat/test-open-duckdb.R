@@ -56,9 +56,13 @@ test_that("native Parquet queries explain malformed ICD code strings", {
   )
   file <- file.path(path, "NIS_2020.parquet")
   write_duckdb_parquet(data, file)
+  control <- "caf\u00e9"
+  write_duckdb_parquet(transform(data, YEAR = 2021L, I10_DX1 = control), file.path(path, "NIS_2021.parquet"))
+  expect_identical(dplyr::collect(nis_open(path, years = 2021L, check_release = FALSE))$I10_DX1, control)
+
   corrupt_parquet_marker(file, marker)
 
-  query <- nis_open(path, check_release = FALSE)
+  query <- nis_open(path, years = 2020L, check_release = FALSE)
   con <- dbplyr::remote_con(query)
   sql <- dbplyr::sql_render(query)
   conversion <- expect_error(
@@ -87,14 +91,14 @@ test_that("native Parquet queries explain malformed ICD code strings", {
     class = "easyNIS_invalid_utf8"
   )
   expect_match(conditionMessage(error), "NIS_2020.parquet", fixed = TRUE)
-  expect_match(conditionMessage(error), 'nis_open(reader = "arrow")', fixed = TRUE)
-  expect_match(conditionMessage(error), "Regenerate", fixed = TRUE)
+  expect_match(conditionMessage(error), "nis_convert", fixed = TRUE)
+  expect_match(conditionMessage(error), "outside DuckDB", fixed = TRUE)
   expect_length(regmatches(conditionMessage(error), gregexpr("Malformed UTF-8", conditionMessage(error)))[[1L]], 1L)
   expect_error(dplyr::collect(nis_flag_dx(query, flagged = marker)), class = "easyNIS_invalid_utf8")
   expect_error(nis_audit_code_transition(query, c(marker = marker), type = "dx"), class = "easyNIS_invalid_utf8")
 
   if (requireNamespace("arrow", quietly = TRUE)) {
-    arrow_query <- nis_open(path, reader = "arrow", check_release = FALSE)
+    arrow_query <- nis_open(path, years = 2020L, reader = "arrow", check_release = FALSE)
     expect_identical(dplyr::collect(nis_flag_dx(arrow_query, flagged = marker))$flagged, FALSE)
     design <- nis_design(arrow_query, cohort = AGE == 60L, keep = I10_DX1)
     expect_identical(charToRaw(design$variables$I10_DX1[[1L]]), c(as.raw(0xFF), charToRaw(marker)[-1L]))

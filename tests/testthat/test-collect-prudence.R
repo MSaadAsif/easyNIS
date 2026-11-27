@@ -87,7 +87,7 @@ test_that("the message band permits a collect and tiny results stay quiet", {
   query <- collect_prudence_fixture()
   local_mocked_bindings(nis_collect_available = function() 32 * 1024^2)
 
-  expect_message(full <- dplyr::collect(query), "Collecting.*MiB")
+  expect_message(full <- dplyr::collect(query), "Collecting a large result from DuckDB")
   expect_equal(nrow(full), 2000L)
   expect_no_message(summary <- dplyr::collect(dplyr::summarise(query, n = dplyr::n())))
   expect_equal(as.numeric(summary$n), 2000)
@@ -129,7 +129,7 @@ test_that("easyNIS helpers check their DuckDB collections", {
   )
   expect_message(
     design <- nis_design(query, cohort = ID %% 1000L < 4L, keep = ID, annualize = FALSE),
-    "^Cohort:"
+    "^Preparing the cohort survey design"
   )
   expect_s3_class(design, "tbl_svy")
 })

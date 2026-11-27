@@ -92,11 +92,12 @@ nis_cmrb_score_sql <- function(con, input, keys, spec, added) {
     }
     paste0("slot IN (", paste(slot$sql[rows], collapse = ", "), ")")
   }
+  # Keep principal-only discharges in the left join, but give their
+  # principal codes a NULL join key so DuckDB can hash the equality.
   join <- c(
-    "long.code = lookup.code",
+    paste0("(CASE WHEN NOT (", slot_test(slot$principal), ") THEN long.code END) = lookup.code"),
     paste0("lookup.icdv = CASE WHEN ", slot_test(slot$version == 9L), " THEN 9 ELSE 10 END"),
-    paste0("lookup.dx = CASE WHEN ", slot_test(slot$kind == "DX"), " THEN 1 ELSE 0 END"),
-    paste0("NOT (", slot_test(slot$principal), ")")
+    paste0("lookup.dx = CASE WHEN ", slot_test(slot$kind == "DX"), " THEN 1 ELSE 0 END")
   )
   unpivot <- paste0(
     "SELECT * FROM (",

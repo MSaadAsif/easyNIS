@@ -58,6 +58,16 @@ the fixture.
 - A Q4-only cohort in 2015 warns that it covers the ICD-10-coded part of the
   year, while a complete cohort year is silent. Without `DQTR`, the 2015 split
   cannot be checked and an informational message says so.
+- A rare cohort followed by a narrower hospital domain, with hospital IDs
+  repeated across years and a stratum containing one sampled hospital.
+  Compare totals, ratios, standard errors, degrees of freedom, and confidence
+  intervals with a full-data domain under the same singleton policy.
+- Missing model predictors in that narrower domain. Compare coefficients,
+  standard errors, residual degrees of freedom, confidence intervals and the
+  fitted count. Check that `nis_design_report()` still reports the original input
+  and cohort counts and that only the model denominator excludes those rows.
+- Build the same rare domain after filtering the input. Verify that the
+  point total agrees but the standard error and reported input count differ.
 
 Quarter coverage is computed by grouping valid-design rows in the lazy query
 by `YEAR` and `DQTR`, then collecting that small summary. Cohort-quarter checks

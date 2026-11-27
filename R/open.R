@@ -8,7 +8,7 @@
 #'   [nis_flag_dx()]).
 #' @param reader Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is
 #'   an optional dependency. Its reader preserves source bytes in strings,
-#'   including malformed UTF-8; downstream string operations may still fail.
+#'   including malformed UTF-8, and allocates memory outside DuckDB's buffer limit.
 #' @param check_release Check annual release totals and design fields by
 #'   default. Set to `FALSE` to skip the check.
 #'
@@ -37,11 +37,12 @@
 #'   data to R. Years before 2016 emit an experimental ICD-9 layout notice once
 #'   per R session. The `engine` argument was removed entirely; omit it regardless
 #'   of the value used in older code.
-#'   The default DuckDB reader may fail when scanning malformed UTF-8 in string
-#'   columns. Set `reader = "arrow"` to opt in to scanning individual files
-#'   through the optional `arrow` package. Arrow preserves the bytes; it does
-#'   not detect or repair all invalid text, and downstream string operations
-#'   may still fail on malformed values.
+#'   The default reader fails when a scan encounters malformed UTF-8.
+#'   A lazy query can open successfully and fail later when it reads the
+#'   affected column. Reconvert the correctly encoded source with
+#'   [nis_convert()] into a new directory to validate the text before analysis.
+#'   Malformed bytes preserved by Arrow can still cause downstream string
+#'   operations to fail.
 #'
 #' @section Annual release check:
 #' DuckDB checks the discharge count, sum of `DISCWT`, and distinct
@@ -58,7 +59,8 @@
 #' When the fields are present, missing `YEAR`, `YEAR`
 #' outside the opened years, and `NIS_STRATUM` values of zero or less warn
 #' even for years without published reference totals. If the check cannot
-#' run, it warns with the reason. The lazy query remains available for use.
+#' run, it warns. Discrepancy warnings identify the affected checks or fields.
+#' The lazy query remains available for use.
 #' Cohort extracts are expected to differ from the published totals. Use
 #' `check_release = FALSE` to skip the check for an intentional extract.
 #'

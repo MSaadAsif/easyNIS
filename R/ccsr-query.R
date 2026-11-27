@@ -64,7 +64,7 @@ nis_add_ccsr <- function(
     validate_ccsr_category_names(categories, available, call, source = "bundled releases")
   }
   sql <- ccsr_query_sql(.data, con, columns, slots, type, position, releases, version, categories, name)
-  out <- dplyr::tbl(con, dbplyr::sql(sql))
+  out <- dplyr::tbl(con, dbplyr::sql(sql), vars = c(columns, name))
   out$src <- .data$src
   if (inherits(.data, "tbl_nis")) {
     class(out) <- c("tbl_nis", class(out))
@@ -230,8 +230,13 @@ ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, 
       "))) END"
     )
   }
+  # A single join can inline its lookup so DuckDB can prune input columns
+  # from the surrounding projection. Wide joins reuse a materialized lookup.
+  materialization <- if (length(slots) == 1L) "NOT MATERIALIZED" else "MATERIALIZED"
   paste(
-    "WITH mapping AS MATERIALIZED (SELECT version, code,",
+    "WITH mapping AS",
+    materialization,
+    "(SELECT version, code,",
     aggregate,
     "AS categories",
     "FROM",

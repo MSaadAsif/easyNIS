@@ -20,11 +20,12 @@ summary and model.
 
 ```{r design}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_outcomes()
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
+  keep = c(AGE, FEMALE, LOS, in_hospital_death, heart_failure),
   annualize = TRUE
 )
 ```
@@ -45,7 +46,7 @@ srvyr::summarise(
   design,
   discharges = srvyr::survey_total(),
   mean_age = srvyr::survey_mean(AGE),
-  death_rate = srvyr::survey_mean(DIED)
+  death_proportion = srvyr::survey_mean(in_hospital_death, na.rm = TRUE)
 )
 ```
 
@@ -55,18 +56,46 @@ All values come from invented rows and illustrate output shape only.
 
 `survey::svyglm()` fits generalized linear models using the design.
 
-```{r model, eval=rlang::is_installed("survey")}
+```{r model}
 fit <- survey::svyglm(
-  DIED ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  in_hospital_death ~ heart_failure + AGE + FEMALE + factor(YEAR),
   design = design,
   family = quasibinomial()
 )
-summary(fit)
+term <- "heart_failureTRUE"
+interval <- exp(confint(fit, parm = term))
+data.frame(
+  model_n = nrow(stats::model.frame(fit)),
+  odds_ratio = exp(coef(fit)[[term]]),
+  lower = interval[1L],
+  upper = interval[2L]
+)
 ```
 
-Coefficients describe model associations under the survey design; they do not
-establish causality. The synthetic data are too small and artificial for
-substantive conclusions.
+The odds ratio compares adult discharges with and without a recorded heart
+failure diagnosis at the same age, sex, and year in this model. The model
+frame counts discharges with complete values for this formula. The interval
+uses design-based standard errors and the model's residual degrees of
+freedom. The results illustrate an adjusted association in invented data.
+
+### Contrast two mean lengths of stay
+
+With a single binary predictor, the Gaussian survey model coefficient is
+the difference in weighted mean LOS, in days. It subtracts the mean among
+discharges without a heart failure code from the mean among discharges with
+one. The fit gives the design-based standard error of the difference.
+
+```{r mean-contrast}
+los_difference <- survey::svyglm(LOS ~ heart_failure, design = design)
+nrow(stats::model.frame(los_difference))
+summary(los_difference)$coefficients[term, ]
+confint(los_difference, parm = term)
+```
+
+Report the complete-case discharge count for each model. See
+[Survey design and weighting](survey-design.html#run-a-weighted-sensitivity-analysis)
+for an example that changes the target of the mean contrast through
+reweighting.
 
 ## Tables with gtsummary
 

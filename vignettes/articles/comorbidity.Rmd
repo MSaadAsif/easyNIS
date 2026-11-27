@@ -88,10 +88,11 @@ A discharge without a usable code for the selected definition gets missing
 scores. Keep the original ICD-9-CM codes as strings so that leading zeros
 survive.
 
-For refined Elixhauser and Charlson, `Y` and `W` count as present on admission,
-`N` and `U` mean absent, and other values including `1` are unknown. Refined
-Elixhauser uses its code-level exemptions. The medicalcoder-based releases
-use its fixed exemption mapping. FY2027 uses `YEAR` plus one for October
+For diagnosis codes that require POA, the refined Elixhauser and Charlson
+scorers count only `Y` and `W` as eligible when the corresponding field is
+available. Refined Elixhauser also uses code-level exemptions. The
+medicalcoder-based releases use its fixed exemption mapping. FY2027 uses
+`YEAR` plus one for October
 through December, the calendar year if the quarter is missing, or the latest
 available exemption list if the year is missing or beyond that release.
 
@@ -103,6 +104,38 @@ measures. Report the assumption and method when publishing results.
 
 NIS studies may carry Stata-derived `ynel*` and `elixsum` columns. They use
 earlier definitions, so their values may differ from these scores.
+
+### Check POA eligibility under a pinned release
+
+Record the method string, mapping release, secondary slots, and POA
+availability by source year. This invented example uses the pinned v2027.1
+definition. `D6911` requires POA for the coagulopathy measure. `C7831`
+qualifies for the metastatic cancer measure under a POA exemption. A value
+of `N` therefore has different implications for the two codes.
+
+```{r poa-eligibility}
+poa_cases <- data.frame(
+  YEAR = 2027L, DQTR = 1L,
+  I10_DX1 = "J189",
+  DXPOA1 = "Y",
+  I10_DX2 = c("D6911", "D6911", "C7831"),
+  DXPOA2 = c("Y", "N", "N")
+)
+poa_scored <- nis_comorbidity(poa_cases, method = "elixhauser_ahrq2027")
+poa_scored[c("I10_DX2", "DXPOA2", "cmrb_n", "cmrb_mortality_index")]
+
+# This sensitivity calculation invokes the missing-slot assumption.
+without_poa <- nis_comorbidity(
+  dplyr::select(poa_cases, -DXPOA2),
+  method = "elixhauser_ahrq2027"
+)
+without_poa[c("I10_DX2", "cmrb_n", "cmrb_mortality_index")]
+```
+
+Dropping the POA field changes the second discharge's score. When POA is
+unavailable, consider an analysis that excludes the affected year or uses
+a comorbidity definition appropriate to the fields available. Document how
+that choice changes eligibility or adjustment.
 
 See [the function reference](../reference/nis_comorbidity.html) and
 [Data notes by year](year-notes.html).

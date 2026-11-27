@@ -37,7 +37,8 @@ test_that("nis_design preserves year-scoped domain estimates", {
   expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
   expect_equal(survey::SE(survey::svytotal(~AGE, design)), survey::SE(survey::svytotal(~AGE, reference)))
   expect_true(any(grepl("missing cohort value", informs, fixed = TRUE)))
-  expect_true(any(grepl("Cohort: 2 discharges", informs, fixed = TRUE)))
+  expect_true(any(grepl("Preparing the cohort survey design", informs, fixed = TRUE)))
+  expect_false(any(grepl("[[:digit:]]", informs)))
 })
 
 test_that("nis_design validation conditions retain their classes and text", {
@@ -66,7 +67,7 @@ test_that("nis_design validation conditions retain their classes and text", {
   expect_identical(as.character(conditionCall(invalid_design)[[1]]), "nis_reweight")
 })
 
-test_that("nis_design reports invalid design years and defaults cost dollars", {
+test_that("nis_design reports invalid fields and defaults cost dollars", {
   invalid <- dplyr::tibble(
     YEAR = c(2020L, 2020L, 2021L, 2021L),
     HOSP_NIS = c(1L, 2L, 1L, NA_integer_),
@@ -78,7 +79,7 @@ test_that("nis_design reports invalid design years and defaults cost dollars", {
 
   expect_warning(
     nis_design(invalid, include, keep = AGE),
-    "Affected valid years: 2020: 1, 2021: 1."
+    "invalid design fields.*HOSP_NIS.*DISCWT"
   )
 
   costs <- dplyr::tibble(
@@ -136,8 +137,8 @@ test_that("sample diagnostics count defects separately from valid quarter covera
       }
     )
     expect_length(warnings, 3L)
-    expect_match(warnings[[1L]], "Affected valid years: 2015: 1, 2016: 2", fixed = TRUE)
-    expect_match(warnings[[2L]], "2016 (Q1, Q3)", fixed = TRUE)
+    expect_match(warnings[[1L]], "Excluded discharges with invalid design fields", fixed = TRUE)
+    expect_match(warnings[[2L]], "Annualization includes incomplete quarter coverage in `DQTR`.", fixed = TRUE)
     expect_match(warnings[[3L]], "only ICD-10-coded 2015 discharges", fixed = TRUE)
     excluded <- attr(design, "nis_excluded")
     expect_equal(excluded$total, 4)
@@ -159,7 +160,7 @@ test_that("a nonannual DuckDB design does not evaluate unselected quarter data",
   )
   expect_message(
     design <- nis_design(query, dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE),
-    "Treated 2 missing cohort values"
+    "Treated missing cohort values"
   )
   expect_equal(nrow(design$variables), 6L)
 })

@@ -50,7 +50,9 @@ nis_open_check_release <- function(plan, dataset) {
     cli::cli_warn(
       c(
         "NIS annual release check could not run.",
-        i = "{conditionMessage(result)}"
+        if (rlang::cnd_inherits(result, "easyNIS_invalid_utf8")) {
+          c(i = "Malformed UTF-8 in a release-check field. Use {.fn nis_convert} to regenerate validated Parquet.")
+        }
       ),
       class = "easynis_release_check_failed"
     )
@@ -61,22 +63,16 @@ nis_open_check_release <- function(plan, dataset) {
   expected <- result$expected
   references <- match(observed$release_year, expected$year)
   matched <- which(!is.na(references))
-  details <- vapply(
-    matched,
-    function(i) {
-      year <- observed$release_year[[i]]
-      annual_fields <- Reduce(intersect, result$fields_by_year[[as.character(year)]])
-      mismatches <- nis_release_mismatches(expected[references[[i]], ], observed[i, ], annual_fields)
-      if (!length(mismatches)) {
-        return("")
-      }
-      paste0(year, ": ", paste(mismatches, collapse = ", "))
-    },
-    character(1)
-  )
-  details <- c(details, paste0(result$empty, ": 0 unweighted discharges in the opened Parquet files", recycle0 = TRUE))
-  details <- details[order(c(observed$release_year[matched], result$empty))]
-  details <- c(details[nzchar(details)], nis_release_integrity_details(result$observed, years, has_year))
+  details <- lapply(matched, function(i) {
+    year <- observed$release_year[[i]]
+    annual_fields <- Reduce(intersect, result$fields_by_year[[as.character(year)]])
+    nis_release_mismatches(expected[references[[i]], ], observed[i, ], annual_fields)
+  })
+  details <- unique(c(
+    unlist(details, use.names = FALSE),
+    if (length(result$empty)) "No discharges in an opened year.",
+    nis_release_integrity_details(result$observed, has_year)
+  ))
   if (length(details)) {
     cli::cli_warn(
       c(
@@ -181,28 +177,11 @@ nis_release_empty_years <- function(con, parts) {
   setdiff(parts$year, parts$year[rows > 0])
 }
 
-nis_release_integrity_details <- function(observed, years, has_year) {
-  details <- character()
-  # Unrecognized values share one group, even if many distinct values are corrupt.
-  unexpected <- observed[is.na(observed$release_year), ]
-  if (has_year && nrow(unexpected)) {
-    example <- if (is.na(unexpected$example_year)) "missing" else unexpected$example_year
-    details <- paste0(
-      "YEAR missing or outside opened years on ",
-      unexpected$rows,
-      " rows",
-      " (found ",
-      example,
-      ", expected ",
-      paste(years, collapse = ", "),
-      ")"
-    )
-  }
-  invalid_strata <- sum(observed$invalid_strata, na.rm = TRUE)
-  if (invalid_strata > 0) {
-    details <- c(details, paste0("Rows with NIS_STRATUM <= 0: ", invalid_strata, " (expected 0)"))
-  }
-  details
+nis_release_integrity_details <- function(observed, has_year) {
+  c(
+    if (has_year && anyNA(observed$release_year)) "Missing or unexpected `YEAR`.",
+    if (any(observed$invalid_strata > 0, na.rm = TRUE)) "Nonpositive `NIS_STRATUM`."
+  )
 }
 
 nis_release_totals <- function(query, years, fields, compare) {
@@ -227,9 +206,7 @@ nis_release_totals <- function(query, years, fields, compare) {
     paste(years, collapse = ", "),
     ") THEN ",
     year,
-    " END AS release_year, min(",
-    year,
-    ") AS example_year, count(*) AS rows, ",
+    " END AS release_year, count(*) AS rows, ",
     weight,
     " AS weight, ",
     hospitals,
@@ -244,30 +221,20 @@ nis_release_totals <- function(query, years, fields, compare) {
 }
 
 nis_release_mismatches <- function(expected, observed, annual_fields) {
-  fields <- c(rows = "unweighted discharges", weight = "sum of DISCWT", hospitals = "distinct HOSP_NIS")
+  fields <- c(rows = "Discharge count", weight = "Sum of `DISCWT`", hospitals = "Distinct `HOSP_NIS` count")
   # HCUP's Core PDFs publish Sum of Weights rounded to the nearest whole
   # discharge. fsum compensates for floating-point error, and the extra
   # millionth covers arithmetic at the half-discharge boundary.
   tolerance <- c(rows = 0, weight = 0.500001, hospitals = 0)
   available <- c(TRUE, c("discwt", "hosp_nis") %in% annual_fields)
-  details <- vapply(
+  mismatched <- vapply(
     names(fields)[available],
     function(field) {
       target <- expected[[field]]
       actual <- as.numeric(observed[[field]])
-      if (is.finite(actual) && abs(actual - target) <= tolerance[[field]]) {
-        return("")
-      }
-      paste0(
-        fields[[field]],
-        " ",
-        format(actual, scientific = FALSE, digits = 15),
-        " (expected ",
-        format(target, scientific = FALSE),
-        ")"
-      )
+      !is.finite(actual) || abs(actual - target) > tolerance[[field]]
     },
-    character(1)
+    logical(1)
   )
-  details[nzchar(details)]
+  unname(fields[names(mismatched)[mismatched]])
 }
