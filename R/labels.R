@@ -152,9 +152,9 @@ attr(.hcup_labels, "source") <- paste(
 
 #' Apply HCUP labels
 #'
-#' @param data A collected data frame.
+#' @param .data A collected data frame.
 #'
-#' @return `data` with binary indicators as logical, multi-level coded
+#' @return `.data` with binary indicators as logical, multi-level coded
 #'   elements as factors, and variable labels in `attr(x, "label")`.
 #'   Unknown codes trigger one warning per variable. They become `NA` in
 #'   binary fields and `Code <value>` levels in multi-level fields. Existing
@@ -189,17 +189,20 @@ attr(.hcup_labels, "source") <- paste(
 #'   dplyr::select(AGE, FEMALE, RACE) |>
 #'   dplyr::collect()
 #' head(nis_label(demographics))
-nis_label <- function(data) {
-  if (!is.data.frame(data)) {
-    cli::cli_abort("`data` must be a collected data frame.")
+nis_label <- function(.data) {
+  if (!is.data.frame(.data)) {
+    cli::cli_abort(c(
+      "`.data` must be a collected data frame.",
+      i = "For a lazy query, select the columns you need and use `dplyr::collect()`, or let `nis_design()` label the analysis data."
+    ))
   }
-  for (variable in nis_names(data)) {
+  for (variable in nis_names(.data)) {
     if (startsWith(variable, ".")) {
       next
     }
-    data[[variable]] <- label_one(data[[variable]], variable)
+    .data[[variable]] <- label_one(.data[[variable]], variable)
   }
-  data
+  .data
 }
 
 label_one <- function(x, variable) {

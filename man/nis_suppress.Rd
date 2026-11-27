@@ -5,7 +5,7 @@
 \title{Suppress small unweighted cells in a survey summary}
 \usage{
 nis_suppress(
-  x,
+  .data,
   threshold = 10,
   ...,
   count_col,
@@ -16,7 +16,7 @@ nis_suppress(
 )
 }
 \arguments{
-\item{x}{A \code{gtsummary::tbl_svysummary()} result, optionally with \code{add_p()}
+\item{.data}{A \code{gtsummary::tbl_svysummary()} result, optionally with \code{add_p()}
 or \code{add_overall()}, or a data frame/tibble.}
 
 \item{threshold}{Maximum unweighted cell count to suppress.}

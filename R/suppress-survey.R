@@ -2,7 +2,7 @@ validate_survey_suppress_input <- function(x, error_call) {
   valid <- inherits(x, "tbl_svysummary") && !is.null(x$cards$tbl_svysummary)
   if (!valid) {
     cli::cli_abort(
-      "`x` must be a table created by `gtsummary::tbl_svysummary()`.",
+      "`.data` must be a data frame or a table created by `gtsummary::tbl_svysummary()`.",
       call = error_call
     )
   }

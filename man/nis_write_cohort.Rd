@@ -4,10 +4,10 @@
 \alias{nis_write_cohort}
 \title{Save a reusable NIS cohort}
 \usage{
-nis_write_cohort(query, cohort, path, keep)
+nis_write_cohort(.data, cohort, path, keep)
 }
 \arguments{
-\item{query}{A lazy query from \code{\link[=nis_open]{nis_open()}}, with any cohort flags added.
+\item{.data}{A lazy query from \code{\link[=nis_open]{nis_open()}}, with any cohort flags added.
 Include the whole sample for the years you intend to analyze.}
 
 \item{cohort}{Logical data-masked cohort expression. Missing values are

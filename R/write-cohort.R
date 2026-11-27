@@ -12,7 +12,7 @@
 #' variables it uses. The release check exempts the extract from comparison
 #' against HCUP release totals.
 #'
-#' @param query A lazy query from [nis_open()], with any cohort flags added.
+#' @param .data A lazy query from [nis_open()], with any cohort flags added.
 #'   Include the whole sample for the years you intend to analyze.
 #' @param cohort Logical data-masked cohort expression. Missing values are
 #'   outside the cohort. Omit when re-saving a dataset written by this function.
@@ -30,10 +30,10 @@
 #' path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)
 #' design <- nis_design(nis_open(path), keep = LOS)
 #' dplyr::summarise(design, discharges = srvyr::survey_total())
-nis_write_cohort <- function(query, cohort, path, keep) {
+nis_write_cohort <- function(.data, cohort, path, keep) {
   call <- rlang::current_call()
-  if (!inherits(query, "tbl_sql") || is.null(nis_open_source_paths(query))) {
-    cli::cli_abort("`query` must be a lazy query from `nis_open()`.", call = call)
+  if (!inherits(.data, "tbl_sql") || is.null(nis_open_source_paths(.data))) {
+    cli::cli_abort("`.data` must be a lazy query from `nis_open()`.", call = call)
   }
   if (!rlang::is_string(path) || !nzchar(path) || !dir.exists(dirname(path))) {
     cli::cli_abort("`path` must name a new directory in an existing parent directory.", call = call)
@@ -41,14 +41,14 @@ nis_write_cohort <- function(query, cohort, path, keep) {
   target <- file.path(normalizePath(dirname(path), winslash = "/", mustWork = TRUE), basename(path))
   nis_convert_check_target(target)
 
-  query <- dplyr::ungroup(query)
+  query <- dplyr::ungroup(.data)
   previous_definition <- nis_saved_cohort(query, call)
   saved <- !is.null(previous_definition)
   membership <- nis_cohort_membership(rlang::enquo(cohort), saved, call)
   nis_design_validate(query, "TOTCHG", FALSE, call, saved)
   fields <- nis_design_fields(query, rlang::enquo(keep), call)
   if (!identical(names(fields$keep_map), unname(fields$keep_map)) && length(fields$keep_map)) {
-    cli::cli_abort("`keep` cannot rename columns. Rename them on `query` before exporting.", call = call)
+    cli::cli_abort("`keep` cannot rename columns. Use `dplyr::rename()` before exporting.", call = call)
   }
 
   temp <- tempfile(".easynis-cohort-", tmpdir = dirname(target))

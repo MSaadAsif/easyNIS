@@ -50,9 +50,7 @@ no additional mandatory package dependencies.
 
 ```{r comorbidity}
 discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::filter(AGE >= 18) |>
-  dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
-  dplyr::compute()
+  dplyr::filter(AGE >= 18)
 scored <- nis_comorbidity(discharges, method = "elixhauser_ahrq2027")
 scored |>
   dplyr::select(AGE, cmrb_n, cmrb_any, cmrb_mortality_index) |>
@@ -60,8 +58,8 @@ scored |>
   dplyr::collect()
 ```
 
-The example assigns keys to the invented fixture. NIS files supply
-`KEY_NIS`. When pooling years, keep `YEAR` because keys can repeat across
+The fixture includes invented discharge keys in `KEY_NIS`. When pooling
+years, keep `YEAR` because keys can repeat across
 years. Keep eligible `DX*` and `I10_DX*` slots plus `YEAR`, `DQTR`, and
 `DXVER` where available when scoring data across the October 2015 transition.
 The selected method determines which coding systems are eligible.

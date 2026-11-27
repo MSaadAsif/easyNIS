@@ -18,6 +18,7 @@
   has_cohort <- hospital %% 4L != 0L & within_hospital %% 3L != 0L
   records <- dplyr::tibble(
     YEAR = rep(year, length(hospital)),
+    KEY_NIS = seq_along(hospital),
     HOSP_NIS = hospital,
     NIS_STRATUM = hospital_stratum,
     DISCWT = 1 + (hospital %% 5L) / 10,

@@ -116,7 +116,7 @@ nis_annual_summary <- function(design, years) {
   totals <- design |>
     dplyr::group_by(YEAR) |>
     dplyr::summarise(discharges = srvyr::survey_total(), .groups = "drop")
-  counts <- nis_cell_counts(design, by = "YEAR")
+  counts <- nis_cell_counts(design, by = YEAR)
   estimates <- dplyr::left_join(totals, counts, by = "YEAR")
   dplyr::rows_update(annual, estimates, by = "YEAR")
 }
