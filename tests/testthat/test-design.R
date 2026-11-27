@@ -158,12 +158,12 @@ test_that("nis_design placeholder designs match full-data domain estimates", {
     expect_equal(survey::SE(by_placeholder), survey::SE(by_full), tolerance = 1e-8)
 
     logistic_full <- survey::svyglm(
-      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      FEMALE ~ AGE + LOS + factor(YEAR),
       design = full,
       family = stats::quasibinomial()
     )
     logistic_placeholder <- survey::svyglm(
-      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      FEMALE ~ AGE + LOS + factor(YEAR),
       design = placeholder,
       family = stats::quasibinomial()
     )
@@ -344,7 +344,7 @@ test_that("placeholder rows keep design fields and tolerate all-NA analysis valu
   )
 
   expect_equal(nrow(design$variables), 1L)
-  expect_identical(as.character(design$variables$DIED), "Yes")
+  expect_identical(as.vector(design$variables$DIED), TRUE)
   expect_true(is.finite(design$variables$cost_adj[[1L]]))
   expect_equal(as.numeric(design$variables$YEAR), 2017)
   expect_equal(as.numeric(design$variables$HOSP_NIS), 1)
@@ -536,12 +536,12 @@ test_that("nis_reweight matches a full-data reference and keeps placeholder weig
     expect_lt(max_abs_diff(survey::SE(mean_reweighted), survey::SE(mean_reference)), 1e-8)
 
     model_reweighted <- survey::svyglm(
-      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      FEMALE ~ AGE + LOS + factor(YEAR),
       design = reweighted,
       family = stats::quasibinomial()
     )
     model_reference <- survey::svyglm(
-      I(FEMALE == "Female") ~ AGE + LOS + factor(YEAR),
+      FEMALE ~ AGE + LOS + factor(YEAR),
       design = reference,
       family = stats::quasibinomial()
     )

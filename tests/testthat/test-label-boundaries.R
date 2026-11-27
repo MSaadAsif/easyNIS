@@ -5,32 +5,47 @@ is.na.synthetic_labelled_spss <- function(x) {
 }
 
 test_that("empty unknown codes retain their identity on repeated labelling", {
-  data <- data.frame(DIED = c("0", "", "1", "", NA_character_))
+  data <- data.frame(TRAN_IN = c("0", "", "1", "", NA_character_))
 
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
-  expect_identical(as.character(labelled$DIED), c("No", "Code ", "Yes", "Code ", NA_character_))
-  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code "))
+  expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
+  expect_identical(
+    as.character(labelled$TRAN_IN),
+    c("No transfer", "Code ", "Transferred from acute-care hospital", "Code ", NA_character_)
+  )
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility", "Code ")
+  )
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })
 
 test_that("numeric missing values remain missing without unknown-code warnings", {
-  data <- data.frame(DIED = c(0, NaN, NA_real_, 1))
+  data <- data.frame(TRAN_IN = c(0, NaN, NA_real_, 1))
 
   expect_no_warning(labelled <- nis_label(data))
-  expect_identical(as.character(labelled$DIED), c("No", NA_character_, NA_character_, "Yes"))
-  expect_identical(is.na(labelled$DIED), c(FALSE, TRUE, TRUE, FALSE))
-  expect_identical(levels(labelled$DIED), c("No", "Yes"))
+  expect_identical(
+    as.character(labelled$TRAN_IN),
+    c("No transfer", NA_character_, NA_character_, "Transferred from acute-care hospital")
+  )
+  expect_identical(is.na(labelled$TRAN_IN), c(FALSE, TRUE, TRUE, FALSE))
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility")
+  )
   expect_identical(nis_label(labelled), labelled)
 
-  expect_no_warning(missing <- nis_label(data.frame(DIED = c(NaN, NA_real_))))
-  expect_identical(as.character(missing$DIED), c(NA_character_, NA_character_))
-  expect_identical(levels(missing$DIED), c("No", "Yes"))
+  expect_no_warning(missing <- nis_label(data.frame(TRAN_IN = c(NaN, NA_real_))))
+  expect_identical(as.character(missing$TRAN_IN), c(NA_character_, NA_character_))
+  expect_identical(
+    levels(missing$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility")
+  )
 })
 
 test_that("classed numeric storage is not mistaken for a plain numeric NaN", {
   skip_if_not_installed("bit64")
-  data <- data.frame(DIED = bit64::as.integer64(c(0, -9, NA, 1)))
+  data <- data.frame(TRAN_IN = bit64::as.integer64(c(0, -9, NA, 1)))
   warnings <- character()
   labelled <- withCallingHandlers(nis_label(data), warning = function(warning) {
     warnings <<- c(warnings, conditionMessage(warning))
@@ -38,10 +53,13 @@ test_that("classed numeric storage is not mistaken for a plain numeric NaN", {
   })
 
   expect_length(warnings, 1L)
-  expect_match(warnings, "Unknown code.*DIED")
+  expect_match(warnings, "Unknown code.*TRAN_IN")
   expect_match(warnings, "-9", fixed = TRUE)
-  expect_identical(as.character(labelled$DIED), c("No", "Code -9", NA_character_, "Yes"))
-  expect_identical(is.na(labelled$DIED), c(FALSE, FALSE, TRUE, FALSE))
+  expect_identical(
+    as.character(labelled$TRAN_IN),
+    c("No transfer", "Code -9", NA_character_, "Transferred from acute-care hospital")
+  )
+  expect_identical(is.na(labelled$TRAN_IN), c(FALSE, FALSE, TRUE, FALSE))
 })
 
 test_that("Haven labelled NaN and tagged missing values stay missing", {
@@ -51,19 +69,19 @@ test_that("Haven labelled NaN and tagged missing values stay missing", {
   expect_s3_class(labelled_values, "haven_labelled")
   expect_identical(typeof(unclass(labelled_values)), "double")
 
-  data <- data.frame(DIED = labelled_values)
+  data <- data.frame(TRAN_IN = labelled_values)
   expect_no_warning(labelled <- nis_label(data))
   expect_identical(
-    as.character(labelled$DIED),
+    as.character(labelled$TRAN_IN),
     c(
-      "No",
+      "No transfer",
       NA_character_,
       NA_character_,
       NA_character_,
-      "Yes"
+      "Transferred from acute-care hospital"
     )
   )
-  expect_identical(is.na(labelled$DIED), c(FALSE, TRUE, TRUE, TRUE, FALSE))
+  expect_identical(is.na(labelled$TRAN_IN), c(FALSE, TRUE, TRUE, TRUE, FALSE))
 })
 
 test_that("labelled_spss numeric NaN is missing and finite sentinel stays visible", {
@@ -72,7 +90,7 @@ test_that("labelled_spss numeric NaN is missing and finite sentinel stays visibl
   expect_s3_class(values, "haven_labelled_spss")
   expect_s3_class(values, "haven_labelled")
   expect_identical(typeof(unclass(values)), "double")
-  data <- data.frame(DIED = values)
+  data <- data.frame(TRAN_IN = values)
   warnings <- character()
   labelled <- withCallingHandlers(nis_label(data), warning = function(warning) {
     warnings <<- c(warnings, conditionMessage(warning))
@@ -80,29 +98,41 @@ test_that("labelled_spss numeric NaN is missing and finite sentinel stays visibl
   })
 
   expect_length(warnings, 1L)
-  expect_match(warnings, "Unknown code.*DIED")
+  expect_match(warnings, "Unknown code.*TRAN_IN")
   expect_match(warnings, "-9", fixed = TRUE)
-  expect_identical(as.character(labelled$DIED), c("No", NA_character_, "Code -9", "Yes"))
-  expect_identical(is.na(labelled$DIED), c(FALSE, TRUE, FALSE, FALSE))
+  expect_identical(
+    as.character(labelled$TRAN_IN),
+    c("No transfer", NA_character_, "Code -9", "Transferred from acute-care hospital")
+  )
+  expect_identical(is.na(labelled$TRAN_IN), c(FALSE, TRUE, FALSE, FALSE))
 })
 
 test_that("mixed raw and labelled factor values use whole-vector normalization", {
-  data <- data.frame(DIED = factor(c("0", "No", "Code 7")))
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
-  expect_identical(as.character(labelled$DIED), c("No", "Code No", "Code Code 7"))
-  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code No", "Code Code 7"))
+  data <- data.frame(TRAN_IN = factor(c("0", "No transfer", "Code 7")))
+  expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
+  expect_identical(as.character(labelled$TRAN_IN), c("No transfer", "Code No transfer", "Code Code 7"))
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c(
+      "No transfer",
+      "Transferred from acute-care hospital",
+      "Transferred from another type of facility",
+      "Code No transfer",
+      "Code Code 7"
+    )
+  )
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })
 
 test_that("observed unknown codes remain distinct from missing values", {
-  data <- data.frame(DIED = c("0", "NaN", "NA", "", " ", "01", "1.0", "-9", "\n", NA_character_))
+  data <- data.frame(TRAN_IN = c("0", "NaN", "NA", "", " ", "01", "1.0", "-9", "\n", NA_character_))
 
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
+  expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
   expect_identical(
-    as.character(labelled$DIED),
+    as.character(labelled$TRAN_IN),
     c(
-      "No",
+      "No transfer",
       "Code NaN",
       "Code NA",
       "Code ",
@@ -115,10 +145,11 @@ test_that("observed unknown codes remain distinct from missing values", {
     )
   )
   expect_identical(
-    levels(labelled$DIED),
+    levels(labelled$TRAN_IN),
     c(
-      "No",
-      "Yes",
+      "No transfer",
+      "Transferred from acute-care hospital",
+      "Transferred from another type of facility",
       "Code NaN",
       "Code NA",
       "Code ",
@@ -134,7 +165,7 @@ test_that("observed unknown codes remain distinct from missing values", {
 })
 
 test_that("numeric unknown codes still warn while NaN remains missing", {
-  data <- data.frame(DIED = c(0, NaN, -9, Inf, NA_real_, -9))
+  data <- data.frame(TRAN_IN = c(0, NaN, -9, Inf, NA_real_, -9))
   warnings <- character()
   labelled <- withCallingHandlers(nis_label(data), warning = function(warning) {
     warnings <<- c(warnings, conditionMessage(warning))
@@ -142,13 +173,13 @@ test_that("numeric unknown codes still warn while NaN remains missing", {
   })
 
   expect_length(warnings, 1L)
-  expect_match(warnings, "Unknown code.*DIED")
+  expect_match(warnings, "Unknown code.*TRAN_IN")
   expect_match(warnings, "-9, Inf", fixed = TRUE)
   expect_false(grepl("NaN", warnings, fixed = TRUE))
   expect_identical(
-    as.character(labelled$DIED),
+    as.character(labelled$TRAN_IN),
     c(
-      "No",
+      "No transfer",
       NA_character_,
       "Code -9",
       "Code Inf",
@@ -156,26 +187,41 @@ test_that("numeric unknown codes still warn while NaN remains missing", {
       "Code -9"
     )
   )
-  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code -9", "Code Inf"))
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c(
+      "No transfer",
+      "Transferred from acute-care hospital",
+      "Transferred from another type of facility",
+      "Code -9",
+      "Code Inf"
+    )
+  )
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })
 
 test_that("numeric NaN handling preserves SPSS sentinel values", {
-  data <- data.frame(DIED = structure(c(0, -9, 1), na_values = -9, class = c("synthetic_labelled_spss", "numeric")))
+  data <- data.frame(TRAN_IN = structure(c(0, -9, 1), na_values = -9, class = c("synthetic_labelled_spss", "numeric")))
 
-  expect_identical(is.na(data$DIED), c(FALSE, TRUE, FALSE))
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
-  expect_identical(as.character(labelled$DIED), c("No", "Code -9", "Yes"))
-  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code -9"))
+  expect_identical(is.na(data$TRAN_IN), c(FALSE, TRUE, FALSE))
+  expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
+  expect_identical(as.character(labelled$TRAN_IN), c("No transfer", "Code -9", "Transferred from acute-care hospital"))
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility", "Code -9")
+  )
 })
 
 test_that("raw factor levels resembling generated codes are still labelled", {
-  data <- data.frame(DIED = factor("Code ", levels = c("0", "1", "Code ")))
+  data <- data.frame(TRAN_IN = factor("Code ", levels = c("0", "1", "Code ")))
 
-  expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
-  expect_identical(as.character(labelled$DIED), "Code Code ")
-  expect_identical(levels(labelled$DIED), c("No", "Yes", "Code Code "))
+  expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
+  expect_identical(as.character(labelled$TRAN_IN), "Code Code ")
+  expect_identical(
+    levels(labelled$TRAN_IN),
+    c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility", "Code Code ")
+  )
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })
@@ -183,34 +229,43 @@ test_that("raw factor levels resembling generated codes are still labelled", {
 test_that("raw factors decode displayed codes including empty unknown codes", {
   for (ordered in c(FALSE, TRUE)) {
     data <- data.frame(
-      DIED = factor(c("0", "", "1", NA_character_), levels = c("unused", "1", "", "0"), ordered = ordered)
+      TRAN_IN = factor(c("0", "", "1", NA_character_), levels = c("unused", "1", "", "0"), ordered = ordered)
     )
 
-    expect_warning(labelled <- nis_label(data), "Unknown code.*DIED")
-    expect_identical(as.character(labelled$DIED), c("No", "Code ", "Yes", NA_character_))
-    expect_identical(levels(labelled$DIED), c("No", "Yes", "Code "))
-    expect_false(is.ordered(labelled$DIED))
+    expect_warning(labelled <- nis_label(data), "Unknown code.*TRAN_IN")
+    expect_identical(
+      as.character(labelled$TRAN_IN),
+      c("No transfer", "Code ", "Transferred from acute-care hospital", NA_character_)
+    )
+    expect_identical(
+      levels(labelled$TRAN_IN),
+      c("No transfer", "Transferred from acute-care hospital", "Transferred from another type of facility", "Code ")
+    )
+    expect_false(is.ordered(labelled$TRAN_IN))
     expect_no_warning(repeated <- nis_label(labelled))
     expect_identical(repeated, labelled)
   }
 })
 
 test_that("recognized factor labels survive raw code levels", {
-  died <- factor(c("No", "Yes"), levels = c("0", "1", "No", "Yes"))
-  data <- data.frame(DIED = died)
+  died <- factor(
+    c("No transfer", "Transferred from acute-care hospital"),
+    levels = c("0", "1", "No transfer", "Transferred from acute-care hospital")
+  )
+  data <- data.frame(TRAN_IN = died)
 
   expect_no_warning(labelled <- nis_label(data))
-  expect_identical(as.character(labelled$DIED), as.character(died))
-  expect_identical(levels(labelled$DIED), levels(died))
+  expect_identical(as.character(labelled$TRAN_IN), as.character(died))
+  expect_identical(levels(labelled$TRAN_IN), levels(died))
   expect_identical(nis_label(labelled), labelled)
 })
 
 test_that("subsets preserve Code labels with unused raw-code levels", {
   # Sol's compatibility reproduction: the subset retains its factor levels.
-  died <- factor(c("No", "Code 7"), levels = c("0", "No", "Code 7"))[2]
-  expect_no_warning(labelled <- nis_label(data.frame(DIED = died)))
-  expect_identical(as.character(labelled$DIED), "Code 7")
-  expect_identical(levels(labelled$DIED), levels(died))
+  died <- factor(c("No transfer", "Code 7"), levels = c("0", "No transfer", "Code 7"))[2]
+  expect_no_warning(labelled <- nis_label(data.frame(TRAN_IN = died)))
+  expect_identical(as.character(labelled$TRAN_IN), "Code 7")
+  expect_identical(levels(labelled$TRAN_IN), levels(died))
   expect_no_warning(repeated <- nis_label(labelled))
   expect_identical(repeated, labelled)
 })
@@ -219,28 +274,28 @@ test_that("bare Code factor labels remain stable despite ambiguous provenance", 
   # This is also the value generated from an empty raw code after levels drop.
   # A factor alone cannot tell those inputs apart, so treat it as already labelled.
   died <- factor("Code ")
-  expect_no_warning(labelled <- nis_label(data.frame(DIED = died)))
-  expect_identical(as.character(labelled$DIED), as.character(died))
-  expect_identical(levels(labelled$DIED), levels(died))
+  expect_no_warning(labelled <- nis_label(data.frame(TRAN_IN = died)))
+  expect_identical(as.character(labelled$TRAN_IN), as.character(died))
+  expect_identical(levels(labelled$TRAN_IN), levels(died))
   expect_identical(nis_label(labelled), labelled)
 
-  expect_warning(generated <- nis_label(data.frame(DIED = c("0", ""))), "Unknown code.*DIED")
+  expect_warning(generated <- nis_label(data.frame(TRAN_IN = c("0", ""))), "Unknown code.*TRAN_IN")
   dropped <- droplevels(generated[2L, , drop = FALSE])
-  expect_identical(dropped$DIED, died)
+  expect_identical(dropped$TRAN_IN, died)
   expect_no_warning(labelled_dropped <- nis_label(dropped))
-  expect_identical(as.character(labelled_dropped$DIED), "Code ")
+  expect_identical(as.character(labelled_dropped$TRAN_IN), "Code ")
 
   # Unused raw-code levels give enough evidence to use raw-factor normalization.
   raw_factor <- factor("Code ", levels = c("0", "1", "Code "))
-  expect_warning(normalized <- nis_label(data.frame(DIED = raw_factor)), "Unknown code.*DIED")
-  expect_identical(as.character(normalized$DIED), "Code Code ")
+  expect_warning(normalized <- nis_label(data.frame(TRAN_IN = raw_factor)), "Unknown code.*TRAN_IN")
+  expect_identical(as.character(normalized$TRAN_IN), "Code Code ")
   expect_identical(nis_label(normalized), normalized)
 
   # A nonempty suffix, including the synthetic newline value, is a label.
   newline <- factor("Code \n", levels = c("0", "Code \n"))
-  expect_no_warning(labelled_newline <- nis_label(data.frame(DIED = newline)))
-  expect_identical(as.character(labelled_newline$DIED), "Code \n")
-  expect_identical(levels(labelled_newline$DIED), levels(newline))
+  expect_no_warning(labelled_newline <- nis_label(data.frame(TRAN_IN = newline)))
+  expect_identical(as.character(labelled_newline$TRAN_IN), "Code \n")
+  expect_identical(levels(labelled_newline$TRAN_IN), levels(newline))
   expect_identical(nis_label(labelled_newline), labelled_newline)
 
   subset <- generated[2L, , drop = FALSE]
@@ -252,14 +307,14 @@ test_that("bare Code factor labels remain stable despite ambiguous provenance", 
 test_that("existing labelled factors retain levels order and attributes", {
   for (ordered in c(FALSE, TRUE)) {
     died <- factor(
-      c("No", "Code ", "Code 7", NA_character_),
-      levels = c("Code 7", "Yes", "Code ", "No", "unused"),
+      c("No transfer", "Code ", "Code 7", NA_character_),
+      levels = c("Code 7", "Transferred from acute-care hospital", "Code ", "No transfer", "unused"),
       ordered = ordered
     )
     attr(died, "label") <- "Existing outcome label"
     attr(died, "source") <- "Invented fixture"
     names(died) <- c("a", "b", "c", "d")
-    data <- data.frame(DIED = died)
+    data <- data.frame(TRAN_IN = died)
 
     expect_no_warning(labelled <- nis_label(data))
     expect_identical(labelled, data)
@@ -285,6 +340,6 @@ test_that("labelling preserves input row column and unrelated metadata", {
   expect_identical(attr(labelled$AGE, "units"), "years")
   expect_identical(as.numeric(labelled$AGE), c(30, 40, 50))
   expect_identical(attr(labelled$DIED, "label"), "Existing outcome label")
-  expect_identical(as.character(labelled$DIED), c("No", NA_character_, "Yes"))
+  expect_identical(as.vector(labelled$DIED), c(FALSE, NA, TRUE))
   expect_identical(nis_label(labelled), labelled)
 })

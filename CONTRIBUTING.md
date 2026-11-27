@@ -6,6 +6,12 @@ dependencies with `pak::pak(".", dependencies = TRUE)` in R. Install
 [Air 0.13.0](https://posit-dev.github.io/air/cli.html) and
 [Jarl 0.7.1](https://jarl.etiennebacher.com/#installation) on your PATH.
 
+## Data types
+
+Keep HCUP category codes numeric in DuckDB and derived binary indicators as BOOLEAN.
+Keep indicators logical in R, including after collection and in survey designs.
+Apply factor labels to multi-level codes at the R boundary with `nis_label()`.
+
 ## Verify a change
 
 - Before writing code, list what could fail. Prefer end-to-end tests of the
