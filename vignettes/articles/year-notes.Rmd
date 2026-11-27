@@ -50,6 +50,15 @@ are explicitly unverified against official 2023 documentation and real 2023
 files. Do not assume comparability or use these notes as a substitute for
 checking the source documentation.
 
+## Annual links for companions and costs
+
+Retain `YEAR` with hospital and discharge identifiers before linking any
+additional files. Hospital characteristics link on `YEAR` and `HOSP_NIS`.
+Severity links on `YEAR` and `KEY_NIS`. Prepare the separately sourced
+cost-to-charge ratio using the release's documented hospital key, then link
+on `YEAR` and `HOSP_NIS`. Record the CCR source, chosen field, and unmatched
+discharge counts for each year. See [Charges, costs, and provenance](costs.html).
+
 ## Check availability in the fixture
 
 `nis_example()` creates invented records for selected years to illustrate

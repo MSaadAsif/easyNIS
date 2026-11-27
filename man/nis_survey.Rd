@@ -4,10 +4,10 @@
 \alias{nis_survey}
 \title{Create a lazy whole-sample NIS survey design}
 \usage{
-nis_survey(query, weights = DISCWT)
+nis_survey(.data, weights = DISCWT)
 }
 \arguments{
-\item{query}{A lazy DuckDB query from \code{\link[=nis_open]{nis_open()}}.}
+\item{.data}{A lazy DuckDB query from \code{\link[=nis_open]{nis_open()}}.}
 
 \item{weights}{A data-masked SQL-translatable expression for the analysis
 weights. The default uses discharge weights without annualization.}
@@ -19,30 +19,39 @@ A lazy \code{nis_survey} design.
 The nested, one-stage Taylor design uses hospital-year PSUs (YEAR × HOSP_NIS)
 and year-specific strata (YEAR × NIS_STRATUM), without a finite population
 correction. It uses the valid-design discharges in the input query.
-Apply eligibility restrictions with \code{subset()} or \code{\link[dplyr:filter]{dplyr::filter()}} on
-the design so hospitals outside the domain still contribute to variance.
+Apply eligibility restrictions with \code{\link[dplyr:filter]{dplyr::filter()}} on the design so
+hospitals outside the domain still contribute to variance. Use \code{subset()}
+as the survey-style alternative.
 A query filtered before construction defines a different sample.
 }
 \details{
 Use \code{\link[survey:svymean]{survey::svymean()}}, \code{\link[survey:svytotal]{survey::svytotal()}}, or \code{\link[survey:svyby]{survey::svyby()}} with
-one-sided formulas. Grouped estimates support means and totals. DuckDB
+one-sided formulas. Grouped estimates support means and totals.
+Use \code{\link[survey:svyglm]{survey::svyglm()}} for additive models with Gaussian identity,
+binomial or quasibinomial logit, and Poisson or quasipoisson log
+families. Wald inference uses the sample design degrees of freedom
+minus the fitted model rank plus one. DuckDB
 computes weighted sums by PSU without collecting discharge records.
 The analysis supports the \code{"fail"} and \code{"adjust"} values of
 \code{survey.lonely.psu} and honors \code{survey.adjust.domain.lonely}.
-Use \code{\link[=nis_design]{nis_design()}} for row-level survey operations and descriptive tables.
+Use \code{\link[=nis_design]{nis_design()}} for row-level operations such as quantiles, chi-square
+tests, model diagnostics, and \code{gtsummary::tbl_svysummary()}.
 
 Discharges with missing, non-finite, or nonpositive design fields
 (\code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT}) are excluded.
 Custom analysis weights must be positive and finite within the domain.
 }
 \examples{
-design <- nis_survey(nis_open(nis_example(2019:2020)))
-survey::svymean(~LOS, subset(design, AGE >= 65))
-survey::svyby(~LOS, ~YEAR, design, survey::svymean)
+nis <- nis_open(nis_example(2019:2020))
+design <- nis_survey(nis)
+older <- dplyr::filter(design, AGE >= 65)
+survey::svymean(~LOS, older)
+survey::svyby(~LOS, ~YEAR, older, survey::svymean)
 }
 \seealso{
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},
+\code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_reweight]{nis_reweight()}}
 }
 \concept{survey-design}

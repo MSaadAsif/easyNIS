@@ -121,6 +121,7 @@ srvyr::summarise(
 \href{articles/survey-design.html}{Survey design and weighting}.
 
 Other survey-design:
+\code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_reweight]{nis_reweight()}},
 \code{\link[=nis_survey]{nis_survey()}}
 }
