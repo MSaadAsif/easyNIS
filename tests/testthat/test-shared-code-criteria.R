@@ -33,7 +33,7 @@ test_that("code criteria agree across attrition, a survey model, and the transit
 
   expect_warning(
     design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = c(AGE, LOS)),
-    "Excluded 2 discharges with invalid design fields"
+    "Excluded discharges with invalid design fields"
   )
   fit <- survey::svyglm(LOS ~ AGE, design = design)
   expect_equal(stats::nobs(fit), tail(flow$n_unweighted, 1L))
