@@ -36,7 +36,7 @@ counts from `nis_cell_counts()`, masks cells from fewer than two hospitals. Use
 `nis_example()` to try the workflow without
 licensed data.
 
-## Convert a statistical data file
+## Convert source data to Parquet
 
 `nis_convert()` reads annual Stata (`.dta`), SAS (`.sas7bdat`), and SPSS
 (`.sav`) files using haven. Supply a file with a numeric `YEAR` column and
@@ -60,6 +60,27 @@ nis_open(converted, check_release = FALSE) |> dplyr::collect()
 
 The invented example skips the release comparison. Leave it enabled for
 files representing an HCUP release.
+
+For a native fixed-width HCUP Core file, unzip the download and pass the
+`NIS_<year>_Core.ASC` file to `nis_convert()`. The converter uses HCUP's
+2012–2024 Core layouts, including the 2019 and 2020 V2 specifications.
+The 2015 Core file has no diagnosis or procedure slots. To analyze those
+fields, prepare a joined annual statistical file from the Core and
+quarter-specific Diagnosis and Procedure Groups files before converting it.
+[HCUP Nationwide SAS load programs](https://hcup-us.ahrq.gov/db/nation/sasloadprog.jsp)
+
+```{r convert-ascii}
+converted_core <- tempfile()
+dir.create(converted_core)
+core <- file.path(converted_core, "NIS_2015_Core.ASC")
+record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
+                 strrep(" ", 21), "2015", "  ")
+writeLines(record, core)
+nis_convert(core, converted_core)
+nis_open(converted_core, check_release = FALSE) |>
+  dplyr::select(YEAR, HOSP_NIS, NIS_STRATUM) |>
+  dplyr::collect()
+```
 
 ## Select years and columns
 
@@ -165,6 +186,18 @@ lazy query. Then collect a small summary, or write a large result directly to
 a private Parquet file. `nis_design()` still needs enough R memory for the
 selected cohort, retained variables, and survey design. Use a narrow `keep`
 to limit that cost. [DuckDB COPY statement](https://duckdb.org/docs/stable/sql/statements/copy)
+
+When a collect is estimated to need 20% of available physical memory, easyNIS
+reports the estimated result size. At 50% or more, easyNIS counts the result
+rows and stops the collect if the estimate still crosses that threshold.
+This also applies to `as.data.frame()` on
+`nis_open()` tables and to easyNIS helpers that collect DuckDB results.
+Filter rows, select fewer fields, or use a narrower cohort and `keep` in
+`nis_design()`. Use `options(easyNIS.collect_prudence = FALSE)` to skip the
+check. Cardinality and text widths are approximate. The check can also be
+skipped automatically when DuckDB cannot estimate the result size.
+Queries with SQL `PIVOT` skip the check because DuckDB may scan rows while
+determining their output columns.
 
 Set DuckDB options before calling `nis_open()`. This example uses a low thread
 count and places spill files on a private disk. Choose the memory and spill

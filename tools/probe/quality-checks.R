@@ -1,26 +1,24 @@
-quality_check <- function(name, provenance, run, pass = NULL, detail = NULL) {
-  list(name = name, provenance = provenance, run = run, pass = pass, detail = detail)
+quality_check <- function(name, run, pass = NULL, detail = NULL) {
+  list(name = name, run = run, pass = pass, detail = detail)
 }
 
-nested_check <- function(name, run, pass) {
-  quality_check(name, "nested_unverified", run, pass = function(x) pass(x$value), detail = function(x, passed) {
+diagnostic_check <- function(name, run, pass) {
+  quality_check(name, run, pass = function(x) pass(x$value), detail = function(x, passed) {
     quality_public_detail(name, passed)
   })
 }
 
 quality_checks <- list(
-  as_cran = quality_check("R CMD check --as-cran", "nested_unverified", function(root) {
+  as_cran = quality_check("R CMD check --as-cran", function(root) {
     devtools::check(root, document = FALSE, args = c("--as-cran", "--no-manual"), error_on = "never")
   }),
   namespace_complexity = quality_check(
     "installed_namespace_complexity",
-    "isolated_namespace_verified",
     function(root) namespace_complexity(root),
     pass = function(x) namespace_complexity_pass(x$value)
   ),
   coverage = quality_check(
     "covr",
-    "nested_unverified",
     function(root) {
       covr::package_coverage(root, quiet = TRUE)
     },
@@ -30,31 +28,29 @@ quality_checks <- list(
         covr::percent_coverage(x$value) >= 90
     }
   ),
-  goodpractice = nested_check(
+  goodpractice = diagnostic_check(
     "goodpractice",
     function(root) {
       if (!requireNamespace("goodpractice", quietly = TRUE)) {
         return("not installed")
       }
-      with_verified_source(root, function(root, package) {
-        covered <- goodpractice::checks_by_group(c("lintr", "tidyverse", "cyclocomp"))
-        checks <- setdiff(goodpractice::default_checks(), covered)
-        goodpractice::gp(root, checks = checks)
-      })
+      covered <- goodpractice::checks_by_group(c("lintr", "tidyverse", "cyclocomp"))
+      checks <- setdiff(goodpractice::default_checks(), covered)
+      goodpractice::gp(root, checks = checks)
     },
     function(value) goodpractice_pass(value)
   ),
-  pkgcheck = nested_check(
+  pkgcheck = diagnostic_check(
     "pkgcheck",
     function(root) {
       if (!requireNamespace("pkgcheck", quietly = TRUE)) {
         return("not installed")
       }
-      with_verified_source(root, function(root, package) pkgcheck::pkgcheck(root, goodpractice = FALSE))
+      pkgcheck::pkgcheck(root, goodpractice = FALSE)
     },
     function(value) pkgcheck_pass(value)
   ),
-  pkgdown = quality_check("pkgdown::check_pkgdown", "source_inspection", function(root) {
+  pkgdown = quality_check("pkgdown::check_pkgdown", function(root) {
     if (!requireNamespace("pkgdown", quietly = TRUE)) {
       return("not installed")
     }
@@ -76,7 +72,7 @@ quality_definition <- function(name) {
     stop("Unknown quality check.", call. = FALSE)
   }
   if (key == "export_arguments") {
-    return(quality_check(name, "isolated_namespace_verified", NULL))
+    return(quality_check(name, NULL))
   }
   quality_checks[[key]]
 }
