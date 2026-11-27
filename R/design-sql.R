@@ -35,7 +35,7 @@ nis_design_validity_sql <- function(data) {
 }
 
 nis_sample_roster_sql <- function(prepared, quarters = NULL, valid_only = FALSE) {
-  keys <- c("YEAR", "HOSP_NIS", "NIS_STRATUM")
+  keys <- c('"YEAR"', '"HOSP_NIS"', '"NIS_STRATUM"')
   if (valid_only) {
     fields <- c(keys, 'min(CAST("DISCWT" AS DOUBLE)) AS "DISCWT"')
     where <- 'WHERE ".nis_valid"'
