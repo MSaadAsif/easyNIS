@@ -84,7 +84,7 @@ filter.nis_survey <- function(.data, ..., .by = NULL, .preserve = FALSE) {
 print.nis_survey <- function(x, ...) {
   cat(
     "Lazy NIS Taylor survey design\n",
-    "PSUs: YEAR × HOSP_NIS; strata: YEAR × NIS_STRATUM (nested)\n",
+    "PSUs: YEAR \u00d7 HOSP_NIS; strata: YEAR \u00d7 NIS_STRATUM (nested)\n",
     "Weights: ",
     rlang::as_label(x$weights),
     "\n",
