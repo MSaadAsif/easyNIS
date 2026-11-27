@@ -34,19 +34,21 @@ design <- nis_design(
 )
 ```
 
-- **In-hospital mortality.** `in_hospital_death` is the 0/1 indicator from
-  `DIED`. A discharge alive contributes zero. Missing or invalid `DIED`
+- **In-hospital mortality.** `in_hospital_death` is a logical indicator from
+  `DIED`. A discharge alive has value `FALSE`. Missing or invalid `DIED`
   stays missing even when a disposition is recorded. The event is death
   during the sampled hospitalization. [HCUP DIED notes](https://hcup-us.ahrq.gov/db/vars/died/nisnote.jsp)
 - **Length of stay.** `los_days` uses HCUP's edited `LOS` in whole days,
   including zero for admission and discharge on the same date. Deaths and
   transfers can have recorded LOS for the sampled stay. [HCUP LOS notes](https://hcup-us.ahrq.gov/db/vars/los/nisnote.jsp)
-- **Discharge disposition.** `discharge_disposition` labels `DISPUNIFORM`.
+- **Discharge disposition.** `discharge_disposition` holds the numeric
+  `DISPUNIFORM` code. After collection, `nis_label()` or `nis_design()`
+  applies the factor labels.
   Code 2 denotes transfer to a short-term hospital. Code 5 covers several
   types of other facilities, including skilled nursing and intermediate
   care. Code 6 includes home health, home IV, and home hospice. Codes 21
   (court/law enforcement) and 99 (alive with destination unknown) are valid
-  categories. An invalid or missing code yields a missing label. [HCUP DISPUNIFORM notes](https://hcup-us.ahrq.gov/db/vars/dispuniform/nisnote.jsp)
+  categories. An invalid or missing code yields a missing disposition. [HCUP DISPUNIFORM notes](https://hcup-us.ahrq.gov/db/vars/dispuniform/nisnote.jsp)
 
 These are Core fields on both sides of the 2015 ICD transition. Review
 the source year's coding before pooling releases. Historical `DISP` and
@@ -62,8 +64,8 @@ For skewed LOS, survey quantiles give the median and the 25th and 75th
 percentiles while retaining same-day stays.
 
 ```{r estimates}
-survey::svymean(~in_hospital_death, design, na.rm = TRUE)
-survey::svymean(~factor(discharge_disposition), design, na.rm = TRUE)
+dplyr::summarise(design, mortality = srvyr::survey_mean(in_hospital_death, na.rm = TRUE))
+survey::svymean(~discharge_disposition, design, na.rm = TRUE)
 survey::svyquantile(~los_days, design, c(0.25, 0.5, 0.75), na.rm = TRUE)
 ```
 

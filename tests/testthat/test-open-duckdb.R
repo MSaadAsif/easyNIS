@@ -50,8 +50,8 @@ test_that("native Parquet queries explain malformed ICD code strings", {
     NIS_STRATUM = 1L,
     DISCWT = 5,
     AGE = 60L,
-    FEMALE = "Female",
-    DIED = "No",
+    FEMALE = 1L,
+    DIED = 0L,
     I10_DX1 = marker
   )
   file <- file.path(path, "NIS_2020.parquet")

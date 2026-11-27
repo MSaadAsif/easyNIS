@@ -140,20 +140,24 @@ attr(.hcup_labels, "source") <- paste(
 #'
 #' @param data A collected data frame.
 #'
-#' @return `data` with known coded elements as factors and variable labels in
-#'   `attr(x, "label")`. Unknown codes are retained as `Code <value>` levels
-#'   with one warning per variable. Existing labels and labelled comorbidity
-#'   fields are preserved. Elements without a table entry, including the 2023
+#' @return `data` with binary indicators as logical, multi-level coded
+#'   elements as factors, and variable labels in `attr(x, "label")`.
+#'   Unknown codes trigger one warning per variable. They become `NA` in
+#'   binary fields and `Code <value>` levels in multi-level fields. Existing
+#'   variable labels are preserved. Elements without a table entry, including the 2023
 #'   `PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The operation
 #'   is idempotent.
 #'
-#' Negative numeric sentinels are not converted to missing values. The supplied
+#' Binary codes 0 and 1 become `FALSE` and `TRUE`, respectively. For example,
+#' `FEMALE` is true for female patients and `AWEEKEND` for weekend admissions.
+#'
+#' Negative numeric sentinels are handled as unknown codes. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.
 #' `NaN` values in ordinary numeric vectors and Haven-labelled numeric storage
 #' are treated as missing, while ordinary and tagged `NA` values remain
 #' missing. Finite SPSS user-missing values and `integer64` values are
-#' interpreted through their displayed values and remain visible codes.
+#' interpreted through their displayed values.
 #' Factors containing raw codes are normalized as a whole. Existing labels,
 #' including `Code 7`, are preserved when unused raw-code levels remain after
 #' subsetting. A bare `Code ` value with raw-code levels and no recognized value
@@ -182,14 +186,23 @@ nis_label <- function(data) {
 
 label_one <- function(x, variable) {
   old_label <- attr(x, "label", exact = TRUE)
-  definition <- .hcup_labels[.hcup_labels$variable == variable, , drop = FALSE]
+  field <- if (variable == "discharge_disposition") "DISPUNIFORM" else variable
+  definition <- .hcup_labels[.hcup_labels$variable == field, , drop = FALSE]
   value_rows <- !is.na(definition$code)
   binary_comorbidity <- grepl("^(ynel|ynch)[0-9]+$", variable)
-  call <- rlang::caller_call()
-  if (any(value_rows) || binary_comorbidity) {
-    x <- label_coded(x, definition, value_rows, binary_comorbidity, variable, call)
-  } else if (is.logical(x)) {
-    x <- factor(ifelse(is.na(x), NA_character_, ifelse(x, "Yes", "No")), levels = c("No", "Yes"))
+  codes <- definition$code[value_rows]
+  values <- definition$value_label[value_rows]
+  if (binary_comorbidity || setequal(codes, 0:1)) {
+    if (!is.logical(x)) {
+      binary_labels <- if (binary_comorbidity) c("No", "Yes") else values[match(0:1, codes)]
+      x <- label_binary(x, binary_labels, variable, rlang::caller_call())
+    }
+  } else if (length(codes)) {
+    raw <- label_displayed_codes(x)
+    codes <- as.character(codes)
+    if (!labelled_factor(x, raw, codes, values)) {
+      x <- label_raw_codes(raw, codes, values, variable, rlang::caller_call())
+    }
   }
   variable_label <- if (nrow(definition) > 0L) {
     definition$variable_label[[1L]]
@@ -204,22 +217,23 @@ label_one <- function(x, variable) {
   x
 }
 
-label_coded <- function(x, definition, value_rows, binary_comorbidity, variable, call) {
-  codes <- if (binary_comorbidity) {
-    c("0", "1")
+label_binary <- function(x, values, variable, call) {
+  if (is.numeric(x) && !is.object(x)) {
+    raw <- x
+    index <- match(raw, 0:1)
   } else {
-    as.character(definition$code[value_rows])
+    raw <- label_displayed_codes(x)
+    codes <- if (is.factor(x)) c("0", "1", values) else c("0", "1")
+    index <- match(raw, codes)
   }
-  values <- if (binary_comorbidity) {
-    c("No", "Yes")
-  } else {
-    definition$value_label[value_rows]
+  unknown <- !is.na(raw) & is.na(index)
+  if (any(unknown)) {
+    cli::cli_warn(
+      "Unknown code(s) in {.var {variable}}: {paste(unique(raw[unknown]), collapse = ', ')}. Converted to missing.",
+      call = call
+    )
   }
-  raw <- label_displayed_codes(x)
-  if (labelled_factor(x, raw, codes, values)) {
-    return(x)
-  }
-  label_raw_codes(raw, codes, values, variable, call)
+  c(FALSE, TRUE, FALSE, TRUE)[index]
 }
 
 label_displayed_codes <- function(x) {

@@ -20,10 +20,10 @@ drive_study_small <- function(scratch, evidence) {
       setup = 'study_design$variables$exposed[seq_len(5L)] <- NA'),
     unused_arm = list(sizes = rep(144L, 2L),
       setup = paste0('study_design$variables$exposed <- factor(study_design$variables$exposed, ',
-        'levels = c("No", "Yes", "Unused"))')),
+        'levels = c("FALSE", "TRUE", "Unused"))')),
     masked_p = list(sizes = rep(144L, 2L), masked_p = TRUE, setup = c(
       'study_design$variables$exposed[seq_len(24L)] <- NA',
-      'arm <- which(study_design$variables$exposed %in% "Yes")',
+      'arm <- which(study_design$variables$exposed)',
       'female <- seq_len(nrow(study_design$variables)) %% 2L == 0L',
       'female[arm] <- seq_along(arm) <= 5L',
       'study_design$variables$FEMALE <- factor(ifelse(female, "A", "B"))'
@@ -284,7 +284,7 @@ verify_study_disclosure <- function(report, case) {
   if (isTRUE(case$masked_p)) {
     headers <- xml2::xml_text(xml2::xml_find_all(table_one, ".//thead//th"))
     label <- xml2::xml_find_first(table_one,
-      ".//tbody/tr[td[@headers='label' and starts-with(normalize-space(.), 'FEMALE')]]")
+      ".//tbody/tr[td[@headers='label' and starts-with(normalize-space(.), 'Female')]]")
     p <- xml2::xml_text(xml2::xml_find_all(label, "./td[@headers='p.value']"), trim = TRUE)
     levels <- xml2::xml_find_all(label, "following-sibling::tr[position() <= 2]/td")
     stopifnot(any(grepl("N = 264", headers, fixed = TRUE)),

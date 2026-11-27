@@ -127,12 +127,15 @@ The in-database estimator prototype tracks this gap separately.
 
 - Defer the synthetic template study (Phase D/R8). The completed HOCM
   myectomy-versus-ablation study remains a reference, not new work.
-- HOCM backlog item #8 (Elixhauser) may proceed only as a thin wrapper over an
-  existing package such as `comorbidity` or `medicalcoder`; easyNIS must not
-  implement the algorithm or maintain code sets.
+- easyNIS implements named comorbidity definitions in DuckDB. Use published
+  mappings and weights supplied by an upstream package when available.
+  Distribute a versioned reference table with provenance and licensing when
+  that package does not supply the definition.
 - HOCM backlog item #3 (curated cardiac device code sets) remains deferred.
+- Bundle the official AHRQ HCUP CCSR diagnosis and procedure mappings and
+  refresh them with AHRQ's annual releases.
 - Keep easyNIS focused on a simple NIS analyst workflow built on established
-  packages including `survey`, `srvyr`, `gtsummary`, `comorbidity` or
+  packages including `survey`, `srvyr`, `gtsummary`,
   `medicalcoder` and `duckdb`.
 
 ## Completed history

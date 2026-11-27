@@ -10,20 +10,24 @@ nis_label(data)
 \item{data}{A collected data frame.}
 }
 \value{
-\code{data} with known coded elements as factors and variable labels in
-\code{attr(x, "label")}. Unknown codes are retained as \verb{Code <value>} levels
-with one warning per variable. Existing labels and labelled comorbidity
-fields are preserved. Elements without a table entry, including the 2023
+\code{data} with binary indicators as logical, multi-level coded
+elements as factors, and variable labels in \code{attr(x, "label")}.
+Unknown codes trigger one warning per variable. They become \code{NA} in
+binary fields and \verb{Code <value>} levels in multi-level fields. Existing
+variable labels are preserved. Elements without a table entry, including the 2023
 \code{PL_NCHS2} and \code{TOTCHG_2023} fields, are returned unchanged. The operation
 is idempotent.
 
-Negative numeric sentinels are not converted to missing values. The supplied
+Binary codes 0 and 1 become \code{FALSE} and \code{TRUE}, respectively. For example,
+\code{FEMALE} is true for female patients and \code{AWEEKEND} for weekend admissions.
+
+Negative numeric sentinels are handled as unknown codes. The supplied
 HCUP documentation represents missing numeric values as system missing and
 does not document negative sentinels for any element handled here.
 \code{NaN} values in ordinary numeric vectors and Haven-labelled numeric storage
 are treated as missing, while ordinary and tagged \code{NA} values remain
 missing. Finite SPSS user-missing values and \code{integer64} values are
-interpreted through their displayed values and remain visible codes.
+interpreted through their displayed values.
 Factors containing raw codes are normalized as a whole. Existing labels,
 including \verb{Code 7}, are preserved when unused raw-code levels remain after
 subsetting. A bare \code{Code } value with raw-code levels and no recognized value

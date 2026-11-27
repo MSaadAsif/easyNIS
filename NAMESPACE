@@ -2,6 +2,7 @@
 
 S3method(dbplyr::db_collect,nis_duckdb_connection)
 S3method(dplyr::compute,tbl_nis)
+export(nis_add_ccsr)
 export(nis_annual_totals)
 export(nis_attrition)
 export(nis_attrition_cohort)

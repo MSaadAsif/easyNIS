@@ -73,8 +73,10 @@ It uses the smaller count for masking and counts distinct year-scoped `YEAR`
 and `HOSP_NIS` identities from those records. Hospital support is
 checked within the cohort and the displayed non-missing, category, and by-group
 cell. Cells at or below the discharge threshold or supported by fewer than two
-hospitals are marked; overall cells follow the same complementary masking
-behavior described above. If the records or cards cannot unambiguously map a
+hospitals are marked. A dichotomous row is also masked when the non-missing
+complement is protected, even when the displayed event has sufficient support.
+Overall cells follow the same complementary masking behavior described above.
+If the records or cards cannot unambiguously map a
 displayed cell, the function errors.
 
 ```{r gtsummary, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
@@ -84,7 +86,8 @@ design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 table_one <- gtsummary::tbl_svysummary(
   design,
   by = RACE,
-  include = c(AGE, FEMALE)
+  include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female"
 )
 nis_suppress(table_one, threshold = 10)
 ```
