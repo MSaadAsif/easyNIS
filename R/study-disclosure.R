@@ -251,7 +251,17 @@ nis_study_flow_summary <- function(data, groups) {
 }
 
 # jarl-ignore unused_function: Called by the bundled Quarto study.
-nis_study_flow <- function(data, principal, cohort, design, pooled_mask, threshold) {
+nis_study_flow <- function(data, principal, cohort, design, pooled_mask, threshold, exposure_restricted = FALSE) {
+  if (exposure_restricted) {
+    # A pre-restriction total would expose another reporting denominator.
+    records <- design$variables
+    return(nis_study_flow_display(
+      "Analysis cohort (observed exposure)",
+      nrow(records),
+      sum(as.numeric(records$DISCWT)),
+      pooled_mask
+    ))
+  }
   cohort <- rlang::enquo(cohort)
   principal <- rlang::enquo(principal)
   weight_valid <- nis_is_positive_finite_expr(data, "DISCWT")
@@ -290,18 +300,23 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
   if (complementary) {
     mask[mask == ""] <- "Masked"
   }
-  dplyr::tibble(
-    step = c(
+  nis_study_flow_display(
+    c(
       "All discharges",
       "Principal diagnosis prefix",
       "Cohort definition",
       "Analysis cohort (valid survey design)"
     ),
-    discharges = ifelse(nzchar(mask[primary]), mask[primary], format(totals[primary, 1L], big.mark = ",", trim = TRUE)),
-    weighted_discharges = ifelse(
-      nzchar(mask[primary]),
-      mask[primary],
-      formatC(totals[primary, 3L], format = "f", digits = 1, big.mark = ",")
-    )
+    totals[primary, 1L],
+    totals[primary, 3L],
+    mask[primary]
+  )
+}
+
+nis_study_flow_display <- function(step, discharges, weights, mask) {
+  dplyr::tibble(
+    step = step,
+    discharges = ifelse(nzchar(mask), mask, format(discharges, big.mark = ",", trim = TRUE)),
+    weighted_discharges = ifelse(nzchar(mask), mask, formatC(weights, format = "f", digits = 1, big.mark = ","))
   )
 }

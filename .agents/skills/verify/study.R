@@ -47,7 +47,7 @@ drive_study_small <- function(scratch, evidence) {
 
 drive_study_reporting <- function(scratch, evidence) {
   verify_study_inputs(scratch, evidence)
-  for (variant in c("domain", "prefiltered", "small-exclusion", "uppercase", "dichotomous", "shared-denominator", "unweighted")) {
+  for (variant in c("domain", "prefiltered", "small-exclusion", "uppercase", "dichotomous", "shared-denominator", "one-year-denominator", "unweighted")) {
     run <- file.path(scratch, variant)
     proof <- file.path(evidence, variant)
     stopifnot(dir.create(run), dir.create(proof))
@@ -246,7 +246,12 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     if (reporting_variant == "shared-denominator") {
       definition[grepl("^  years:", definition)] <- "  years: [2017, 2018, 2019, 2020, 2021, 2022]"
     }
-    if (reporting_variant %in% c("dichotomous", "shared-denominator", "unweighted")) {
+    if (reporting_variant == "one-year-denominator") {
+      definition[grepl("^  years:", definition)] <- "  years: [2022]"
+      definition[grepl("^cohort <- ", definition)] <- "cohort <- rlang::expr(AGE >= 18)"
+    }
+    denominator_case <- reporting_variant %in% c("shared-denominator", "one-year-denominator")
+    if (denominator_case || reporting_variant %in% c("dichotomous", "unweighted")) {
       line <- which(definition == "#| label: design-summary")
       stopifnot(length(line) == 1L)
       setup <- switch(reporting_variant,
@@ -266,6 +271,18 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
           'records$DIED[1L] <- "Yes"',
           'study_design$variables <- records'
         ),
+        `one-year-denominator` = c(
+          'records <- study_design$variables',
+          'i <- seq_len(nrow(records))',
+          'records$exposed <- factor(ifelse(i %% 2L, "Yes", "No"))',
+          'records$exposed[seq_len(24L)] <- NA',
+          'records$DIED <- factor(ifelse(i %% 5L < 2L, "Yes", "No"))',
+          'records$DIED[seq_len(24L)] <- "No"',
+          'records$DIED[seq_len(3L)] <- "Yes"',
+          'records$LOS[seq_len(24L)] <- NA_real_',
+          'records$LOS[1:2] <- 200',
+          'study_design$variables <- records'
+        ),
         unweighted = character()
       )
       definition <- append(definition, setup, after = line)
@@ -275,6 +292,13 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
         definition <- append(definition, c(
           'model_results[[2L]] <- list(model = stats::glm(LOS ~ AGE, data = records))'
         ), after = line - 1L)
+      }
+      if (denominator_case) {
+        definition <- c(definition, "", "```{r}", "#| include: false",
+          'fixture <- study_design$variables',
+          'dput(list(fixture = fixture[, c("YEAR", "DISCWT", "exposed", "DIED", "LOS")],',
+          '  models = lapply(model_results[valid_models], function(result) stats::nobs(result$model)),',
+          '  chart = trend_long), file = "denominator-evidence.R")', "```")
       }
     }
     if (reporting_variant == "prefiltered") {
@@ -300,7 +324,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     report <- render_study(quarto, format, input, evidence)
     validate_study_report(report, format, input, expected, evidence, small_cohort)
     if (!is.null(disclosure_case)) verify_study_disclosure(report, disclosure_case)
-    if (!is.null(reporting_variant)) verify_study_reporting(report, reporting_variant)
+    if (!is.null(reporting_variant)) verify_study_reporting(report, reporting_variant, evidence)
   }
 }
 
@@ -363,15 +387,16 @@ validate_study_report <- function(report, format, input, expected, evidence, sma
   cat("RENDER PASS ", format, " ", file.info(report)$size, " bytes\n", sep = "")
 }
 
-verify_study_reporting <- function(report, variant) {
+verify_study_reporting <- function(report, variant, evidence) {
   document <- xml2::read_html(report)
   methods <- xml2::xml_text(study_report_section(document, "methods"))
   methods <- gsub("[[:space:]]+", " ", methods)
   criterion <- if (variant == "small-exclusion") {
     "principal_dx & !(YEAR == 2019L & HOSP_NIS == 1L & AGE == 28)"
-  } else "principal_dx & AGE >= 18"
+  } else if (variant == "one-year-denominator") "AGE >= 18" else "principal_dx & AGE >= 18"
   period <- switch(variant, uppercase = c("2022", "divided by 1"),
     `shared-denominator` = c("2017, 2018, 2019, 2020, 2021, 2022", "divided by 6"),
+    `one-year-denominator` = c("2022", "divided by 1"),
     c("2019, 2020", "divided by 2"))
   expected <- c(period, criterion, "DISCWT", "with-replacement", "unweighted N",
     "HOSP_NIS", "NIS_STRATUM", "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
@@ -397,11 +422,8 @@ verify_study_reporting <- function(report, variant) {
       ".//tr[td[@headers='label' and starts-with(normalize-space(.),'FEMALE')]]/td[starts-with(@headers,'stat_')]"))
     stopifnot(length(cells) == 3L, all(cells %in% c("Masked", "\u226410", "<2 hospitals")))
   }
-  if (variant == "shared-denominator") {
-    headings <- function(id) xml2::xml_text(xml2::xml_find_all(study_report_section(document, id), ".//thead//th"))
-    stopifnot(any(grepl("N = 300", headings("table-1"), fixed = TRUE)),
-      any(grepl("N = 300", headings("outcomes"), fixed = TRUE)),
-      grepl("DIED", xml2::xml_text(study_report_section(document, "outcomes")), fixed = TRUE))
+  if (variant %in% c("shared-denominator", "one-year-denominator")) {
+    verify_study_denominator(document, variant, evidence)
   }
   if (variant == "unweighted") {
     for (practice in c("National weights", "Sampling design", "Standard errors and hospital nesting")) {
@@ -415,10 +437,54 @@ verify_study_reporting <- function(report, variant) {
   }
 }
 
+verify_study_denominator <- function(document, variant, evidence) {
+  stopifnot(file.copy("denominator-evidence.R", evidence))
+  proof <- dget("denominator-evidence.R")
+  missing <- is.na(proof$fixture$exposed)
+  stopifnot(sum(missing) == 24L,
+    sum(proof$fixture$DIED[missing] == "Yes") == if (variant == "one-year-denominator") 3L else 1L)
+  selected <- proof$fixture[!missing, ]
+  n <- nrow(selected)
+  headings <- function(id) xml2::xml_text(xml2::xml_find_all(study_report_section(document, id), ".//thead//th"))
+  stopifnot(any(grepl(paste0("N = ", n), headings("table-1"), fixed = TRUE)),
+    any(grepl(paste0("N = ", n), headings("outcomes"), fixed = TRUE)),
+    grepl("DIED", xml2::xml_text(study_report_section(document, "outcomes")), fixed = TRUE))
+  cells <- function(id) {
+    rows <- xml2::xml_find_all(study_report_section(document, id), ".//tbody/tr")
+    do.call(rbind, lapply(rows, function(row) {
+      xml2::xml_text(xml2::xml_find_all(row, "./td"), trim = TRUE)
+    }))
+  }
+  flow <- cells("cohort-flow")
+  stopifnot(nrow(flow) == 1L, as.integer(flow[1L, 2L]) == n,
+    flow[1L, 3L] == formatC(sum(selected$DISCWT), format = "f", digits = 1, big.mark = ","))
+  trends <- cells("trends-by-year")
+  annual <- split(selected, selected$YEAR)
+  stopifnot(setequal(trends[, 1L], names(annual)), sum(as.integer(trends[, 2L])) == n)
+  for (rows in annual) {
+    year <- rows$YEAR[[1L]]
+    observed <- trends[trends[, 1L] == year, ]
+    mortality <- stats::weighted.mean(rows$DIED == "Yes", rows$DISCWT)
+    los <- stats::weighted.mean(rows$LOS, rows$DISCWT, na.rm = TRUE)
+    stopifnot(as.integer(observed[[2L]]) == nrow(rows),
+      observed[[3L]] == formatC(sum(rows$DISCWT) / length(annual), format = "f", digits = 1, big.mark = ","),
+      observed[[4L]] == paste0(formatC(100 * mortality, format = "f", digits = 1), "%"),
+      observed[[5L]] == formatC(los, format = "f", digits = 2),
+      isTRUE(all.equal(proof$chart$estimate[proof$chart$YEAR == year],
+        c(mortality, los), check.attributes = FALSE)))
+  }
+  stopifnot(length(xml2::xml_find_all(study_report_section(document, "multivariable-models"), ".//table")) > 0L,
+    length(proof$models) > 0L, all(unlist(proof$models) == n))
+}
+
 validate_study_flow <- function(document, expected, evidence, small_cohort) {
   rows <- xml2::xml_find_all(document, "//section[@id='cohort-flow']//tbody/tr")
   cells <- lapply(rows, function(row) xml2::xml_text(xml2::xml_find_all(row, "./td"), trim = TRUE))
   result <- do.call(rbind, cells)
+  if (identical(dim(result), c(1L, 3L))) {
+    stopifnot(is.null(expected), !small_cohort, result[1L, 1L] == "Analysis cohort (observed exposure)")
+    return(invisible(NULL))
+  }
   stopifnot(identical(dim(result), c(4L, 3L)))
   if (small_cohort) stopifnot(all(result[3:4, 2:3] == "\u226410"))
   if (is.null(expected)) return(invisible(NULL))

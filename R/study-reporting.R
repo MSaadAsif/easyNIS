@@ -47,13 +47,13 @@ nis_study_trend_verified <- function(trend, design) {
   identical(source$design, design) && identical(source$values, rlang::hash(trend))
 }
 
-nis_study_estimates_verified <- function(tables, models, trend, design, summary_design) {
+nis_study_estimates_verified <- function(tables, models, trend, design) {
   tables <- Filter(Negate(is.null), tables)
   checks <- c(
     vapply(
       tables,
       function(table) {
-        inherits(table, "tbl_svysummary") && identical(table$inputs$data, summary_design)
+        inherits(table, "tbl_svysummary") && identical(table$inputs$data, design)
       },
       logical(1)
     ),
@@ -84,11 +84,11 @@ nis_study_release_status <- function(code) {
 }
 
 # jarl-ignore unused_function: Called by the bundled Quarto study.
-nis_study_checklist <- function(report, tables, models, trend, design, summary_design) {
+nis_study_checklist <- function(report, tables, models, trend, design) {
   pass <- function(ok) if (isTRUE(ok)) "Pass" else "Needs attention"
   review <- "Analyst review"
   na <- "Not applicable"
-  verified <- nis_study_estimates_verified(tables, models, trend, design, summary_design)
+  verified <- nis_study_estimates_verified(tables, models, trend, design)
   weighted <- report$design$weighted && verified
   release <- nis_study_release_status(report$release)
   design_ok <- report$design$taylor && report$domain && verified && release[[1L]] != "Needs attention"

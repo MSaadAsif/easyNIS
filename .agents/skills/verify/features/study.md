@@ -26,8 +26,10 @@ The `study-reporting` journey renders the same annualized two-year example
 with and without a pre-design filter. It checks the rendered Methods and
 domain receipt, including on uppercase source data. It tests annualization
 and release-check evidence, complementary masking in cohort flow and
-dichotomous summaries, a shared denominator for Table 1 and Outcomes, and a
-receipt that flags an unweighted regression.
+dichotomous summaries, and a receipt that flags an unweighted regression.
+One-year and six-year fixtures check the shared analysis cohort across Table
+1, Outcomes, Trends, models, and cohort flow. The one-year fixture includes
+three deaths among discharges with missing exposure.
 
 The `study` journey renders the default scaffold with built-in example
 data. The `study-ci` journey supplies a synthetic Parquet directory and
