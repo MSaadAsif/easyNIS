@@ -24,7 +24,10 @@ Rscript --vanilla .agents/skills/verify/drive.R study-reporting
 
 The `study-reporting` journey renders the same annualized two-year example
 with and without a pre-design filter. It checks the rendered Methods and
-domain receipt, then tests complementary masking with a single excluded discharge.
+domain receipt, including on uppercase source data. It tests annualization
+and release-check evidence, complementary masking in cohort flow and
+dichotomous summaries, a shared denominator for Table 1 and Outcomes, and a
+receipt that flags an unweighted regression.
 
 The `study` journey renders the default scaffold with built-in example
 data. The `study-ci` journey supplies a synthetic Parquet directory and

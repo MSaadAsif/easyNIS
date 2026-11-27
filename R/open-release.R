@@ -54,7 +54,7 @@ nis_open_check_release <- function(plan, dataset) {
       ),
       class = "easynis_release_check_failed"
     )
-    return(invisible(NULL))
+    return("failed")
   }
 
   observed <- result$comparison
@@ -86,8 +86,29 @@ nis_open_check_release <- function(plan, dataset) {
       ),
       class = "easynis_release_mismatch"
     )
+    return("mismatch")
   }
-  invisible(NULL)
+  nis_release_check_status(result, years)
+}
+
+nis_release_check_status <- function(result, years) {
+  if (!length(result$fields_by_year)) {
+    return("non-release")
+  }
+  all_fields <- all(vapply(
+    result$fields_by_year,
+    function(parts) {
+      all(vapply(
+        parts,
+        function(fields) {
+          all(c("year", "discwt", "hosp_nis") %in% fields)
+        },
+        logical(1)
+      ))
+    },
+    logical(1)
+  ))
+  if (all_fields && !result$any_marked && setequal(years, result$expected$year)) "matched" else "unverified"
 }
 
 nis_release_inspect <- function(plan, dataset, fields) {
@@ -117,6 +138,7 @@ nis_release_inspect <- function(plan, dataset, fields) {
     observed = observed,
     comparison = comparison,
     expected = expected,
+    any_marked = any(marked),
     fields_by_year = fields_by_year
   )
 }

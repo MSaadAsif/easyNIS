@@ -124,9 +124,7 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   on.exit(connection$release(), add = TRUE)
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
-  if (check_release) {
-    nis_open_check_release(plan, dataset)
-  }
+  release <- if (check_release) nis_open_check_release(plan, dataset) else "skipped"
   query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   if (reader == "duckdb") {
@@ -135,6 +133,7 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   }
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   query$src$.easyNIS_years <- dataset$years
+  query$src$.easyNIS_release_check <- release
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)
   on.exit(NULL, add = FALSE)
   result

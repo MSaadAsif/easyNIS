@@ -46,12 +46,67 @@ drive_study_small <- function(scratch, evidence) {
 }
 
 drive_study_reporting <- function(scratch, evidence) {
-  for (variant in c("domain", "prefiltered", "small-exclusion")) {
+  verify_study_inputs(scratch, evidence)
+  for (variant in c("domain", "prefiltered", "small-exclusion", "uppercase", "dichotomous", "shared-denominator", "unweighted")) {
     run <- file.path(scratch, variant)
     proof <- file.path(evidence, variant)
     stopifnot(dir.create(run), dir.create(proof))
     verify_study(run, proof, "html", reporting_variant = variant)
   }
+}
+
+verify_study_inputs <- function(scratch, evidence) {
+  years <- 2015:2016
+  opened <- easyNIS::nis_open(easyNIS::nis_example(years), years = years)
+  check <- function(data, cohort, source = opened) {
+    design <- easyNIS::nis_design(data, {{ cohort }}, keep = c(DQTR, AGE), annualize = TRUE)
+    easyNIS:::nis_study_reporting(source, design, years)
+  }
+  missing <- dplyr::mutate(opened, DQTR = dplyr::if_else(YEAR == 2015L, NA_integer_, DQTR))
+  reports <- list(
+    q4 = check(opened, YEAR == 2016L | DQTR == 4L),
+    zero_cohort_year = check(opened, YEAR == 2016L),
+    invalid_year = check(dplyr::mutate(opened, DISCWT = dplyr::if_else(YEAR == 2015L, 0, DISCWT)), TRUE),
+    missing_quarter = check(missing, TRUE, source = missing)
+  )
+
+  more_inputs <- file.path(scratch, "annual-release")
+  stopifnot(dir.create(more_inputs))
+  con <- easyNIS:::nis_duckdb_connect()
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  fixture <- dplyr::collect(opened |> dplyr::select(YEAR, DQTR, HOSP_NIS, NIS_STRATUM, DISCWT, AGE))
+  easyNIS:::nis_duckdb_write_parquet(fixture[FALSE, ], file.path(more_inputs, "NIS_2015.parquet"), con)
+  easyNIS:::nis_duckdb_write_parquet(fixture[fixture$YEAR == 2016L, ],
+    file.path(more_inputs, "NIS_2016.parquet"), con)
+  writeLines(unname(tools::md5sum(list.files(more_inputs, full.names = TRUE))),
+    file.path(evidence, "annual-release-hashes.txt"))
+  empty <- suppressWarnings(easyNIS::nis_open(more_inputs, years = years))
+  reports$empty_year <- check(empty, TRUE, source = empty)
+  stopifnot(all(!vapply(reports[1:3], function(report) report$full_years, logical(1))),
+    !reports$empty_year$full_years,
+    identical(reports$empty_year$years, 2016L),
+    identical(reports$invalid_year$years, 2016L),
+    isTRUE(reports$missing_quarter$coding$unknown),
+    identical(opened$src$.easyNIS_release_check, "non-release"),
+    identical(empty$src$.easyNIS_release_check, "mismatch"))
+
+  extract_path <- file.path(scratch, "extract")
+  stopifnot(dir.create(extract_path))
+  DBI::dbExecute(con, paste0("COPY (SELECT * FROM read_parquet(",
+    DBI::dbQuoteString(con, file.path(more_inputs, "NIS_2016.parquet")),
+    ") WHERE AGE >= 30) TO ", DBI::dbQuoteString(con, file.path(extract_path, "NIS_2016.parquet"))))
+  extract <- suppressWarnings(easyNIS::nis_open(extract_path, years = 2016L))
+  stopifnot(identical(extract$src$.easyNIS_release_check, "mismatch"))
+  reports$extract <- check(extract, TRUE, source = extract)
+  stopifnot(identical(easyNIS:::nis_study_release_status(reports$extract$release)[[1L]], "Needs attention"))
+
+  design <- easyNIS::nis_design(opened, YEAR == 2016L, keep = DQTR, annualize = TRUE)
+  reweighted <- easyNIS::nis_reweight(design, rep(2, nrow(design$variables)))
+  reports$reweighted <- easyNIS:::nis_study_reporting(opened, reweighted, years)
+  stopifnot(identical(reports$reweighted$years, years),
+    identical(reports$reweighted$cohort, "YEAR == 2016L"),
+    isTRUE(reports$reweighted$reweighted), !reports$reweighted$design$weighted)
+  dput(reports, file = file.path(evidence, "study-input-receipts.R"))
 }
 
 drive_study_ci <- function(scratch, evidence) {
@@ -185,6 +240,43 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     definition <- readLines(analysis, encoding = "UTF-8")
     definition[grepl("^  years:", definition)] <- "  years: [2019, 2020]"
     definition[definition == "annualize <- FALSE"] <- "annualize <- TRUE"
+    if (reporting_variant == "uppercase") {
+      definition[grepl("^  years:", definition)] <- "  years: [2022]"
+    }
+    if (reporting_variant == "shared-denominator") {
+      definition[grepl("^  years:", definition)] <- "  years: [2017, 2018, 2019, 2020, 2021, 2022]"
+    }
+    if (reporting_variant %in% c("dichotomous", "shared-denominator", "unweighted")) {
+      line <- which(definition == "#| label: design-summary")
+      stopifnot(length(line) == 1L)
+      setup <- switch(reporting_variant,
+        dichotomous = c(
+          'records <- study_design$variables',
+          'arm <- which(records$exposed %in% "Yes")',
+          'records$FEMALE <- factor(ifelse(seq_len(nrow(records)) %% 2L, "Yes", "No"))',
+          'records$FEMALE[arm] <- "Yes"',
+          'records$FEMALE[arm[[1L]]] <- "No"',
+          'study_design$variables <- records'
+        ),
+        `shared-denominator` = c(
+          'records <- study_design$variables',
+          'records$exposed[seq_len(24L)] <- NA',
+          'records$DIED <- factor(ifelse(seq_len(nrow(records)) %% 2L, "Yes", "No"))',
+          'records$DIED[seq_len(24L)] <- "No"',
+          'records$DIED[1L] <- "Yes"',
+          'study_design$variables <- records'
+        ),
+        unweighted = character()
+      )
+      definition <- append(definition, setup, after = line)
+      if (reporting_variant == "unweighted") {
+        line <- which(definition == "valid_models <- which(vapply(model_results, function(result) {")
+        stopifnot(length(line) == 1L)
+        definition <- append(definition, c(
+          'model_results[[2L]] <- list(model = stats::glm(LOS ~ AGE, data = records))'
+        ), after = line - 1L)
+      }
+    }
     if (reporting_variant == "prefiltered") {
       line <- grep("^# Quarto can put chunk options", definition)
       stopifnot(length(line) == 1L)
@@ -278,7 +370,10 @@ verify_study_reporting <- function(report, variant) {
   criterion <- if (variant == "small-exclusion") {
     "principal_dx & !(YEAR == 2019L & HOSP_NIS == 1L & AGE == 28)"
   } else "principal_dx & AGE >= 18"
-  expected <- c("2019, 2020", criterion, "DISCWT", "divided by 2",
+  period <- switch(variant, uppercase = c("2022", "divided by 1"),
+    `shared-denominator` = c("2017, 2018, 2019, 2020, 2021, 2022", "divided by 6"),
+    c("2019, 2020", "divided by 2"))
+  expected <- c(period, criterion, "DISCWT", "with-replacement", "unweighted N",
     "HOSP_NIS", "NIS_STRATUM", "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
   stopifnot(all(vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)))
   domain <- xml2::xml_text(xml2::xml_find_first(document,
@@ -287,6 +382,32 @@ verify_study_reporting <- function(report, variant) {
   stopifnot(grepl(if (prefilter) "Needs attention" else "Pass", domain, fixed = TRUE))
   stopifnot(grepl("could not verify that the design input retained the opened sample",
     methods, fixed = TRUE) == prefilter)
+  receipt_status <- function(practice) {
+    row <- sprintf("//section[@id='checklist-receipt']//tr[td[normalize-space(.)='%s']]/td[2]", practice)
+    xml2::xml_text(xml2::xml_find_first(document, row))
+  }
+  if (variant %in% c("domain", "uppercase")) {
+    stopifnot(identical(receipt_status("Annualization of partial years"), "Pass"),
+      identical(receipt_status("National weights"), "Pass"),
+      identical(receipt_status("Inpatient stays as the unit of analysis"), "Analyst review"))
+  }
+  if (variant == "dichotomous") {
+    table <- study_report_section(document, "table-1")
+    cells <- xml2::xml_text(xml2::xml_find_all(table,
+      ".//tr[td[@headers='label' and starts-with(normalize-space(.),'FEMALE')]]/td[starts-with(@headers,'stat_')]"))
+    stopifnot(length(cells) == 3L, all(cells %in% c("Masked", "\u226410", "<2 hospitals")))
+  }
+  if (variant == "shared-denominator") {
+    headings <- function(id) xml2::xml_text(xml2::xml_find_all(study_report_section(document, id), ".//thead//th"))
+    stopifnot(any(grepl("N = 300", headings("table-1"), fixed = TRUE)),
+      any(grepl("N = 300", headings("outcomes"), fixed = TRUE)),
+      grepl("DIED", xml2::xml_text(study_report_section(document, "outcomes")), fixed = TRUE))
+  }
+  if (variant == "unweighted") {
+    for (practice in c("National weights", "Sampling design", "Standard errors and hospital nesting")) {
+      stopifnot(identical(receipt_status(practice), "Needs attention"))
+    }
+  }
   if (variant == "small-exclusion") {
     flow <- study_report_section(document, "cohort-flow")
     counts <- xml2::xml_text(xml2::xml_find_all(flow, ".//tbody/tr/td[position() > 1]"), trim = TRUE)

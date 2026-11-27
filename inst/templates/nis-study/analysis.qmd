@@ -83,12 +83,12 @@ design_key <- rlang::hash(easyNIS:::nis_study_cache_key(
 #| cache: true
 #| cache.extra: !expr design_key
 study_design <- rlang::inject(
-  easyNIS:::nis_study_design(
-    opened, nis_data,
+  nis_design(
+    nis_data,
     !!cohort,
     keep = c(
       AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS,
-      principal_dx, exposed
+      principal_dx, exposed, dplyr::any_of("DQTR")
     ),
     annualize = annualize,
     dollars = max(params$years)
@@ -131,10 +131,14 @@ comparisons_safe <- has_exposure_comparison &&
   all(vapply(arm_support, function(arm) arm$n > 0L && !nzchar(arm$mask), logical(1))) &&
   (!any(missing_exposure) || easyNIS:::nis_study_supported(
     records[missing_exposure, , drop = FALSE], disclosure_limit))
+# The two summaries use the same denominator, including when exposure is missing.
+summary_design <- if (comparisons_safe && any(missing_exposure)) {
+  dplyr::filter(study_design, !is.na(.data[[exposure]]))
+} else study_design
 study_header <- function(table) {
   metadata <- table$table_styling$header
   grouped <- "stat_1" %in% names(table$table_body)
-  total <- if (grouped) sum(!missing_exposure) else cohort_n
+  total <- nrow(summary_design$variables)
   header <- list(stat_0 = paste0("**N = ", format(total, big.mark = ","), "**"))
   if (grouped) {
     columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
@@ -148,12 +152,10 @@ study_header <- function(table) {
   }
   gtsummary::modify_header(table, !!!header)
 }
-report <- easyNIS:::nis_study_reporting(opened, study_design)
-published <- character()
-publish_table <- function(name, table) {
-  output <- easyNIS:::nis_study_render_table(table, html = knitr::is_html_output())
-  published <<- union(published, name)
-  output
+report <- easyNIS:::nis_study_reporting(opened, study_design, params$years)
+table_one <- outcome_table <- trend_estimates <- NULL
+render_table <- function(table) {
+  easyNIS:::nis_study_render_table(table, html = knitr::is_html_output())
 }
 ```
 
@@ -166,6 +168,8 @@ publish_table <- function(name, table) {
 cat(easyNIS:::nis_study_methods(report, is_example), "\n")
 ```
 
+`r if (comparisons_safe && any(missing_exposure)) "Table 1 and the outcome summaries use discharges with observed exposure."`
+
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
@@ -175,14 +179,14 @@ scientific approval.
 
 The flow follows the analysis input through the principal diagnosis flag,
 the cohort criterion, and the survey design's eligibility checks. Flow totals
-use unscaled discharge weights so each step is on the same scale.
+sum finite positive, unscaled discharge weights.
 
 ```{r}
 #| label: flow
 flow_display <- rlang::inject(easyNIS:::nis_study_flow(
   nis_data, principal_dx, !!cohort, study_design, pooled_mask, disclosure_limit
 ))
-publish_table("cohort flow", flow_display)
+render_table(flow_display)
 ```
 
 ## Table 1
@@ -199,7 +203,7 @@ if (!has_cohort) {
   variables <- c("AGE", "FEMALE", names(outcome_ok)[outcome_ok])
   table_one <- if (has_exposure_comparison) {
     gtsummary::tbl_svysummary(
-      study_design,
+      summary_design,
       by = dplyr::all_of(exposure),
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
@@ -209,7 +213,7 @@ if (!has_cohort) {
       gtsummary::add_overall()
   } else {
     gtsummary::tbl_svysummary(
-      study_design,
+      summary_design,
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
@@ -217,7 +221,7 @@ if (!has_cohort) {
   }
 
   table_one <- easyNIS:::nis_study_summary_table(table_one, disclosure_limit, study_header)
-  publish_table("Table 1", table_one)
+  render_table(table_one)
 }
 ```
 
@@ -233,14 +237,14 @@ if (!has_cohort) {
   knitr::asis_output("Outcome summaries are withheld under the study disclosure policy.")
 } else {
   outcome_table <- gtsummary::tbl_svysummary(
-    study_design,
+    summary_design,
     include = dplyr::all_of(names(outcome_ok)[outcome_ok]),
     type = list(dplyr::any_of(c("LOS", "cost_adj")) ~ "continuous"),
     statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
   )
 
   outcome_table <- easyNIS:::nis_study_summary_table(outcome_table, disclosure_limit, study_header)
-  publish_table("outcome summaries", outcome_table)
+  render_table(outcome_table)
 }
 ```
 
@@ -256,18 +260,8 @@ if (!has_cohort) {
     "Trends are unavailable because the cohort has no rows in the survey design."
   )
 } else {
-trend <- study_design |>
-  dplyr::mutate(.one = 1) |>
-  dplyr::group_by(YEAR) |>
-  dplyr::summarise(
-    mortality = srvyr::survey_mean(DIED, vartype = "ci", na.rm = TRUE),
-    mean_los = srvyr::survey_mean(LOS, vartype = "ci", na.rm = TRUE),
-    n_unweighted = dplyr::n(),
-    weighted_n = srvyr::survey_total(.one, vartype = NULL),
-    .groups = "drop"
-  ) |>
-  dplyr::ungroup() |>
-  dplyr::left_join(trend_support, by = "YEAR")
+trend_estimates <- easyNIS:::nis_study_trend_estimates(study_design)
+trend <- dplyr::left_join(trend_estimates, trend_support, by = "YEAR")
 
 trend_long <- dplyr::bind_rows(
   trend |>
@@ -297,7 +291,7 @@ if (nrow(trend_long)) print(ggplot2::ggplot(
   ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
   ggplot2::theme_minimal())
 
-publish_table("yearly estimates", easyNIS:::nis_study_trend_table(trend))
+render_table(easyNIS:::nis_study_trend_table(trend))
 }
 ```
 
@@ -363,7 +357,7 @@ model_notes <- purrr::map_chr(seq_along(model_results), function(i) {
 ```{r}
 #| label: model-tables
 rendered_tables <- purrr::map_chr(family_tables, function(family_table) {
-  table <- publish_table("survey regression", family_table)
+  table <- render_table(family_table)
   rendered <- knitr::knit_print(table)
   metadata <- attr(rendered, "knit_meta", exact = TRUE)
   if (length(metadata) > 0L) {
@@ -384,13 +378,16 @@ if (length(model_output) == 0L) {
 The receipt covers the generated report and follows the
 [HCUP NIS checklist](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp)
 and [Khera et al.](https://doi.org/10.1001/jama.2017.17653).
-Items requiring manuscript, clinical, or release review are marked
-“Needs attention.” Review the finished outputs under the
+The receipt marks manuscript and clinical checks “Analyst review.”
+Review the finished outputs under the
 [HCUP Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.pdf).
 
 ```{r}
 #| label: checklist-receipt
-receipt <- easyNIS:::nis_study_checklist(report, published, outcomes$outcome[valid_models], is_example)
+receipt <- easyNIS:::nis_study_checklist(
+  report, list(table_one, outcome_table), purrr::map(model_results[valid_models], "model"),
+  trend_estimates, study_design, summary_design
+)
 knitr::kable(receipt)
 ```
 
