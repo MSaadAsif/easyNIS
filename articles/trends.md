@@ -50,7 +50,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmUMjcF/duckdb
+#> ℹ /tmp/RtmpGGdKd4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -58,7 +58,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmUMjcF/duckdb
+#> ℹ /tmp/RtmpGGdKd4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -198,7 +198,7 @@ transition <- nis_open(nis_example(2015)) |>
   nis_flag_dx(hf10 = "I50", system = "icd10", position = "principal") |>
   dplyr::mutate(period = dplyr::if_else(DQTR == 4L, "Q4", "Q1-Q3"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmUMjcF/duckdb
+#> ℹ /tmp/RtmpGGdKd4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -209,7 +209,7 @@ transition <- nis_open(nis_example(2015)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmUMjcF/duckdb
+#> ℹ /tmp/RtmpGGdKd4/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -277,7 +277,7 @@ design <- nis_design(nis, heart_failure, keep = LOS) |>
 fit <- survey::svyglm(LOS ~ elapsed, design = design)
 summary(fit)$coefficients["elapsed", ]
 #>     Estimate   Std. Error      t value     Pr(>|t|) 
-#> 3.111381e-16 2.289912e-01 1.358734e-15 1.000000e+00
+#> 2.646794e-16 2.289912e-01 1.155850e-15 1.000000e+00
 ```
 
 The coefficient and its design-based uncertainty describe change in mean
