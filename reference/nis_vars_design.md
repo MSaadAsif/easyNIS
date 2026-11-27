@@ -67,7 +67,7 @@ Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp2QuqHF/duckdb
+#> ℹ /tmp/Rtmps4jT9n/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -75,7 +75,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp2QuqHF/duckdb
+#> ℹ /tmp/Rtmps4jT9n/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -84,7 +84,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ See ?duckdb_storage for details and alternatives.
 dplyr::select(nis, nis_vars_design(), nis_vars_demographics(), LOS)
 #> # A query:  ?? x 13
-#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1018-aws:R 4.6.2/:memory:]
+#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1020-azure:R 4.6.2/:memory:]
 #>     YEAR HOSP_NIS NIS_STRATUM DISCWT  DQTR   AGE AGE_NEONATE FEMALE  RACE  PAY1
 #>    <int>    <int>       <int>  <dbl> <int> <dbl>       <int>  <int> <int> <int>
 #>  1  2019        1           1    1.1     1    28           0      1     3     3
@@ -101,7 +101,7 @@ dplyr::select(nis, nis_vars_design(), nis_vars_demographics(), LOS)
 #> # ℹ 3 more variables: ZIPINC_QRTL <int>, PL_NCHS <int>, LOS <dbl>
 dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
 #> # A query:  ?? x 67
-#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1018-aws:R 4.6.2/:memory:]
+#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1020-azure:R 4.6.2/:memory:]
 #>    I10_DX1 I10_DX10 I10_DX11 I10_DX12 I10_DX13 I10_DX14 I10_DX15 I10_DX16
 #>    <chr>   <chr>    <chr>    <chr>    <chr>    <chr>    <chr>    <chr>   
 #>  1 I5022   NA       NA       NA       NA       NA       NA       NA      
@@ -123,7 +123,7 @@ dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
 #> #   I10_DX34 <chr>, I10_DX35 <chr>, I10_DX36 <chr>, I10_DX37 <chr>, …
 dplyr::select(nis, -nis_vars_pr())
 #> # A query:  ?? x 83
-#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1018-aws:R 4.6.2/:memory:]
+#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1020-azure:R 4.6.2/:memory:]
 #>      AGE AGE_NEONATE AMONTH APRDRG_RISK_MORTALITY APRDRG_SEVERITY AWEEKEND
 #>    <dbl>       <int>  <int>                 <int>           <int>    <int>
 #>  1    28           0      3                     2               3        0

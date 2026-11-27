@@ -129,7 +129,7 @@ cohort discharges in the design.</p>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpAG99G5/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP6tskb/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -137,7 +137,7 @@ cohort discharges in the design.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpAG99G5/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP6tskb/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -146,7 +146,6 @@ cohort discharges in the design.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span></span>
 <span><span class="va">annual</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_annual_totals.html">nis_annual_totals</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
 <span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span></span>
 <span>  <span class="va">annual</span>,</span>
 <span>  count_col <span class="op">=</span> <span class="st">"n"</span>,</span>
@@ -267,7 +266,7 @@ Compute separate estimates for Q1–Q3 and Q4, with unscaled weights.</p>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf10 <span class="op">=</span> <span class="st">"I50"</span>, system <span class="op">=</span> <span class="st">"icd10"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">DQTR</span> <span class="op">==</span> <span class="fl">4L</span>, <span class="st">"Q4"</span>, <span class="st">"Q1-Q3"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpAG99G5/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP6tskb/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -278,7 +277,7 @@ Compute separate estimates for Q1–Q3 and Q4, with unscaled weights.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
 <span><span class="co">#&gt;   slots.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpAG99G5/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP6tskb/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -344,7 +343,7 @@ Calendar-time spacing is preserved when included years have gaps.</p>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">LOS</span> <span class="op">~</span> <span class="va">elapsed</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span><span class="op">[</span><span class="st">"elapsed"</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;     Estimate   Std. Error      t value     Pr(&gt;|t|) </span></span>
-<span><span class="co">#&gt; 2.646794e-16 2.289912e-01 1.155850e-15 1.000000e+00</span></span></code></pre></div>
+<span><span class="co">#&gt; 3.111381e-16 2.289912e-01 1.358734e-15 1.000000e+00</span></span></code></pre></div>
 <p>The coefficient and its design-based uncertainty describe change in
 mean length of stay, measured in days per year. Choose a model and
 denominator that match the outcome. For a binary outcome, a
