@@ -41,7 +41,8 @@ nis_open(
 
 ## Value
 
-A lazy DuckDB-backed dbplyr table with case-normalized columns.
+A lazy DuckDB-backed dbplyr table with case-normalized source column
+names. Saved cohorts retain the column names used at export.
 Experimental 2023 layouts keep `TOTCHG_2023` as its own column and leave
 `TOTCHG` untouched, because the 2023 field is HCUP-adjusted for national
 estimates and is not comparable to earlier-year charges. Opening a query
@@ -153,7 +154,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpaLGZww/duckdb
+#> ℹ /tmp/RtmpdAwY7x/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -162,7 +163,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpaLGZww/duckdb
+#> ℹ /tmp/RtmpdAwY7x/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -183,7 +184,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpaLGZww/duckdb
+#> ℹ /tmp/RtmpdAwY7x/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

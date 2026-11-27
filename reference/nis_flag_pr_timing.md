@@ -2,12 +2,14 @@
 
 Compares procedure slots with the correspondingly numbered PRDAY values.
 The earliest valid index day is used when the index procedure occurs in
-multiple slots. A slot matching both prefix sets counts as both
-procedures. Prefixes follow the normalization and matching rules of
-[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md).
-Factor and ordered-factor PRDAY columns are interpreted by their labels,
-not their internal level numbers. Values that decode to missing numeric
-days are handled as missing. Input columns are preserved. Negative days
+multiple slots. A slot matching both definitions counts as both
+procedures. Definitions follow the prefix, regular expression, and exact
+exclusion rules of
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md);
+timing compares slots within the same code system. Factor and
+ordered-factor PRDAY columns are interpreted by their labels, not their
+internal level numbers. Values that decode to missing numeric days are
+handled as missing. Input columns are preserved. Negative days
 (including HCUP sentinel values), non-finite values, and missing days
 are unknown. If either procedure is absent, the result is FALSE.
 Otherwise, any outcome with a known day satisfying the relation returns
@@ -26,7 +28,7 @@ nis_flag_pr_timing(
   relation = c("on_or_after", "after", "before", "same_day", "within_days"),
   window = NULL,
   missing_day = c("exclude", "assume_same_day", "indeterminate"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9", "both")
 )
 ```
 
@@ -38,11 +40,13 @@ nis_flag_pr_timing(
 
 - index_pr:
 
-  Character vector of index procedure code prefixes.
+  Code definition for the index procedure, as in
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md).
 
 - outcome_pr:
 
-  Character vector of outcome procedure code prefixes.
+  Code definition for the outcome procedure, as in
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md).
 
 - name:
 
@@ -65,7 +69,8 @@ nis_flag_pr_timing(
 - system:
 
   Code system: icd10 uses I10_PR followed by a slot number; icd9 uses PR
-  followed by a slot number.
+  followed by a slot number. With `system = "both"`, supply named `icd9`
+  and `icd10` definitions for each procedure.
 
 ## Value
 
