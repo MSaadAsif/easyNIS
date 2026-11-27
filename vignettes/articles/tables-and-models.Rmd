@@ -32,6 +32,9 @@ design |>
 discharges across both years. Set the denominator for each statistic before
 reviewing its disclosure risk.
 
+Install `gtsummary` and `cardx` for the survey table, and `broom.helpers`
+for the regression table below.
+
 ```{r table}
 library(gtsummary)
 

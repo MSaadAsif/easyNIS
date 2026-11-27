@@ -18,14 +18,16 @@ library(srvyr)
 
 nis <- nis_open(nis_example(years = 2015))
 nis_audit_code_transition(
-  nis, codes = c(heart_failure = "I50"), system = "icd10",
+  nis, codes = c(heart_failure = "I50"), type = "dx", system = "icd10",
   by = c(YEAR, DQTR)
 )
 nis_audit_dx_position(nis, "I50", system = "icd10", outcomes = DIED)
 ```
 
 The examples use invented data. The transition audit counts matches by
-quarter. The position audit compares principal, secondary-only, and
+quarter in the ICD-10 diagnosis slots. Use a separate audit with
+`system = "icd9"` and the corresponding ICD-9 prefixes for earlier quarters.
+The position audit compares principal, secondary-only, and
 any-position definitions. Both give descriptive counts or rates. Use a
 survey design for standard errors.
 
