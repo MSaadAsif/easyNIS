@@ -1,128 +1,104 @@
 ---
-title: "Get started with easyNIS"
-description: "A ten-minute, synthetic end-to-end NIS workflow."
+title: "Analyze your first NIS cohort"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Get started with easyNIS}
+  %\VignetteIndexEntry{Analyze your first NIS cohort}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```{r setup, message=FALSE}
 library(easyNIS)
+library(dplyr)
+library(srvyr)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-This workflow uses invented inpatient discharges from `nis_example()`. In a
-study, use the path to your converted annual Parquet files and supply your
-own diagnosis definitions and eligibility rules.
 
-## Open, project, and flag
+## Open the files and define the analysis groups
 
-Choose the study years in `nis_open()`. Select the columns needed for the
-analysis, keeping the design fields and the diagnosis slots used by the flag.
-The query stays in DuckDB. The diagnosis flag checks every slot by default.
-
-```{r cohort}
-nis <- nis_open(nis_example(years = 2019:2020)) |>
-  dplyr::select(nis_vars_design(), nis_vars_dx(), AGE, FEMALE, LOS, DIED, DISPUNIFORM) |>
+```{r open}
+files <- nis_example(years = 2019:2020)
+nis <- nis_open(files, years = 2019:2020) |>
+  select(nis_vars_design(), nis_vars_dx(), AGE, LOS, DIED, DISPUNIFORM) |>
   nis_flag_dx(heart_failure = "I50") |>
-  nis_outcomes() |>
-  dplyr::mutate(adult = AGE >= 18)
-
-nis_attrition(nis, adult = adult, by_year = TRUE, .design = TRUE)
+  nis_outcomes()
 ```
 
-`nis_vars_design()` keeps `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, `DISCWT` and,
-when present, `DQTR`. If a prior selection removed one of the four required
-fields, `nis_design()` reports the missing field. See
-[Defining cohorts](cohorts.html) for principal diagnoses, exclusions, procedure
-flags, and code-system choices.
+The examples use invented data. `files` is a directory of annual Parquet files.
+The query keeps the survey fields, diagnosis slots, and analysis columns. Each
+row represents a discharge. The flag checks every diagnosis slot for `I50`.
 
-## Estimate within the adult domain
+## Estimate discharge totals and length of stay
 
-Pass the eligibility flag to `cohort` so the variance calculation can account
-for sampled hospital-years with no eligible discharges. `keep` limits what the
-design brings into R, and the design labels retained HCUP fields. The flag
-groups compare adult discharges with and without a matching diagnosis.
-
-```{r design}
-design <- nis |>
-  nis_design(cohort = adult, keep = c(heart_failure, AGE, FEMALE, los_days, in_hospital_death))
+```{r estimates}
+design <- nis_design(
+  nis, cohort = AGE >= 18,
+  keep = c(AGE, heart_failure, los_days, in_hospital_death)
+)
 
 estimates <- design |>
-  dplyr::group_by(heart_failure) |>
-  dplyr::summarise(
-    discharges = srvyr::survey_total(),
-    mean_los = srvyr::survey_mean(los_days, na.rm = TRUE)
-  )
+  group_by(heart_failure) |>
+  summarise(discharges = survey_total(), mean_los = survey_mean(los_days))
+estimates
 ```
 
-This estimates totals across both study years. Use `annualize = TRUE` for
-average annual totals when each included year represents a whole year.
-For annual estimates, keep the original weights and group by `YEAR`. See
-[Survey design and weighting](survey-design.html) for pooling and coverage.
+You get a weighted discharge total and mean length of stay for each
+heart-failure group, with standard errors. Pass eligibility to `cohort` so
+hospitals without adult discharges still count in the sampling structure.
+The totals cover both years. [How easyNIS works](how-easynis-works.html)
 
 ## Make a table and fit a model
 
-Use the same design for the descriptive table and regression. The model
-adjusts for age, sex, and year in this invented example. Review the model
-sample and missingness when reporting a real analysis.
+Install `gtsummary` and `cardx` to run the table step.
 
-```{r table-one, eval=rlang::is_installed(c("gtsummary", "cardx", "gt"))}
-table_one <- design |>
-  gtsummary::tbl_svysummary(by = heart_failure, include = c(AGE, FEMALE, los_days, in_hospital_death))
+```{r table}
+library(gtsummary)
+
+table_one <- tbl_svysummary(
+  design, by = heart_failure, include = c(AGE, los_days, in_hospital_death)
+)
 nis_suppress(table_one)
 ```
 
+The table compares the groups and masks cells with too few sampled discharges
+or contributing hospitals.
+
 ```{r model}
 fit <- survey::svyglm(
-  in_hospital_death ~ heart_failure + AGE + FEMALE + factor(YEAR),
-  design = design,
-  family = quasibinomial()
+  in_hospital_death ~ heart_failure + AGE,
+  design = design, family = quasibinomial()
 )
+summary(fit)$coefficients
 ```
 
-## Review disclosure before exporting
+The heart-failure coefficient is the age-adjusted log odds ratio for
+in-hospital death in this example.
 
-The table above masks statistics using corresponding unweighted counts and
-hospital support. For a data-frame summary, attach those counts explicitly.
-This fixture has recorded LOS for every discharge. With missing LOS, use
-counts for the records contributing to that mean.
+## Check the design and export a summary
 
-```{r disclosure}
+```{r export}
+nis_design_report(design)
+
 reviewed <- estimates |>
-  dplyr::left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
+  left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
   nis_suppress(
-    count_col = n,
-    hospital_col = hospitals,
+    count_col = n, hospital_col = hospitals,
     weighted_cols = c(discharges, discharges_se, mean_los, mean_los_se)
   )
-reviewed
+file <- tempfile(fileext = ".csv")
+write.csv(reviewed, file, row.names = FALSE)
+read.csv(file)
 ```
 
-Review disclosure across tables, models, and related totals before sharing.
-Keep work in a private directory. See [Disclosure and suppression](disclosure.html).
+The design report records which years and weights entered the analysis and
+how many sampled discharges met the criteria. Check support for each
+statistic before export. For example, a mean with missing values needs
+counts restricted to the records used for that mean. Review the release
+across all outputs. [Check disclosure](disclosure.html)
 
-```{r export, eval=FALSE}
-utils::write.csv(reviewed, "discharges-reviewed.csv", row.names = FALSE)
-```
+## Where next
 
-## Project before collecting
-
-When a step needs a data frame, put `select()` before `collect()` so DuckDB
-can read the requested columns from Parquet. In a Windows benchmark, fresh R
-4.6.1 processes with DuckDB 1.5.2 selected the same seven columns from
-480,000 invented rows and 188 source columns. Peak process commit was
-206 MiB with projection before collection and 1,379 MiB with projection
-after collection. The difference measures one synthetic workload. Peak
-memory depends on the data, query, and system.
-
-To reproduce the measurement from the easyNIS source directory on Windows,
-install the package and run these commands with a new scratch directory.
-
-```sh
-Rscript --vanilla tools/benchmark-column-projection.R prepare local/loop/wide-invented
-Rscript --vanilla tools/benchmark-column-projection.R early local/loop/wide-invented
-Rscript --vanilla tools/benchmark-column-projection.R late local/loop/wide-invented
-```
+- [Prepare your annual files](prepare-data.html).
+- [Analyze the whole sample in DuckDB](whole-sample.html).
+- [Start a Quarto study](study-template.html).
