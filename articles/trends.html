@@ -128,7 +128,7 @@ cohort discharges in the design.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgPV4wY/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpmeiGry/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -136,7 +136,7 @@ cohort discharges in the design.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgPV4wY/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpmeiGry/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -201,7 +201,7 @@ Calendar-time spacing is preserved when included years have gaps.</p>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">LOS</span> <span class="op">~</span> <span class="va">elapsed</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span><span class="op">[</span><span class="st">"elapsed"</span>, <span class="op">]</span></span>
 <span><span class="co">#&gt;     Estimate   Std. Error      t value     Pr(&gt;|t|) </span></span>
-<span><span class="co">#&gt; 3.111381e-16 2.289912e-01 1.358734e-15 1.000000e+00</span></span></code></pre></div>
+<span><span class="co">#&gt; 2.646794e-16 2.289912e-01 1.155850e-15 1.000000e+00</span></span></code></pre></div>
 <p>The coefficient and its design-based uncertainty describe change in
 mean length of stay, measured in days per year. Choose a model and
 denominator that match the outcome. For a binary outcome, a
