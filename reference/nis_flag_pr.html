@@ -83,7 +83,7 @@ are supported.</p>
 <span>  <span class="va">.data</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  position <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"any"</span>, <span class="st">"principal"</span><span class="op">)</span>,</span>
-<span>  system <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"icd10"</span>, <span class="st">"icd9"</span><span class="op">)</span></span>
+<span>  system <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"icd10"</span>, <span class="st">"icd9"</span>, <span class="st">"both"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -106,7 +106,7 @@ are supported.</p>
 
 <dt id="arg-system">system<a class="anchor" aria-label="anchor" href="#arg-system"></a></dt>
 <dd><p>Code system of the slots to check: <code>"icd10"</code> (default) or
-<code>"icd9"</code> (experimental, NIS 2012 to Q3 2015).</p></dd>
+<code>"icd9"</code> (experimental, NIS 2012 to Q3 2015), or <code>"both"</code> (experimental).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -131,7 +131,7 @@ are supported.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpO42IIX/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpNR91dz/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -139,7 +139,7 @@ are supported.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpO42IIX/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpNR91dz/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>

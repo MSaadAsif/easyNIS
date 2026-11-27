@@ -2,6 +2,12 @@
 
 ## easyNIS (development version)
 
+- [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+  and
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
+  can combine separate ICD-9 and ICD-10 definitions in one flag with
+  experimental `system = "both"`.
+
 - The descriptives and regression article shows how to use
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   with gtsummary for survey summaries, group comparisons, and regression

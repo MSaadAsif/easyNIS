@@ -106,5 +106,5 @@ flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
 nis_attrition_cohort(flow)
 #> <quosure>
 #> expr: ^AGE >= 18
-#> env:  0x5ec357a7b958
+#> env:  0x5fc8de9682b0
 ```

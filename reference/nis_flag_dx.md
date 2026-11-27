@@ -19,7 +19,7 @@ nis_flag_dx(
   .data,
   ...,
   position = c("any", "principal", "secondary"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9", "both")
 )
 ```
 
@@ -37,6 +37,8 @@ nis_flag_dx(
   `heart_failure = list(regex = "I50(1|2)")`. Within a list, `prefix`,
   `regex`, and `exclude` can each be character vectors. Prefix and regex
   matches are combined; exclusions are exact and apply within each slot.
+  With `system = "both"`, nest those definitions under `icd9` and
+  `icd10`, for example `flag = list(icd9 = "12345", icd10 = "I50")`.
 
 - position:
 
@@ -46,7 +48,7 @@ nis_flag_dx(
 - system:
 
   Code system of the slots to check: `"icd10"` (default) or `"icd9"`
-  (experimental, NIS 2012 to Q3 2015).
+  (experimental, NIS 2012 to Q3 2015), or `"both"` (experimental).
 
 ## Value
 
@@ -72,12 +74,13 @@ indicators must agree with `system`; non-missing `YEAR` and, in 2015,
 Missing indicators rely on the slot namespace: callers must preserve the
 official names and leave inapplicable slots missing. Shared slots
 containing both systems are not supported. `FALSE` means "not flagged
-under that code system", not "condition absent". A study that crosses
-October 2015 needs analyst-supplied code sets for both systems, flagged
-in two calls and combined, for example
-`nis_flag_dx(hf10 = "I50") |> nis_flag_dx(hf9 = "428", system = "icd9") |> dplyr::mutate(hf = hf10 | hf9)`.
-easyNIS ships no code lists and no ICD-9 to ICD-10 crosswalk, and even
-with both code sets, counts of a condition can break at the transition.
+under the requested code system or systems". For a study spanning
+October 2015, use `system = "both"` and supply one named `icd9` and one
+named `icd10` definition per flag. Each definition applies to its own
+eligible records and slots. A match in either system sets the flag. Both
+sets of slot columns must be present for the requested position. Use a
+single-system call on files containing only that system. The analyst
+supplies both definitions and reviews comparability at the transition.
 
 ## See also
 
@@ -99,7 +102,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpO42IIX/duckdb
+#> ℹ /tmp/RtmpNR91dz/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -107,7 +110,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpO42IIX/duckdb
+#> ℹ /tmp/RtmpNR91dz/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -150,7 +153,7 @@ nis |>
   dplyr::count(hf_full) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpO42IIX/duckdb
+#> ℹ /tmp/RtmpNR91dz/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

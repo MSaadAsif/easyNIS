@@ -109,7 +109,7 @@ secondary-only, and any-position definitions.
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpDG7LYC/duckdb
+#> ℹ /tmp/RtmpiieS9l/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -117,7 +117,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpDG7LYC/duckdb
+#> ℹ /tmp/RtmpiieS9l/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -142,11 +142,52 @@ with standard errors. Use a survey design for inferential comparisons.
 ## Handle the ICD transition
 
 NIS changed from ICD-9-CM to ICD-10-CM/PCS in October 2015. 2015
-combines ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4.
-Flag the systems separately using the appropriate slot names and version
-information; easyNIS does not supply a crosswalk or clinical equivalence
-decisions. ICD-9 helpers and code-system boundary checks are
-experimental.
+combines ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4. For
+a query containing both slot sets, supply the two definitions
+explicitly. Each definition uses its own slots, version information, and
+eligible quarters. These invented codes illustrate the syntax.
+
+``` r
+
+nis_open(nis_example(years = 2015)) |>
+  nis_flag_dx(flag = list(icd9 = "12345", icd10 = "I50"), system = "both") |>
+  dplyr::count(DQTR, flag) |>
+  dplyr::collect()
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpiieS9l/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> Experimental: years before 2016 store ICD-9-CM codes in DX1, PR1, ... slots.
+#> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
+#>   slots.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpiieS9l/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> # A tibble: 8 × 3
+#>    DQTR flag      n
+#>   <int> <lgl> <dbl>
+#> 1     2 FALSE    15
+#> 2     3 TRUE      9
+#> 3     4 TRUE     18
+#> 4     1 FALSE     6
+#> 5     2 TRUE      9
+#> 6     3 FALSE    15
+#> 7     1 TRUE     18
+#> 8     4 FALSE     6
+```
+
+Use a single-system call when only one slot set is present. Review
+clinical equivalence and trends with the study’s code sets. Mixed-system
+flags are experimental.
 
 ## Common pitfalls
 

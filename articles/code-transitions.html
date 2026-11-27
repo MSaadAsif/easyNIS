@@ -186,7 +186,7 @@ any-position definitions.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDG7LYC/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpiieS9l/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -194,7 +194,7 @@ any-position definitions.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpDG7LYC/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpiieS9l/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -219,11 +219,48 @@ comparisons.</p>
 <h2 id="handle-the-icd-transition">Handle the ICD transition<a class="anchor" aria-label="anchor" href="#handle-the-icd-transition"></a>
 </h2>
 <p>NIS changed from ICD-9-CM to ICD-10-CM/PCS in October 2015. 2015
-combines ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4.
-Flag the systems separately using the appropriate slot names and version
-information; easyNIS does not supply a crosswalk or clinical equivalence
-decisions. ICD-9 helpers and code-system boundary checks are
-experimental.</p>
+combines ICD-9 discharges from Q1–Q3 with ICD-10 discharges from Q4. For
+a query containing both slot sets, supply the two definitions
+explicitly. Each definition uses its own slots, version information, and
+eligible quarters. These invented codes illustrate the syntax.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>flag <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>icd9 <span class="op">=</span> <span class="st">"12345"</span>, icd10 <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span>, system <span class="op">=</span> <span class="st">"both"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">DQTR</span>, <span class="va">flag</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpiieS9l/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; Experimental: years before 2016 store ICD-9-CM codes in <span style="color: #00BB00;">DX1</span>, <span style="color: #00BB00;">PR1</span>, ... slots.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
+<span><span class="co">#&gt;   slots.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpiieS9l/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 3</span></span></span>
+<span><span class="co">#&gt;    DQTR flag      n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     2 FALSE    15</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     3 TRUE      9</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     4 TRUE     18</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     1 FALSE     6</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     2 TRUE      9</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     3 FALSE    15</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span>     1 TRUE     18</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span>     4 FALSE     6</span></span></code></pre></div>
+<p>Use a single-system call when only one slot set is present. Review
+clinical equivalence and trends with the study’s code sets. Mixed-system
+flags are experimental.</p>
 </div>
 <div class="section level2">
 <h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
