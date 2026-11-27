@@ -49,7 +49,7 @@ identify years with no valid cohort discharges in the design.
 nis <- nis_open(nis_example(years = 2018:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmeiGry/duckdb
+#> ℹ /tmp/Rtmp7BFGtd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -57,7 +57,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmeiGry/duckdb
+#> ℹ /tmp/Rtmp7BFGtd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -127,7 +127,7 @@ design <- nis_design(nis, heart_failure, keep = LOS) |>
 fit <- survey::svyglm(LOS ~ elapsed, design = design)
 summary(fit)$coefficients["elapsed", ]
 #>     Estimate   Std. Error      t value     Pr(>|t|) 
-#> 2.646794e-16 2.289912e-01 1.155850e-15 1.000000e+00
+#> 3.111381e-16 2.289912e-01 1.358734e-15 1.000000e+00
 ```
 
 The coefficient and its design-based uncertainty describe change in mean
