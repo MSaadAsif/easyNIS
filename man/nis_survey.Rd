@@ -43,6 +43,7 @@ survey::svyby(~LOS, ~YEAR, design, survey::svymean)
 \seealso{
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},
+\code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_reweight]{nis_reweight()}}
 }
 \concept{survey-design}
