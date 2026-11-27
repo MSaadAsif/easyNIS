@@ -71,4 +71,37 @@ theorem poaEvidence (xs : List Slot) : longPoa xs = widePoa xs := by
     cases h : code x <;> cases p : x.principal <;>
       simp_all [longPoa, longRows, widePoa]
 
+-- Fix the release and category before comparing the slot-wise joins
+-- with list membership. Missing slots cannot match a mapping code.
+def ccsrCodes (mapping : List (String × String)) (category : String) : List String :=
+  (mapping.filter (fun pair => pair.2 == category)).map Prod.fst
+
+def ccsrPresence (codes : List String) (slots : List (Option String)) : Bool :=
+  slots.any fun slot => slot.any fun code => codes.contains code
+
+theorem ccsrLookup (mapping : List (String × String)) (category : String)
+    (slots : List (Option String)) :
+    ccsrPresence (ccsrCodes mapping category) slots = true ↔
+      ∃ code, some code ∈ slots ∧ (code, category) ∈ mapping := by
+  simp only [ccsrPresence, ccsrCodes, List.any_eq_true]
+  constructor
+  · rintro ⟨slot, inSlots, hit⟩
+    cases slot with
+    | none => simp at hit
+    | some code =>
+      simp only [Option.any, List.contains_iff_mem, List.mem_map, List.mem_filter,
+        beq_iff_eq] at hit
+      obtain ⟨⟨c, cat⟩, ⟨inMap, rfl⟩, rfl⟩ := hit
+      exact ⟨_, inSlots, inMap⟩
+  · rintro ⟨code, inSlots, inMap⟩
+    refine ⟨some code, inSlots, ?_⟩
+    simp only [Option.any, List.contains_iff_mem, List.mem_map, List.mem_filter, beq_iff_eq]
+    exact ⟨(code, category), ⟨inMap, rfl⟩, rfl⟩
+
+theorem ccsrSlotOrder (left right : List (Option String)) (order : left.Perm right)
+    (codes : List String) :
+    ccsrPresence codes left = ccsrPresence codes right := by
+  rw [Bool.eq_iff_iff]
+  simp only [ccsrPresence, List.any_eq_true, order.mem_iff]
+
 end DuckDBProofs.Slots

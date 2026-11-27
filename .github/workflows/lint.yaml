@@ -48,3 +48,9 @@ jobs:
           Rscript tools/probe/update-codemeta.R --check
       - name: Check installed package complexity
         run: Rscript --vanilla tools/check-package.R --complexity
+      - name: Gate restricted CCSR query performance
+        run: |
+          evidence="$RUNNER_TEMP/ccsr-gate"
+          mkdir -p "$evidence"
+          Rscript --vanilla tools/experiments/adr-0002/capture.R "$evidence" ccsr-fixture 2
+          Rscript --vanilla tools/experiments/adr-0002/ccsr-gate.R "$evidence"

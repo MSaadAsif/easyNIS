@@ -210,8 +210,14 @@ ccsr_mapping_joins <- function(con, slots, aliases, rule) {
 }
 
 ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, version, categories, name) {
+  input <- dbplyr::sql_render(data)
+  output <- DBI::dbQuoteIdentifier(con, name)
   rule <- ccsr_release_sql(con, columns, type, releases, pinned = !is.null(version))
   filter <- ccsr_mapping_filter(con, type, releases$version, categories)
+  mapping <- ccsr_reference_sql(con, "map")
+  if (position == "any" && length(slots) > 1L && !is.null(categories)) {
+    return(ccsr_presence_sql(con, input, output, rule, mapping, filter, slots))
+  }
   aliases <- paste0("m", seq_along(slots))
   joins <- ccsr_mapping_joins(con, slots, aliases, rule)
   values <- paste0(aliases, ".categories")
@@ -239,16 +245,48 @@ ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, 
     aggregate,
     "AS categories",
     "FROM",
-    ccsr_reference_sql(con, "map"),
+    mapping,
     filter,
     "GROUP BY version, code)",
     "SELECT n.*,",
     result,
     "AS",
-    DBI::dbQuoteIdentifier(con, name),
+    output,
     "FROM (",
-    dbplyr::sql_render(data),
+    input,
     ") n",
     paste(joins, collapse = "\n")
+  )
+}
+
+ccsr_presence_sql <- function(con, input, output, rule, mapping, filter, slots) {
+  codes <- paste0("CAST(n.", DBI::dbQuoteIdentifier(con, slots), " AS VARCHAR)", collapse = ", ")
+  paste0(
+    "WITH category_codes AS (\n",
+    "  SELECT version, category, list(DISTINCT code) AS codes FROM ",
+    mapping,
+    " ",
+    filter,
+    "\n",
+    "  GROUP BY version, category\n",
+    "), lookup AS (\n",
+    "  SELECT version, list(struct_pack(category := category, codes := codes) ORDER BY category) AS categories\n",
+    "  FROM category_codes GROUP BY version\n",
+    ")\n",
+    "SELECT n.*, CASE WHEN (",
+    rule,
+    ") IS NOT NULL THEN coalesce(\n",
+    "  list_transform(list_filter(lookup.categories, c -> list_has_any([",
+    codes,
+    "], c.codes)),\n",
+    "    c -> c.category), []::VARCHAR[]) END AS ",
+    output,
+    "\n",
+    "FROM (",
+    input,
+    ") n\n",
+    "LEFT JOIN lookup ON lookup.version = (",
+    rule,
+    ")"
   )
 }

@@ -122,3 +122,28 @@ test_that("CCSR works through nis_open on invented annual Parquet files", {
   expect_identical(nis_ccsr_codes(categories = "ZZZ003", version = "2021.2"), "A001")
   expect_identical(nis_ccsr_codes(categories = "ZZZ002", version = "2020.3", default_only = TRUE), character())
 })
+
+test_that("restricted any-position CCSR preserves row and release boundaries", {
+  ref <- ccsr_test_reference()
+  local_mocked_bindings(ccsr_reference_dir = function() ref$path)
+  discharges <- data.frame(
+    YEAR = c(2014L, 2019L, 2020L, 2020L, 2020L, 2021L),
+    I10_DX1 = c("A000", "A001", "A001", "A000", NA, "A001"),
+    I10_DX40 = c("A001", "A000", "A000", "A000", NA, "A000"),
+    DX1 = "A000",
+    DQTR = 1L
+  )
+  source <- dplyr::copy_to(ref$con, discharges, "restricted_inputs")
+  query <- source |>
+    dplyr::union_all(source) |>
+    dplyr::group_by(YEAR) |>
+    nis_add_ccsr(categories = c("ZZZ003", "ZZZ002"), name = "matched categories")
+  expect_s3_class(query, "tbl_sql")
+  expect_identical(dplyr::group_vars(query), "YEAR")
+  observed <- query |>
+    dplyr::arrange(YEAR, I10_DX1) |>
+    dplyr::collect()
+  expect_equal(nrow(observed), 12L)
+  expected <- list(NULL, "ZZZ002", "ZZZ002", c("ZZZ002", "ZZZ003"), character(), NULL)
+  expect_identical(observed[["matched categories"]], rep(expected, each = 2L))
+})
