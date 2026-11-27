@@ -177,6 +177,8 @@ Build survey designs and apply optional reweighting.
   : Prepare a cohort survey design
 - [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   : Reweight a cohort survey design
+- [`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md)
+  : Estimate annual national discharge totals
 
 ## 
 
@@ -249,6 +251,10 @@ study-specific definitions and analysis.
 
   Define mortality, length of stay, disposition, and hospital cost
   before survey estimation.
+
+- [Trends](https://msaadasif.github.io/easyNIS/articles/trends.md):
+
+  Estimate annual discharge totals and model change over calendar time.
 
 - [Disclosure and
   suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md):

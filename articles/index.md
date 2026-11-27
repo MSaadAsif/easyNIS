@@ -33,6 +33,10 @@
   Define mortality, length of stay, disposition, and hospital cost
   before survey estimation.
 
+- [Trends](https://msaadasif.github.io/easyNIS/articles/trends.md):
+
+  Estimate annual discharge totals and model change over calendar time.
+
 - [Disclosure and
   suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md):
 

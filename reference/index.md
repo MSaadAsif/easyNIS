@@ -55,6 +55,8 @@ Build survey designs and apply optional reweighting.
   : Prepare a cohort survey design
 - [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   : Reweight a cohort survey design
+- [`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md)
+  : Estimate annual national discharge totals
 
 ## 
 
