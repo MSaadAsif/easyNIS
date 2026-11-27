@@ -38,13 +38,47 @@ srvyr::summarise(design, total = srvyr::survey_total(),
 ```
 
 The output contains a weighted fixture total and mean LOS with design-based
-standard errors. Empty cohort hospital-years are retained as zero-domain
-placeholder rows so domain variance uses the full sampled structure. This
-placeholder strategy is experimental.
+standard errors. Hospital placeholders account for hospital-years with no
+cohort discharges in the variance calculation. The returned design exposes
+only cohort discharges to summaries. This placeholder strategy is experimental.
 
 For lazy inputs, DuckDB computes hospital-year strata, invalid-field counts,
 and annualization coverage in one sample scan. The separate cohort scan
 collects the selected columns needed to build the survey design in R.
+
+## Analyze a domain within the cohort
+
+The object returned by `nis_design()` is already an srvyr survey design. Use
+`dplyr::filter()` on that object to define an analytic domain. Like
+`subset()` on a survey design, it uses the original sampling structure for
+variance. Hospitals with no domain discharges contribute zero, including
+when an entire stratum falls outside the domain.
+
+On the design returned by `nis_design()`, `filter()` also removes
+out-of-domain records from the stored analysis data. The survey design
+retains the original sampled hospital counts for variance estimation, so
+there is no separate compaction step. If you no longer need the wider
+design, assign the filtered result back to the same variable.
+
+```{r domain}
+design |>
+  dplyr::filter(AGE >= 65) |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(
+    mean_los = srvyr::survey_mean(LOS),
+    discharges = srvyr::unweighted(dplyr::n())
+  )
+```
+
+`discharges` counts only observed domain discharges. The filtered design
+can also be passed directly to survey functions and to
+`gtsummary::tbl_svysummary()`.
+
+Filtering the lazy input before `nis_design()` restricts the records
+available to construct the design and can remove entire hospitals or strata.
+To define a cohort within the available sample, pass the inclusion criteria
+to `cohort`. To narrow an existing design to a subpopulation, filter the
+returned design.
 
 ## Choose a pooling convention
 
@@ -92,8 +126,6 @@ This list gives counts by field and year, not record-level information.
 
 > **Common pitfalls**
 >
-> - Filtering the source data to the cohort before constructing the design
->   removes non-cohort sampled records.
 > - Treating annualized weights as a correction for arbitrary partial-year
 >   coverage.
 > - Using non-survey summaries for estimates or uncertainty.
