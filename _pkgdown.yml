@@ -67,6 +67,7 @@ reference:
     desc: Build survey designs and apply optional reweighting.
     contents:
       - nis_design
+      - nis_survey
       - nis_reweight
       - nis_annual_totals
   - title: 4. Add analysis variables
