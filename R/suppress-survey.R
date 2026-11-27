@@ -408,31 +408,35 @@ survey_hospital_cohort_records <- function(x, error_call) {
     cli::cli_abort("Survey design records are unavailable for hospital counting.", call = error_call)
   }
   nis_validate_hospital_columns(data)
-  nis_cohort_records(data)
+  data <- nis_cohort_records(data)
+  by <- x$inputs$by
+  rows <- seq_len(nrow(data))
+  groups <- if (length(by) == 1L && by %in% names(data)) {
+    values <- as.character(data[[by]])
+    values[is.na(data[[by]])] <- NA_character_
+    split(rows, values)
+  }
+  list(data = data, rows = rows, groups = groups)
 }
 
-survey_hospital_var_records <- function(data, x, cards, matches, spec, error_call) {
-  variable <- spec$variable
-  if (!variable %in% names(data)) {
-    cli::cli_abort("Summary variable `{variable}` is absent from survey records.", call = error_call)
-  }
+survey_hospital_var_records <- function(values, x, cards, matches, spec, error_call) {
   if (identical(spec$context, "missing")) {
-    return(survey_hosp_missing(data, variable, spec))
+    return(survey_hosp_missing(values, spec))
   }
   if (identical(spec$context, "categorical")) {
-    return(survey_hosp_categorical(data, variable, cards, matches, spec, error_call))
+    return(survey_hosp_categorical(values, cards, matches, spec, error_call))
   }
   if (identical(spec$context, "dichotomous")) {
-    return(survey_hosp_dichotomous(data, x, variable, error_call))
+    return(survey_hosp_dichotomous(values, x, spec$variable, error_call))
   }
-  rep(TRUE, nrow(data))
+  rep(TRUE, length(values))
 }
 
-survey_hosp_missing <- function(data, variable, spec) {
-  if (identical(spec$stat_name, "N_miss_unweighted")) is.na(data[[variable]]) else !is.na(data[[variable]])
+survey_hosp_missing <- function(values, spec) {
+  if (identical(spec$stat_name, "N_miss_unweighted")) is.na(values) else !is.na(values)
 }
 
-survey_hosp_categorical <- function(data, variable, cards, matches, spec, error_call) {
+survey_hosp_categorical <- function(values, cards, matches, spec, error_call) {
   level <- spec$level_value
   if (is.null(level)) {
     cli::cli_abort("Cannot map displayed categorical row to a raw card level.", call = error_call)
@@ -441,21 +445,21 @@ survey_hosp_categorical <- function(data, variable, cards, matches, spec, error_
   if (!identical(raw_level, as.character(level))) {
     cli::cli_abort("Summary card raw variable level does not match the displayed row.", call = error_call)
   }
-  !is.na(data[[variable]]) & as.character(data[[variable]]) == raw_level
+  !is.na(values) & as.character(values) == raw_level
 }
 
-survey_hosp_dichotomous <- function(data, x, variable, error_call) {
+survey_hosp_dichotomous <- function(values, x, variable, error_call) {
   value <- x$inputs$value[[variable]]
   if (is.null(value) || length(value) != 1L || is.na(value)) {
     cli::cli_abort("Cannot map dichotomous summary to one summarized value.", call = error_call)
   }
-  data[[variable]] %in% value
+  values %in% value
 }
 
-survey_hospital_group_records <- function(data, x, cards, column, keep, error_call) {
+survey_hospital_group_records <- function(records, x, cards, column, error_call) {
   by <- x$inputs$by
   if (!length(by) || identical(column, "stat_0")) {
-    return(keep)
+    return(records$rows)
   }
   if (length(by) != 1L || !all(c("gts_column", "group1", "group1_level") %in% names(cards))) {
     cli::cli_abort("Cannot map `{column}` to a by-group from summary cards.", call = error_call)
@@ -469,19 +473,26 @@ survey_hospital_group_records <- function(data, x, cards, column, keep, error_ca
     cli::cli_abort("Summary cards do not identify one valid by-group for `{column}`.", call = error_call)
   }
   raw_level <- survey_card_scalar_values(cards, "group1_level", group_rows, error_call)
-  keep & !is.na(data[[by[[1L]]]]) & as.character(data[[by[[1L]]]]) == raw_level
+  i <- match(raw_level, names(records$groups))
+  if (is.na(i)) integer() else records$groups[[i]]
 }
 
-survey_cell_evidence <- function(x, data, cards, matches, column, spec, error_call) {
+survey_cell_evidence <- function(x, records, cards, matches, column, spec, error_call) {
+  data <- records$data
   if (!nrow(data)) {
     return(list(n = 0L, hospitals = 0L))
   }
-  selected <- survey_hospital_var_records(data, x, cards, matches, spec, error_call)
-  group <- survey_hospital_group_records(data, x, cards, column, rep(TRUE, nrow(data)), error_call)
-  evidence <- survey_record_counts(data[group & selected, c("YEAR", "HOSP_NIS"), drop = FALSE])
+  variable <- spec$variable
+  if (!variable %in% names(data)) {
+    cli::cli_abort("Summary variable `{variable}` is absent from survey records.", call = error_call)
+  }
+  group <- survey_hospital_group_records(records, x, cards, column, error_call)
+  values <- data[[variable]][group]
+  selected <- survey_hospital_var_records(values, x, cards, matches, spec, error_call)
+  evidence <- survey_record_counts(data[group[selected], .nis_hospital_fields, drop = FALSE])
   if (identical(spec$context, "dichotomous")) {
-    complement <- group & !selected & !is.na(data[[spec$variable]])
-    other <- survey_record_counts(data[complement, c("YEAR", "HOSP_NIS"), drop = FALSE])
+    complement <- !selected & !is.na(values)
+    other <- survey_record_counts(data[group[complement], .nis_hospital_fields, drop = FALSE])
     evidence <- Map(c, evidence, other)
   }
   evidence
