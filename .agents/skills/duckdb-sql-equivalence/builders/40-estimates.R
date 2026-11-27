@@ -69,7 +69,7 @@ register(
   annual_cases,
   annual_sql,
   annual_reference,
-  mutation("trends.R", "nis_annual_summary", "as.double(DISCWT), 0", "as.double(DISCWT), 1"),
+  mutation("trends.R", "nis_annual_cells_sql", "ELSE 0.0", "ELSE 1.0"),
   relations = list(years = split_years, domain = outside_domain, rows = shuffle_rows),
   relation_case = function(cases) {
     x <- cases[[1L]]

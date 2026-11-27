@@ -64,10 +64,11 @@ Here is what each registration exercises.
 | `code-inventory` | `R/code-audit.R:.nis_audit_lazy_codes` | Two slots with five code values, two years and three weights. Keep duplicate codes when unnesting the slot list. |
 | `ccsr` | `R/ccsr-query.R:nis_add_ccsr, ccsr_release_sql, ccsr_mapping_filter, ccsr_query_sql, ccsr_mapping_joins, ccsr_presence_sql` | Two slots with up to eight code values, eight years, six quarters and three coding-system values. Diagnosis and procedure categories, diagnosis defaults, pinned and unpinned 2025.1, and unrestricted, single- and multiple-category requests. Mixed ICD eras and seeded 40-slot diagnosis and 25-slot procedure draws. Require every mapped code instead of any mapped code. |
 | `comorbidity` | `R/comorbidity.R:nis_comorbidity_lazy` and `R/comorbidity-sql.R:nis_cmrb_inputs, nis_cmrb_validate_keys, nis_cmrb_score_sql` | Bundled FY2027 Elixhauser, one principal and two secondary slots, capped fiscal year and Q4 transition, five POA values per secondary slot, chosen hierarchical and POA-sensitive codes. Drop POA `W` from positive evidence. |
-| `design-sample` | `R/design-sample.R:nis_design_sample, nis_sample_group_rows, nis_design_collect_cohort` | All declared combinations of valid or invalid design identifiers and weights, five quarters and three cohort states, with valid hospitals in two years. Use maximum hospital weight in place of minimum. |
+| `design-sample` | `R/design-sample.R:nis_design_sample, nis_design_collect_cohort` and `R/design-sql.R:nis_design_validity_sql, nis_sample_roster_sql, nis_sample_quarter_sql, nis_design_cohort_sql` | All declared combinations of valid or invalid design identifiers and weights, five numeric or text quarters and three cohort states, with valid hospitals in two years. Use maximum hospital weight in place of minimum. |
+| `cohort-export` | `R/write-cohort.R:nis_write_cohort, nis_cohort_copy, nis_cohort_placeholders, nis_cohort_copy_parquet` and `R/design-sql.R:nis_sample_roster_sql, nis_design_cohort_sql` | All 81 assignments of true, false or missing to four discharges across two years, seeded draws, unequal weights, invalid selected rows, and a wholly missing cohort. Compare reopened Parquet rows to a plain-R reference. Reverse the anti-join to keep represented hospitals. |
 | `attrition` | `R/attrition.R:nis_attrition, .nis_attrition_keep_exprs, .nis_attrition_summary_exprs` and `R/code-flags.R:nis_code_criterion_exprs` | Two cumulative criteria, missing criteria and weights, with and without design exclusion, with and without year grouping. Combine criteria with OR. |
 | `cell-counts` | `R/cell-counts.R:nis_hospital_count_query` | Three hospital IDs reused across two years and three cell values, including missing. Count hospital groups in the discharge column. |
-| `annual-totals` | `R/trends.R:nis_annual_totals, nis_annual_summary` | Two sampled hospitals and four quarters per year. All 81 assignments of true, false, or missing to four discharges. Give excluded discharges nonzero weight. |
+| `annual-totals` | `R/trends.R:nis_annual_totals, nis_annual_cells_sql` and `R/design-sql.R:nis_sample_roster_sql` | Two sampled hospitals and four quarters per year. All 81 assignments of true, false, or missing to four discharges. Give excluded discharges nonzero weight. |
 | `survey-aggregate` | `R/lazy-survey.R:nis_survey, nis_survey_variance` and `R/lazy-survey-stat.R:nis_survey_aggregate, nis_survey_scores, svyby.nis_survey` | The same four-discharge domain bound, with numeric outcomes including missing, pooled and grouped means and totals. A separate fixture covers a sampled singleton, a domain singleton, and an empty stratum with domain adjustment on and off. Include out-of-domain records in the SQL aggregate. |
 | `survey-irls` | `R/lazy-survey-glm.R:nis_survey_model_input, nis_survey_model_system, nis_survey_irls, nis_survey_model_variance` | Grouped-row quasibinomial and Poisson fits, two strata, three PSUs per stratum, three covariate values and unequal weights. Average grouped weights in place of summing them. |
 
@@ -133,6 +134,10 @@ rebuilds the original model.
   assignment through the individual slots. `ccsrSlotOrder` proves invariance
   under slot permutation. The SQL harness checks release coverage and
   sorted category lists, including missing and empty results.
+- Cohort export. `represented_iff` and `placeholder_iff` characterize the
+  two-pass export's anti-join on a distinct valid roster. A hospital-year has
+  a placeholder exactly when it has no valid discharge with true membership
+  in that year. A mutation ignores the year key.
 - Lazy query lifetime. `Query.ownership` and `liveQuerySafe` establish that
   a live handle can collect only with a live connection and, for computed
   handles, a live private table. The model starts at the successful owner

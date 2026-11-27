@@ -85,7 +85,7 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
   nis_design_validate(data, "TOTCHG", FALSE, call, saved)
   data <- nis_design_input(data)
   fields <- nis_design_fields(data, rlang::quo(YEAR), call)
-  prepared <- nis_sample_design_fields(data)
+  prepared <- nis_design_prepare_fields(data)
   sample <- nis_sample_summary(prepared, fields$quarter_prototype, call, require_year = TRUE)
   years <- nis_annual_years(sample, call)
   if (coding == "single_era") {
@@ -105,18 +105,43 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
 }
 
 nis_annual_summary <- function(domain, hospital_rows, years) {
-  cells <- domain |>
+  grouped <- if (nis_design_duckdb(domain)) {
+    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n", "missing"))
+  } else {
+    nis_annual_cells_local(domain)
+  }
+  cells <- nis_collect(grouped)
+  if (any(cells$missing > 0L)) {
+    cli::cli_inform("Treated missing cohort values as outside the cohort.")
+  }
+  nis_annual_estimates(cells, hospital_rows, years)
+}
+
+nis_annual_cells_sql <- function(domain) {
+  sprintf(
+    paste(
+      'SELECT "YEAR", "NIS_STRATUM", "HOSP_NIS",',
+      'sum(CASE WHEN ".nis_cohort" THEN CAST("DISCWT" AS DOUBLE) ELSE 0.0 END) AS "total",',
+      'count(*) FILTER (WHERE ".nis_cohort") AS "n",',
+      'count(*) FILTER (WHERE ".nis_cohort" IS NULL) AS "missing"',
+      "FROM (%s) AS domain GROUP BY 1, 2, 3"
+    ),
+    dbplyr::sql_render(domain)
+  )
+}
+
+nis_annual_cells_local <- function(domain) {
+  domain |>
     dplyr::group_by(YEAR, NIS_STRATUM, HOSP_NIS) |>
     dplyr::summarise(
       total = sum(dplyr::if_else(dplyr::coalesce(.nis_cohort, FALSE), as.double(DISCWT), 0), na.rm = TRUE),
       n = sum(dplyr::coalesce(.nis_cohort, FALSE), na.rm = TRUE),
       missing = sum(is.na(.nis_cohort), na.rm = TRUE),
       .groups = "drop"
-    ) |>
-    nis_collect()
-  if (any(cells$missing > 0L)) {
-    cli::cli_inform("Treated missing cohort values as outside the cohort.")
-  }
+    )
+}
+
+nis_annual_estimates <- function(cells, hospital_rows, years) {
   cells <- cells[cells$n > 0, ]
   absent <- setdiff(years, cells$YEAR)
   if (length(absent)) {

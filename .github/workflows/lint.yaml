@@ -62,3 +62,6 @@ jobs:
           mkdir -p "$evidence"
           Rscript --vanilla tools/experiments/adr-0002/capture.R "$evidence" prday-fixture 2
           Rscript --vanilla tools/experiments/adr-0002/prday-gate.R "$evidence"
+      - name: Gate design, annual totals, and cohort export performance
+        timeout-minutes: 2
+        run: Rscript --vanilla tools/experiments/adr-0002/design-gate.R "$RUNNER_TEMP/prday-gate"

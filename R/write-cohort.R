@@ -48,6 +48,7 @@ nis_write_cohort <- function(.data, cohort, path, keep) {
   saved <- !is.null(previous_definition)
   membership <- nis_cohort_membership(rlang::enquo(cohort), saved, call)
   nis_design_validate(query, "TOTCHG", FALSE, call, saved)
+  query <- nis_design_input(query)
   fields <- nis_design_fields(query, rlang::enquo(keep), call)
   if (!identical(names(fields$keep_map), unname(fields$keep_map)) && length(fields$keep_map)) {
     cli::cli_abort("`keep` cannot rename columns. Use `dplyr::rename()` before exporting.", call = call)
@@ -130,23 +131,18 @@ nis_cohort_copy <- function(query, membership, selected, temp, metadata, call) {
     DBI::dbExecute(con, "SET partitioned_write_flush_threshold = 16384")
     on.exit(DBI::dbExecute(con, paste("SET partitioned_write_flush_threshold =", flush)), add = TRUE)
   }
-  prepared <- nis_sample_fields(nis_design_input(query), membership)
-  patients <- prepared |>
-    nis_design_cohort_type(call) |>
-    dplyr::filter(.nis_valid, .nis_cohort) |>
-    dplyr::select(dplyr::all_of(selected))
-  hospitals <- prepared |>
-    dplyr::filter(.nis_valid) |>
-    nis_sample_group_rows(setdiff(.nis_design_fields, "DISCWT")) |>
-    dplyr::select(dplyr::all_of(.nis_design_fields))
+  prepared <- nis_design_prepare_fields(dplyr::mutate(query, .nis_cohort = !!membership))
+  patients <- nis_design_cohort_type(prepared, call)
+  patients <- nis_design_cohort_sql(patients, selected, keep_missing = FALSE)
+  hospitals <- nis_sample_roster_sql(prepared, valid_only = TRUE)
 
   # Use the staged patient files to identify represented hospitals. Only
   # those keys need to be read back, and membership is evaluated once.
-  patient_sql <- paste0("SELECT *, true AS \".in_cohort\" FROM (", dbplyr::sql_render(patients), ")")
+  patient_sql <- paste0("SELECT *, true AS \".in_cohort\" FROM (", patients, ")")
   count <- nis_cohort_copy_parquet(con, patient_sql, temp, metadata)
   files <- list.files(temp, pattern = "\\.parquet$", all.files = TRUE, recursive = TRUE, full.names = TRUE)
   staged <- if (length(files)) nis_parquet_scan(con, files)
-  placeholders <- nis_cohort_placeholders(patient_sql, dbplyr::sql_render(hospitals), staged)
+  placeholders <- nis_cohort_placeholders(patient_sql, hospitals, staged)
   count + nis_cohort_copy_parquet(con, placeholders, temp, metadata)
 }
 
