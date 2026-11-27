@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp0Z00MF/duckdb
+#> ℹ /tmp/Rtmp0o5X3U/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp0Z00MF/duckdb
+#> ℹ /tmp/Rtmp0o5X3U/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -71,6 +71,37 @@ tbl_svysummary(table_design, by = heart_failure, include = c(AGE, LOS, DIED)) |>
 Select the table’s variables before building it. Keep `YEAR` and
 `HOSP_NIS` so suppression can count contributing hospital-years. Reuse
 the original design for models that need additional variables.
+
+### Choose continuous summaries for large tables
+
+By default,
+[`tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
+computes a survey-weighted median and quartiles for each continuous
+variable in each group. On a large design, those quantiles and the
+repeated survey calculations for each group can take much longer than
+the disclosure pass.
+
+If the analysis calls for a mean and its standard error, request them
+through `statistic` and apply the same disclosure checks.
+
+``` r
+
+tbl_svysummary(
+  table_design,
+  by = heart_failure,
+  include = c(AGE, LOS, DIED),
+  statistic = list(all_continuous() ~ "{mean} ({mean.std.error})")
+) |>
+  nis_suppress()
+```
+
+[TABLE]
+
+The standard error describes uncertainty in the estimated mean. Keep the
+default summaries when you need the median and quartiles to describe the
+distribution. See the [gtsummary statistic
+reference](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
+for other supported summaries.
 
 ## Fit a model and estimate a contrast
 
