@@ -37,9 +37,13 @@ nis_design_sample <- function(
 }
 
 nis_sample_fields <- function(data, cohort_quo) {
+  nis_sample_design_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
+}
+
+nis_sample_design_fields <- function(data) {
   invalid <- nis_design_invalid_exprs(data)
   any_invalid <- reduce_or(rlang::syms(names(invalid)))
-  dplyr::mutate(data, .nis_cohort = !!cohort_quo, !!!invalid, .nis_valid = !(!!any_invalid))
+  dplyr::mutate(data, !!!invalid, .nis_valid = !(!!any_invalid))
 }
 
 nis_design_invalid_exprs <- function(data) {
@@ -50,7 +54,7 @@ nis_design_invalid_exprs <- function(data) {
   rlang::set_names(invalid, unname(.nis_design_invalid_fields))
 }
 
-nis_sample_summary <- function(prepared, quarter_prototype, call) {
+nis_sample_summary <- function(prepared, quarter_prototype, call, require_year = FALSE) {
   invalid_year <- rlang::sym(.nis_design_invalid_fields[["YEAR"]])
   keys <- c(".nis_valid", unname(.nis_design_invalid_fields), setdiff(.nis_design_fields, "DISCWT"))
   quarter_flags <- nis_sample_quarter_flags(quarter_prototype)
@@ -65,6 +69,9 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
     nis_sample_group_rows(keys, quarter_flags) |>
     nis_collect()
   excluded <- nis_sample_exclusions(design_groups)
+  if (require_year && excluded$by_field[["YEAR"]] > 0L) {
+    cli::cli_abort("Annual totals require nonmissing, finite `YEAR` values.", call = call)
+  }
   valid <- design_groups$.nis_valid
   hospital_rows <- design_groups[valid, .nis_design_fields]
   if (nrow(hospital_rows) == 0L) {

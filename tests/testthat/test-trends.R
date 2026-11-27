@@ -120,6 +120,8 @@ test_that("annual totals validate retained sample coverage and supply disclosure
   expect_equal(retained$n, annual$n - c(2L, 0L))
   invalid$YEAR[rows] <- c(NA_real_, NaN)
   expect_error(suppressWarnings(nis_annual_totals(invalid, TRUE)), "YEAR")
+  unassignable <- dplyr::mutate(nis, YEAR = NA_integer_)
+  expect_error(suppressWarnings(nis_annual_totals(unassignable, missing_cohort_column)), "YEAR")
   invalid <- dplyr::mutate(nis, DISCWT = dplyr::if_else(DQTR == 4L & YEAR == 2019L, 0, DISCWT))
   expect_error(suppressWarnings(nis_annual_totals(invalid, TRUE)), "quarter.*2019")
   invalid <- dplyr::mutate(nis, DISCWT = dplyr::if_else(YEAR == 2019L, NA_real_, DISCWT))

@@ -1,0 +1,1 @@
+- `nis_annual_totals()` now summarizes hospital-year contributions before calculating annual totals, Taylor standard errors, and disclosure counts. It checks unassignable discharge years before evaluating the cohort.
