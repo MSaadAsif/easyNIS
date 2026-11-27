@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -74,7 +74,7 @@ source <- file.path(converted, "NIS_2020.dta")
 haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
 nis_convert(source, converted)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +83,7 @@ nis_convert(source, converted)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis_open(converted, check_release = FALSE) |> dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +119,7 @@ record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
 writeLines(record, core)
 nis_convert(core, converted_core)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -133,7 +133,7 @@ nis_open(converted_core, check_release = FALSE) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -161,7 +161,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -248,7 +248,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9VlTjb/duckdb
+#> ℹ /tmp/RtmpGpj8Sr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -302,6 +302,21 @@ directly to a private Parquet file.
 still needs enough R memory for the selected cohort, retained variables,
 and survey design. Use a narrow `keep` to limit that cost. [DuckDB COPY
 statement](https://duckdb.org/docs/stable/sql/statements/copy)
+
+When a collect is estimated to need 20% of available physical memory,
+easyNIS reports the estimated result size. At 50% or more, easyNIS
+counts the result rows and stops the collect if the estimate still
+crosses that threshold. This also applies to
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) on
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+tables and to easyNIS helpers that collect DuckDB results. Filter rows,
+select fewer fields, or use a narrower cohort and `keep` in
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+Use `options(easyNIS.collect_prudence = FALSE)` to skip the check.
+Cardinality and text widths are approximate. The check can also be
+skipped automatically when DuckDB cannot estimate the result size.
+Queries with SQL `PIVOT` skip the check because DuckDB may scan rows
+while determining their output columns.
 
 Set DuckDB options before calling
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).

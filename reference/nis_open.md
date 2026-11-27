@@ -114,12 +114,26 @@ extracts are expected to differ from the published totals. Use
 ## Large data
 
 The query stays in DuckDB until you collect it. Filter, project, and
-summarize before collecting. Set the named list option
-`easyNIS.duckdb_config` before opening to tune `memory_limit`,
-`threads`, `temp_directory`, `max_temp_directory_size`, or
-`preserve_insertion_order`. The package assigns each query its own spill
-location under the supplied private directory, or under the R session's
-temporary directory by default.
+summarize before collecting. A memory check applies to
+[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html),
+including [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+on these lazy tables, and to easyNIS helpers that collect DuckDB
+results. It estimates the size of the result from DuckDB's query plan
+and the projected column types. It uses a small sample to refine text
+widths for simple Parquet reads and counts the result rows before
+denying a collect. Estimates for filtered queries and variable-width
+columns can be inaccurate, and the check cannot predict DuckDB's working
+memory or memory used by subsequent R operations. Estimated results from
+20% of available physical memory emit a message; at 50% or more the
+check raises an `easyNIS_collect_too_large` error. If system memory is
+unavailable, collection proceeds with a one-time notice. Use
+`options(easyNIS.collect_prudence = FALSE)` to skip the check.
+
+Set the named list option `easyNIS.duckdb_config` before opening to tune
+`memory_limit`, `threads`, `temp_directory`, `max_temp_directory_size`,
+or `preserve_insertion_order`. The package assigns each query its own
+spill location under the supplied private directory, or under the R
+session's temporary directory by default.
 
 ## See also
 
@@ -136,7 +150,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSPqqa6/duckdb
+#> ℹ /tmp/RtmpxkYr8M/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -145,7 +159,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSPqqa6/duckdb
+#> ℹ /tmp/RtmpxkYr8M/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -166,7 +180,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpSPqqa6/duckdb
+#> ℹ /tmp/RtmpxkYr8M/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
