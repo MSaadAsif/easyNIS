@@ -90,7 +90,7 @@ estimating national quantities.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUthEM8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpYXgC93/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -99,7 +99,7 @@ estimating national quantities.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUthEM8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpYXgC93/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -137,7 +137,7 @@ lazy operations are evaluated when collected.</p>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUthEM8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpYXgC93/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -174,6 +174,37 @@ an intentional extract, set <code>check_release = FALSE</code> to skip
 the check.</p>
 </div>
 <div class="section level2">
+<h2 id="attach-companion-files">Attach companion files<a class="anchor" aria-label="anchor" href="#attach-companion-files"></a>
+</h2>
+<p>Keep Core, Hospital, Severity, and Diagnosis and Procedure Groups
+Parquet in separate directories. Use the same annual or Hive layout in
+each directory. Check the component availability and file splits for
+each year, and use matching release revisions. <a href="https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp" class="external-link">HCUP NIS
+File Specifications</a></p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">core</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">core_path</span>, years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
+<span><span class="va">discharges</span> <span class="op">&lt;-</span> <span class="va">core</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_join_companion.html">nis_join_companion</a></span><span class="op">(</span><span class="va">hospital_path</span>, <span class="st">"hospital"</span>, <span class="st">"HOSP_BEDSIZE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_join_companion.html">nis_join_companion</a></span><span class="op">(</span><span class="va">severity_path</span>, <span class="st">"severity"</span>, <span class="st">"APRDRG_SEVERITY"</span><span class="op">)</span></span></code></pre></div>
+<p>Hospital linkage uses <code>YEAR</code> and <code>HOSP_NIS</code>
+because hospital IDs are specific to each year. Severity and Diagnosis
+and Procedure Groups use <code>YEAR</code> and <code>KEY_NIS</code>.
+Supply companion parts for every year opened in Core, or open the years
+with the component you need. DuckDB checks the companion keys and
+returns a lazy left join with one row per input discharge. Unmatched
+discharges have missing companion values. <a href="https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp" class="external-link">HCUP NIS
+Description of Data Elements</a></p>
+<p>Use linked hospital characteristics to describe
+<strong>discharges</strong>. For example, a discharge-weighted share by
+teaching status describes where stays occurred. It does not estimate the
+share of hospitals that teach. From 2012 onward, hospital sampling
+fractions are unavailable, so neither counting rows nor summing
+discharge weights yields individual hospital volume.
+<code>TOTAL_DISC</code> is itself a sampled discharge count and cannot
+be attached through this helper. <a href="https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp#hospital-volume-estimates" class="external-link">HCUP
+guidance on hospital volume estimates</a></p>
+</div>
+<div class="section level2">
 <h2 id="filter-and-project-before-collecting">Filter and project before collecting<a class="anchor" aria-label="anchor" href="#filter-and-project-before-collecting"></a>
 </h2>
 <p><code><a href="../reference/nis_open.html">nis_open()</a></code> uses DuckDB’s native Parquet reader by
@@ -183,10 +214,10 @@ Filter and select before collecting when later analysis needs an
 in-memory data frame. The default reader is unchanged;
 <code>reader = "arrow"</code> opts in to the optional <code>arrow</code>
 package for reading Parquet files individually.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">duck</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span>, years <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpUthEM8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpYXgC93/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -241,7 +272,7 @@ statement</a></p>
 example uses a low thread count and places spill files on a private
 disk. Choose the memory and spill budgets for your machine and available
 disk space.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>easyNIS.duckdb_config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  memory_limit <span class="op">=</span> <span class="st">"4GB"</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">2L</span>,</span>
@@ -257,7 +288,7 @@ disk space.</p>
 <p>To write a result on disk, set <code>private_parquet_path</code> to a
 file in your private output directory and send the lazy query to
 DuckDB.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">projection</span> <span class="op">&lt;-</span> <span class="va">query</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">AGE</span><span class="op">)</span></span>

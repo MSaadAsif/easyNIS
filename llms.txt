@@ -132,6 +132,8 @@ Open annual NIS files and inspect data structure and labels.
   : Write an invented NIS-shaped Parquet dataset
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   : Open annual NIS Parquet files lazily
+- [`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md)
+  : Attach an annual NIS companion to Core discharges
 - [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
   : Apply HCUP labels
 

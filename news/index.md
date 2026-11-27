@@ -2,6 +2,10 @@
 
 ## easyNIS (development version)
 
+- [`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md)
+  adds selected Hospital, Severity, or Diagnosis and Procedure Groups
+  fields to lazy Core queries using checked annual keys.
+
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   now scores lazy DuckDB cohorts in bounded batches and returns the
   scores joined to the original query by discharge key.

@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUthEM8/duckdb
+#> ℹ /tmp/RtmpYXgC93/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUthEM8/duckdb
+#> ℹ /tmp/RtmpYXgC93/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -66,7 +66,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUthEM8/duckdb
+#> ℹ /tmp/RtmpYXgC93/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -105,6 +105,41 @@ still undergo these integrity checks and are excluded from the published
 totals. If you open an intentional extract, set `check_release = FALSE`
 to skip the check.
 
+## Attach companion files
+
+Keep Core, Hospital, Severity, and Diagnosis and Procedure Groups
+Parquet in separate directories. Use the same annual or Hive layout in
+each directory. Check the component availability and file splits for
+each year, and use matching release revisions. [HCUP NIS File
+Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp)
+
+``` r
+
+core <- nis_open(core_path, years = 2019:2020)
+discharges <- core |>
+  nis_join_companion(hospital_path, "hospital", "HOSP_BEDSIZE") |>
+  nis_join_companion(severity_path, "severity", "APRDRG_SEVERITY")
+```
+
+Hospital linkage uses `YEAR` and `HOSP_NIS` because hospital IDs are
+specific to each year. Severity and Diagnosis and Procedure Groups use
+`YEAR` and `KEY_NIS`. Supply companion parts for every year opened in
+Core, or open the years with the component you need. DuckDB checks the
+companion keys and returns a lazy left join with one row per input
+discharge. Unmatched discharges have missing companion values. [HCUP NIS
+Description of Data
+Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp)
+
+Use linked hospital characteristics to describe **discharges**. For
+example, a discharge-weighted share by teaching status describes where
+stays occurred. It does not estimate the share of hospitals that teach.
+From 2012 onward, hospital sampling fractions are unavailable, so
+neither counting rows nor summing discharge weights yields individual
+hospital volume. `TOTAL_DISC` is itself a sampled discharge count and
+cannot be attached through this helper. [HCUP guidance on hospital
+volume
+estimates](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp#hospital-volume-estimates)
+
 ## Filter and project before collecting
 
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
@@ -118,7 +153,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUthEM8/duckdb
+#> ℹ /tmp/RtmpYXgC93/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
