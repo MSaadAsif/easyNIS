@@ -52,25 +52,6 @@ srvyr::summarise(
 
 All values come from invented rows and illustrate output shape only.
 
-## Build a Table 1
-
-`gtsummary::tbl_svysummary()` formats weighted descriptive statistics. These
-optional packages are needed for this section.
-
-```{r table, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
-table_one <- gtsummary::tbl_svysummary(
-  design,
-  by = heart_failure,
-  include = c(AGE, FEMALE, LOS, DIED)
-) |>
-  gtsummary::add_overall()
-table_one
-```
-
-The columns compare the flag groups with an overall column. Inspect the
-unweighted cell counts before sharing; the table is not automatically
-disclosure-cleared.
-
 ## Fit a survey-weighted model
 
 `survey::svyglm()` fits generalized linear models using the design.
@@ -87,6 +68,54 @@ summary(fit)
 Coefficients describe model associations under the survey design; they do not
 establish causality. The synthetic data are too small and artificial for
 substantive conclusions.
+
+## Tables with gtsummary
+
+The examples below use gtsummary 2.6.1 or later.
+
+Pass the result of `nis_design()` directly to `gtsummary::tbl_svysummary()`.
+The design supplies cohort discharges for unweighted sample sizes, missing
+counts, and category counts. Hospital placeholders contribute to the variance
+structure only. This table uses a survey t-test for mean age and the
+design-adjusted chi-squared test for sex. The header shows unweighted sample
+sizes, alongside weighted summaries in the table body.
+
+```{r table, eval=rlang::is_installed(c("gtsummary (>= 2.6.1)", "cardx", "survey", "gt"))}
+gtsummary::tbl_svysummary(
+  design,
+  by = heart_failure,
+  include = c(AGE, FEMALE),
+  statistic = AGE ~ "{mean} ({mean.std.error})",
+  missing_stat = "{N_miss_unweighted}"
+) |>
+  gtsummary::add_p(test = list(AGE ~ "svy.t.test", FEMALE ~ "svy.chisq.test")) |>
+  gtsummary::add_overall() |>
+  gtsummary::modify_header(gtsummary::all_stat_cols() ~ "**{level}** (unweighted N = {n_unweighted})")
+```
+
+Use `tbl_regression()` to format your fitted models and
+`tbl_uvregression()` to fit and format a separate survey model for each
+predictor. The logistic table reports odds ratios and the linear tables
+report differences in mean length of stay.
+
+```{r model-tables, eval=rlang::is_installed(c("gtsummary (>= 2.6.1)", "broom.helpers", "survey", "gt"))}
+gtsummary::tbl_regression(fit, exponentiate = TRUE)
+
+los_fit <- survey::svyglm(LOS ~ heart_failure + AGE + FEMALE, design = design)
+gtsummary::tbl_regression(los_fit)
+
+gtsummary::tbl_uvregression(
+  design,
+  y = LOS,
+  include = c(heart_failure, AGE, FEMALE),
+  method = survey::svyglm
+)
+```
+
+For Parquet inputs, start with `nis_open()` and then use `nis_design()` to
+build the in-memory cohort design used here. Passing a DuckDB-backed survey
+`DBIsvydesign` directly to `tbl_svysummary()` fails with gtsummary 2.6.1.
+Review unweighted cell counts and apply disclosure rules before sharing.
 
 ## Common pitfalls
 
