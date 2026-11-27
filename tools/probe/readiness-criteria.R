@@ -3,7 +3,7 @@ evaluate_readiness <- function(
   quality,
   export_docs,
   workflow_documented,
-  headline_pass,
+  headline_results,
   issue_queries,
   ci_configured,
   ci_runs
@@ -117,8 +117,14 @@ evaluate_readiness <- function(
     ),
     record(
       "Reproduces headline estimates of 3 published NIS studies within stated tolerance",
-      if (headline_pass) "ready" else "not verified",
-      "Requires three listed studies and passing local receipts matched to HEAD; only pass/fail is printed"
+      if (is.null(headline_results)) {
+        "not verified"
+      } else if (all(headline_results$status == "pass")) {
+        "ready"
+      } else {
+        "not met"
+      },
+      study_verification_summary(headline_results)
     ),
     record(
       "No open P0/P1 issues",

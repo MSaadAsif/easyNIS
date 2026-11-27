@@ -1,5 +1,23 @@
-# Study selection is deferred to a future loop cycle.
-# Each selected study must include an id, doi, cohort_definition, tolerance,
-# and headline_estimates with id, label, estimate_printed, estimate, ci_printed,
-# and ci (the numeric lower and upper limits).
-studies: []
+# Tolerances are absolute relative errors, expressed as fractions.
+studies:
+  - id: hcup-2022-all
+    citation: 'AHRQ. Introduction to the HCUP National Inpatient Sample (NIS), 2022. November 2024.'
+    url: https://hcup-us.ahrq.gov/db/nation/nis/NISIntroduction2022.pdf
+    location: 'Appendix I, Table 3, 2022 row, Number of Discharges in the NIS, Weighted.'
+    definition: 'National discharge total for all 2022 NIS stays using DISCWT.'
+    tolerance: 0.0000001
+    rounding: '0.00001% covers rounding to a whole discharge and minor numerical differences. The population is explicitly defined.'
+  - id: hcup-2019-adult
+    citation: 'Owens PL, Liang L, Barrett ML, Fingar KR. Comorbidities Associated With Adult Inpatient Stays, 2019. HCUP Statistical Brief #303. December 2022.'
+    url: https://hcup-us.ahrq.gov/reports/statbriefs/sb303-Comorbidities-Adult-Hospitalizations-2019.jsp
+    location: 'Supplemental Table 3, All inpatient stays, N. Transcribe the table value rather than the rounded figure in the text.'
+    definition: 'National discharge total for 2019 NIS stays at age 18 years or older using DISCWT.'
+    tolerance: 0.000002
+    rounding: '0.0002% covers rounding to the nearest hundred discharges. Age eligibility is explicit.'
+  - id: matsuzaki-covid
+    citation: 'Matsuzaki S et al. Nationwide assessment of COVID-19 ventilator and non-invasive respiratory support burden during the early pandemic in the United States. Scientific Reports. 2025. Volume 15, article 15340.'
+    url: https://doi.org/10.1038/s41598-025-99863-3
+    location: 'Abstract and first Results paragraph, hospital admissions with a diagnosis of COVID-19 infection.'
+    definition: 'National discharge total using DISCWT for any-listed exact ICD-10-CM U07.1, discharges in 2020 Q2–Q4 and all of 2021. Pool both years without annualizing.'
+    tolerance: 0.001
+    rounding: '0.1% covers whole-discharge rounding and a narrow margin for the paper’s unspecified handling of diagnosis position and missing or ambiguous discharge quarters.'
