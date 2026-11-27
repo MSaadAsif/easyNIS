@@ -2,7 +2,8 @@
 #'
 #' Derive in-hospital mortality, length of stay, and discharge disposition
 #' from the numeric NIS Core fields. Each outcome uses its own source field.
-#' Missing or unrecognized codes become missing values.
+#' Missing or unrecognized codes become `NA`, including negative HCUP
+#' sentinels and non-integer values.
 #'
 #' @param .data A data frame or lazy DuckDB table with numeric `DIED`, `LOS`,
 #'   and `DISPUNIFORM` fields. Apply this before converting the fields to labels.
@@ -13,7 +14,8 @@
 #'   - `los_days`: elapsed days from `LOS`, including zero for same-day stays.
 #'     Values outside the HCUP inpatient range of 0 to 365 whole days become
 #'     missing.
-#'   - `discharge_disposition`: character labels from `DISPUNIFORM`. Codes
+#'   - `discharge_disposition`: character labels from `DISPUNIFORM` using
+#'     the same labels as [nis_label()]. Codes
 #'     1, 2, 5, 6, 7, and 20 distinguish routine home/self-care, short-term
 #'     hospital transfer, other facility transfer, home health care, discharge
 #'     against medical advice, and in-hospital death. Codes 21 (court/law
@@ -35,6 +37,13 @@ nis_outcomes <- function(.data) {
       "`.data` is missing required column{?s} {.val {missing}}."
     )
   }
+  disposition <- .hcup_labels[.hcup_labels$variable == "DISPUNIFORM" & !is.na(.hcup_labels$code), ]
+  disposition_cases <- Map(
+    function(code, label) rlang::expr(.data$DISPUNIFORM == !!code ~ !!label),
+    disposition$code,
+    disposition$value_label
+  )
+
   dplyr::mutate(
     .data,
     in_hospital_death = dplyr::case_when(
@@ -44,15 +53,6 @@ nis_outcomes <- function(.data) {
     los_days = dplyr::case_when(
       dplyr::between(.data$LOS, 0L, 365L) & .data$LOS == floor(.data$LOS) ~ as.double(.data$LOS)
     ),
-    discharge_disposition = dplyr::case_when(
-      .data$DISPUNIFORM == 1L ~ "Routine home/self-care",
-      .data$DISPUNIFORM == 2L ~ "Short-term hospital transfer",
-      .data$DISPUNIFORM == 5L ~ "Other facility transfer",
-      .data$DISPUNIFORM == 6L ~ "Home health care",
-      .data$DISPUNIFORM == 7L ~ "Against medical advice",
-      .data$DISPUNIFORM == 20L ~ "Died in hospital",
-      .data$DISPUNIFORM == 21L ~ "Court/law enforcement",
-      .data$DISPUNIFORM == 99L ~ "Alive, destination unknown"
-    )
+    discharge_disposition = dplyr::case_when(!!!disposition_cases)
   )
 }

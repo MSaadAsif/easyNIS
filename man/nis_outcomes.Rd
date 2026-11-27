@@ -18,7 +18,8 @@ from \code{DIED}.
 \item \code{los_days}: elapsed days from \code{LOS}, including zero for same-day stays.
 Values outside the HCUP inpatient range of 0 to 365 whole days become
 missing.
-\item \code{discharge_disposition}: character labels from \code{DISPUNIFORM}. Codes
+\item \code{discharge_disposition}: character labels from \code{DISPUNIFORM} using
+the same labels as \code{\link[=nis_label]{nis_label()}}. Codes
 1, 2, 5, 6, 7, and 20 distinguish routine home/self-care, short-term
 hospital transfer, other facility transfer, home health care, discharge
 against medical advice, and in-hospital death. Codes 21 (court/law
@@ -30,7 +31,8 @@ For a lazy DuckDB input, the result is a lazy query.
 \description{
 Derive in-hospital mortality, length of stay, and discharge disposition
 from the numeric NIS Core fields. Each outcome uses its own source field.
-Missing or unrecognized codes become missing values.
+Missing or unrecognized codes become \code{NA}, including negative HCUP
+sentinels and non-integer values.
 }
 \examples{
 nis_open(nis_example(years = 2024)) |>

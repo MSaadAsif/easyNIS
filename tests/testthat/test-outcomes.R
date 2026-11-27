@@ -6,7 +6,7 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
 
   codes <- dplyr::tibble(
     HOSP_NIS = 1:12,
-    DIED = c(0, 0, 0, 0, 0, 1, 0, 0, NA, -9, 2, NA),
+    DIED = c(0, 0, 0, 0, 0, 1, 0, 0, NA, -9, 2, 0.5),
     LOS = c(0, 1, 2, 4, 8, 16, NA, 365, 366, -9, Inf, 1.5),
     DISPUNIFORM = c(1, 2, 5, 6, 7, 20, 21, 99, NA, -9, 3, 40)
   )
@@ -15,13 +15,13 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
     in_hospital_death = c(0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, NA, NA, NA, NA),
     los_days = c(0, 1, 2, 4, 8, 16, NA, 365, NA, NA, NA, NA),
     discharge_disposition = c(
-      "Routine home/self-care",
-      "Short-term hospital transfer",
-      "Other facility transfer",
+      "Routine discharge to home/self-care",
+      "Transfer to another short-term hospital",
+      "Transfer to SNF, intermediate care, or another facility",
       "Home health care",
-      "Against medical advice",
+      "Left against medical advice",
       "Died in hospital",
-      "Court/law enforcement",
+      "Discharged/transferred to court/law enforcement",
       "Alive, destination unknown",
       NA,
       NA,
@@ -60,7 +60,7 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
   )
   expect_identical(
     is.na(design$variables$cost_adj),
-    design$variables$discharge_disposition %in% "Short-term hospital transfer"
+    design$variables$discharge_disposition %in% "Transfer to another short-term hospital"
   )
   deaths <- design$variables$cost_adj[which(design$variables$in_hospital_death == 1L)]
   expect_length(deaths, 16L)
@@ -69,8 +69,11 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
 
 test_that("adding discharge outcomes does not execute a lazy DuckDB query", {
   input <- duckdb_query_fixture(dplyr::tibble(DIED = 0L, LOS = 1, DISPUNIFORM = 1L)) |>
-    dplyr::mutate(LOS = dbplyr::sql("CAST(error('deferred outcome query') AS DOUBLE)"))
+    dplyr::mutate(DISPUNIFORM = dbplyr::sql("CAST(error('deferred outcome query') AS INTEGER)"))
   outcomes <- nis_outcomes(input)
   expect_s3_class(outcomes, "tbl_lazy")
-  expect_error(dplyr::collect(outcomes), "deferred outcome query")
+  expect_error(
+    outcomes |> dplyr::select(discharge_disposition) |> dplyr::collect(),
+    "deferred outcome query"
+  )
 })

@@ -19,6 +19,9 @@ Use `nis_outcomes()` on numeric NIS Core fields before building a survey
 design. It adds three columns and leaves the query in DuckDB. The example
 uses invented discharges.
 
+Negative HCUP missing-value sentinels and non-integer values become
+`NA` in the derived outcomes.
+
 ```{r design}
 outcomes <- nis_open(nis_example(years = 2024)) |>
   nis_outcomes()
