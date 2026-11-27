@@ -1,0 +1,114 @@
+---
+title: "Trends"
+description: "Estimate annual discharge totals and model change over calendar time."
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Trends}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(easyNIS)
+```
+
+## Choose comparable years
+
+The 2012 NIS redesign changed the sampling unit from hospitals to discharges.
+Use `DISCWT` from 2012 onward. For a study that crosses the redesign, HCUP
+specifies replacement `TRENDWT` for 1993–2011 and `DISCWT` from 2012 onward.
+The easyNIS trend workflow starts in 2012. The survey design scopes both
+`HOSP_NIS` and `NIS_STRATUM` by year. Hospital numbers can recur across releases
+and cannot identify the same hospital over time.
+[Introduction to the NIS](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp),
+[2012 redesign, Methods Series 2014-04](https://hcup-us.ahrq.gov/reports/methods/2014-04.pdf),
+[NIS trend weights](https://hcup-us.ahrq.gov/db/nation/nis/trendwghts.jsp).
+
+2015 Q1–Q3 use ICD-9-CM and Q4 uses ICD-10-CM/PCS. For a diagnosis- or
+procedure-based cohort or outcome, start with complete years within one
+coding era (2012–2014 or 2016 onward). Run separate analyses to describe both
+eras. If a study must include the transition, examine quarterly frequencies
+for discontinuities and report how the definition and coverage change. Read
+HCUP's recommendations before combining quarters or fitting a model across
+the break. For coding-independent analyses, such as total adult discharges
+using age alone, `coding = "independent"` allows complete 2015 data and years
+on both sides. The argument records the analyst's choice.
+[HCUP recommendations for reporting trends](https://hcup-us.ahrq.gov/datainnovations/HCUP_RecomForReportingTrends_070517.pdf).
+
+Check the Known Data Issues section for corrections to the releases you
+use, including the notices for 2019–2020. Check the annual introductions
+for changes to variable availability and definitions.
+[NIS Database Documentation](https://hcup-us.ahrq.gov/db/nation/nis/nisdbdocumentation.jsp).
+
+## Estimate a total for each year
+
+Open the complete annual samples and pass the cohort as a logical expression.
+`nis_annual_totals()` uses each year's original discharge weights. It checks
+whether all four quarter labels are represented in each input year. Verify
+sample completeness separately. Missing estimates identify years with no
+valid cohort discharges in the design. Review data and cohort coverage before
+interpreting those years.
+
+```{r annual}
+nis <- nis_open(nis_example(years = 2018:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+
+nis_annual_totals(nis, heart_failure)
+```
+
+Report the calendar years, cohort definition, weight, and design used to
+compute standard errors. Apply [disclosure rules](disclosure.html) before
+sharing estimates, plots, or tests. The examples use invented discharges.
+
+## Estimate an average annual total
+
+If the target is the **average annual number** of cohort discharges over
+the included complete years, pool with `annualize = TRUE`. This divides the
+weights by the number of included years, scaling both the pooled total and
+its standard error. A year without cohort discharges still contributes to
+the divisor. Use `annualize = FALSE` for the cumulative total across those
+years. A pooled weighted mean or proportion describes the pooled discharge
+population. Dividing every weight by the same number leaves it unchanged.
+Report the denominator in proportions, for example all eligible discharges
+for a share of NIS discharges.
+
+```{r pooled}
+pooled <- nis_design(nis, heart_failure, keep = LOS, annualize = TRUE)
+srvyr::summarise(pooled, annual_discharges = srvyr::survey_total())
+```
+
+## Test for linear change in an outcome
+
+Define the outcome and the time scale before fitting a trend. For example,
+use survey-weighted regression to estimate the change in mean length of
+stay per calendar year among heart failure discharges. Center calendar year
+to make the intercept the fitted mean for the first year. Calendar-time
+spacing is preserved when included years have gaps.
+
+```{r slope}
+design <- nis_design(nis, heart_failure, keep = LOS) |>
+  dplyr::mutate(elapsed = YEAR - 2018L)
+
+fit <- survey::svyglm(LOS ~ elapsed, design = design)
+summary(fit)$coefficients["elapsed", ]
+```
+
+The coefficient and its design-based uncertainty describe change in mean
+length of stay, measured in days per year. Choose a model and denominator
+that match the outcome. For a binary outcome, a quasibinomial survey model
+with numeric year estimates linear change on the log-odds scale. For
+year-specific comparisons, specify year as a factor. Changes in case mix,
+coding, and practice can all affect the slope. A discharge-level outcome
+model answers a different question from a time-series model for annual
+national volumes.
+[HCUP trend methods, Methods Series 2006-05](https://hcup-us.ahrq.gov/reports/methods/2006_05_NISTrendsReport_1988-2004A.pdf),
+[Variance estimation, Methods Series 2015-09](https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp).
+
+Published NIS studies illustrate how to report the choice of estimand and
+methods. Alkhouli and colleagues specified the calendar periods and
+distinguished trend tests for categorical and continuous outcomes. The study
+of surgical treatment for pseudotumor cerebri reported annual procedure
+counts and described its survey regression and coding-era adjustment.
+[Alkhouli et al., JAMA Network Open (2020)](https://doi.org/10.1001/jamanetworkopen.2019.21326),
+[JAMA Ophthalmology study (2020)](https://jamanetwork.com/journals/jamaophthalmology/fullarticle/2774167).
