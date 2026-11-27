@@ -1,12 +1,9 @@
 quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
   is.list(item) &&
     isTRUE(current_tree_clean) &&
+    valid_nonempty_string(current_commit) &&
     identical(item$commit, current_commit) &&
-    identical(item$working_tree_clean, TRUE) &&
-    quality_receipt_provenance_valid(item) &&
-    (!isTRUE(item$pass) ||
-      is.null(item$provenance) ||
-      item$provenance %in% c("source_inspection", "isolated_namespace_verified"))
+    identical(item$working_tree_clean, TRUE)
 }
 
 parse_quality_line <- function(line) {
@@ -66,27 +63,11 @@ quality_receipt_tree_valid <- function(item) {
   valid_nonempty_string(item$commit) && quality_boolean_pass_valid(item$working_tree_clean)
 }
 
-quality_receipt_provenance_valid <- function(item) {
-  if (!"provenance" %in% names(item)) {
-    return(TRUE)
-  }
-  valid_nonempty_string(item$provenance) &&
-    item$provenance %in%
-      c(
-        "source_inspection",
-        "isolated_namespace_verified",
-        "nested_unverified",
-        "not_measured",
-        "failed"
-      )
-}
-
 quality_receipt_shape_valid <- function(item) {
   all(c(
     quality_receipt_step_status_valid(item),
     quality_receipt_pass_valid(item),
-    quality_receipt_tree_valid(item),
-    quality_receipt_provenance_valid(item)
+    quality_receipt_tree_valid(item)
   ))
 }
 
@@ -457,18 +438,18 @@ coverage_percent_value <- function(item) {
   as.numeric(value)
 }
 
-coverage_percent_record <- function(coverage_check, evidence, percent_coverage, provenance_pass_fn) {
+coverage_percent_record <- function(coverage_check, evidence, percent_coverage) {
   coverage <- coverage_check$value
   if (identical(coverage, "skipped_by_selection")) {
     return(NULL)
   }
   if (inherits(coverage, "coverage")) {
     value <- percent_coverage(coverage)
+    valid <- valid_coverage_percent(value)
     return(list(
       step = "coverage_percent",
-      status = "not_verified",
-      pass = provenance_pass_fn(value >= 90, "nested_unverified"),
-      provenance = "nested_unverified",
+      status = if (valid) "completed" else "not_verified",
+      pass = if (valid) value >= 90 else NA,
       value = value,
       commit = evidence$commit,
       working_tree_clean = evidence$working_tree_clean

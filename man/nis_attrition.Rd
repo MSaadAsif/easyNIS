@@ -57,9 +57,13 @@ toy_nis <- dplyr::tibble(
   AGE = c(16, 45, 60, 72, 55),
   ELECTIVE = c(1, 1, 0, 1, 1),
   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
+  HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
+  NIS_STRATUM = rep(1L, 5),
   YEAR = rep(2020L, 5)
 )
 nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
+flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
+nis_attrition_cohort(flow)
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.
