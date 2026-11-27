@@ -89,17 +89,46 @@ incomplete year coverage and a 2015 cohort restricted to one coding era.
 Exclude partial years or choose a documented alternative if this convention
 does not fit the estimand.
 
-`nis_reweight()` multiplies the design weights by analyst-supplied weights. It
-is experimental and does not replace the NIS discharge weight or the survey
-design.
+## Run a weighted sensitivity analysis
+
+Use the original survey design for national totals. The example below
+compares the original mean LOS difference with one weighted to balance the
+observed age distribution between groups. It uses invented data and targets
+the age distribution of the pooled adult discharge population. The
+propensity model uses age as its only predictor.
 
 ```{r reweight}
-weighted <- nis_reweight(design, weights = rep(1, nrow(design$variables)))
-srvyr::summarise(weighted, total = srvyr::survey_total())
+original <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS, heart_failure))
+propensity <- survey::svyglm(
+  heart_failure ~ AGE, design = original, family = quasibinomial()
+)
+p <- stats::predict(propensity, newdata = original$variables, type = "response")
+stopifnot(all(is.finite(p) & p > 0 & p < 1))
+
+weighted <- nis_reweight(original, ifelse(heart_failure, 1 / p, 1 / (1 - p)))
+age_by_group <- function(design) {
+  survey::svyby(~AGE, ~heart_failure, design, survey::svymean)
+}
+los_contrast <- function(design) {
+  fit <- survey::svyglm(LOS ~ heart_failure, design)
+  summary(fit)$coefficients["heart_failureTRUE", c("Estimate", "Std. Error")]
+}
+
+age_by_group(original)
+age_by_group(weighted)
+rbind(original = los_contrast(original), reweighted = los_contrast(weighted))
+srvyr::summarise(original, national_discharges = srvyr::survey_total())
 ```
 
-With unit multipliers the result retains the original design-weighted total.
-This is only a syntax example, not a recommended reweighting model.
+`nis_reweight()` is experimental. It multiplies the survey weights by the
+supplied factors, in the order of the design rows. The weighted mean
+contrast and its standard error use that transformed design. This variance
+treats the supplied factors as fixed. Report the propensity specification,
+weight range, any trimming or exclusions, and balance in the variables used
+to justify the sensitivity analysis. The age means illustrate one balance
+check. The example uses all weights without trimming. Causal interpretation
+would require a justified exposure definition, target population, and
+assumptions about confounding and overlap.
 
 ## Why design-based standard errors matter
 

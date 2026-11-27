@@ -10,7 +10,8 @@ nis_attrition(
   ...,
   by_year = FALSE,
   weight_var = "DISCWT",
-  .design = FALSE
+  .design = FALSE,
+  .codes = NULL
 )
 
 nis_attrition_cohort(flow)
@@ -32,6 +33,12 @@ the full ungrouped input. Use \code{cohort = !!nis_attrition_cohort(flow)} with
 the same input to build the survey design from the rules in \code{flow}. Use
 deterministic criteria, since they are evaluated by both functions.}
 
+\item{.codes}{Optional named list of code criteria applied after \code{...}, in
+list order. Each criterion is a list with \code{type} (\code{"dx"} or \code{"pr"}),
+\code{position}, \code{system}, and \code{codes} (one flag definition). See
+\code{\link[=nis_flag_dx]{nis_flag_dx()}} and \code{\link[=nis_flag_pr]{nis_flag_pr()}} for the matching rules and definitions.
+Criterion names must be unique across \code{...} and \code{.codes}.}
+
 \item{flow}{Result from \code{nis_attrition(..., .design = TRUE)}.}
 }
 \value{
@@ -41,6 +48,10 @@ column. With \code{.design = TRUE}, the initial row counts valid design
 discharges and the tibble stores the combined cohort expression.
 \code{nis_attrition_cohort()} extracts that expression for injection with \verb{!!}
 into \code{cohort} in \code{\link[=nis_design]{nis_design()}}.
+With \code{.codes}, \code{attr(flow, "nis_criteria")} is a tibble of criterion
+names and their code type, position, system, and definitions. These fields
+are missing for ordinary logical criteria. Pass the flow to
+\code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}} to summarize its code criteria by period.
 }
 \description{
 Applies logical criteria cumulatively and reports remaining and dropped
