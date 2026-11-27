@@ -76,6 +76,6 @@ test_that("a lazy projection preserves cohort flags and required survey fields",
   design_input <- dplyr::select(nis, nis_vars_design(), LOS)
   for (field in c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")) {
     missing_field <- dplyr::select(design_input, -dplyr::all_of(field))
-    expect_error(nis_design(missing_field), paste0("missing design column.*", field))
+    expect_error(nis_design(missing_field, cohort = TRUE), paste0("missing design column.*", field))
   }
 })
