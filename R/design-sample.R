@@ -8,17 +8,22 @@ nis_design_sample <- function(
   quarter_prototype,
   annualize,
   call,
-  inspect_quarters = annualize
+  inspect_quarters = annualize,
+  saved = FALSE
 ) {
   cohort_quo <- nis_design_cohort_expr(cohort, call)
   prepared <- nis_sample_fields(data, cohort_quo)
   quarters <- if (inspect_quarters) quarter_prototype
-  summary <- nis_sample_summary(prepared, quarters, call)
+  summary <- nis_sample_summary(prepared, if (!saved) quarters, call)
   check_transition <- !is.null(quarters) && 2015L %in% summary$years
   collected_fields <- if (check_transition) union(selected, "DQTR") else selected
   collected <- nis_design_collect_cohort(prepared, collected_fields, call)
   if (annualize) {
-    nis_sample_annual_warnings(summary, collected)
+    if (saved && check_transition) {
+      nis_design_2015_warning(summary$years, collected)
+    } else {
+      nis_sample_annual_warnings(summary, collected)
+    }
   }
   list(
     cohort_rows = collected[selected],
@@ -56,13 +61,7 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
       HOSP_NIS = dplyr::if_else(.nis_valid, HOSP_NIS, NA),
       NIS_STRATUM = dplyr::if_else(.nis_valid, NIS_STRATUM, NA)
     ) |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
-    dplyr::summarise(
-      DISCWT = min(dplyr::if_else(.nis_valid, as.double(DISCWT), Inf), na.rm = TRUE),
-      n = dplyr::n(),
-      !!!quarter_flags,
-      .groups = "drop"
-    ) |>
+    nis_sample_group_rows(keys, quarter_flags) |>
     nis_collect()
   excluded <- nis_sample_exclusions(design_groups)
   valid <- design_groups$.nis_valid
@@ -77,6 +76,17 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
   years <- sort(unique(hospital_rows$YEAR))
   coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags))
   list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage)
+}
+
+nis_sample_group_rows <- function(prepared, keys, quarter_flags = list()) {
+  prepared |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
+    dplyr::summarise(
+      DISCWT = min(dplyr::if_else(.nis_valid, as.double(DISCWT), Inf), na.rm = TRUE),
+      n = dplyr::n(),
+      !!!quarter_flags,
+      .groups = "drop"
+    )
 }
 
 nis_sample_quarter_flags <- function(prototype) {

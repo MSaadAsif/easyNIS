@@ -18,7 +18,7 @@ nis_design_input <- function(data) {
   nis_duckdb_translate_errors(dplyr::collapse(data))
 }
 
-nis_design_validate <- function(.data, charges, annualize, call) {
+nis_design_validate <- function(.data, charges, annualize, call, saved = FALSE) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.", call = call)
   }
@@ -27,7 +27,7 @@ nis_design_validate <- function(.data, charges, annualize, call) {
   }
   reserved <- c(
     .nis_cohort_structure_fields,
-    ".in_cohort",
+    if (!saved) ".in_cohort",
     ".nis_cohort",
     ".nis_valid",
     unname(.nis_design_invalid_fields)
@@ -141,6 +141,9 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' exclusion counts, and quarter coverage when annualizing. The cohort scan
 #' evaluates the cohort expression once over the full data and collects the
 #' retained analysis columns.
+#' For a dataset written with [nis_write_cohort()], omit `cohort`. The saved
+#' membership flag excludes placeholders from the analysis. Original
+#' exclusion counts and full-sample quarter coverage are unavailable.
 #'
 #' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
 #'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
@@ -205,7 +208,9 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
 
 nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, inspect_quarters = annualize) {
   .data <- dplyr::ungroup(.data)
-  nis_design_validate(.data, charges, annualize, call)
+  saved <- !is.null(nis_saved_cohort(.data, call))
+  cohort <- nis_cohort_membership(cohort, saved, call)
+  nis_design_validate(.data, charges, annualize, call, saved)
   .data <- nis_design_input(.data)
   fields <- nis_design_fields(.data, keep, call)
   sample <- nis_design_sample(
@@ -215,7 +220,8 @@ nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, in
     fields$quarter_prototype,
     annualize,
     call,
-    inspect_quarters
+    inspect_quarters,
+    saved
   )
   list(sample = sample, fields = fields)
 }

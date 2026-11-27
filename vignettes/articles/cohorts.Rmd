@@ -104,6 +104,38 @@ when the attrition table should start with every discharge in the input.
 For alternate diagnosis positions and changes over time, see [Code transitions
 and sensitivity](code-transitions.html).
 
+## Save a cohort for another session
+
+Pass the full lazy sample and the eligibility rule to `nis_write_cohort()`.
+Keep the columns you expect to use in later analyses. The writer creates a
+new directory with yearly Parquet parts and saves the eligibility expression,
+source years, and easyNIS version in each part's metadata.
+
+```{r save-cohort}
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
+                         keep = c(AGE, LOS))
+
+# In a later session
+design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
+design |>
+  dplyr::filter(AGE >= 65) |>
+  dplyr::summarise(discharges = srvyr::survey_total())
+```
+
+The saved cohort carries one placeholder per sampled hospital-year with no
+eligible discharge. This preserves the survey variance structure, including
+whole strata and years where the cohort is empty. Annualization still uses
+all years with valid design records. Keep the original design run if you need
+its invalid-design exclusion counts or full-sample quarter coverage.
+
+Apply additional patient filters to the survey design after reopening.
+When inspecting raw Parquet rows, use `dplyr::filter(.in_cohort)` before
+counting discharges. To re-save a cohort with fewer columns, pass its reopened
+query to `nis_write_cohort()` and omit `cohort`. To change the eligibility rule,
+return to the source sample.
+
 ## Common pitfalls
 
 > **Common pitfalls**
