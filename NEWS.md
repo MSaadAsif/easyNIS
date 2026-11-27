@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_comorbidity()` now scores lazy DuckDB cohorts in bounded batches
+  and returns the scores joined to the original query by discharge key.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
