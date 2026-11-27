@@ -200,12 +200,11 @@
   dplyr::bind_cols(periods, dplyr::bind_rows(pieces))
 }
 
-.nis_audit_flag_summary <- function(data, codes, type, system, weight_var, by) {
-  temp <- .nis_audit_names(data, nis_names(data), length(codes))
-  code_groups <- names(codes)
-  names(codes) <- temp$flag
-  flag_function <- if (type == "pr") nis_flag_pr else nis_flag_dx
-  data <- do.call(flag_function, c(list(.data = data), codes, list(system = system)))
+.nis_audit_flag_summary <- function(data, flags, weight_var, by) {
+  code_groups <- names(flags)
+  temp <- .nis_audit_names(data, nis_names(data), length(flags))
+  names(flags) <- temp$flag
+  data <- dplyr::mutate(data, !!!flags)
   expressions <- .nis_audit_summary_expressions(
     temp$flag,
     temp$count,
@@ -218,7 +217,7 @@
     return(.nis_audit_empty_output(by, summary, "summary"))
   }
   pieces <- lapply(
-    seq_along(codes),
+    seq_along(flags),
     .nis_audit_group_piece,
     summary = summary,
     code_groups = code_groups,
@@ -353,8 +352,14 @@
 #' with zero counts where a group has no matches.
 #' Counts apply only to the selected code system; zero does not mean the code
 #' is absent under another system. Audits across the 2015 ICD transition need
-#' separate calls for each system. The change compares with the previous
-#' observed period in sorted order.
+#' separate calls for each system when supplying prefixes directly. The
+#' change compares with the previous observed period in sorted order.
+#'
+#' To reuse code criteria from [nis_attrition()], pass its result as `codes`.
+#' The audit uses each criterion's recorded code definition, system, and
+#' position. It counts each code criterion independently within the audit
+#' sample. Supply `cohort` to restrict that sample. Ordinary logical
+#' criteria and design exclusions from the attrition table are not applied.
 #'
 #' `by` may name several columns, such as `c("YEAR", "DQTR")`. A period is
 #' then one observed combination of their values, sorted by the columns in the
@@ -383,7 +388,8 @@
 #' @template dot-data
 #' @param codes A named character vector or named list of character vectors.
 #'   Each name is a `code_group`; each value contains prefixes. Names must be
-#'   non-empty and unique.
+#'   non-empty and unique. For `output = "summary"`, can also be the result of
+#'   [nis_attrition()] with `.codes`. Omit `type` and `system` in that case.
 #' @param cohort Optional tidy-evaluation logical expression defining the
 #'   cohort. Rows where it evaluates to `NA` are excluded.
 #' @param by Names of one or more existing columns defining periods, with no
@@ -440,15 +446,25 @@ nis_audit_code_transition <- function(
   output = c("summary", "inventory"),
   sparse_n = 10L
 ) {
-  type <- match.arg(type)
-  system <- match.arg(system)
   output <- match.arg(output)
+  record <- attr(codes, "nis_criteria", exact = TRUE)
+  if (is.null(record)) {
+    type <- match.arg(type)
+    system <- match.arg(system)
+    codes <- .nis_audit_validate_codes(codes)
+  } else {
+    if (output != "summary") {
+      cli::cli_abort("Code criteria from `nis_attrition()` require `output = \"summary\"`.")
+    }
+    if (!missing(type) || !missing(system)) {
+      cli::cli_abort("Omit `type` and `system` when using code criteria from `nis_attrition()`.")
+    }
+  }
 
   by <- unname(by)
   .nis_audit_validate_by(.data, by, output)
   .nis_audit_validate_weight(.data, weight_var)
   .nis_audit_validate_sparse_n(sparse_n)
-  codes <- .nis_audit_validate_codes(codes)
 
   cohort_quo <- rlang::enquo(cohort)
   data <- .nis_audit_filter_cohort(.data, cohort_quo)
@@ -457,5 +473,11 @@ nis_audit_code_transition <- function(
   if (output == "inventory") {
     return(.nis_audit_inventory(data, codes, type, system, weight_var, by, sparse_n))
   }
-  .nis_audit_flag_summary(data, codes, type, system, weight_var, by)
+  flags <- if (is.null(record)) {
+    data_names <- nis_names(data)
+    nis_code_flag_exprs(data, data_names, toupper(type), "any", system, codes)
+  } else {
+    nis_code_criterion_exprs(data, record[!is.na(record$type), ])
+  }
+  .nis_audit_flag_summary(data, flags, weight_var, by)
 }
