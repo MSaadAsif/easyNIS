@@ -33,29 +33,56 @@ nis_flag_slot_names <- function(data_names, slots, system, position) {
   slot_names
 }
 
-code_system_valid_year <- function(data) {
-  if (inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")) {
+code_system_year <- function(data) {
+  if (inherits(data, "tbl_sql")) {
     # DuckDB folds typeof() at bind time. Keep decimal fractions exact
     # instead of rounding a high-precision calendar year to DOUBLE.
     return(dbplyr::sql(paste(
-      "(CASE WHEN starts_with(typeof(\"YEAR\"), 'DECIMAL(')",
-      "THEN NOT regexp_matches(CAST(\"YEAR\" AS VARCHAR), '[.][0-9]*[1-9]')",
+      "(CASE WHEN typeof(\"YEAR\") = 'VARCHAR' OR starts_with(typeof(\"YEAR\"), 'ENUM(')",
+      "THEN CASE WHEN regexp_full_match(CAST(\"YEAR\" AS VARCHAR), '[0-9]+')",
+      "THEN TRY_CAST(CAST(\"YEAR\" AS VARCHAR) AS INTEGER) END",
+      "WHEN starts_with(typeof(\"YEAR\"), 'DECIMAL(')",
+      "AND regexp_matches(CAST(\"YEAR\" AS VARCHAR), '[.][0-9]*[1-9]') THEN NULL",
       "WHEN typeof(\"YEAR\") IN ('FLOAT', 'DOUBLE')",
-      "THEN isfinite(TRY_CAST(\"YEAR\" AS DOUBLE))",
-      "AND TRY_CAST(\"YEAR\" AS DOUBLE) = floor(TRY_CAST(\"YEAR\" AS DOUBLE))",
-      "ELSE TRUE END)"
+      "AND (NOT isfinite(TRY_CAST(\"YEAR\" AS DOUBLE))",
+      "OR TRY_CAST(\"YEAR\" AS DOUBLE) <> floor(TRY_CAST(\"YEAR\" AS DOUBLE))) THEN NULL",
+      "ELSE TRY_CAST(\"YEAR\" AS DOUBLE) END)"
     )))
   }
-  schema <- if (inherits(data, "tbl_sql")) {
-    nis_collect(utils::head(dplyr::select(data, dplyr::all_of("YEAR")), 0L))
-  } else {
-    data
+  rlang::expr(code_system_year_value(YEAR))
+}
+
+code_system_year_value <- function(year) {
+  if (is.factor(year)) {
+    year <- as.character(year)
   }
-  if (!is.numeric(schema$YEAR)) {
-    return(rlang::expr(TRUE))
+  if (is.character(year)) {
+    year[!grepl("^[0-9]+\\z", year, perl = TRUE)] <- NA_character_
+    return(suppressWarnings(as.integer(year)))
   }
-  finite_year <- nis_is_finite_expr(data, "YEAR")
-  rlang::expr(!!finite_year & YEAR == floor(YEAR))
+  if (!is.numeric(year) || is.complex(year)) {
+    return(rep(NA_real_, length(year)))
+  }
+  replace(year, !is.finite(year) | year != floor(year), NA)
+}
+
+code_system_year_range <- function(data, columns, system) {
+  year <- code_system_year(data)
+  icd9 <- system == "icd9"
+  cutoff <- 2015L
+  if ("DQTR" %in% columns) {
+    quarters <- if (icd9) 1:3 else 4L
+    missing_quarter <- nis_is_missing_expr(data, "DQTR")
+    other_year <- if (icd9) 2014L else 2016L
+    cutoff <- rlang::expr(dplyr::case_when(
+      (!!missing_quarter | DQTR %in% !!quarters) ~ 2015L,
+      .default = !!other_year
+    ))
+  }
+  if (icd9) {
+    return(rlang::expr(dplyr::between(!!year, 2012L, !!cutoff)))
+  }
+  rlang::expr(!!year >= !!cutoff)
 }
 
 code_system_filter <- function(data, columns, slots, system) {
@@ -74,29 +101,13 @@ code_system_filter <- function(data, columns, slots, system) {
   }
   if ("YEAR" %in% columns) {
     missing_year <- nis_is_missing_expr(data, "YEAR")
-    valid_year <- code_system_valid_year(data)
-    year_range <- if (system == "icd9") {
-      rlang::expr(YEAR >= 2012L & YEAR <= 2015L)
-    } else {
-      rlang::expr(YEAR >= 2015L)
-    }
+    year_range <- code_system_year_range(data, columns, system)
     conditions <- c(
       conditions,
       list(rlang::expr(
-        !!missing_year | (!!valid_year & !!year_range)
+        !!missing_year | dplyr::coalesce(!!year_range, FALSE)
       ))
     )
-    if ("DQTR" %in% columns) {
-      quarters <- if (system == "icd9") 1:3 else 4L
-      quarter <- rlang::sym("DQTR")
-      missing_quarter <- nis_is_missing_expr(data, "DQTR")
-      conditions <- c(
-        conditions,
-        list(rlang::expr(
-          !!missing_year | YEAR != 2015L | !!missing_quarter | !!quarter %in% !!quarters
-        ))
-      )
-    }
   }
   if (length(conditions) == 0L) {
     return(NULL)

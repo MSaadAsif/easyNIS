@@ -1,0 +1,1 @@
+- Diagnosis and procedure code flags now apply the same coding-era rules to integer years, character years, and factor labels in data frames and lazy DuckDB queries. Text labels must contain only digits and fit in an integer. Malformed labels are ineligible, and missing years retain their existing behavior.
