@@ -164,7 +164,7 @@ nis_study_reporting <- function(opened, design, requested_years) {
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_methods <- function(report, is_example) {
   package_names <- c("easyNIS", "duckdb", "dplyr", "srvyr", "survey", "gtsummary")
-  versions <- nis_study_package_versions(package_names)
+  versions <- vapply(package_names, function(name) as.character(utils::packageVersion(name)), character(1))
   package_names[package_names == "duckdb"] <- "DuckDB"
   paste(
     if (is_example) {
