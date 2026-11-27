@@ -39,6 +39,7 @@ Imports:
     vctrs
 Suggests:
     bit64,
+    broom,
     broom.helpers,
     arrow,
     cardx,
