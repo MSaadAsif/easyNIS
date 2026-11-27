@@ -1,0 +1,1 @@
+* `nis_comorbidity_condition_map()` maps output flags to distinct conditions. Use `nis_comorbidity(count_distinct = TRUE)` to count each represented condition once, with optional condition exclusions (#117).

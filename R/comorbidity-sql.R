@@ -253,6 +253,17 @@ nis_cmrb_output_sql <- function(con, spec, added) {
   count <- weighted_sum(stats::setNames(rep(1L, length(spec$counted)), spec$counted))
   scores <- vapply(spec$weights, weighted_sum, character(1))
   expr <- c(DBI::dbQuoteIdentifier(con, spec$conditions), count, paste0("(", count, ") > 0"), scores)
+  if (!is.null(spec$distinct)) {
+    distinct <- vapply(
+      spec$distinct,
+      function(outputs) {
+        flags <- DBI::dbQuoteIdentifier(con, outputs)
+        paste0("(", paste(flags, collapse = " OR "), ")::INTEGER")
+      },
+      character(1)
+    )
+    expr <- c(expr, paste(c("0", distinct), collapse = " + "))
+  }
   paste(expr, "AS", DBI::dbQuoteIdentifier(con, added))
 }
 
