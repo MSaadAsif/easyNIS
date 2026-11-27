@@ -41,6 +41,17 @@ details are explicitly unverified against official 2023 documentation
 and real 2023 files. Do not assume comparability or use these notes as a
 substitute for checking the source documentation.
 
+## Annual links for companions and costs
+
+Retain `YEAR` with hospital and discharge identifiers before linking any
+additional files. Hospital characteristics link on `YEAR` and
+`HOSP_NIS`. Severity links on `YEAR` and `KEY_NIS`. Prepare the
+separately sourced cost-to-charge ratio using the release’s documented
+hospital key, then link on `YEAR` and `HOSP_NIS`. Record the CCR source,
+chosen field, and unmatched discharge counts for each year. See
+[Charges, costs, and
+provenance](https://msaadasif.github.io/easyNIS/articles/costs.md).
+
 ## Check availability in the fixture
 
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
@@ -51,7 +62,7 @@ operations. Its rows are not a complete copy of annual layouts.
 
 path <- nis_example(years = c(2015, 2019, 2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpxRlnbw/duckdb
+#> ℹ /tmp/RtmphUrX3L/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -63,7 +74,7 @@ nis <- nis_open(path)
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpxRlnbw/duckdb
+#> ℹ /tmp/RtmphUrX3L/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

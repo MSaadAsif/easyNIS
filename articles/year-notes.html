@@ -129,6 +129,18 @@ comparability or use these notes as a substitute for checking the source
 documentation.</p>
 </div>
 <div class="section level2">
+<h2 id="annual-links-for-companions-and-costs">Annual links for companions and costs<a class="anchor" aria-label="anchor" href="#annual-links-for-companions-and-costs"></a>
+</h2>
+<p>Retain <code>YEAR</code> with hospital and discharge identifiers
+before linking any additional files. Hospital characteristics link on
+<code>YEAR</code> and <code>HOSP_NIS</code>. Severity links on
+<code>YEAR</code> and <code>KEY_NIS</code>. Prepare the separately
+sourced cost-to-charge ratio using the release’s documented hospital
+key, then link on <code>YEAR</code> and <code>HOSP_NIS</code>. Record
+the CCR source, chosen field, and unmatched discharge counts for each
+year. See <a href="costs.html">Charges, costs, and provenance</a>.</p>
+</div>
+<div class="section level2">
 <h2 id="check-availability-in-the-fixture">Check availability in the fixture<a class="anchor" aria-label="anchor" href="#check-availability-in-the-fixture"></a>
 </h2>
 <p><code><a href="../reference/nis_example.html">nis_example()</a></code> creates invented records for selected
@@ -137,7 +149,7 @@ of annual layouts.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2015</span>, <span class="fl">2019</span>, <span class="fl">2020</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpxRlnbw/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmphUrX3L/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -149,7 +161,7 @@ of annual layouts.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
 <span><span class="co">#&gt;   slots.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpxRlnbw/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmphUrX3L/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>

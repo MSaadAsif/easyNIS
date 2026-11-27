@@ -84,18 +84,59 @@
     
     
 <div class="section level2">
-<h2 id="convert-charges-to-costs">Convert charges to costs<a class="anchor" aria-label="anchor" href="#convert-charges-to-costs"></a>
+<h2 id="attach-the-annual-cost-to-charge-ratios">Attach the annual cost-to-charge ratios<a class="anchor" aria-label="anchor" href="#attach-the-annual-cost-to-charge-ratios"></a>
 </h2>
-<p>Charges are not costs. <code><a href="../reference/nis_cost.html">nis_cost()</a></code> estimates hospital
-costs by multiplying charges by <code>CCR_NIS</code>, then expresses
-both cost and charges in a selected reference-year dollar using annual
-CPI-U indices.</p>
+<p>Keep the CCR file for each year alongside its matching NIS release.
+Read the CCR file documentation for the hospital key and ratio to use,
+then assemble one table with <code>YEAR</code>, <code>HOSP_NIS</code>,
+and the chosen ratio named <code>CCR_NIS</code>. Hospital identifiers
+can repeat across years. Record the source release and ratio field for
+each year.</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Input</th>
+<th>Annual link to Core</th>
+<th>How to attach it</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Hospital characteristics</td>
+<td>
+<code>YEAR</code>, <code>HOSP_NIS</code>
+</td>
+<td><code>nis_join_companion(..., component = "hospital")</code></td>
+</tr>
+<tr class="even">
+<td>Severity measures</td>
+<td>
+<code>YEAR</code>, <code>KEY_NIS</code>
+</td>
+<td><code>nis_join_companion(..., component = "severity")</code></td>
+</tr>
+<tr class="odd">
+<td>Cost-to-charge ratios</td>
+<td>
+<code>YEAR</code>, <code>HOSP_NIS</code>
+</td>
+<td>Attach the separately prepared CCR table</td>
+</tr>
+</tbody>
+</table>
+<p>The companion helper validates keys and requires a companion file for
+each opened year. A Core row with no matching companion key gets missing
+values. The CCR example projects only the fields needed for an in-memory
+cost calculation. The invented ratio table intentionally omits 2020.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">charges</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">TOTCHG</span>, <span class="va">CCR_NIS</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<code class="sourceCode R"><span><span class="va">charges</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">HOSP_NIS</span>, <span class="va">TOTCHG</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpPemqTS/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpl4NAxg/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -103,24 +144,46 @@ CPI-U indices.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpPemqTS/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpl4NAxg/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">adjusted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cost.html">nis_cost</a></span><span class="op">(</span><span class="va">charges</span>, dollars <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">adjusted</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"TOTCHG"</span>, <span class="st">"cost_adj"</span>, <span class="st">"charges_adj"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 4</span></span></span>
-<span><span class="co">#&gt;    YEAR TOTCHG cost_adj charges_adj</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>154    <span style="text-decoration: underline;">5</span>036.      <span style="text-decoration: underline;">17</span>367.</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>189    <span style="text-decoration: underline;">5</span>049.      <span style="text-decoration: underline;">17</span>410.</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>224    <span style="text-decoration: underline;">5</span>061.      <span style="text-decoration: underline;">17</span>453.</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>259    <span style="text-decoration: underline;">5</span>074.      <span style="text-decoration: underline;">17</span>496.</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>294    <span style="text-decoration: underline;">5</span>086.      <span style="text-decoration: underline;">17</span>539.</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>019  <span style="text-decoration: underline;">14</span>329    <span style="text-decoration: underline;">5</span>099.      <span style="text-decoration: underline;">17</span>582.</span></span></code></pre></div>
+<span><span class="va">ccr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  YEAR <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2018L</span>, <span class="fl">2019L</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span>,</span>
+<span>  HOSP_NIS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, times <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span>,</span>
+<span>  CCR_NIS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.30</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"HOSP_NIS"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">anyNA</a></span><span class="op">(</span><span class="va">ccr</span><span class="op">[</span><span class="va">keys</span><span class="op">]</span><span class="op">)</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">anyDuplicated</a></span><span class="op">(</span><span class="va">ccr</span><span class="op">[</span><span class="va">keys</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">charges</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span></span>
+<span>  <span class="va">charges</span>, <span class="va">ccr</span>, by <span class="op">=</span> <span class="va">keys</span>, relationship <span class="op">=</span> <span class="st">"many-to-one"</span>, na_matches <span class="op">=</span> <span class="st">"never"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Each discharge can match at most one ratio. The left join keeps the
+unmatched year in the analysis data so its missing costs can be
+reported.</p>
+</div>
+<div class="section level2">
+<h2 id="convert-charges-to-costs">Convert charges to costs<a class="anchor" aria-label="anchor" href="#convert-charges-to-costs"></a>
+</h2>
+<p><code><a href="../reference/nis_cost.html">nis_cost()</a></code> multiplies charges by <code>CCR_NIS</code> to
+estimate hospital costs. It expresses both costs and charges in a
+selected reference-year dollar using annual CPI-U indices.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">adjusted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cost.html">nis_cost</a></span><span class="op">(</span><span class="va">charges</span>, dollars <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 96 rows have missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these</span></span>
+<span><span class="co">#&gt; rows.</span></span>
+<span><span class="va">adjusted</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>missing_costs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">cost_adj</span><span class="op">)</span><span class="op">)</span>, discharges <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 3</span></span></span>
+<span><span class="co">#&gt;    YEAR missing_costs discharges</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018             0         96</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019             0         96</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020            96         96</span></span></code></pre></div>
 <p><code>cost_adj</code> contains the estimated cost in 2024 dollars and
 <code>charges_adj</code> contains adjusted charges. These are synthetic
 amounts intended only to show the calculation.</p>
@@ -130,7 +193,7 @@ amounts intended only to show the calculation.</p>
 </h2>
 <p>The direct result records the source fields, price index, base year,
 multipliers, and invalid input counts.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_cost_provenance.html">nis_cost_provenance</a></span><span class="op">(</span><span class="va">adjusted</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $charge_field</span></span>
 <span><span class="co">#&gt; [1] "TOTCHG"</span></span>
@@ -149,11 +212,12 @@ multipliers, and invalid input counts.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $multipliers</span></span>
 <span><span class="co">#&gt;   year multiplier</span></span>
-<span><span class="co">#&gt; 1 2019   1.226992</span></span>
-<span><span class="co">#&gt; 2 2020   1.212039</span></span>
+<span><span class="co">#&gt; 1 2018   1.249224</span></span>
+<span><span class="co">#&gt; 2 2019   1.226992</span></span>
+<span><span class="co">#&gt; 3 2020   1.212039</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $rows_missing_or_invalid_ccr</span></span>
-<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; [1] 96</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $rows_missing_charges</span></span>
 <span><span class="co">#&gt; [1] 0</span></span>
@@ -169,7 +233,10 @@ multipliers, and invalid input counts.</p>
 <span><span class="co">#&gt; "Inflation-adjusted charges" "Estimated cost via CCR_NIS"</span></span></code></pre></div>
 <p>Missing or non-positive CCR values produce missing costs; the
 corresponding adjusted charge can still be present. Describe the CCR and
-inflation choices when reporting results.</p>
+inflation choices when reporting results. Keep the annual CCR source and
+key coverage with the analysis record. The provenance accessor records
+the column used and the missing or invalid count for the data passed to
+the calculation.</p>
 <p><code>nis_design(..., dollars = 2024)</code> can add these adjusted
 values to the survey design when <code>CCR_NIS</code> and the selected
 charge column are kept.</p>
