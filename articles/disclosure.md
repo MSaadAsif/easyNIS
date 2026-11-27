@@ -90,7 +90,7 @@ function errors.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppDPRBs/duckdb
+#> ℹ /tmp/RtmpCzALUQ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -98,7 +98,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppDPRBs/duckdb
+#> ℹ /tmp/RtmpCzALUQ/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -120,6 +120,28 @@ nis_suppress(table_one, threshold = 10)
 
 The masked table is a starting point for review. Data-frame inputs
 continue to use the supplied count and optional hospital-count columns.
+
+## Generated studies
+
+Render an analysis created with
+[`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
+to generate a Methods paragraph and checklist receipt. Copy the
+paragraph into your manuscript or edit the generated section in
+`analysis.qmd`. The receipt compares the input to the survey design with
+the query returned by
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
+Use the design’s cohort argument to restrict the analysis domain.
+
+The built-in report checks support for each variable across the
+displayed groups, including missing values and dichotomous complements.
+It masks related table cells and withholds linked estimates when they
+could reveal a protected cell. Models require complete data on the
+reporting cohort. Cohort flow checks the discharges excluded between
+steps and counts only valid-design records in weighted totals. The
+receipt describes the generated report and flags decisions that require
+manuscript or release review, including whether counts can be derived
+across tables or from prior releases. Apply disclosure protection to any
+tables you add to the study.
 
 ## Common pitfalls
 

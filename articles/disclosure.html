@@ -161,7 +161,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmppDPRBs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpCzALUQ/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -169,7 +169,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmppDPRBs/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpCzALUQ/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -698,6 +698,26 @@ N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-styl
 <p>The masked table is a starting point for review. Data-frame inputs
 continue to use the supplied count and optional hospital-count
 columns.</p>
+</div>
+<div class="section level2">
+<h2 id="generated-studies">Generated studies<a class="anchor" aria-label="anchor" href="#generated-studies"></a>
+</h2>
+<p>Render an analysis created with <code><a href="../reference/nis_new_study.html">nis_new_study()</a></code> to
+generate a Methods paragraph and checklist receipt. Copy the paragraph
+into your manuscript or edit the generated section in
+<code>analysis.qmd</code>. The receipt compares the input to the survey
+design with the query returned by <code><a href="../reference/nis_open.html">nis_open()</a></code>. Use the
+design’s cohort argument to restrict the analysis domain.</p>
+<p>The built-in report checks support for each variable across the
+displayed groups, including missing values and dichotomous complements.
+It masks related table cells and withholds linked estimates when they
+could reveal a protected cell. Models require complete data on the
+reporting cohort. Cohort flow checks the discharges excluded between
+steps and counts only valid-design records in weighted totals. The
+receipt describes the generated report and flags decisions that require
+manuscript or release review, including whether counts can be derived
+across tables or from prior releases. Apply disclosure protection to any
+tables you add to the study.</p>
 </div>
 <div class="section level2">
 <h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
