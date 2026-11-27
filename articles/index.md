@@ -46,7 +46,7 @@
 - [Comorbidity
   indicators](https://msaadasif.github.io/easyNIS/articles/comorbidity.md):
 
-  Add experimental AHRQ Elixhauser indicators to ICD-10 data.
+  Add experimental Elixhauser and Charlson indicators and scores.
 
 - [Code transitions and
   sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.md):

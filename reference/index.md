@@ -66,7 +66,7 @@ inflation-adjusted costs.
 - [`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
   : Add standard discharge outcomes
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
-  : Add AHRQ Elixhauser comorbidity columns (experimental)
+  : Add comorbidity indicators and scores (experimental)
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   : Adjust NIS charges and costs to a reference dollar year
 - [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)

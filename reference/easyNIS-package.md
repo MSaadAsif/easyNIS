@@ -3,12 +3,12 @@
 Pipe-friendly tools for opening annual Healthcare Cost and Utilization
 Project National Inpatient Sample Parquet files, flagging diagnosis and
 procedure codes, applying HCUP 'CCSR' mappings, adding experimental
-Elixhauser indicators, preparing designs and weights with the 'survey'
-package, applying supported HCUP labels, adjusting charges and costs,
-and reviewing disclosure risks. The Agency for Healthcare Research and
-Quality provides information on the NIS and how to obtain it at
-<https://hcup-us.ahrq.gov/nisoverview.jsp>. Experimental methods and
-annual-layout assumptions are not independently verified or
+comorbidity indicators and indices, preparing designs and weights with
+the 'survey' package, applying supported HCUP labels, adjusting charges
+and costs, and reviewing disclosure risks. The Agency for Healthcare
+Research and Quality provides information on the NIS and how to obtain
+it at <https://hcup-us.ahrq.gov/nisoverview.jsp>. Experimental methods
+and annual-layout assumptions are not independently verified or
 scientifically approved.
 
 ## Details
