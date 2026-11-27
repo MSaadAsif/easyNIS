@@ -8,6 +8,8 @@ Open annual NIS files and inspect data structure and labels.
 
 - [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
   : Write an invented NIS-shaped Parquet dataset
+- [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
+  : Convert a NIS file to annual Parquet
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   : Open annual NIS Parquet files lazily
 - [`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md)

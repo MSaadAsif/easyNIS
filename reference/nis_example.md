@@ -27,6 +27,7 @@ The temporary directory containing `NIS_<year>.parquet/` entries.
 data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
 
 Other data-access:
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md),
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
 
@@ -35,7 +36,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpKzwzyM/duckdb
+#> ℹ /tmp/Rtmp2MgKtM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

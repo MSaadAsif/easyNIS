@@ -43,6 +43,7 @@ after dropping levels.
 data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md).
 
 Other data-access:
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
 
@@ -53,7 +54,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpKzwzyM/duckdb
+#> ℹ /tmp/Rtmp2MgKtM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -61,7 +62,7 @@ demographics <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpKzwzyM/duckdb
+#> ℹ /tmp/Rtmp2MgKtM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
