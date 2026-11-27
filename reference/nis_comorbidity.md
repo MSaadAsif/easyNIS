@@ -136,7 +136,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
   dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
   dplyr::compute()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpo6Vrj0/duckdb
+#> ℹ /tmp/Rtmpbj7TaH/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -144,7 +144,7 @@ discharges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpo6Vrj0/duckdb
+#> ℹ /tmp/Rtmpbj7TaH/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

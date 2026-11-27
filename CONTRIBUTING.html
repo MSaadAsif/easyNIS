@@ -54,61 +54,45 @@
 
 <div id="contributing" class="section level1">
 
-<p>Thanks for helping improve easyNIS. Changes should be reviewable, supported by invented public fixtures, and consistent with the package’s documented limitations.</p>
+<p>Work on a focused branch. From the repository root, install development dependencies with <code>pak::pak(".", dependencies = TRUE)</code> in R. Install <code>devtools</code>, <code>callr</code>, and <code>cyclocomp</code> for checks, and put <a href="https://posit-dev.github.io/air/cli.html" class="external-link">Air 0.13.0</a> and <a href="https://jarl.etiennebacher.com/#installation" class="external-link">Jarl 0.7.1</a> on your PATH.</p>
 <div class="section level2">
-<h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a></h2>
-<ol style="list-style-type: decimal"><li>Fork the repository and create a branch for your change.</li>
-<li>Open the repository root in RStudio or set it as your working directory.</li>
-<li>Install development dependencies with <code>pak::pak(".", dependencies = TRUE)</code>.</li>
-<li>For documentation changes, install <code>roxygen2</code> and <code>pkgdown</code>. For local checks, install <code>callr</code> and <code>cyclocomp</code> in R and put <a href="https://posit-dev.github.io/air/cli.html" class="external-link">Air 0.13.0</a> and <a href="https://jarl.etiennebacher.com/#installation" class="external-link">Jarl 0.7.1</a> on your PATH.</li>
-</ol></div>
-<div class="section level2">
-<h2 id="change-and-verify">Change and verify<a class="anchor" aria-label="anchor" href="#change-and-verify"></a></h2>
-<ul><li>Keep each branch focused and describe the user-visible behavior in the pull request.</li>
-<li>Add or update focused <code>testthat</code> coverage using invented fixtures. Do not create examples from licensed NIS inputs or record-derived output.</li>
-<li>Regenerate documentation with <code>devtools::document()</code> when roxygen comments change, and include the generated <code>man/</code> and <code>NAMESPACE</code> changes.</li>
-<li>Run relevant tests with <code>devtools::test()</code>. From the repository root, run <code>Rscript --vanilla tools/check-package.R</code> after committing changes and before requesting review. It runs <code>devtools::check()</code> on the exact commit, away from the checkout’s ignored data and working files. Before committing, run <code>Rscript --vanilla tools/check-package.R --lint</code> to check Air formatting, Jarl findings, and the installed package’s cyclomatic complexity limit of 15. Use <code>air format .</code> to apply formatting and <code><a href="https://pkgdown.r-lib.org/reference/check_pkgdown.html" class="external-link">pkgdown::check_pkgdown()</a></code> for pkgdown configuration changes.</li>
-<li>Follow the existing style: tidyverse formatting, explicit package namespaces in examples where appropriate, and clear warnings for experimental behavior. CI runs package checks, lint, and coverage.</li>
-<li>Work on a branch. An independent reviewer reviews the diff; merge only after review and checks pass.</li>
-</ul><div class="section level3">
-<h3 id="resource-intensive-tests">Resource-intensive tests<a class="anchor" aria-label="anchor" href="#resource-intensive-tests"></a></h3>
-<p>The regular suite checks DuckDB workload settings, spill-limit enforcement and cleanup, and every procedure timing policy and relation. The full tier also checks procedure timing on a 25-slot Parquet fixture. Set <code>EASYNIS_FULL_TESTS</code> to <code>true</code>, <code>TRUE</code>, or <code>1</code> to include that check.</p>
-<p>Run the full suite with <code>Sys.setenv(EASYNIS_FULL_TESTS = "true"); devtools::test()</code> or run the committed package check with <code>Rscript --vanilla tools/check-package.R --full</code>. The latter is the command for scheduled or manually triggered full checks.</p>
-</div>
+<h2 id="verify-a-change">Verify a change<a class="anchor" aria-label="anchor" href="#verify-a-change"></a></h2>
+<ul><li>Before writing code, list what could fail. Prefer end-to-end tests of the public workflow with invented fixtures. Keep the inputs, exact command, platform, transcript, and observed results for each run. Follow <a href="AGENTS.html">AGENTS.md</a> when a test needs isolation.</li>
+<li>Run relevant tests with <code>devtools::test()</code>. Keep tests fast and safe to run in parallel. Put slow tests behind <code>EASYNIS_FULL_TESTS</code> and keep CI on each push under 10 minutes.</li>
+<li>If roxygen comments change, run <code>devtools::document()</code> and commit the generated changes. Use the roxygen2 version in <code>DESCRIPTION</code>.</li>
+<li>Before committing, run <code>Rscript --vanilla tools/check-package.R --lint</code> for Air formatting, Jarl lint, and installed-package cyclomatic complexity of 15 or less.</li>
+<li>Before opening the PR, run <code>Rscript --vanilla tools/check-package.R --full</code>. It runs <code>devtools::check()</code> on the exact commit with <code>EASYNIS_FULL_TESTS</code> enabled, isolated from the working tree and ignored data.</li>
+</ul><p>Describe what changed, how you verified it, and any remaining limitations in the <a href="PULL_REQUEST_TEMPLATE.html">PR template</a>. See the <a href="docs/LOOP.html">improvement loop</a> for orchestrated work and review.</p>
 </div>
 <div class="section level2">
 <h2 id="where-changes-belong">Where changes belong<a class="anchor" aria-label="anchor" href="#where-changes-belong"></a></h2>
-<p>R loads package source from the flat <code>R/</code> directory. Use the domain in the filename and put focused tests next to that domain’s other tests in <code>tests/testthat/</code>.</p>
+<p>Package code lives in <code>R/</code>, with related tests in <code>tests/testthat/</code>.</p>
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>To change</th>
 <th>Start here</th>
-</tr></thead><tbody><tr><td>Annual and Hive discovery</td>
+</tr></thead><tbody><tr><td>Opening annual or Hive data</td>
 <td>
-<code>R/open-discovery.R</code> for part ownership, <code>R/open-parquet.R</code> for scan planning and year validation, and <code>R/duckdb.R</code> for connections and spill storage</td>
+<code>R/open.R</code> for the entry point, <code>R/open-discovery.R</code> for part ownership, <code>R/open-parquet.R</code> for scans, <code>R/open-release.R</code> for annual release checks, and <code>R/duckdb.R</code> for connections and spill storage</td>
 </tr><tr><td>Diagnosis or procedure selection</td>
 <td>
-<code>R/code-layout.R</code> for slot names and code-system eligibility, <code>R/code-flags.R</code> for matching, and <code>R/procedure-days.R</code> for PRDAY decoding</td>
+<code>R/code-layout.R</code> for slots and code systems, <code>R/code-flags.R</code> for matching, and <code>R/procedure-days.R</code> for PRDAY decoding</td>
 </tr><tr><td>Survey design or weights</td>
 <td>
-<code>R/design.R</code> for input selection, <code>R/design-sample.R</code> for sample and cohort scans, <code>R/cohort-design.R</code> for survey objects, and <code>R/reweight.R</code> for factor validation and application</td>
+<code>R/design.R</code> for input selection, <code>R/design-sample.R</code> for scans, <code>R/cohort-design.R</code> for survey objects, and <code>R/reweight.R</code> for reweighting</td>
 </tr><tr><td>Disclosure</td>
 <td>
-<code>R/disclosure-policy.R</code> for primary masks and hospital identity, <code>R/cell-counts.R</code> for cell summaries, and <code>R/suppress-survey.R</code> or <code>R/suppress-data-frame.R</code> for format-specific masking</td>
+<code>R/disclosure-policy.R</code> for policy, <code>R/cell-counts.R</code> for summaries, and <code>R/suppress-survey.R</code> or <code>R/suppress-data-frame.R</code> for masking</td>
 </tr><tr><td>Generated studies</td>
 <td>
-<code>R/study-scaffold.R</code> for files, <code>R/study-cache.R</code> for cache inputs, <code>R/study-model.R</code> for fit diagnostics, and <code>inst/templates/nis-study/</code> for the report</td>
+<code>R/study-scaffold.R</code> for files, <code>R/study-cache.R</code> for caching, <code>R/study-model.R</code> for fit diagnostics, and <code>inst/templates/nis-study/</code> for the report</td>
 </tr><tr><td>Improvement probes</td>
 <td>
-<code>tools/probe/</code> for commands, <code>quality-checks.R</code> for check definitions, <code>quality-receipts.R</code> for evidence, and <code>readiness-criteria.R</code> for decisions</td>
-</tr></tbody></table><p>Keep I/O and format-specific code at the entry points. Put a rule in a shared module when multiple callers need the same rule, and exercise it through the normal user-facing functions.</p>
-<p>When changing Parquet scan planning or DuckDB workload settings, run the <a href=".agents/skills/duckdb-parquet-scans/SKILL.html">bounded scan check and spill benchmark</a>.</p>
+<code>tools/probe/quality-checks.R</code> for checks, <code>tools/probe/quality-receipts.R</code> for evidence, and <code>tools/probe/readiness-criteria.R</code> for readiness</td>
+</tr></tbody></table><p>For scan planning or DuckDB workload changes, run the <a href=".agents/skills/duckdb-parquet-scans/SKILL.html">bounded scan check and spill benchmark</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="privacy-and-licensing">Privacy and licensing<a class="anchor" aria-label="anchor" href="#privacy-and-licensing"></a></h2>
-<p>Use invented fixtures and independently authored code compatible with the project’s AGPL-3.0-only license. Do not add licensed HCUP inputs, real or record-derived records, private paths, local validation receipts, or output that could disclose individual-level information. Never share record-level NIS data. Review tables for primary and complementary disclosure risks and follow the HCUP Data Use Agreement and institutional requirements.</p>
-</div>
-<div class="section level2">
-<h2 id="pull-requests">Pull requests<a class="anchor" aria-label="anchor" href="#pull-requests"></a></h2>
-<p>Explain the behavior changed, relevant verification, and remaining methodological or annual-layout limitations. Use the pull request checklist and keep the change focused.</p>
+<p>Keep licensed HCUP inputs, real records, private paths, and local validation receipts out of the repository and public material. Never publish output from real-data runs, including estimates, counts, or any record-derived values, in issues, PRs, commits, or docs. Keep those outputs in Git-ignored <code>local/loop/</code>. Review tables for primary and complementary disclosure risks. Follow the HCUP Data Use Agreement and institutional requirements, and contribute independently authored code compatible with AGPL-3.0-only.</p>
+<p>Before posting an issue or PR body, save the text locally and run <code>Rscript --vanilla tools/check-public-text.R path/to/body.md</code>. Check the text yourself for private material even when the scanner passes.</p>
 </div>
 </div>
 
