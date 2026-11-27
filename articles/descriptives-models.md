@@ -12,7 +12,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpktXa1f/duckdb
+#> ℹ /tmp/RtmprjOxsh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpktXa1f/duckdb
+#> ℹ /tmp/RtmprjOxsh/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -137,6 +137,12 @@ missing counts, and category counts. Hospital placeholders contribute to
 the variance structure only. This table uses a survey t-test for mean
 age and the design-adjusted chi-squared test for sex. The header shows
 unweighted sample sizes, alongside weighted summaries in the table body.
+
+The default continuous summary uses a weighted median and quartiles. On
+a large cohort, computing those quantiles for each group can dominate
+table runtime. Use `include` to select the variables the table needs.
+When a weighted mean answers the scientific question, request one
+explicitly with `statistic = AGE ~ "{mean} ({mean.std.error})"`.
 
 ``` r
 
