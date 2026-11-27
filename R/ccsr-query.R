@@ -230,8 +230,13 @@ ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, 
       "))) END"
     )
   }
+  # A single join can inline its lookup so DuckDB can prune input columns
+  # from the surrounding projection. Wide joins reuse a materialized lookup.
+  materialization <- if (length(slots) == 1L) "NOT MATERIALIZED" else "MATERIALIZED"
   paste(
-    "WITH mapping AS MATERIALIZED (SELECT version, code,",
+    "WITH mapping AS",
+    materialization,
+    "(SELECT version, code,",
     aggregate,
     "AS categories",
     "FROM",

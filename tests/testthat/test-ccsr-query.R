@@ -32,6 +32,21 @@ ccsr_test_reference <- function() {
   list(con = con, query = queries, path = path)
 }
 
+test_that("one-slot CCSR lets DuckDB skip unused input expressions", {
+  ref <- ccsr_test_reference()
+  local_mocked_bindings(ccsr_reference_dir = function() ref$path)
+  query <- dplyr::mutate(
+    ref$query,
+    unused = dbplyr::sql("CASE WHEN KEY_NIS > 0 THEN error('Unused enrichment evaluated')::BOOLEAN END")
+  )
+  enriched <- nis_add_ccsr(query, position = "default")
+  totals <- enriched |>
+    dplyr::count(ccsr) |>
+    dplyr::collect()
+  expect_equal(sum(totals$n), 192)
+  expect_error(dplyr::collect(dplyr::select(enriched, unused)), "Unused enrichment evaluated")
+})
+
 test_that("CCSR assigns exact codes in DuckDB using the release for each NIS year", {
   ref <- ccsr_test_reference()
   local_mocked_bindings(ccsr_reference_dir = function() ref$path)
