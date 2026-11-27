@@ -105,10 +105,13 @@ test_that("an enriched example can be saved and reopened as a survey domain", {
   local_sql_na_warnings()
   sample <- nis_open(nis_example(2019:2020))
   reference <- nis_design(sample, cohort = I10_DX1 == "I5022", keep = LOS)
-  source <- sample |>
-    dplyr::select(YEAR, KEY_NIS, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, LOS, I10_DX1, I10_DX2) |>
-    nis_comorbidity(method = "charlson_quan2005") |>
-    nis_add_ccsr(position = "default")
+  expect_warning(
+    source <- sample |>
+      dplyr::select(YEAR, KEY_NIS, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, LOS, I10_DX1, I10_DX2) |>
+      nis_comorbidity(method = "charlson_quan2005") |>
+      nis_add_ccsr(position = "default"),
+    "No matching POA column"
+  )
   expect_s3_class(source, "tbl_lazy")
   expect_match(as.character(dbplyr::sql_render(source)), "read_parquet", fixed = TRUE)
 
