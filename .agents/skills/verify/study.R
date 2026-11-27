@@ -257,28 +257,28 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
       setup <- switch(reporting_variant,
         dichotomous = c(
           'records <- study_design$variables',
-          'arm <- which(records$exposed %in% "Yes")',
-          'records$FEMALE <- factor(ifelse(seq_len(nrow(records)) %% 2L, "Yes", "No"))',
-          'records$FEMALE[arm] <- "Yes"',
-          'records$FEMALE[arm[[1L]]] <- "No"',
+          'arm <- which(records$exposed)',
+          'records$FEMALE <- seq_len(nrow(records)) %% 2L == 1L',
+          'records$FEMALE[arm] <- TRUE',
+          'records$FEMALE[arm[[1L]]] <- FALSE',
           'study_design$variables <- records'
         ),
         `shared-denominator` = c(
           'records <- study_design$variables',
           'records$exposed[seq_len(24L)] <- NA',
-          'records$DIED <- factor(ifelse(seq_len(nrow(records)) %% 2L, "Yes", "No"))',
-          'records$DIED[seq_len(24L)] <- "No"',
-          'records$DIED[1L] <- "Yes"',
+          'records$DIED <- seq_len(nrow(records)) %% 2L == 1L',
+          'records$DIED[seq_len(24L)] <- FALSE',
+          'records$DIED[1L] <- TRUE',
           'study_design$variables <- records'
         ),
         `one-year-denominator` = c(
           'records <- study_design$variables',
           'i <- seq_len(nrow(records))',
-          'records$exposed <- factor(ifelse(i %% 2L, "Yes", "No"))',
+          'records$exposed <- i %% 2L == 1L',
           'records$exposed[seq_len(24L)] <- NA',
-          'records$DIED <- factor(ifelse(i %% 5L < 2L, "Yes", "No"))',
-          'records$DIED[seq_len(24L)] <- "No"',
-          'records$DIED[seq_len(3L)] <- "Yes"',
+          'records$DIED <- i %% 5L < 2L',
+          'records$DIED[seq_len(24L)] <- FALSE',
+          'records$DIED[seq_len(3L)] <- TRUE',
           'records$LOS[seq_len(24L)] <- NA_real_',
           'records$LOS[1:2] <- 200',
           'study_design$variables <- records'
@@ -419,7 +419,7 @@ verify_study_reporting <- function(report, variant, evidence) {
   if (variant == "dichotomous") {
     table <- study_report_section(document, "table-1")
     cells <- xml2::xml_text(xml2::xml_find_all(table,
-      ".//tr[td[@headers='label' and starts-with(normalize-space(.),'FEMALE')]]/td[starts-with(@headers,'stat_')]"))
+      ".//tr[td[@headers='label' and starts-with(normalize-space(.),'Female')]]/td[starts-with(@headers,'stat_')]"))
     stopifnot(length(cells) == 3L, all(cells %in% c("Masked", "\u226410", "<2 hospitals")))
   }
   if (variant %in% c("shared-denominator", "one-year-denominator")) {
@@ -442,7 +442,7 @@ verify_study_denominator <- function(document, variant, evidence) {
   proof <- dget("denominator-evidence.R")
   missing <- is.na(proof$fixture$exposed)
   stopifnot(sum(missing) == 24L,
-    sum(proof$fixture$DIED[missing] == "Yes") == if (variant == "one-year-denominator") 3L else 1L)
+    sum(proof$fixture$DIED[missing]) == if (variant == "one-year-denominator") 3L else 1L)
   selected <- proof$fixture[!missing, ]
   n <- nrow(selected)
   headings <- function(id) xml2::xml_text(xml2::xml_find_all(study_report_section(document, id), ".//thead//th"))
@@ -464,7 +464,7 @@ verify_study_denominator <- function(document, variant, evidence) {
   for (rows in annual) {
     year <- rows$YEAR[[1L]]
     observed <- trends[trends[, 1L] == year, ]
-    mortality <- stats::weighted.mean(rows$DIED == "Yes", rows$DISCWT)
+    mortality <- stats::weighted.mean(rows$DIED, rows$DISCWT)
     los <- stats::weighted.mean(rows$LOS, rows$DISCWT, na.rm = TRUE)
     stopifnot(as.integer(observed[[2L]]) == nrow(rows),
       observed[[3L]] == formatC(sum(rows$DISCWT) / length(annual), format = "f", digits = 1, big.mark = ","),

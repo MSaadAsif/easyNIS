@@ -155,35 +155,8 @@ nis_study_render_table <- function(table, html) {
   if (html) gt::gt(table) else flextable::flextable(table)
 }
 
-nis_study_hidden_levels <- function(table, variable, threshold) {
-  data <- survey_hospital_cohort_records(table, rlang::current_call())
-  by <- table$inputs$by
-  groups <- if (length(by)) split(data, data[[by]], drop = TRUE) else list(data)
-  all(vapply(
-    groups,
-    function(rows) {
-      observed <- rows[!is.na(rows[[variable]]), ]
-      hidden <- !survey_hosp_dichotomous(observed, table, variable, rlang::current_call())
-      omitted <- observed[hidden, ]
-      levels <- split(omitted, omitted[[variable]], drop = TRUE)
-      nis_study_supported(omitted, threshold) &&
-        all(vapply(levels, nis_study_supported, logical(1), threshold = threshold))
-    },
-    logical(1)
-  ))
-}
-
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_summary_table <- function(table, threshold, header) {
-  types <- unlist(table$inputs$type)
-  dichotomous <- names(types)[types == "dichotomous"]
-  hidden_ok <- vapply(
-    dichotomous,
-    function(variable) {
-      nis_study_hidden_levels(table, variable, threshold)
-    },
-    logical(1)
-  )
   table <- nis_suppress(table, threshold = threshold)
   # Hide the remaining statistics for a variable with a protected cell.
   # Otherwise, a displayed percentage and a group header can recover the count.
@@ -191,7 +164,7 @@ nis_study_summary_table <- function(table, threshold, header) {
     stat <- grep("^stat_[0-9]+$", names(body), value = TRUE)
     masks <- c(paste0("\u2264", threshold), "<2 hospitals", "Masked")
     masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
-    related <- body$variable %in% c(body$variable[masked], dichotomous[!hidden_ok])
+    related <- body$variable %in% body$variable[masked]
     for (column in stat) {
       value <- body[[column]]
       value[related & !is.na(value) & nzchar(value) & !value %in% masks] <- "Masked"

@@ -27,10 +27,10 @@ nis_study_design_status <- function(design, input) {
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_trend_estimates <- function(design) {
   trend <- design |>
-    dplyr::mutate(.died = as.numeric(.data$DIED == "Yes"), .one = 1) |>
+    dplyr::mutate(.one = 1) |>
     dplyr::group_by(YEAR) |>
     dplyr::summarise(
-      mortality = srvyr::survey_mean(.data$.died, vartype = "ci", na.rm = TRUE),
+      mortality = srvyr::survey_mean(.data$DIED, vartype = "ci", na.rm = TRUE),
       mean_los = srvyr::survey_mean(.data$LOS, vartype = "ci", na.rm = TRUE),
       n_unweighted = dplyr::n(),
       weighted_n = srvyr::survey_total(.data$.one, vartype = NULL),
