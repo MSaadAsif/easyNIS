@@ -343,7 +343,7 @@ test_that("nis_suppress validates data-frame columns and input-specific options"
   expect_error(nis_suppress(data, count_col = n, by = absent), "absent")
 })
 
-test_that("nis_suppress masks a low level in a two-level categorical variable", {
+test_that("nis_suppress masks both levels in a two-level categorical variable with a low count", {
   data <- dplyr::tibble(
     group = rep(c("A", "B"), each = 20L),
     category = c(
@@ -378,8 +378,8 @@ test_that("nis_suppress masks a low level in a two-level categorical variable", 
   expect_equal(nrow(common), 1L)
   expect_equal(enc2utf8(rare$stat_1), paste0("\u2264", "10"))
   expect_equal(enc2utf8(rare$stat_2), paste0("\u2264", "10"))
-  expect_false(grepl("\u2264", common$stat_1))
-  expect_false(grepl("\u2264", common$stat_2))
+  expect_identical(common$stat_1, "Masked")
+  expect_identical(common$stat_2, "Masked")
 })
 
 test_that("nis_suppress masks overall cells with add_p and keeps no-by support", {
@@ -580,15 +580,15 @@ test_that("nis_suppress masks the overall cell beside a masked group cell", {
   expect_false(is_masked(small$stat_2))
 
   large <- suppress_row(suppressed, "category", "large")
-  expect_equal(large$stat_0, suppress_row(table, "category", "large")$stat_0)
-  expect_false(any(vapply(large[c("stat_0", "stat_1", "stat_2")], is_masked, logical(1))))
+  expect_identical(large$stat_0, "Masked")
+  expect_identical(large$stat_1, "Masked")
+  expect_equal(large$stat_2, suppress_row(table, "category", "large")$stat_2)
 
   expect_true(any(grepl(
     "Overall cells in rows with a masked by-group cell",
     unlist(suppressed$table_styling$footnote_header)
   )))
 
-  # Without an overall column there is nothing more to mask.
   alone <- nis_suppress(by_table)
   expect_false("stat_0" %in% names(alone$table_body))
   small_alone <- suppress_row(alone, "category", "small")
@@ -637,7 +637,10 @@ test_that("nis_suppress masks the overall cell with three groups", {
   expect_false(is_masked(other_rare$stat_3))
 
   common <- suppress_row(table, "category", "common")
-  expect_false(any(vapply(common[c("stat_0", "stat_1", "stat_2", "stat_3")], is_masked, logical(1))))
+  expect_identical(common$stat_0, "Masked")
+  expect_identical(common$stat_1, "Masked")
+  expect_identical(common$stat_2, "Masked")
+  expect_false(is_masked(common$stat_3))
 })
 
 test_that("nis_suppress keeps the p-value and masks the overall cell with add_p", {

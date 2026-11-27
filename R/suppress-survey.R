@@ -76,17 +76,16 @@ survey_row_spec_by_type <- function(body, row, variable, row_type, var_type, car
   NULL
 }
 
-survey_cell_mask_result <- function(body, column, row, masks, threshold) {
-  masked <- any(masks$count | masks$hospital)
+survey_cell_mask <- function(masks, threshold) {
   if (masks$count[[1L]]) {
-    body[[column]][[row]] <- paste0("\u2264", threshold)
+    paste0("\u2264", threshold)
   } else if (masks$hospital[[1L]]) {
-    body[[column]][[row]] <- "<2 hospitals"
-  } else if (masked) {
-    body[[column]][[row]] <- "Masked"
+    "<2 hospitals"
+  } else if (any(masks$count | masks$hospital)) {
+    "Masked"
+  } else {
+    NA_character_
   }
-  overall <- identical(column, "stat_0")
-  list(body = body, group_masked = masked && !overall, overall_masked = masked && overall)
 }
 
 survey_level_row_spec <- function(
@@ -249,17 +248,16 @@ survey_card_count <- function(cards, matches, spec, column, error_call) {
   )
 }
 
-survey_cell_suppression <- function(x, records, body, cards, row, column, spec, threshold, error_call) {
-  cell <- body[[column]][[row]]
+survey_cell_suppression <- function(x, records, cell, cards, column, spec, threshold, error_call) {
   if (spec$continuous2 && survey_continuous2_blank(cell)) {
-    return(list(body = body, group_masked = FALSE, overall_masked = FALSE))
+    return(list(count = NA_real_, mask = NA_character_))
   }
   matches <- survey_card_matches(cards, spec, column)
   count <- survey_card_count(cards, matches, spec, column, error_call)
   evidence <- survey_cell_evidence(x, records, cards, matches, column, spec, error_call)
   evidence$n[[1L]] <- min(count, evidence$n[[1L]])
   masks <- nis_disclosure_masks(evidence$n, evidence$hospitals, threshold)
-  survey_cell_mask_result(body, column, row, masks, threshold)
+  list(count = evidence$n[[1L]], mask = survey_cell_mask(masks, threshold))
 }
 
 survey_stat_displayed <- function(body, row, stat_columns) {
@@ -292,47 +290,23 @@ survey_row_mapping_error <- function(body, row, row_type, error_call) {
   )
 }
 
-suppress_survey_row <- function(
-  x,
-  records,
-  body,
-  cards,
-  row,
-  spec,
-  stat_columns,
-  threshold,
-  error_call
-) {
-  group_masked <- FALSE
-  overall_primary_masked <- FALSE
-  for (column in stat_columns) {
-    result <- survey_cell_suppression(
-      x,
-      records,
-      body,
-      cards,
-      row,
-      column,
-      spec,
-      threshold,
-      error_call
-    )
-    body <- result$body
-    group_masked <- group_masked || result$group_masked
-    overall_primary_masked <- overall_primary_masked || result$overall_masked
+survey_categorical_companions <- function(masks, counts, levels) {
+  for (rows in levels) {
+    masked <- !is.na(masks[rows])
+    if (sum(masked) == 1L) {
+      visible <- rows[which(!masked & counts[rows] > 0)]
+      masks[visible[which.min(counts[visible])]] <- "Masked"
+    }
   }
-  if (group_masked && "stat_0" %in% stat_columns && !overall_primary_masked) {
-    body$stat_0[[row]] <- "Masked"
-  }
-  body
+  masks
 }
 
-suppress_survey_table <- function(x, threshold, error_call) {
-  body <- x$table_body
+survey_suppression_cells <- function(x, body, stat_columns, threshold, error_call) {
   cards <- survey_suppress_cards(x)
   records <- survey_hospital_cohort_records(x, error_call)
   card_variable_level <- survey_variable_levels(cards)
-  stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
+  masks <- matrix(NA_character_, nrow(body), length(stat_columns), dimnames = list(NULL, stat_columns))
+  counts <- matrix(NA_real_, nrow(body), length(stat_columns), dimnames = list(NULL, stat_columns))
   for (row in seq_len(nrow(body))) {
     displayed_stat <- survey_stat_displayed(body, row, stat_columns)
     row_type <- if ("row_type" %in% names(body)) body$row_type[[row]] else NA_character_
@@ -343,17 +317,43 @@ suppress_survey_table <- function(x, threshold, error_call) {
     if (is.null(spec)) {
       next
     }
-    body <- suppress_survey_row(
-      x,
-      records,
-      body,
-      cards,
-      row,
-      spec,
-      stat_columns,
-      threshold,
-      error_call
-    )
+    for (column in stat_columns) {
+      cell <- body[[column]][[row]]
+      result <- survey_cell_suppression(x, records, cell, cards, column, spec, threshold, error_call)
+      masks[row, column] <- result$mask
+      if (!survey_continuous2_blank(cell)) {
+        counts[row, column] <- result$count
+      }
+    }
+  }
+  list(masks = masks, counts = counts)
+}
+
+survey_complete_masks <- function(cells, body, stat_columns) {
+  masks <- cells$masks
+  rows <- which(body$var_type == "categorical" & body$row_type == "level")
+  levels <- split(rows, body$variable[rows])
+  groups <- setdiff(stat_columns, "stat_0")
+  for (column in groups) {
+    masks[, column] <- survey_categorical_companions(masks[, column], cells$counts[, column], levels)
+  }
+  if ("stat_0" %in% stat_columns) {
+    # Propagate by-group companions before checking the overall column total.
+    from_groups <- rowSums(!is.na(masks[, groups, drop = FALSE])) > 0L
+    masks[from_groups & is.na(masks[, "stat_0"]), "stat_0"] <- "Masked"
+    masks[, "stat_0"] <- survey_categorical_companions(masks[, "stat_0"], cells$counts[, "stat_0"], levels)
+  }
+  masks
+}
+
+suppress_survey_table <- function(x, threshold, error_call) {
+  body <- x$table_body
+  stat_columns <- grep("^stat_[0-9]+$", names(body), value = TRUE)
+  cells <- survey_suppression_cells(x, body, stat_columns, threshold, error_call)
+  masks <- survey_complete_masks(cells, body, stat_columns)
+  for (column in stat_columns) {
+    masked <- !is.na(masks[, column])
+    body[[column]][masked] <- masks[masked, column]
   }
   x <- gtsummary::modify_table_body(x, function(table_body) body)
   gtsummary::modify_footnote_header(
@@ -368,6 +368,8 @@ suppress_survey_table <- function(x, threshold, error_call) {
       "mask takes precedence when both rules apply.",
       " Dichotomous rows with a protected complement are marked 'Masked' ",
       "when the displayed event passes both rules.",
+      " When a categorical variable has one masked level in a column, ",
+      "the smallest remaining positive level is marked 'Masked'.",
       if ("stat_0" %in% stat_columns) {
         paste0(
           " Overall cells in rows with a masked by-group cell are marked ",
@@ -376,9 +378,8 @@ suppress_survey_table <- function(x, threshold, error_call) {
           "mask."
         )
       },
-      " Other derivable cells are not masked; review tables for other ",
-      "derivable cells before sharing ",
-      "under the HCUP Data Use Agreement."
+      " Before sharing under the HCUP Data Use Agreement, review tables for ",
+      "other derivable cells."
     ),
     columns = gtsummary::all_stat_cols(),
     replace = FALSE,
