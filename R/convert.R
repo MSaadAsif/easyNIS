@@ -338,7 +338,7 @@ nis_convert_invalid <- function(reason, column, row) {
 
 nis_convert_copy_batch <- function(con, data, path) {
   duckdb::duckdb_register(con, "nis_convert_batch", data)
-  on.exit(duckdb::duckdb_unregister(con, "nis_convert_batch"))
+  on.exit(duckdb::duckdb_unregister(con, "nis_convert_batch"), add = TRUE)
   target <- DBI::dbQuoteString(con, path)
   DBI::dbExecute(con, paste("COPY nis_convert_batch TO", target, "(FORMAT PARQUET, COMPRESSION ZSTD)"))
 }

@@ -14,10 +14,12 @@ validate_survey_suppress_args <- function(
   by,
   hospital_col,
   secondary,
-  missing_count_col,
   error_call
 ) {
-  data_frame_only <- !missing_count_col || !is.null(weighted_cols) || !is.null(by) || !is.null(hospital_col)
+  data_frame_only <- !rlang::quo_is_missing(count_col) ||
+    !rlang::quo_is_null(weighted_cols) ||
+    !rlang::quo_is_null(by) ||
+    !rlang::quo_is_null(hospital_col)
   if (data_frame_only) {
     cli::cli_abort(
       "`count_col`, `weighted_cols`, `by`, and `hospital_col` apply only to data frames.",

@@ -12,13 +12,9 @@
 )
 .nis_audit_inventory_names <- c("code_group", "code", "n_cohort_unweighted", "n_unweighted", "n_weighted", "status")
 
-.nis_audit_valid_by <- function(by) {
-  is.character(by) && length(by) > 0L && !anyNA(by) && all(nzchar(by)) && !anyDuplicated(by)
-}
-
-.nis_audit_validate_by <- function(.data, by, output) {
-  if (!.nis_audit_valid_by(by) || !all(by %in% nis_names(.data))) {
-    cli::cli_abort("`by` must name one or more unique existing columns.")
+.nis_audit_validate_by <- function(by, output) {
+  if (!length(by)) {
+    cli::cli_abort("`by` must select at least one period column.", call = rlang::caller_call())
   }
   reserved <- if (output == "inventory") .nis_audit_inventory_names else .nis_audit_summary_names
   if (any(by %in% reserved)) {
@@ -392,8 +388,9 @@
 #'   [nis_attrition()] with `.codes`. Omit `type` and `system` in that case.
 #' @param cohort Optional tidy-evaluation logical expression defining the
 #'   cohort. Rows where it evaluates to `NA` are excluded.
-#' @param by Names of one or more existing columns defining periods, with no
-#'   duplicates.
+#' @param by <[tidy-select][dplyr::dplyr_tidy_select]> One or more columns
+#'   defining periods. Defaults to `YEAR`. Use name-based selectors on DuckDB
+#'   queries.
 #' @param type Whether to match diagnosis (`"dx"`) or procedure (`"pr"`)
 #'   slots.
 #' @param system Code system of the slots: `"icd10"` (default) or `"icd9"`.
@@ -434,12 +431,12 @@
 #' # Periods defined by several columns
 #' toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
 #' nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
-#'   by = c("YEAR", "DQTR"))
+#'   by = c(YEAR, DQTR))
 nis_audit_code_transition <- function(
   .data,
   codes,
   cohort = NULL,
-  by = "YEAR",
+  by = YEAR,
   type = c("pr", "dx"),
   system = c("icd10", "icd9"),
   weight_var = "DISCWT",
@@ -461,8 +458,8 @@ nis_audit_code_transition <- function(
     }
   }
 
-  by <- unname(by)
-  .nis_audit_validate_by(.data, by, output)
+  by <- nis_select_columns(.data, rlang::enquo(by))
+  .nis_audit_validate_by(by, output)
   .nis_audit_validate_weight(.data, weight_var)
   .nis_audit_validate_sparse_n(sparse_n)
 

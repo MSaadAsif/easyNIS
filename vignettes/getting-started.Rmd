@@ -94,9 +94,9 @@ counts for the records contributing to that mean.
 reviewed <- estimates |>
   dplyr::left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
   nis_suppress(
-    count_col = "n",
-    hospital_col = "hospitals",
-    weighted_cols = c("discharges", "discharges_se", "mean_los", "mean_los_se")
+    count_col = n,
+    hospital_col = hospitals,
+    weighted_cols = c(discharges, discharges_se, mean_los, mean_los_se)
   )
 reviewed
 ```

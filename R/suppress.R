@@ -35,17 +35,19 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   or `add_overall()`, or a data frame/tibble.
 #' @param threshold Maximum unweighted cell count to suppress.
 #' @param ... Reserved for compatibility; unused arguments are errors.
-#' @param count_col For data frames, the unweighted-count column name (required).
-#' @param weighted_cols For data frames, other columns to mask on primary and
-#'   secondary rows.
-#' @param hospital_col Optional data-frame column containing the number of
+#' @param count_col <[tidy-select][dplyr::dplyr_tidy_select]> For data frames,
+#'   select exactly one unweighted-count column.
+#' @param weighted_cols <[tidy-select][dplyr::dplyr_tidy_select]> For data
+#'   frames, other columns to mask on primary and secondary rows.
+#' @param hospital_col <[tidy-select][dplyr::dplyr_tidy_select]> Optional
+#'   selection of a single data-frame column containing the number of
 #'   distinct contributing hospitals for each cell. Cells with fewer than two
 #'   hospitals are marked `<2 hospitals`. Missing
 #'   or invalid hospital counts are errors. Hospital identifiers must be
 #'   counted by year; [nis_cell_counts()] computes counts from record-level
 #'   data or an `nis_design()` result.
-#' @param by Optional data-frame grouping column names defining strata for
-#'   complementary suppression.
+#' @param by <[tidy-select][dplyr::dplyr_tidy_select]> Optional data-frame
+#'   grouping columns defining strata for complementary suppression.
 #' @param secondary Apply complementary suppression. For data frames this masks
 #'   the smallest remaining positive count when exactly one row in a stratum is
 #'   primary-masked. This is single-dimension complementary suppression, not a
@@ -68,6 +70,10 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   include = c(AGE, FEMALE)
 #' )
 #' nis_suppress(table, threshold = 10)
+#' @examples
+#' cells <- data.frame(n = c(4, 25), hospitals = c(2, 3), estimate_total = c(20, 125))
+#' nis_suppress(cells, count_col = n, hospital_col = hospitals,
+#'   weighted_cols = tidyselect::starts_with("estimate_"))
 nis_suppress <- function(
   .data,
   threshold = 10,
@@ -82,7 +88,16 @@ nis_suppress <- function(
   dots <- rlang::dots_list(...)
   validate_suppress_dots(dots, error_call)
   validate_suppress_threshold(threshold, error_call)
+  count_col <- rlang::enquo(count_col)
+  weighted_cols <- rlang::enquo(weighted_cols)
+  by <- rlang::enquo(by)
+  hospital_col <- rlang::enquo(hospital_col)
   if (is.data.frame(.data) && !inherits(.data, "tbl_svysummary")) {
+    count_col <- nis_select_columns(.data, count_col, error_call)
+    hospital_col <- nis_select_columns(.data, hospital_col, error_call)
+    validate_dataframe_count_columns(count_col, hospital_col, error_call)
+    weighted_cols <- nis_select_columns(.data, weighted_cols, error_call)
+    by <- nis_select_columns(.data, by, error_call)
     return(suppress_dataframe(
       .data,
       threshold,
@@ -91,7 +106,6 @@ nis_suppress <- function(
       by,
       secondary,
       hospital_col,
-      missing(count_col),
       error_call
     ))
   }
@@ -102,7 +116,6 @@ nis_suppress <- function(
     by,
     hospital_col,
     secondary,
-    missing(count_col),
     error_call
   )
   suppress_survey_table(.data, threshold, error_call)

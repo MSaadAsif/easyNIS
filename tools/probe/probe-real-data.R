@@ -78,8 +78,8 @@ record_step(
   private_summary = function(model) summary(model)$coefficients
 )
 record_step("suppression", "nis_cell_counts + nis_suppress", year, function() {
-  counts <- easyNIS::nis_cell_counts(design, by = "FEMALE")
-  easyNIS::nis_suppress(counts, count_col = "n", by = "FEMALE", hospital_col = "hospitals")
+  counts <- easyNIS::nis_cell_counts(design, by = FEMALE)
+  easyNIS::nis_suppress(counts, count_col = n, by = FEMALE, hospital_col = hospitals)
 })
 record_step("cost", "nis_cost", year, function() {
   costs <- design$variables |>

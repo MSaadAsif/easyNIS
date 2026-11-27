@@ -22,7 +22,7 @@ test_that("diagnosis sensitivity summary matches manual counts and rates", {
   expect_equal(out$DIED_rate_weighted, c(2 / 2, 7 / 10, 9 / 12))
   expect_equal(out$ELECTIVE_rate_unweighted, c(1 / 2, 1, 2 / 3))
   expect_equal(out$ELECTIVE_rate_weighted, c(2 / 7, 3 / 3, 5 / 10))
-  expect_error(nis_audit_dx_position(data, "I42", outcomes = "MISSING"), "Missing requested outcome")
+  expect_error(nis_audit_dx_position(data, "I42", outcomes = MISSING), "MISSING")
 })
 
 test_that("diagnosis sensitivity validation conditions keep public calls", {
@@ -30,19 +30,14 @@ test_that("diagnosis sensitivity validation conditions keep public calls", {
   capture_error <- function(expr) tryCatch(force(expr), error = identity)
   errors <- list(
     capture_error(nis_audit_dx_position(data, "I42", weight_var = NA_character_)),
-    capture_error(nis_audit_dx_position(data, "I42", outcomes = c("DIED", "DIED"))),
-    capture_error(nis_audit_dx_position(data, "I42", outcomes = "MISSING")),
+    capture_error(nis_audit_dx_position(data, "I42", outcomes = c(death = DIED))),
+    capture_error(nis_audit_dx_position(data, "I42", outcomes = MISSING)),
     capture_error(nis_audit_dx_position(dplyr::select(data, -DISCWT), "I42"))
   )
-  expect_identical(
-    vapply(errors, conditionMessage, character(1)),
-    c(
-      "`weight_var` must be one column name.",
-      "`outcomes` must be a character vector of unique column names.",
-      "Missing requested outcome column: \"MISSING\".",
-      "Weight column \"DISCWT\" is missing from `.data`."
-    )
-  )
+  expect_match(conditionMessage(errors[[1L]]), "`weight_var` must be one column name.", fixed = TRUE)
+  expect_match(conditionMessage(errors[[2L]]), "rename")
+  expect_match(conditionMessage(errors[[3L]]), "MISSING")
+  expect_match(conditionMessage(errors[[4L]]), "DISCWT")
   expect_true(all(vapply(errors, inherits, logical(1), "rlang_error")))
   expect_true(all(vapply(
     errors,
@@ -69,7 +64,7 @@ test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
     lazy_explicit <- nis_audit_dx_position(
       query,
       "I42",
-      outcomes = c("DIED", "ELECTIVE")
+      outcomes = c(DIED, ELECTIVE)
     )
   )
   expect_equal(
@@ -77,7 +72,7 @@ test_that("diagnosis sensitivity summary matches for a lazy DuckDB query", {
     nis_audit_dx_position(
       data,
       "I42",
-      outcomes = c("DIED", "ELECTIVE")
+      outcomes = c(DIED, ELECTIVE)
     )
   )
 })

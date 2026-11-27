@@ -15,9 +15,11 @@ companion in separate directories, with parts from the same release.}
 
 \item{component}{One of \code{"hospital"}, \code{"severity"}, or \code{"dx_pr_grps"}.}
 
-\item{columns}{Character vector of companion fields to add. Names are
-matched case-insensitively using DuckDB's identifier rules. Choose fields
-with names distinct from fields in \code{.data}.}
+\item{columns}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Select one or more
+companion fields by name across the selected years. Linkage keys are
+included automatically and are outside the selection. Use the field's
+source spelling for bare names or \code{all_of()}. Selected fields keep
+their source names and must have names distinct from fields in \code{.data}.}
 }
 \value{
 A lazy DuckDB-backed Core query with the requested columns added.
@@ -56,7 +58,7 @@ write_component("core", "2020 AS YEAR, 1 AS KEY_NIS, 7 AS HOSP_NIS")
 write_component("hospital", "7 AS HOSP_NIS, 2 AS HOSP_BEDSIZE")
 DBI::dbDisconnect(con, shutdown = TRUE)
 nis_open(file.path(path, "core"), check_release = FALSE) |>
-  nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
+  nis_join_companion(file.path(path, "hospital"), "hospital", nis_vars_hospital()) |>
   dplyr::collect()
 }
 \seealso{
