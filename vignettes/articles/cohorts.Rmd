@@ -15,12 +15,15 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 
+The examples use invented discharges. A code slot is a numbered column
+that holds one diagnosis or procedure code.
+
 ## Match diagnosis and procedure codes
 
 ```{r flags}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(
-    heart_failure = list(prefix = "I50", regex = "^I50[0-9]+$", exclude = "I509")
+    heart_failure = list(regex = "I50[0-9]+", exclude = "I509")
   ) |>
   nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(pci = "0270")
@@ -29,21 +32,32 @@ nis |> count(heart_failure, principal_hf, pci) |> collect()
 ```
 
 The default position checks all slots. Use `position = "principal"` for
-slot 1. A prefix or full-code regular expression can set a flag. Exclusions
+slot 1. A string such as `"I50"` matches a prefix. A `regex` matches the
+whole stored code. If you supply both, either can set the flag. Exclusions
 apply to individual matching codes, so another slot can still set the flag.
 
 ```{r mixed}
-nis_open(nis_example(years = 2015)) |>
-  nis_flag_dx(hf = list(icd9 = "428", icd10 = "I50"), system = "both") |>
-  count(DQTR, hf) |>
-  collect()
+mixed <- nis_open(nis_example(years = 2014:2016)) |>
+  mutate(DX1 = if_else(
+    (YEAR == 2014 | (YEAR == 2015 & DQTR < 4)) & HOSP_NIS %% 2L == 0L,
+    "4280", DX1
+  )) |>
+  nis_flag_dx(hf = list(icd9 = "428", icd10 = "I50"), system = "both")
+
+mixed |> filter(YEAR == 2015) |> count(DQTR, hf) |> arrange(DQTR, hf) |> collect()
+nis_attrition(mixed, adult = AGE >= 18, hf = hf, by_year = TRUE, .design = TRUE)
 ```
 
 Supply separate definitions for each system when the source contains both
-slot sets. Check how the code sets behave around the transition.
+slot sets. The example adds invented ICD-9 matches so you can see both
+systems in the quarter audit and follow eligibility counts across all three
+years. Check how your own code sets behave around the transition.
 [Years and coding eras](years-and-eras.html)
 
 ## Use CCSR categories or procedure days
+
+The Clinical Classifications Software Refined (CCSR) groups ICD-10 codes
+into clinical categories.
 
 ```{r categories-timing}
 nis |>
@@ -63,7 +77,7 @@ timing |>
   collect()
 ```
 
-CCSR groups ICD-10 codes. The bundled v2025.1 mappings can keep the same
+The bundled v2025.1 mappings can keep the same
 definitions across study years. `position = "default"` returns one
 inpatient category for the principal diagnosis. The example supplies
 invented procedure days. Timing uses the earliest known index day and

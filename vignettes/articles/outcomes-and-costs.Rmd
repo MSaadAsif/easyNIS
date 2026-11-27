@@ -29,6 +29,10 @@ outcomes |> select(in_hospital_death, los_days) |> head() |> collect()
 went at discharge. `los_days` comes from `LOS`. Keep all three source fields
 when calling `nis_outcomes()`.
 
+Install `medicalcoder` to run this Charlson example. Expect a warning
+about absent present-on-admission fields. The method assumes the
+diagnoses were present on admission.
+
 ```{r comorbidity}
 scored <- outcomes |> nis_comorbidity(method = "charlson_quan2005")
 scored |> select(starts_with("cmrb_")) |> head(3) |> collect()
@@ -36,8 +40,7 @@ scored |> select(starts_with("cmrb_")) |> head(3) |> collect()
 
 Score before `nis_design()` while the diagnosis slots are available and
 DuckDB can still apply the mappings. Choose the method and code system for
-your study period. The Charlson example needs `medicalcoder`.
-The bundled `"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
+your study period. The bundled `"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
 
 ## Estimate costs in a common dollar year
 

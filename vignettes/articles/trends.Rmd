@@ -26,6 +26,23 @@ quarters in each year. For analyses that include 2015 or cross the ICD
 transition, use `coding = "verified_comparable"` only after establishing
 comparability. [Years and coding eras](years-and-eras.html)
 
+## Estimate an annual proportion within a domain
+
+Here the denominator is adult discharges in each year. The mean of the
+logical heart-failure flag estimates the share with a matching diagnosis.
+
+```{r annual-proportion}
+adults <- nis_design(nis, cohort = AGE >= 18, keep = heart_failure)
+adults |>
+  group_by(YEAR) |>
+  summarise(heart_failure_share = survey_mean(heart_failure, vartype = "se"))
+```
+
+The result gives proportions and standard errors on the 0 to 1 scale.
+Multiply both columns by 100 for percent and percentage points,
+respectively. Review quarter coverage and coding comparability before
+interpreting a real trend.
+
 ## Review records outside the analysis years
 
 ```{r year-exclusion}
