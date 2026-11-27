@@ -29,6 +29,7 @@
   "DISPUNIFORM"           ,        6 , "Home health care"                                        , "Disposition of patient"                                  ,
   "DISPUNIFORM"           ,        7 , "Left against medical advice"                             , "Disposition of patient"                                  ,
   "DISPUNIFORM"           ,       20 , "Died in hospital"                                        , "Disposition of patient"                                  ,
+  "DISPUNIFORM"           ,       21 , "Discharged/transferred to court/law enforcement"         , "Disposition of patient"                                  ,
   "DISPUNIFORM"           ,       99 , "Alive, destination unknown"                              , "Disposition of patient"                                  ,
   "HCUP_ED"               ,        0 , "No qualifying ED evidence"                               , "Emergency department indicator"                          ,
   "HCUP_ED"               ,        1 , "ED revenue code"                                         , "Emergency department indicator"                          ,

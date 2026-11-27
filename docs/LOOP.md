@@ -1,103 +1,43 @@
-# Improvement loop playbook
+# Improvement loop
 
-## Roles
+One orchestrator sets direction from the [roadmap](IMPROVEMENT-ROADMAP.md) and
+makes product decisions, including exports, API changes, and new Imports.
+Releases, license changes, data-policy changes, and any work touching the
+owner's real data files are owner-only.
 
-- The orchestrator probes, files findings, plans work, and reviews completed
-  changes.
-- Workers implement assigned issues in separate worktrees under
-  `$USERPROFILE\.t3\worktrees\easyNIS`. Use no more than four workers at
-  once, and assign disjoint files.
-- A max-effort reviewer independently reviews each proposed change.
+## Triage
 
-## Cycle
+Start directly from the roadmap when work can begin. File findings that will
+wait using the [loop finding template](../.github/ISSUE_TEMPLATE/loop-finding.yml).
+Apply `loop-found` and one priority. Work from P0 (blocks safe use or release)
+through P1 (high), P2 (normal), and P3 (low). Describe the problem in general
+terms and reproduce it with `nis_example()` or another invented fixture. Follow
+the [privacy and text-scanning rules](../CONTRIBUTING.md#privacy-and-licensing).
 
-1. In PowerShell, source the main checkout's setup file with
-   `. "$env:USERPROFILE\Documents\easyNIS\.easynis-local.ps1"`, then run
-   `& $env:EASYNIS_RSCRIPT tools/probe/probe-real-data.R` and
-   `& $env:EASYNIS_RSCRIPT tools/probe/probe-quality.R`. Keep outputs under the
-   ignored `local/loop/` directory. A shell-provided `EASYNIS_LOOP_DIR` takes
-   precedence only when its normalized path remains inside the main checkout's
-   Git-ignored `local/loop/` directory; the probe verifies this with
-   `git check-ignore` and stops when the path is outside it or is not ignored.
-2. Run `& $env:EASYNIS_RSCRIPT tools/probe/test-probe-helpers.R`, then
-   `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --self-test`. Run
-   `& $env:EASYNIS_RSCRIPT tools/probe/readiness.R` and inspect its cyclocomp
-   receipt from `probe-quality.R`. Run
-   `Rscript --vanilla tools/check-package.R --lint` before committing to check
-   Air, Jarl, and installed-package complexity. The no-open-P0/P1 issues gate
-   stays unmet if either GitHub issue query fails or returns invalid JSON.
-3. Turn actionable findings into GitHub issues using
-   `.github/ISSUE_TEMPLATE/loop-finding.yml`. For CLI issues use
-   `gh issue create --label loop-found --label P1 --body-file issue.md` and
-   replace `P1` with the assigned priority so the readiness query sees it. Run
-   `& $env:EASYNIS_RSCRIPT tools/check-public-text.R --stdin` on every issue or PR body before
-   submitting it. Do not file issues for this tooling change; start with the
-   next loop cycle.
-4. Pick P0 issues first, then P1, P2, and P3. Assign at most four workers, with
-   no two workers editing the same files. Branch from current `main` and open
-   a focused PR for each issue.
-5. Require an independent max-effort review and the repository's required
-   status checks. Re-run affected probes and readiness after merge.
+## Work and review
 
-## Branches, PRs, and done
+- Assign one area per worker, with disjoint files and at most 12 active workers.
+  Each worker branches from current `main` in a separate worktree under
+  `$USERPROFILE\.t3\worktrees\easyNIS`.
+- Workers implement the assigned change, pass the
+  [contributor checks](../CONTRIBUTING.md#verify-a-change), open one PR against
+  `main`, and stop. Workers never start subagents or reviewers.
+- The orchestrator performs independent review, consults a second-opinion
+  model when useful, and requests changes as needed. Once review and required
+  checks pass on the up-to-date branch, the orchestrator squash-merges the PR
+  and removes the worktree and local branch.
+- Periodically and before release, the orchestrator runs `Rscript --vanilla tools/news-collect.R`
+  from the repository root and opens a PR with the updated `NEWS.md` and deleted fragments.
 
-Use `fix/<issue>-short-topic` or `docs/<issue>-short-topic` branches. PR titles
-state the change and reference the issue. Each issue is done when its fix has
-a regression test using synthetic data, `devtools::check()` is clean, and
-documentation plus `NEWS.md` are updated. Keep changes focused and preserve
-tidyverse conventions, established package behavior, and low cyclomatic
-complexity.
+## Local evidence
 
-## Privacy and attribution
+Use the [quality probe](../tools/probe/probe-quality.R) and
+[readiness report](../tools/probe/readiness.R) to track roadmap criteria.
+Rerun affected probes after merge. Readiness needs GitHub CLI access to check
+issues and CI.
 
-No output from a real-data run may be copied into an issue, PR, commit, or
-document. This includes `findings.jsonl`; keep every real-data output local.
-Full condition text may be stored only under `local/loop/<run>/private/`.
-When `pkgcheck` or `goodpractice` fails, `probe-quality.R` saves its nested
-diagnostic results and captured warning conditions in
-`private/quality-diagnostics.rds`; keep that artifact local as well. Public
-quality receipts include numeric failed-check, R CMD check error, and captured
-warning counts, without nested condition text. A goodpractice prep failure is
-a failed step, while an unknown check status remains unverified.
-
-The quality probe no longer source-loads easyNIS before running checkers.
-`namespace_complexity` installs the requested source with `R CMD INSTALL` in
-a disposable library, requires successful installation, and checks the effective
-loaded namespace path before calling `cyclocomp::cyclocomp_package()`.
-Neither equal version strings, library search order, nor a clean child process
-alone verifies namespace identity. Installation failures remain failures; no
-fallback installation is accepted. Run `tools/probe/test-provenance.R` for the
-invented loaded-parent, same-version older-installation, and install-failure cases.
-
-The goodpractice and pkgcheck entry processes also use verified isolated
-installations. The goodpractice probe skips its lint and complexity groups.
-The pkgcheck probe runs its reduced packaging checks. Their nested
-installations and subprocesses are not attested by the outer check. R CMD check and coverage likewise create their own
-installations. These receipts carry `nested_unverified`: observed failures
-remain false, while apparent passes and unknown outcomes remain unverified
-(`pass: null`). The separate coverage percentage receipt follows the same rule.
-The installed complexity receipt verifies only that direct measurement, not
-every result returned by packaging tools. pkgcheck has no published aggregate
-pass API used here; the probe retains known goodpractice failures and otherwise
-leaves its aggregate status unknown. Older receipts cannot be retrospectively
-attested by this instrumentation.
-
-A public issue contains only a synthetic reproduction using `nis_example()` or
-another fixture, plus a description of the problem in general terms. The
-public-text scanner is a backstop, not publication clearance. Use judgment and
-remove all real-run output before submitting any public text.
-
-Use the configured Git identity, as described in [AGENTS.md](../AGENTS.md).
-
-## Owner decisions and stopping
-
-Label `needs-owner-decision` and do not merge work involving adding or removing
-exports, breaking API changes, new hard Imports, releases, or data-policy
-changes. Stop when `readiness.R` reports every criterion ready, or after two
-cycles find no new P0–P2 findings.
-
-## Merge procedure
-
-The `main` branch requires up-to-date branches and five status checks; auto
-merge is disabled. Squash merge only after review and green checks, then remove
-the merged worktree. Do not merge changes behind a pending owner decision.
+Run the [real-data probe](../tools/probe/probe-real-data.R) and other licensed-data checks only on the owner's machine.
+It reads `EASYNIS_DATA` from the environment or the main checkout's ignored
+`.Renviron`. The probes keep evidence in the main checkout's ignored
+`local/loop/`. Any `EASYNIS_LOOP_DIR` override must resolve inside that directory.
+Keep full condition text and diagnostic artifacts under `local/loop/<run>/private/`.

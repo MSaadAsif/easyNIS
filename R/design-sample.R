@@ -21,13 +21,17 @@ nis_design_sample <- function(data, cohort, selected, quarter_prototype, annuali
 }
 
 nis_sample_fields <- function(data, cohort_quo) {
+  invalid <- nis_design_invalid_exprs(data)
+  any_invalid <- reduce_or(rlang::syms(names(invalid)))
+  dplyr::mutate(data, .nis_cohort = !!cohort_quo, !!!invalid, .nis_valid = !(!!any_invalid))
+}
+
+nis_design_invalid_exprs <- function(data) {
   invalid <- lapply(.nis_design_fields, function(field) {
     valid <- nis_is_positive_finite_expr(data, field)
     rlang::expr(!dplyr::coalesce(!!valid, FALSE))
   })
-  names(invalid) <- unname(.nis_design_invalid_fields)
-  any_invalid <- reduce_or(rlang::syms(names(invalid)))
-  dplyr::mutate(data, .nis_cohort = !!cohort_quo, !!!invalid, .nis_valid = !(!!any_invalid))
+  rlang::set_names(invalid, unname(.nis_design_invalid_fields))
 }
 
 nis_sample_summary <- function(prepared, quarter_prototype, call) {

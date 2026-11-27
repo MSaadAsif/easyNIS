@@ -14,6 +14,7 @@
 ^SECURITY\.md$
 ^GLOSSARY\.md$
 ^docs$
+^news$
 ^tools($|[/\\])
 ^vignettes/articles($|[/\\])
 ^local-data($|[/\\])
