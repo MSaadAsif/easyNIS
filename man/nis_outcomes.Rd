@@ -43,5 +43,5 @@ nis_open(nis_example(years = 2024)) |>
   nis_label()
 }
 \seealso{
-\href{articles/outcomes.html}{Hospitalization outcomes}, \code{\link[=nis_cost]{nis_cost()}}
+\href{../articles/outcomes.html}{Hospitalization outcomes}, \code{\link[=nis_cost]{nis_cost()}}
 }

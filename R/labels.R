@@ -181,7 +181,7 @@ attr(.hcup_labels, "source") <- paste(
 #' label is treated as raw text; without such levels it is preserved as an
 #' existing label because its origin cannot be recovered after dropping levels.
 #' @family data-access
-#' @seealso [Opening NIS data](articles/opening-data.html),
+#' @seealso [Opening NIS data](../articles/opening-data.html),
 #'   [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 #' @export
 #' @examples

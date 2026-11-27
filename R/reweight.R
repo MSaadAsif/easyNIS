@@ -60,7 +60,7 @@ nis_reweight_data <- function(design, weights_quo, call) {
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @family survey-design
-#' @seealso [Survey design and weighting](articles/survey-design.html).
+#' @seealso [Survey design and weighting](../articles/survey-design.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>

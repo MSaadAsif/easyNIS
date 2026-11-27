@@ -31,7 +31,7 @@
 #' @examples
 #' head(nis_ccsr_codes("CIR019"))
 #' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
+#' @seealso [Defining cohorts](../articles/cohorts.html).
 #' @export
 nis_ccsr_codes <- function(categories, file = NULL, default_only = FALSE, type = c("dx", "pr"), version = NULL) {
   call <- rlang::current_call()

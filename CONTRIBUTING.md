@@ -34,7 +34,7 @@ Apply factor labels to multi-level codes at the R boundary with `nis_label()`.
 
 Describe what changed, how you verified it, and any remaining limitations in
 the [PR template](.github/PULL_REQUEST_TEMPLATE.md). See the
-[improvement loop](docs/LOOP.md) for orchestrated work and review.
+[improvement loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md) for orchestrated work and review.
 
 ## Where changes belong
 
@@ -50,7 +50,7 @@ Package code lives in `R/`, with related tests in `tests/testthat/`.
 | Improvement probes | `tools/probe/quality-checks.R` for checks, `tools/probe/quality-receipts.R` for evidence, and `tools/probe/readiness-criteria.R` for readiness |
 
 For scan planning or DuckDB workload changes, run the
-[bounded scan check and spill benchmark](.agents/skills/duckdb-parquet-scans/SKILL.md).
+[bounded scan check and spill benchmark](https://github.com/MSaadAsif/easyNIS/blob/main/.agents/skills/duckdb-parquet-scans/SKILL.md).
 
 ## Update CCSR mappings
 

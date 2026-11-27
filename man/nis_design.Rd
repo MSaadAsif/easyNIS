@@ -118,7 +118,7 @@ srvyr::summarise(
 )
 }
 \seealso{
-\href{articles/survey-design.html}{Survey design and weighting}.
+\href{../articles/survey-design.html}{Survey design and weighting}.
 
 Other survey-design:
 \code{\link[=nis_design_report]{nis_design_report()}},

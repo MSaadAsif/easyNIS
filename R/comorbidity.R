@@ -58,7 +58,7 @@
 #'   Charlson scores are based on diagnoses and any mapped procedures without
 #'   an age adjustment.
 #' @family comorbidity
-#' @seealso [Comorbidity indicators](articles/comorbidity.html).
+#' @seealso [Comorbidity indicators](../articles/comorbidity.html).
 #' @export
 #' @examples
 #' discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")

@@ -26,7 +26,7 @@ reads the columns needed when you ask for a result.
 | Task | Where the work happens |
 | --- | --- |
 | `select()`, `filter()`, code flags, and derived outcomes on an open query | Add steps to the DuckDB query. |
-| `nis_attrition()`, coding audits, and supported `nis_survey()` summaries | Aggregate in DuckDB and return the result to R. |
+| `nis_attrition()`, coding audits, `nis_cell_counts()`, and supported `nis_survey()` summaries | Aggregate in DuckDB and return the result to R. |
 | `nis_design()` | Collect the cohort columns and sampled hospital structure needed for an R survey design. |
 | `collect()` | Bring the rows and columns in the query into R. |
 | `nis_suppress()` on a data frame or survey table | Work on an object already in R. |
@@ -40,7 +40,7 @@ changes the standard error and design degrees of freedom.
 
 ```{r filter}
 domain <- nis_design(nis, cohort = heart_failure, keep = AGE)
-filtered <- nis_design(filter(nis, heart_failure), keep = AGE)
+filtered <- nis_design(filter(nis, heart_failure), cohort = TRUE, keep = AGE)
 bind_rows(full_sample = summarise(domain, total = survey_total()),
           prefiltered = summarise(filtered, total = survey_total()), .id = "design")
 c(full_sample = survey::degf(domain), prefiltered = survey::degf(filtered))

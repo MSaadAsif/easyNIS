@@ -24,7 +24,7 @@
 #'   labels. Negative finite days (including HCUP sentinels) count as
 #'   sentinel/invalid, matching `nis_flag_pr_timing()`.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
+#' @seealso [Defining cohorts](../articles/cohorts.html).
 #' @export
 #' @examples
 #' toy <- data.frame(

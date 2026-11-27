@@ -54,7 +54,7 @@
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
+#' @seealso [Defining cohorts](../articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))
@@ -106,7 +106,7 @@ nis_flag_dx <- function(
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
+#' @seealso [Defining cohorts](../articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))

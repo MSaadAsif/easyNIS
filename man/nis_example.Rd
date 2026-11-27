@@ -22,7 +22,7 @@ path <- nis_example(years = 2019:2020)
 list.files(path)
 }
 \seealso{
-\href{articles/opening-data.html}{Opening NIS data}.
+\href{../articles/opening-data.html}{Opening NIS data}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},

@@ -37,18 +37,18 @@ If something can be simple, make it simple.
 
 ### Issue tracker
 
-Issues are tracked in this repository's [GitHub Issues](https://github.com/MSaadAsif/easyNIS/issues). See [the improvement loop](docs/LOOP.md).
+Issues are tracked in this repository's [GitHub Issues](https://github.com/MSaadAsif/easyNIS/issues). See [the improvement loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md).
 
 ### Triage labels
 
-Use the triage labels in the [improvement loop](docs/LOOP.md#triage) and the [loop finding template](.github/ISSUE_TEMPLATE/loop-finding.yml).
+Use the triage labels in the [improvement loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md#triage) and the [loop finding template](https://github.com/MSaadAsif/easyNIS/blob/main/.github/ISSUE_TEMPLATE/loop-finding.yml).
 
 ### Domain docs
 
-Use the [NIS glossary](vignettes/articles/glossary.Rmd) for domain terms and [Contributing](CONTRIBUTING.md) to find the implementation and tests. The [roadmap](docs/IMPROVEMENT-ROADMAP.md) records the standing scope decisions.
+Use the [NIS glossary](https://msaadasif.github.io/easyNIS/articles/glossary.html) for domain terms and [Contributing](CONTRIBUTING.md) to find the implementation and tests. The [roadmap](https://github.com/MSaadAsif/easyNIS/blob/main/docs/IMPROVEMENT-ROADMAP.md) records the standing scope decisions.
 
 ### Verify easyNIS
 
 Every qualification starts with the relevant package tests and `devtools::check()`, before independent review. Retain the command, target platform, transcript, and evidence of which paths ran.
 
-For user-visible behavior, exercise the normal package entry points on invented fixtures. Verify lazy data access in DuckDB and render the generated study when its workflow changes. Follow [Contributing](CONTRIBUTING.md#verify-a-change) before opening a pull request. The [improvement loop](docs/LOOP.md#work-and-review) assigns independent review.
+For user-visible behavior, exercise the normal package entry points on invented fixtures. Verify lazy data access in DuckDB and render the generated study when its workflow changes. Follow [Contributing](CONTRIBUTING.md#verify-a-change) before opening a pull request. The [improvement loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md#work-and-review) assigns independent review.

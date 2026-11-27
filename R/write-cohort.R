@@ -24,7 +24,7 @@
 #' @return The original `path`, invisibly. If collecting raw rows directly
 #'   from the saved dataset, filter on `.in_cohort` to count only discharges.
 #' @export
-#' @seealso [nis_design()], [Defining cohorts](articles/cohorts.html).
+#' @seealso [nis_design()], [Defining cohorts](../articles/cohorts.html).
 #' @examples
 #' query <- nis_open(nis_example(years = 2019))
 #' path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)

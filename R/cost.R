@@ -117,7 +117,7 @@ nis_cost_report <- function(provenance) {
 #'   in-memory data frame has `nis_cost_provenance` metadata; retrieve it with
 #'   [nis_cost_provenance()].
 #' @family costs
-#' @seealso [Charges, costs, and provenance](articles/costs.html).
+#' @seealso [Charges, costs, and provenance](../articles/costs.html).
 #' @export
 #' @examples
 #' charges <- nis_open(nis_example(years = 2019:2020)) |>
@@ -190,7 +190,7 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
 #'   charges, and output
 #'   meanings. Returns `NULL` when no cost adjustment provenance is present.
 #' @family costs
-#' @seealso [Charges, costs, and provenance](articles/costs.html).
+#' @seealso [Charges, costs, and provenance](../articles/costs.html).
 #' @examples
 #' charges <- nis_open(nis_example(years = 2019)) |>
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>

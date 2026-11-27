@@ -96,7 +96,7 @@ nis |>
   dplyr::collect()
 }
 \seealso{
-\href{articles/cohorts.html}{Defining cohorts}.
+\href{../articles/cohorts.html}{Defining cohorts}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

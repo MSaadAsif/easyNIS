@@ -184,7 +184,7 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'   converts known multi-level codes to factors. Use [stats::weights()] for the
 #'   survey weights.
 #' @family survey-design
-#' @seealso [Survey design and weighting](articles/survey-design.html).
+#' @seealso [Survey design and weighting](../articles/survey-design.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>
