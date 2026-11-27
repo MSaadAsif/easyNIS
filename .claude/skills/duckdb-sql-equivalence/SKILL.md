@@ -142,9 +142,11 @@ rebuilds the original model.
   owners are gone. It assumes the finalizer is invoked and native cleanup
   succeeds.
 - Scoped cleanup. `Scoped.registeredCleanup` covers both successful return
-  and an error that unwinds a call. It assumes acquisition either fails
-  resource-free or reaches the registered `on.exit`, and that the handler
-  completes. The modeled resources are the grouped-row temp table in
+  and unwinding immediately after acquisition. Cleanup is armed before
+  acquisition, and connection assignments defer interrupts until cleanup
+  can see the resource. The proof assumes a failed connection acquisition
+  returns no live handle and that native cleanup succeeds. The modeled
+  resources are the grouped-row temp table in
   `R/lazy-survey-glm.R:nis_survey_irls`, the conversion batch registration in
   `R/convert.R:nis_convert_copy_batch`, the private connections in
   `R/comorbidity.R:nis_comorbidity_frame` and
@@ -157,8 +159,9 @@ rebuilds the original model.
   count, and the rename cannot be attempted while a validation handle is
   open. `registeredWriterCleanup` checks that closing the private database
   comes before removing the stage on error, with no resources left on a
-  successful or guarded error exit. Code paths are
-  `R/convert.R:nis_convert_with_stage`, `nis_convert_stage`,
+  successful or error exit. The model allows unwinding after any stage
+  or private connection acquisition. Code paths are
+  `R/convert.R:nis_convert_with_stage`,
   `nis_convert_check_count`, `nis_convert_publish`,
   `R/write-cohort.R:nis_write_cohort`, `nis_cohort_copy_parquet`,
   `nis_cohort_check_count`, and
@@ -166,12 +169,8 @@ rebuilds the original model.
   supports same-parent atomic rename, stage COPY releases borrowed handles
   before returning, and native close and unlink succeed.
 
-The lifetime model exposes three reachable registration gaps if R can
-unwind after acquisition and before arming cleanup. A scoped resource, a
-staging directory, or a private writer connection can survive the call.
-Lean checks each counterexample trace. The writer's target remains safe
-even when these gaps are allowed. These are ordering findings in the
-model, without a forced R interruption replay.
+The lifetime mutations disable scoped, writer-stage, or writer-connection
+cleanup, or reverse the writer cleanup order. Each must break a proof.
 
 The proofs cover formulas and a state-machine design. The bounded R
 harness guards the actual DuckDB SQL text and floating-point execution.
