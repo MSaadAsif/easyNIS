@@ -11,7 +11,7 @@ and keep the columns needed by the summary and model.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkKkplJ/duckdb
+#> ℹ /tmp/Rtmp5m3ZaB/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +19,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkKkplJ/duckdb
+#> ℹ /tmp/Rtmp5m3ZaB/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -204,38 +204,40 @@ suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
 
 Use
 [`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
-to estimate means and totals when discharge rows would take too much
-memory. It uses a nested Taylor design with hospital-year PSUs and
-year-specific strata. DuckDB scans the Parquet data and sends weighted
-PSU sums to R. Use [`subset()`](https://rdrr.io/r/base/subset.html) or
+to estimate means, totals, or regression coefficients when discharge
+rows would take too much memory. It uses a nested Taylor design with
+hospital-year PSUs and year-specific strata. DuckDB scans the Parquet
+data and sends weighted PSU sums to R. Use
 [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
-on the design to estimate a domain. Filtering the query before
-constructing the design changes the sample.
+on the design to estimate a domain. `subset(whole, AGE >= 65)` is the
+survey-style alternative. Filtering the query before constructing the
+design changes the sample.
 
 ``` r
 
-whole <- nis_survey(nis_open(nis_example(2019:2020)))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkKkplJ/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpkKkplJ/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-survey::svyby(~LOS, ~YEAR, subset(whole, AGE >= 65), survey::svymean)
+whole <- nis_survey(nis)
+older <- dplyr::filter(whole, AGE >= 65)
+survey::svyby(~LOS, ~YEAR, older, survey::svymean)
 #>      YEAR      LOS        se
 #> 2019 2019 4.577143 0.4142243
 #> 2020 2020 4.577143 0.4142243
+fit <- survey::svyglm(LOS ~ AGE + factor(YEAR), older)
+broom::tidy(fit, conf.int = TRUE)
+#> # A tibble: 3 × 7
+#>   term             estimate std.error statistic  p.value conf.low conf.high
+#>   <chr>               <dbl>     <dbl>     <dbl>    <dbl>    <dbl>     <dbl>
+#> 1 (Intercept)        15.3      3.08        4.96 0.000143    8.73    21.8   
+#> 2 AGE                -0.138    0.0373     -3.70 0.00196    -0.217   -0.0588
+#> 3 factor(YEAR)2020    0        0.586       0    1          -1.24     1.24
 ```
+
+For a
+[`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
+fit,
+[`gtsummary::tbl_regression()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_regression.html)
+reports the unweighted number of complete discharges as N. For a
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+fit, N comes from the analysis weights.
 
 Use
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)

@@ -92,7 +92,7 @@ needed by the summary and model.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkKkplJ/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5m3ZaB/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -100,7 +100,7 @@ needed by the summary and model.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkKkplJ/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp5m3ZaB/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -2281,35 +2281,33 @@ show whether counts are safe to report.</li>
 <div class="section level2">
 <h2 id="whole-sample-estimation-on-a-laptop">Whole-sample estimation on a laptop<a class="anchor" aria-label="anchor" href="#whole-sample-estimation-on-a-laptop"></a>
 </h2>
-<p>Use <code><a href="../reference/nis_survey.html">nis_survey()</a></code> to estimate means and totals when
-discharge rows would take too much memory. It uses a nested Taylor
-design with hospital-year PSUs and year-specific strata. DuckDB scans
-the Parquet data and sends weighted PSU sums to R. Use
-<code><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset()</a></code> or <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code> on the design to
-estimate a domain. Filtering the query before constructing the design
-changes the sample.</p>
+<p>Use <code><a href="../reference/nis_survey.html">nis_survey()</a></code> to estimate means, totals, or
+regression coefficients when discharge rows would take too much memory.
+It uses a nested Taylor design with hospital-year PSUs and year-specific
+strata. DuckDB scans the Parquet data and sends weighted PSU sums to R.
+Use <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code> on the design to estimate a domain.
+<code>subset(whole, AGE &gt;= 65)</code> is the survey-style
+alternative. Filtering the query before constructing the design changes
+the sample.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">whole</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_survey.html">nis_survey</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span><span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkKkplJ/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpkKkplJ/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyby.html" class="external-link">svyby</a></span><span class="op">(</span><span class="op">~</span><span class="va">LOS</span>, <span class="op">~</span><span class="va">YEAR</span>, <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">whole</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">65</span><span class="op">)</span>, <span class="fu">survey</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">whole</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_survey.html">nis_survey</a></span><span class="op">(</span><span class="va">nis</span><span class="op">)</span></span>
+<span><span class="va">older</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">whole</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">65</span><span class="op">)</span></span>
+<span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyby.html" class="external-link">svyby</a></span><span class="op">(</span><span class="op">~</span><span class="va">LOS</span>, <span class="op">~</span><span class="va">YEAR</span>, <span class="va">older</span>, <span class="fu">survey</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt;      YEAR      LOS        se</span></span>
 <span><span class="co">#&gt; 2019 2019 4.577143 0.4142243</span></span>
-<span><span class="co">#&gt; 2020 2020 4.577143 0.4142243</span></span></code></pre></div>
+<span><span class="co">#&gt; 2020 2020 4.577143 0.4142243</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">LOS</span> <span class="op">~</span> <span class="va">AGE</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span>, <span class="va">older</span><span class="op">)</span></span>
+<span><span class="fu">broom</span><span class="fu">::</span><span class="fu"><a href="https://generics.r-lib.org/reference/tidy.html" class="external-link">tidy</a></span><span class="op">(</span><span class="va">fit</span>, conf.int <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 7</span></span></span>
+<span><span class="co">#&gt;   term             estimate std.error statistic  p.value conf.low conf.high</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> (Intercept)        15.3      3.08        4.96 0.000<span style="text-decoration: underline;">143</span>    8.73    21.8   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> AGE                -<span style="color: #BB0000;">0.138</span>    0.037<span style="text-decoration: underline;">3</span>     -<span style="color: #BB0000;">3.70</span> 0.001<span style="text-decoration: underline;">96</span>    -<span style="color: #BB0000;">0.217</span>   -<span style="color: #BB0000;">0.058</span><span style="color: #BB0000; text-decoration: underline;">8</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> factor(YEAR)2020    0        0.586       0    1          -<span style="color: #BB0000;">1.24</span>     1.24</span></span></code></pre></div>
+<p>For a <code><a href="../reference/nis_survey.html">nis_survey()</a></code> fit,
+<code><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_regression.html" class="external-link">gtsummary::tbl_regression()</a></code> reports the unweighted number
+of complete discharges as N. For a <code><a href="../reference/nis_design.html">nis_design()</a></code> fit, N
+comes from the analysis weights.</p>
 <p>Use <code><a href="../reference/nis_design.html">nis_design()</a></code> for row-level cohort analysis,
 including quantiles, chi-square tests,
 <code><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">gtsummary::tbl_svysummary()</a></code>, and IPTW. Use the disclosure
