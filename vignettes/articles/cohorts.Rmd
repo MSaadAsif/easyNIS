@@ -74,16 +74,28 @@ known day.
 
 ## Count cohort steps
 
-`nis_attrition()` reports sequential unweighted and weighted counts for
-conditions supplied in order.
+Define the eligibility rules once in `nis_attrition()`. With `.design = TRUE`,
+the baseline includes discharges with valid survey design fields. Missing
+criterion values exclude discharges at that step. Inject the combined rule
+with `!!nis_attrition_cohort(flow)` to use the same eligibility criteria in
+`nis_design()`.
 
 ```{r attrition}
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
-nis_attrition(nis, adults = AGE >= 18, heart_failure = heart_failure)
+flow <- nis_attrition(
+  nis, adults = AGE >= 18, heart_failure = heart_failure, .design = TRUE
+)
+flow
+
+design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
+dplyr::summarise(design, discharges = srvyr::unweighted(dplyr::n()))
 ```
 
-Each row shows the remaining fixture discharges after applying that step.
+Pass the same input to both calls so the last unweighted attrition count is
+the survey domain denominator. The design retains the sampling structure of
+hospital-years with zero eligible discharges. Leave `.design` at its default
+when the attrition table should start with every discharge in the input.
 For alternate diagnosis positions and changes over time, see [Code transitions
 and sensitivity](code-transitions.html).
 
