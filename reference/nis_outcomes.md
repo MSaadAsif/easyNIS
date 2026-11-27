@@ -45,7 +45,7 @@ For a lazy DuckDB input, the result is a lazy query.
 ## See also
 
 [Hospitalization
-outcomes](https://msaadasif.github.io/easyNIS/reference/articles/outcomes.md),
+outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.html),
 [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
 
 ## Examples
@@ -57,7 +57,7 @@ nis_open(nis_example(years = 2024)) |>
   dplyr::collect() |>
   nis_label()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -65,7 +65,7 @@ nis_open(nis_example(years = 2024)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

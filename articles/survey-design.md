@@ -17,7 +17,7 @@ design when you need grouped survey summaries.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4fEoyo/duckdb
+#> ℹ /tmp/Rtmp2EaYiO/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp4fEoyo/duckdb
+#> ℹ /tmp/Rtmp2EaYiO/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,11 +72,12 @@ falls outside the domain.
 
 On the design returned by
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
-[`filter()`](https://rdrr.io/r/stats/filter.html) also removes
-out-of-domain records from the stored analysis data. The survey design
-retains the original sampled hospital counts for variance estimation, so
-there is no separate compaction step. If you no longer need the wider
-design, assign the filtered result back to the same variable.
+[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) also
+removes out-of-domain records from the stored analysis data. The survey
+design retains the original sampled hospital counts for variance
+estimation, so there is no separate compaction step. If you no longer
+need the wider design, assign the filtered result back to the same
+variable.
 
 ``` r
 

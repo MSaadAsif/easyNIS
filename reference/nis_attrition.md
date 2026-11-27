@@ -88,7 +88,7 @@ to summarize its code criteria by period.
 ## See also
 
 [Defining
-cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
@@ -122,5 +122,5 @@ flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
 nis_attrition_cohort(flow)
 #> <quosure>
 #> expr: ^AGE >= 18
-#> env:  0x640224019be0
+#> env:  0x5bd2110ba278
 ```

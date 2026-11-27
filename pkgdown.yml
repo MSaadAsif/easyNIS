@@ -11,6 +11,8 @@ articles:
   articles/disclosure: disclosure.html
   getting-started: getting-started.html
   articles/glossary: glossary.html
+  articles/how-easynis-works: how-easynis-works.html
+  articles/nis-design: nis-design.html
   articles/opening-data: opening-data.html
   articles/outcomes: outcomes.html
   porting: porting.html
@@ -18,7 +20,8 @@ articles:
   articles/trends: trends.html
   articles/why-easynis: why-easynis.html
   articles/year-notes: year-notes.html
-last_built: 2026-11-27T15:40Z
+  articles/years-and-eras: years-and-eras.html
+last_built: 2026-11-27T15:50Z
 urls:
   reference: https://msaadasif.github.io/easyNIS/reference
   article: https://msaadasif.github.io/easyNIS/articles

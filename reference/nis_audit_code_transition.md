@@ -132,7 +132,7 @@ before sharing them.
 ## See also
 
 [Code transitions and
-sensitivity](https://msaadasif.github.io/easyNIS/reference/articles/code-transitions.md).
+sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),

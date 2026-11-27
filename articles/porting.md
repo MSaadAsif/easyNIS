@@ -38,7 +38,7 @@ codes, then creates diagnosis and procedure flags:
 
 example_path <- nis_example(years = 2018:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEhdwWL/duckdb
+#> ℹ /tmp/RtmpQ0RqZV/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -56,7 +56,7 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEhdwWL/duckdb
+#> ℹ /tmp/RtmpQ0RqZV/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -75,7 +75,7 @@ diagnosis slot. Both principal codes match the prefix, while only
 nis_flagged <- nis_flagged |>
   nis_flag_dx(eligible = list(regex = "A12[0-9]{2}"), position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEhdwWL/duckdb
+#> ℹ /tmp/RtmpQ0RqZV/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -103,9 +103,10 @@ literal prefixes.
 
 ## Replace local recode helpers
 
-If a local cleaning helper used `case_when()` to turn known HCUP codes
-such as sex, payer, or discharge disposition into labels, remove those
-repeated recodes.
+If a local cleaning helper used
+[`case_when()`](https://dplyr.tidyverse.org/reference/case-and-replace-when.html)
+to turn known HCUP codes such as sex, payer, or discharge disposition
+into labels, remove those repeated recodes.
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
 calls
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
@@ -117,8 +118,9 @@ directly on a collected data frame when you need the same recoding
 outside
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 
-Keep custom study-derived variables in `mutate()`. Set their factor
-order explicitly with
+Keep custom study-derived variables in
+[`mutate()`](https://dplyr.tidyverse.org/reference/mutate.html). Set
+their factor order explicitly with
 [`forcats::fct_relevel()`](https://forcats.tidyverse.org/reference/fct_relevel.html),
 and override the displayed label at the table where it is used:
 
@@ -194,7 +196,7 @@ of “Home health care.” Check inconsistent pairs against the source-year
 coding and keep a documented rule for handling them. Use
 `in_hospital_death` for mortality and `discharge_disposition` for
 destination. See [Hospitalization
-outcomes](https://msaadasif.github.io/easyNIS/articles/articles/outcomes.md).
+outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.md).
 
 ## Declare the cohort with `nis_design()`
 

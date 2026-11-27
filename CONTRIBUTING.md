@@ -41,8 +41,8 @@ Describe what changed, how you verified it, and any remaining
 limitations in the [PR
 template](https://msaadasif.github.io/easyNIS/PULL_REQUEST_TEMPLATE.md).
 See the [improvement
-loop](https://msaadasif.github.io/easyNIS/docs/LOOP.md) for orchestrated
-work and review.
+loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md) for
+orchestrated work and review.
 
 ## Where changes belong
 
@@ -59,7 +59,7 @@ Package code lives in `R/`, with related tests in `tests/testthat/`.
 
 For scan planning or DuckDB workload changes, run the [bounded scan
 check and spill
-benchmark](https://msaadasif.github.io/easyNIS/.agents/skills/duckdb-parquet-scans/SKILL.md).
+benchmark](https://github.com/MSaadAsif/easyNIS/blob/main/.agents/skills/duckdb-parquet-scans/SKILL.md).
 
 ## Update CCSR mappings
 

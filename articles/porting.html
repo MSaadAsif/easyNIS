@@ -50,6 +50,11 @@
     <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
+    <li><a class="dropdown-item" href="../articles/nis-design.html">How the NIS survey design works</a></li>
+    <li><a class="dropdown-item" href="../articles/years-and-eras.html">Years and coding eras</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
     <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
@@ -110,7 +115,7 @@ codes, then creates diagnosis and procedure flags:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpEhdwWL/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQ0RqZV/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -128,7 +133,7 @@ codes, then creates diagnosis and procedure flags:</p>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>exposure <span class="op">=</span> <span class="st">"B34"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>example_procedure <span class="op">=</span> <span class="st">"0AB"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpEhdwWL/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQ0RqZV/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -143,7 +148,7 @@ prefix, while only <code>A1234</code> matches the regex.</p>
 <code class="sourceCode R"><span><span class="va">nis_flagged</span> <span class="op">&lt;-</span> <span class="va">nis_flagged</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>eligible <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>regex <span class="op">=</span> <span class="st">"A12[0-9]{2}"</span><span class="op">)</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpEhdwWL/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQ0RqZV/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -170,7 +175,7 @@ without the normalization applied to literal prefixes.</p>
 <div class="section level2">
 <h2 id="replace-local-recode-helpers">Replace local recode helpers<a class="anchor" aria-label="anchor" href="#replace-local-recode-helpers"></a>
 </h2>
-<p>If a local cleaning helper used <code>case_when()</code> to turn
+<p>If a local cleaning helper used <code><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">case_when()</a></code> to turn
 known HCUP codes such as sex, payer, or discharge disposition into
 labels, remove those repeated recodes. <code><a href="../reference/nis_design.html">nis_design()</a></code> calls
 <code><a href="../reference/nis_label.html">nis_label()</a></code> on the collected analysis data. Known binary
@@ -178,7 +183,7 @@ codes become logical, and multi-level codes become factors. Both receive
 variable labels. You can call <code><a href="../reference/nis_label.html">nis_label()</a></code> directly on a
 collected data frame when you need the same recoding outside
 <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p>
-<p>Keep custom study-derived variables in <code>mutate()</code>. Set
+<p>Keep custom study-derived variables in <code><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate()</a></code>. Set
 their factor order explicitly with <code><a href="https://forcats.tidyverse.org/reference/fct_relevel.html" class="external-link">forcats::fct_relevel()</a></code>,
 and override the displayed label at the table where it is used:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -243,7 +248,7 @@ disposition label before carrying over a legacy recode.</p>
 label of “Home health care.” Check inconsistent pairs against the
 source-year coding and keep a documented rule for handling them. Use
 <code>in_hospital_death</code> for mortality and
-<code>discharge_disposition</code> for destination. See <a href="articles/outcomes.html">Hospitalization outcomes</a>.</p>
+<code>discharge_disposition</code> for destination. See <a href="outcomes.html">Hospitalization outcomes</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="declare-the-cohort-with-nis_design">Declare the cohort with <code>nis_design()</code><a class="anchor" aria-label="anchor" href="#declare-the-cohort-with-nis_design"></a>

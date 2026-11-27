@@ -36,6 +36,11 @@
     <li><a class="dropdown-item" href="articles/glossary.html">Glossary</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="articles/how-easynis-works.html">How easyNIS works</a></li>
+    <li><a class="dropdown-item" href="articles/nis-design.html">How the NIS survey design works</a></li>
+    <li><a class="dropdown-item" href="articles/years-and-eras.html">Years and coding eras</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
     <li><a class="dropdown-item" href="articles/why-easynis.html">Background: Why easyNIS</a></li>
     <li><a class="dropdown-item" href="articles/design-validation.html">Survey design validation protocol</a></li>
     <li><a class="dropdown-item" href="articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
@@ -69,7 +74,7 @@
 <li>Put changelog bullets in one unique <code>news/&lt;topic-slug&gt;.md</code> fragment. Leave <code>NEWS.md</code> for collection. An optional first <code>##</code> heading must match a development section in <code>NEWS.md</code>.</li>
 <li>Before committing, run <code>Rscript --vanilla tools/check-package.R --lint</code> for Air formatting, Jarl lint, and installed-package cyclomatic complexity of 15 or less.</li>
 <li>Before opening the PR, run <code>Rscript --vanilla tools/check-package.R --full</code>. It runs <code>devtools::check()</code> on the exact commit with <code>EASYNIS_FULL_TESTS</code> enabled, isolated from the working tree and ignored data.</li>
-</ul><p>Describe what changed, how you verified it, and any remaining limitations in the <a href="PULL_REQUEST_TEMPLATE.html">PR template</a>. See the <a href="docs/LOOP.html">improvement loop</a> for orchestrated work and review.</p>
+</ul><p>Describe what changed, how you verified it, and any remaining limitations in the <a href="PULL_REQUEST_TEMPLATE.html">PR template</a>. See the <a href="https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md" class="external-link">improvement loop</a> for orchestrated work and review.</p>
 </div>
 <div class="section level2">
 <h2 id="where-changes-belong">Where changes belong<a class="anchor" aria-label="anchor" href="#where-changes-belong"></a></h2>
@@ -94,7 +99,7 @@
 </tr><tr><td>Improvement probes</td>
 <td>
 <code>tools/probe/quality-checks.R</code> for checks, <code>tools/probe/quality-receipts.R</code> for evidence, and <code>tools/probe/readiness-criteria.R</code> for readiness</td>
-</tr></tbody></table><p>For scan planning or DuckDB workload changes, run the <a href=".agents/skills/duckdb-parquet-scans/SKILL.html">bounded scan check and spill benchmark</a>.</p>
+</tr></tbody></table><p>For scan planning or DuckDB workload changes, run the <a href="https://github.com/MSaadAsif/easyNIS/blob/main/.agents/skills/duckdb-parquet-scans/SKILL.md" class="external-link">bounded scan check and spill benchmark</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="update-ccsr-mappings">Update CCSR mappings<a class="anchor" aria-label="anchor" href="#update-ccsr-mappings"></a></h2>

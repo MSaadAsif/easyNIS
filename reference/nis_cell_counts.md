@@ -37,7 +37,7 @@ A data frame with the columns in `by`, `n` (unweighted discharges), and
 ## See also
 
 [Disclosure and
-suppression](https://msaadasif.github.io/easyNIS/reference/articles/disclosure.md).
+suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
 [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)

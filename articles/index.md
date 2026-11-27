@@ -65,7 +65,14 @@
 
 - [Glossary](https://msaadasif.github.io/easyNIS/articles/glossary.md):
 
-  Terms used throughout the easyNIS workflow.
+### Concepts
+
+- [How easyNIS
+  works](https://msaadasif.github.io/easyNIS/articles/how-easynis-works.md):
+- [How the NIS survey design
+  works](https://msaadasif.github.io/easyNIS/articles/nis-design.md):
+- [Years and coding
+  eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.md):
 
 ### More about easyNIS
 

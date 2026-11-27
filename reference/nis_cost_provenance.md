@@ -35,7 +35,7 @@ provenance is present.
 ## See also
 
 [Charges, costs, and
-provenance](https://msaadasif.github.io/easyNIS/reference/articles/costs.md).
+provenance](https://msaadasif.github.io/easyNIS/articles/costs.html).
 
 Other costs:
 [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
@@ -48,7 +48,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
   dplyr::collect() |>
   nis_cost(dollars = 2024)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -56,7 +56,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

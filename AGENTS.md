@@ -75,23 +75,24 @@ If something can be simple, make it simple.
 
 Issues are tracked in this repository’s [GitHub
 Issues](https://github.com/MSaadAsif/easyNIS/issues). See [the
-improvement loop](https://msaadasif.github.io/easyNIS/docs/LOOP.md).
+improvement
+loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md).
 
 ### Triage labels
 
 Use the triage labels in the [improvement
-loop](https://msaadasif.github.io/easyNIS/docs/LOOP.html#triage) and the
-[loop finding
-template](https://msaadasif.github.io/easyNIS/.github/ISSUE_TEMPLATE/loop-finding.yml).
+loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md#triage)
+and the [loop finding
+template](https://github.com/MSaadAsif/easyNIS/blob/main/.github/ISSUE_TEMPLATE/loop-finding.yml).
 
 ### Domain docs
 
 Use the [NIS
-glossary](https://msaadasif.github.io/easyNIS/vignettes/articles/glossary.Rmd)
+glossary](https://msaadasif.github.io/easyNIS/articles/glossary.html)
 for domain terms and
 [Contributing](https://msaadasif.github.io/easyNIS/CONTRIBUTING.md) to
 find the implementation and tests. The
-[roadmap](https://msaadasif.github.io/easyNIS/docs/IMPROVEMENT-ROADMAP.md)
+[roadmap](https://github.com/MSaadAsif/easyNIS/blob/main/docs/IMPROVEMENT-ROADMAP.md)
 records the standing scope decisions.
 
 ### Verify easyNIS
@@ -105,5 +106,5 @@ invented fixtures. Verify lazy data access in DuckDB and render the
 generated study when its workflow changes. Follow
 [Contributing](https://msaadasif.github.io/easyNIS/CONTRIBUTING.html#verify-a-change)
 before opening a pull request. The [improvement
-loop](https://msaadasif.github.io/easyNIS/docs/LOOP.html#work-and-review)
+loop](https://github.com/MSaadAsif/easyNIS/blob/main/docs/LOOP.md#work-and-review)
 assigns independent review.

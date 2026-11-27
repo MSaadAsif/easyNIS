@@ -86,7 +86,7 @@ inclusive.
 ## See also
 
 [Defining
-cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),

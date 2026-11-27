@@ -63,7 +63,7 @@ support estimating individual hospital volumes.
 ## See also
 
 [Opening NIS
-data](https://msaadasif.github.io/easyNIS/reference/articles/opening-data.md),
+data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 [HCUP NIS File
 Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 
@@ -73,7 +73,7 @@ Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 path <- tempfile()
 con <- DBI::dbConnect(duckdb::duckdb())
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -95,7 +95,7 @@ nis_open(file.path(path, "core"), check_release = FALSE) |>
   nis_join_companion(file.path(path, "hospital"), "hospital", nis_vars_hospital()) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

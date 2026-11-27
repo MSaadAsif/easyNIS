@@ -220,8 +220,10 @@
   `nis_design(keep = ...)` when required ICD-10 fields are missing.
 
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-  selection regressions cover character vectors, `all_of()`, and
-  `any_of()` on lazy inputs; dollar adjustment requires both charge and
+  selection regressions cover character vectors,
+  [`all_of()`](https://tidyselect.r-lib.org/reference/all_of.html), and
+  [`any_of()`](https://tidyselect.r-lib.org/reference/all_of.html) on
+  lazy inputs; dollar adjustment requires both charge and
   cost-to-charge-ratio fields in `keep`.
 
 - [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
@@ -564,8 +566,9 @@
   and
   [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   accept `charges = "TOTCHG_2023"` to opt in; pooling requires an
-  explicit `mutate()`. Hospital and stratum IDs remain qualified by
-  year.
+  explicit
+  [`mutate()`](https://dplyr.tidyverse.org/reference/mutate.html).
+  Hospital and stratum IDs remain qualified by year.
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   is ICD-10 only, does not use present-on-admission values, and treats
   `I10_DX1` as the principal diagnosis. Its output is not expected to

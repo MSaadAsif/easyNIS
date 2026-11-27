@@ -67,7 +67,7 @@ files have no default assignment.
 ## See also
 
 [Defining
-cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
+cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
@@ -83,7 +83,7 @@ Other cohort-definition:
 ``` r
 head(nis_ccsr_codes("CIR019"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpdAwY7x/duckdb
+#> ℹ /tmp/RtmphDG7ip/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
