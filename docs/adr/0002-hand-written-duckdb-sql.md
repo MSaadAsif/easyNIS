@@ -152,12 +152,24 @@ The bundled CCSR code lookup uses its own single-thread connection.
    when a non-NULL procedure had a NULL day. The PRDAY completeness audit also
    spends heavily in rendering and should exercise the shared day decoder in
    its own comparison.
-3. **Comorbidity lookup construction and score join.** Profile the score
-   specification and its SQL lookup independently. The full operation took
-   32–34 s. About 15–17 s fell outside measured rendering and DuckDB calls.
-   The validation step took 2.3–2.5 s and scanned the full key projection.
-   Test a compact reusable lookup and a key-preserving score plan. Keep
-   uniqueness, eligibility, POA, and join cardinality guarantees.
+3. **Comorbidity lookup construction and score join (evaluated).** Retain the
+   existing score builder. At `cee1db00`, three fresh runs per method and
+   `count_distinct` setting used three invented annual Parquet files per
+   coding era, each with 500,000 discharges. The runs used DuckDB 1.5.2 on
+   Windows x64 with four threads and a 4 GB buffer limit. With all added
+   columns reduced to a scalar result, median wall times with distinct
+   counting off and on were 16.41 and 14.13 s for Refined Elixhauser,
+   21.85 and 22.68 s for mixed-era Quan Charlson, and 12.09 and 13.07 s
+   for ICD-9 Deyo. R scoring-spec setup took 5.30–7.39 s, mostly loading
+   medicalcoder on first use. Lookup SQL construction took 6–25 ms.
+   Translation, rendering and DuckDB preparation accounted for 7.3–9.2%
+   of wall time. Median peak process commit ranged from 926 to 1,216 MiB.
+   A replay with shorter slot tests reduced the median
+   scored query from 10.19 to 7.83 s for Quan and from 3.19 to 2.50 s for
+   Deyo, equivalent to about 11% and 6% of their full calls. The paired
+   replay profiles reported 574 and 576 MiB of peak DuckDB buffers for Quan
+   and 289 and 402 MiB for Deyo. These gains fall short of the 20% end-to-end
+   threshold used for this port.
 4. **Design, annual totals and cohort export.** The three paths spent
    about 3.6–7.6 s rendering dbplyr expressions. Test a single builder for
    each internal projection and aggregate while translating caller criteria
