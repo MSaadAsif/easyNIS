@@ -9,8 +9,10 @@ non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (stat_0) in the same row is marked Masked,
-unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing. For survey summaries, hospital
+unless it already has a primary mask. If exactly one categorical level is
+masked within a column, the smallest remaining positive level is also
+marked Masked. Other derivable cells still need analyst review before
+sharing. For survey summaries, hospital
 support is counted from retained records using year-scoped YEAR and
 HOSP_NIS identities, within the cohort, non-missing/category, and by-group
 cells represented by the table. The rule is applied only when the survey
@@ -26,8 +28,10 @@ non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (stat_0) in the same row is marked Masked,
-unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing. For survey summaries, hospital
+unless it already has a primary mask. If exactly one categorical level is
+masked within a column, the smallest remaining positive level is also
+marked Masked. Other derivable cells still need analyst review before
+sharing. For survey summaries, hospital
 support is counted from retained records using year-scoped YEAR and
 HOSP_NIS identities, within the cohort, non-missing/category, and by-group
 cells represented by the table. The rule is applied only when the survey
@@ -100,8 +104,10 @@ non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (<code>stat_0</code>) in the same row is marked <code>Masked</code>,
-unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing. For survey summaries, hospital
+unless it already has a primary mask. If exactly one categorical level is
+masked within a column, the smallest remaining positive level is also
+marked <code>Masked</code>. Other derivable cells still need analyst review before
+sharing. For survey summaries, hospital
 support is counted from retained records using year-scoped <code>YEAR</code> and
 <code>HOSP_NIS</code> identities, within the cohort, non-missing/category, and by-group
 cells represented by the table. The rule is applied only when the survey
@@ -192,7 +198,7 @@ masks and a footnote describing them.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpxvlqe6/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaLGZww/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -200,7 +206,7 @@ masks and a footnote describing them.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpxvlqe6/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaLGZww/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -243,7 +249,7 @@ N = 22</span><span class="gt_footnote_marks" style="font-size: 75%; vertical-ali
 <td headers="stat_4" class="gt_row gt_center" style="border-style: none; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; margin: 10px; border-top-style: solid; border-top-width: 1px; border-top-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; overflow-x: hidden; text-align: center;" valign="middle" align="center">≤10</td>
 <td headers="stat_5" class="gt_row gt_center" style="border-style: none; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; margin: 10px; border-top-style: solid; border-top-width: 1px; border-top-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; overflow-x: hidden; text-align: center;" valign="middle" align="center">Masked</td>
 <td headers="stat_6" class="gt_row gt_center" style="border-style: none; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; margin: 10px; border-top-style: solid; border-top-width: 1px; border-top-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; overflow-x: hidden; text-align: center;" valign="middle" align="center">≤10</td></tr></tbody><tfoot style="border-style: none;"><tr class="gt_footnotes" style="border-style: none; color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3;" bgcolor="#FFFFFF"><td class="gt_footnote" colspan="7" style="border-style: none; margin: 0px; font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"><span class="gt_footnote_marks" style="font-size: 75%; vertical-align: 0.4em; position: initial; white-space: nowrap; font-style: italic; font-weight: normal; line-height: 0;"><sup>1</sup></span> <span class="gt_from_md">Median (Q1, Q3); n (%)</span></td>
-    </tr><tr class="gt_footnotes" style="border-style: none; color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3;" bgcolor="#FFFFFF"><td class="gt_footnote" colspan="7" style="border-style: none; margin: 0px; font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"><span class="gt_footnote_marks" style="font-size: 75%; vertical-align: 0.4em; position: initial; white-space: nowrap; font-style: italic; font-weight: normal; line-height: 0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10; cells contributed by fewer than two distinct year-scoped hospitals are marked '&lt;2 hospitals', regardless of count. The discharge-count mask takes precedence when both rules apply. Dichotomous rows with a protected complement are marked 'Masked' when the displayed event passes both rules. Other derivable cells are not masked; review tables for other derivable cells before sharing under the HCUP Data Use Agreement.</td>
+    </tr><tr class="gt_footnotes" style="border-style: none; color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3;" bgcolor="#FFFFFF"><td class="gt_footnote" colspan="7" style="border-style: none; margin: 0px; font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px;"><span class="gt_footnote_marks" style="font-size: 75%; vertical-align: 0.4em; position: initial; white-space: nowrap; font-style: italic; font-weight: normal; line-height: 0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10; cells contributed by fewer than two distinct year-scoped hospitals are marked '&lt;2 hospitals', regardless of count. The discharge-count mask takes precedence when both rules apply. Dichotomous rows with a protected complement are marked 'Masked' when the displayed event passes both rules. When a categorical variable has one masked level in a column, the smallest remaining positive level is marked 'Masked'. Before sharing under the HCUP Data Use Agreement, review tables for other derivable cells.</td>
     </tr></tfoot></table></div></div><span class="r-in"><span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">25</span><span class="op">)</span>, hospitals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, estimate_total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">125</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">nis_suppress</span><span class="op">(</span><span class="va">cells</span>, count_col <span class="op">=</span> <span class="va">n</span>, hospital_col <span class="op">=</span> <span class="va">hospitals</span>,</span></span>
 <span class="r-in"><span>  weighted_cols <span class="op">=</span> <span class="fu">tidyselect</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"estimate_"</span><span class="op">)</span><span class="op">)</span></span></span>

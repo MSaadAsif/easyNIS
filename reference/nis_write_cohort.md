@@ -64,7 +64,7 @@ cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
 ``` r
 query <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpxvlqe6/duckdb
+#> ℹ /tmp/RtmpaLGZww/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,7 +72,7 @@ query <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpxvlqe6/duckdb
+#> ℹ /tmp/RtmpaLGZww/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -81,7 +81,7 @@ query <- nis_open(nis_example(years = 2019))
 #> ℹ See ?duckdb_storage for details and alternatives.
 path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpxvlqe6/duckdb
+#> ℹ /tmp/RtmpaLGZww/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -90,7 +90,7 @@ path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)
 #> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis_open(path), keep = LOS)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpxvlqe6/duckdb
+#> ℹ /tmp/RtmpaLGZww/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
