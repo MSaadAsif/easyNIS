@@ -8,7 +8,7 @@ nis_flag_dx(
   .data,
   ...,
   position = c("any", "principal", "secondary"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9", "both")
 )
 }
 \arguments{
@@ -19,13 +19,15 @@ exclusions or full-code patterns, use a list such as
 \code{heart_failure = list(prefix = "I50", exclude = "I502")} or
 \code{heart_failure = list(regex = "I50(1|2)")}. Within a list, \code{prefix},
 \code{regex}, and \code{exclude} can each be character vectors. Prefix and regex
-matches are combined; exclusions are exact and apply within each slot.}
+matches are combined; exclusions are exact and apply within each slot.
+With \code{system = "both"}, nest those definitions under \code{icd9} and \code{icd10},
+for example \code{flag = list(icd9 = "12345", icd10 = "I50")}.}
 
 \item{position}{Slots to check: all slots, the principal slot, or secondary
 slots only.}
 
 \item{system}{Code system of the slots to check: \code{"icd10"} (default) or
-\code{"icd9"} (experimental, NIS 2012 to Q3 2015).}
+\code{"icd9"} (experimental, NIS 2012 to Q3 2015), or \code{"both"} (experimental).}
 }
 \value{
 \code{.data} with one logical column per named definition.
@@ -61,13 +63,14 @@ Non-missing version indicators must agree with \code{system}; non-missing
 indicators yield \code{FALSE}. Missing indicators rely on the slot namespace:
 callers must preserve the official names and leave inapplicable slots
 missing. Shared slots containing both systems are not supported.
-\code{FALSE} means "not flagged under that code system", not "condition absent".
-A study that crosses October 2015 needs
-analyst-supplied code sets for both systems, flagged in two calls and
-combined, for example
-\code{nis_flag_dx(hf10 = "I50") |> nis_flag_dx(hf9 = "428", system = "icd9") |> dplyr::mutate(hf = hf10 | hf9)}. easyNIS ships no code lists and no ICD-9 to
-ICD-10 crosswalk, and even with both code sets, counts of a condition can
-break at the transition.
+\code{FALSE} means "not flagged under the requested code system or systems".
+For a study spanning October 2015, use \code{system = "both"} and supply one
+named \code{icd9} and one named \code{icd10} definition per flag. Each definition
+applies to its own eligible records and slots. A match in either system
+sets the flag. Both sets of slot columns must be present for the requested
+position. Use a single-system call on files containing only that system.
+The analyst supplies both definitions and reviews comparability at the
+transition.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))

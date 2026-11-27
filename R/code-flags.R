@@ -29,14 +29,14 @@
 #' indicators yield `FALSE`. Missing indicators rely on the slot namespace:
 #' callers must preserve the official names and leave inapplicable slots
 #' missing. Shared slots containing both systems are not supported.
-#' `FALSE` means "not flagged under that code system", not "condition absent".
-#' A study that crosses October 2015 needs
-#' analyst-supplied code sets for both systems, flagged in two calls and
-#' combined, for example
-#' `nis_flag_dx(hf10 = "I50") |> nis_flag_dx(hf9 = "428", system = "icd9") |>
-#' dplyr::mutate(hf = hf10 | hf9)`. easyNIS ships no code lists and no ICD-9 to
-#' ICD-10 crosswalk, and even with both code sets, counts of a condition can
-#' break at the transition.
+#' `FALSE` means "not flagged under the requested code system or systems".
+#' For a study spanning October 2015, use `system = "both"` and supply one
+#' named `icd9` and one named `icd10` definition per flag. Each definition
+#' applies to its own eligible records and slots. A match in either system
+#' sets the flag. Both sets of slot columns must be present for the requested
+#' position. Use a single-system call on files containing only that system.
+#' The analyst supplies both definitions and reviews comparability at the
+#' transition.
 #'
 #' @template dot-data
 #' @param ... Named flag definitions, such as `heart_failure = "I50"`. For
@@ -45,10 +45,12 @@
 #'   `heart_failure = list(regex = "I50(1|2)")`. Within a list, `prefix`,
 #'   `regex`, and `exclude` can each be character vectors. Prefix and regex
 #'   matches are combined; exclusions are exact and apply within each slot.
+#'   With `system = "both"`, nest those definitions under `icd9` and `icd10`,
+#'   for example `flag = list(icd9 = "12345", icd10 = "I50")`.
 #' @param position Slots to check: all slots, the principal slot, or secondary
 #'   slots only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
-#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
+#'   `"icd9"` (experimental, NIS 2012 to Q3 2015), or `"both"` (experimental).
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
@@ -76,7 +78,12 @@
 #'   nis_flag_dx(hf_full = list(regex = "I50[0-9]{2}")) |>
 #'   dplyr::count(hf_full) |>
 #'   dplyr::collect()
-nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"), system = c("icd10", "icd9")) {
+nis_flag_dx <- function(
+  .data,
+  ...,
+  position = c("any", "principal", "secondary"),
+  system = c("icd10", "icd9", "both")
+) {
   nis_flag_codes(.data, slots = "DX", ..., position = match.arg(position), system = match.arg(system))
 }
 
@@ -95,7 +102,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   [nis_flag_dx()] for list definitions with exclusions or regexes.
 #' @param position Slots to check: all slots or the principal slot only.
 #' @param system Code system of the slots to check: `"icd10"` (default) or
-#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
+#'   `"icd9"` (experimental, NIS 2012 to Q3 2015), or `"both"` (experimental).
 #'
 #' @return `.data` with one logical column per named definition.
 #' @family cohort-definition
@@ -107,7 +114,7 @@ nis_flag_dx <- function(.data, ..., position = c("any", "principal", "secondary"
 #'   nis_flag_pr(ablation = "02L") |>
 #'   dplyr::count(ablation) |>
 #'   dplyr::collect()
-nis_flag_pr <- function(.data, ..., position = c("any", "principal"), system = c("icd10", "icd9")) {
+nis_flag_pr <- function(.data, ..., position = c("any", "principal"), system = c("icd10", "icd9", "both")) {
   nis_flag_codes(.data, slots = "PR", ..., position = match.arg(position), system = match.arg(system))
 }
 
@@ -124,6 +131,26 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
     cli::cli_abort("Flag names must not replace existing columns.")
   }
 
+  definitions <- lapply(definitions, rlang::eval_tidy)
+  if (system == "both") {
+    definitions <- lapply(definitions, nis_mixed_flag_definition)
+    icd9 <- nis_flag_expressions(.data, data_names, slots, position, "icd9", lapply(definitions, `[[`, "icd9"))
+    icd10 <- nis_flag_expressions(.data, data_names, slots, position, "icd10", lapply(definitions, `[[`, "icd10"))
+    flags <- Map(function(left, right) rlang::expr((!!left) | (!!right)), icd9, icd10)
+  } else {
+    flags <- nis_flag_expressions(.data, data_names, slots, position, system, definitions)
+  }
+  dplyr::mutate(.data, !!!flags)
+}
+
+nis_mixed_flag_definition <- function(value) {
+  if (!is.list(value) || length(value) != 2L || !setequal(names(value), c("icd9", "icd10"))) {
+    cli::cli_abort("With `system = \"both\"`, each flag needs a list with `icd9` and `icd10` definitions.")
+  }
+  value
+}
+
+nis_flag_expressions <- function(data, data_names, slots, position, system, definitions) {
   rules <- lapply(definitions, normalize_flag_definition)
   regexes <- unique(unlist(lapply(rules, `[[`, "regex"), use.names = FALSE))
   if (length(regexes)) {
@@ -131,15 +158,12 @@ nis_flag_codes <- function(.data, slots, ..., position, system) {
   }
 
   slot_names <- nis_flag_slot_names(data_names, slots, system, position)
-  flags <- lapply(rules, nis_code_match, data = .data, slot_names = slot_names)
-
-  eligibility <- code_system_filter(.data, data_names, slots, system)
-  flags <- lapply(flags, nis_in_code_system, eligibility = eligibility)
-  dplyr::mutate(.data, !!!flags)
+  flags <- lapply(rules, nis_code_match, data = data, slot_names = slot_names)
+  eligibility <- code_system_filter(data, data_names, slots, system)
+  lapply(flags, nis_in_code_system, eligibility = eligibility)
 }
 
-normalize_flag_definition <- function(definition) {
-  value <- rlang::eval_tidy(definition)
+normalize_flag_definition <- function(value) {
   if (is.character(value)) {
     return(nis_prefix_rule(normalize_prefixes(value)))
   }
