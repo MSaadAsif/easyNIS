@@ -105,10 +105,10 @@ uses <code>PR&lt;n&gt;</code>.</p></dd>
 those matches. <code>pct_known</code> is <code>100 * known_day / matched_slots</code>, or <code>NA</code>
 when there are no matched slots. A PRDAY column is considered absent when
 it is absent from the input query's schema. A unified multi-file query
-does not retain source-file field presence by year. When present, <code>NA</code>,
-<code>NaN</code>, and values that do not convert to a number (factor days use their
-labels) count as missing, and all negative days (including HCUP sentinels)
-count as sentinel/invalid, matching <code><a href="nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code>.</p>
+does not retain source-file field presence by year. A value that does not
+decode to a finite number counts as missing. Factor days use their
+labels. Negative finite days (including HCUP sentinels) count as
+sentinel/invalid, matching <code><a href="nis_flag_pr_timing.html">nis_flag_pr_timing()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

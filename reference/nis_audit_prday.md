@@ -42,10 +42,10 @@ partition those matches. `pct_known` is
 `100 * known_day / matched_slots`, or `NA` when there are no matched
 slots. A PRDAY column is considered absent when it is absent from the
 input query's schema. A unified multi-file query does not retain
-source-file field presence by year. When present, `NA`, `NaN`, and
-values that do not convert to a number (factor days use their labels)
-count as missing, and all negative days (including HCUP sentinels) count
-as sentinel/invalid, matching
+source-file field presence by year. A value that does not decode to a
+finite number counts as missing. Factor days use their labels. Negative
+finite days (including HCUP sentinels) count as sentinel/invalid,
+matching
 [`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md).
 
 ## See also
