@@ -124,7 +124,17 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   if (length(owners)) {
     tbl$src$.easyNIS_arrow_refs <- owners
   }
+  class(tbl) <- c("tbl_nis", class(tbl))
   tbl
+}
+
+#' @exportS3Method dplyr::compute
+compute.tbl_nis <- function(x, ...) {
+  result <- NextMethod()
+  # dbplyr 2.6 rebuilds the source when returning a materialized table.
+  result$src <- x$src
+  class(result) <- unique(c("tbl_nis", class(result)))
+  result
 }
 
 # Parquet files produced by easyNIS that do not represent an HCUP release.

@@ -525,6 +525,20 @@ test_that("derived DuckDB queries retain the connection until all are released",
 })
 
 
+test_that("computed NIS queries retain their DuckDB connection", {
+  path <- withr::local_tempdir()
+  write_duckdb_parquet(data.frame(YEAR = 2020L), file.path(path, "NIS_2020.parquet"))
+  computed <- dplyr::compute(nis_open(path, check_release = FALSE))
+  con <- dbplyr::remote_con(computed)
+  invisible(gc())
+
+  expect_true(DBI::dbIsValid(con))
+  expect_equal(unique(dplyr::collect(computed)$YEAR), 2020L)
+  computed <- NULL
+  invisible(gc())
+  expect_false(DBI::dbIsValid(con))
+})
+
 test_that("open queries apply workload limits and own separate spill locations", {
   spill <- tempfile("nis-spill-parent-")
   dir.create(spill)
