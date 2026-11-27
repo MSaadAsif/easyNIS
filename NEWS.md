@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- The descriptives and regression article shows how to use `nis_design()`
+  with gtsummary for survey summaries, group comparisons, and regression
+  tables. The workflow test checks cohort counts and full-sample survey results.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
