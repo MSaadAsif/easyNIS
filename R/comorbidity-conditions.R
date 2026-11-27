@@ -5,7 +5,9 @@
 #' one row per component. Severity variants share an ID. For example,
 #' both diabetes flags map to `diabetes`, and refined Elixhauser's solid
 #' tumor and metastatic cancer flags map to `solid_cancer`. Leukemia and
-#' lymphoma retain separate IDs.
+#' lymphoma retain separate IDs. Charlson's malignancy and metastatic solid
+#' tumor flags both map to `malignancy`, because its malignancy flag also
+#' covers leukemia and lymphoma.
 #'
 #' The map describes the emitted flags, including medicalcoder combination
 #' and compatibility flags. For example, `hfhtn_cxrenlfl_sev` maps to heart
@@ -59,8 +61,10 @@ nis_cmrb_condition_map <- function(spec) {
     CANCER_SOLID = "solid_cancer",
     METS = "solid_cancer",
     TUMOR = "solid_cancer",
-    mal = "solid_cancer",
-    mst = "solid_cancer",
+    # Charlson's malignancy flag includes leukemia and lymphoma, so it is not
+    # solid cancer.
+    mal = "malignancy",
+    mst = "malignancy",
     LIVER_MLD = "liver_disease",
     LIVER_SEV = "liver_disease",
     LIVER = "liver_disease",
