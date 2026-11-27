@@ -10,6 +10,11 @@ test_that("a generated study masks unsupported mortality while reporting support
     survey.lonely.psu = "fail",
     survey.adjust.domain.lonely = FALSE
   )
+  theme <- gtsummary::get_gtsummary_theme()
+  withr::defer({
+    gtsummary::reset_gtsummary_theme()
+    suppressMessages(gtsummary::set_gtsummary_theme(theme))
+  })
   attached <- search()
   withr::defer({
     for (package in setdiff(search(), attached)) {
