@@ -284,7 +284,8 @@ nis_code_match <- function(rule, data, slot_names) {
       return(matched)
     }
     excluded <- rlang::expr(!!value %in% !!rule$exclude)
-    rlang::expr((!!matched) & !dplyr::coalesce(!!excluded, FALSE))
+    # Keep the inclusion OR grouped when dbplyr translates the exclusion.
+    rlang::expr(dplyr::coalesce(!!matched, FALSE) & !dplyr::coalesce(!!excluded, FALSE))
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
 }
