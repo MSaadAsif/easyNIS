@@ -7,7 +7,7 @@ params:
 
 ```{r}
 #| label: setup
-# Expensive chunks are cached. To force a full re-run, delete the
+# The survey design is cached. To force a full re-run, delete the
 # analysis_cache folder next to this file.
 library(easyNIS)
 library(purrr)
@@ -25,8 +25,9 @@ input_path <- if (is_example) {
   params$data_path
 }
 
-nis_data <- nis_open(input_path, years = params$years)
-data_files <- easyNIS:::nis_open_source_paths(nis_data)
+opened <- nis_open(input_path, years = params$years)
+nis_data <- opened
+data_files <- easyNIS:::nis_open_source_paths(opened)
 ```
 
 ## Study definitions
@@ -87,7 +88,7 @@ study_design <- rlang::inject(
     !!cohort,
     keep = c(
       AGE, FEMALE, DIED, LOS, TOTCHG, CCR_NIS,
-      principal_dx, exposed
+      principal_dx, exposed, dplyr::any_of("DQTR")
     ),
     annualize = annualize,
     dollars = max(params$years)
@@ -97,46 +98,41 @@ study_design <- rlang::inject(
 
 ```{r}
 #| label: design-summary
-cohort_n <- nrow(study_design$variables)
-has_cohort <- cohort_n > 0L
-exposure_values <- if (has_cohort && exposure %in% names(study_design$variables)) {
-  study_design$variables[[exposure]]
-} else {
-  logical()
-}
-exposure_levels <- unique(exposure_values[!is.na(exposure_values)])
-has_exposure_comparison <- length(exposure_levels) >= 2L
 disclosure_limit <- 10L
-records <- study_design$variables
-support <- easyNIS:::nis_study_support(records, disclosure_limit)
-trend_support <- if (has_cohort) easyNIS:::nis_study_trend_support(records, disclosure_limit)
-pooled_mask <- support$mask
-if (!nzchar(pooled_mask) && any(nzchar(trend_support$count_mask))) pooled_mask <- "Masked"
-outcome_ok <- c(
-  DIED = has_cohort && all(trend_support$mortality_ok),
-  LOS = has_cohort && all(trend_support$los_ok),
-  cost_adj = has_cohort && all(vapply(split(records, records$YEAR), function(rows) {
-    easyNIS:::nis_study_supported(rows[which(is.finite(rows$cost_adj)), ], disclosure_limit)
-  }, logical(1)))
-)
+eligible <- study_design$variables
+exposure_values <- if (exposure %in% names(eligible)) eligible[[exposure]] else logical()
+missing_exposure <- is.na(exposure_values)
+has_exposure_comparison <- length(unique(exposure_values[!missing_exposure])) >= 2L
 arm_support <- if (has_exposure_comparison) {
-  lapply(split(records, exposure_values), easyNIS:::nis_study_support,
+  lapply(split(eligible, exposure_values), easyNIS:::nis_study_support,
     threshold = disclosure_limit)
 } else {
   list()
 }
-missing_exposure <- is.na(exposure_values)
 comparisons_safe <- has_exposure_comparison &&
   all(vapply(arm_support, function(arm) arm$n > 0L && !nzchar(arm$mask), logical(1))) &&
   (!any(missing_exposure) || easyNIS:::nis_study_supported(
-    records[missing_exposure, , drop = FALSE], disclosure_limit))
-study_cell_display <- function(mask, value) {
-  ifelse(nzchar(mask), mask, value)
-}
+    eligible[missing_exposure, , drop = FALSE], disclosure_limit))
+
+# All report estimates and disclosure checks use this analysis domain.
+exposure_restricted <- comparisons_safe && any(missing_exposure)
+analysis_design <- if (exposure_restricted) {
+  dplyr::filter(study_design, !is.na(.data[[exposure]]))
+} else study_design
+records <- analysis_design$variables
+cohort_n <- nrow(records)
+has_cohort <- cohort_n > 0L
+formulas <- lapply(outcomes$outcome, stats::reformulate, termlabels = c(exposure, covariates))
+report_variables <- unique(c(exposure, "AGE", "FEMALE", "DIED", "LOS", "cost_adj", unlist(lapply(formulas, all.vars))))
+support <- easyNIS:::nis_study_report_support(
+  records, report_variables, if (comparisons_safe) exposure, disclosure_limit
+)
+pooled_mask <- support$pooled
+outcome_ok <- support$variables[intersect(c("DIED", "LOS", "cost_adj"), names(support$variables))]
 study_header <- function(table) {
   metadata <- table$table_styling$header
   grouped <- "stat_1" %in% names(table$table_body)
-  total <- if (grouped) sum(!missing_exposure) else cohort_n
+  total <- cohort_n
   header <- list(stat_0 = paste0("**N = ", format(total, big.mark = ","), "**"))
   if (grouped) {
     columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
@@ -150,162 +146,76 @@ study_header <- function(table) {
   }
   gtsummary::modify_header(table, !!!header)
 }
-study_mask_p <- function(table) {
-  if (!"p.value" %in% names(table$table_body)) return(table)
-  gtsummary::modify_table_body(table, function(body) {
-    stat <- grep("^stat_[1-9][0-9]*$", names(body), value = TRUE)
-    masks <- c(paste0("\u2264", disclosure_limit), "<2 hospitals", "Masked")
-    masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
-    body$p.value[body$variable %in% body$variable[masked]] <- NA_real_
-    body
-  })
-}
-report_inputs <- easyNIS:::nis_study_report_cache_key(
-  design_key = design_key,
-  exposure = exposure,
-  covariates = covariates,
-  outcomes = outcomes,
-  output_format = knitr::is_html_output()
-)
-report_key <- rlang::hash(list(report_inputs, knitr::knit_code$get("design-summary")))
-weight_description <- if (annualize) {
-  "DISCWT divided by the number of study years"
-} else {
-  "DISCWT"
+report <- easyNIS:::nis_study_reporting(opened, analysis_design, params$years)
+table_one <- outcome_table <- trend_estimates <- NULL
+render_table <- function(table) {
+  easyNIS:::nis_study_render_table(table, html = knitr::is_html_output())
 }
 ```
 
 ## Methods
 
-This study includes NIS years `r paste(params$years, collapse = ", ")`. The
-analysis cohort uses principal diagnosis prefix
-`r paste(codes$principal_dx, collapse = ", ")` and is defined by
-`r rlang::expr_text(cohort)`. It contains `r study_cell_display(pooled_mask, format(cohort_n, big.mark = ","))`
-discharges. The design uses year-specific HOSP_NIS clusters and NIS_STRATUM
-strata, with `r weight_description` weights, and includes
-`r study_cell_display(sub(" hospitals$", "", pooled_mask), format(support$hospitals, big.mark = ","))` hospitals
-with cohort discharges. Cost and charges are adjusted to
-`r max(params$years)` USD using CPI-U. The report uses easyNIS
-`r as.character(utils::packageVersion("easyNIS"))`, R `r getRversion()`, survey
-`r as.character(utils::packageVersion("survey"))`, srvyr
-`r as.character(utils::packageVersion("srvyr"))`, dplyr
-`r as.character(utils::packageVersion("dplyr"))`, and gtsummary
-`r as.character(utils::packageVersion("gtsummary"))`.
+```{r}
+#| label: generated-methods
+#| results: asis
+# Edit the generated text here or copy it from the report into your manuscript.
+cat(easyNIS:::nis_study_methods(report, is_example), "\n")
+```
 
-`r if (!has_cohort) "Cohort-dependent summaries and models are unavailable because the cohort has no rows in the survey design." else if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe)) "Some cohort summaries are withheld under the study disclosure policy." else if (!has_exposure_comparison) paste0("The exposure comparison is unavailable because ", exposure, " has fewer than two observed levels in the cohort.") else "The cohort has at least two observed exposure levels; comparative summaries and models will be evaluated."`
+`r if (exposure_restricted) "The report uses discharges with observed exposure."`
 
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
-**Cells based on ≤`r disclosure_limit` unweighted discharges are masked. The report also masks cells with fewer than two contributing hospitals and may mask related figures. Review tables for other derivable cells before sharing under the HCUP Data Use Agreement.**
+**Cells based on ≤`r disclosure_limit` unweighted discharges are masked. The report also masks cells with fewer than two contributing hospitals and may mask related figures. Review tables for other derivable cells before sharing under the HCUP Data Use Agreement. Review cross-classified releases separately under the agreement, including combinations that can reveal cells when weights are constant within a year. Review coding-era presence reported in Methods or the checklist before sharing.**
 
 ## Cohort flow
 
-The first three rows come from one aggregate over the opened data. The final row
-comes from the survey design, which also drops discharges with a missing or
-non-positive `DISCWT`, `NIS_STRATUM`, or `HOSP_NIS`.
+`r if (exposure_restricted) "The flow table shows the final reporting cohort." else "The flow follows the analysis input through the principal diagnosis flag, the cohort criterion, and the survey design’s eligibility checks."`
+Weighted flow totals sum unscaled discharge weights from valid-design records.
 
 ```{r}
 #| label: flow
-flow_counts <- nis_data |>
-  dplyr::transmute(
-    cohort_match = !!cohort,
-    principal_match = principal_dx,
-    weight = DISCWT,
-    hospital = dbplyr::sql(paste0(
-      'CASE WHEN "YEAR" > 0 AND isfinite(CAST("YEAR" AS DOUBLE)) ',
-      'AND "HOSP_NIS" > 0 AND isfinite(CAST("HOSP_NIS" AS DOUBLE)) ',
-      'THEN struct_pack(year_id := "YEAR", hospital_id := "HOSP_NIS") END'
-    ))
-  ) |>
-  dplyr::summarise(
-    all_n = dplyr::n(),
-    all_hospitals = dplyr::n_distinct(hospital, na.rm = TRUE),
-    all_weight = sum(weight, na.rm = TRUE),
-    principal_n = dplyr::coalesce(
-      sum(dplyr::if_else(principal_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
-    ),
-    principal_hospitals = dplyr::n_distinct(dplyr::if_else(principal_match, hospital, NA), na.rm = TRUE),
-    principal_weight = dplyr::coalesce(sum(dplyr::if_else(principal_match, weight, NA), na.rm = TRUE), 0),
-    cohort_n = dplyr::coalesce(
-      sum(dplyr::if_else(cohort_match, 1L, 0L, missing = 0L), na.rm = TRUE), 0L
-    ),
-    cohort_hospitals = dplyr::n_distinct(dplyr::if_else(cohort_match, hospital, NA), na.rm = TRUE),
-    cohort_weight = dplyr::coalesce(sum(dplyr::if_else(cohort_match, weight, NA), na.rm = TRUE), 0)
-  ) |>
-  dplyr::collect()
-
-flow_raw <- dplyr::tibble(
-  step = c("All discharges", "Principal diagnosis prefix", "Cohort definition",
-    "Analysis cohort (valid survey design)"),
-  n = c(flow_counts$all_n, flow_counts$principal_n, flow_counts$cohort_n, cohort_n),
-  hospitals = c(flow_counts$all_hospitals, flow_counts$principal_hospitals,
-    flow_counts$cohort_hospitals, support$hospitals),
-  weighted_discharges = c(flow_counts$all_weight, flow_counts$principal_weight,
-    flow_counts$cohort_weight, sum(study_design$variables$DISCWT))
-)
-stopifnot(cohort_n <= flow_counts$cohort_n)
-flow_mask <- easyNIS:::nis_study_mask(flow_raw$n, flow_raw$hospitals, disclosure_limit)
-flow_mask[[4L]] <- pooled_mask
-if (any(nzchar(flow_mask))) flow_mask[!nzchar(flow_mask) & flow_raw$n > 0] <- "Masked"
-flow_display <- flow_raw |>
-  dplyr::mutate(
-    discharges = study_cell_display(flow_mask, format(n, big.mark = ",", trim = TRUE)),
-    weighted_discharges = study_cell_display(
-      flow_mask, formatC(weighted_discharges, format = "f", digits = 1, big.mark = ",")
-    )
-  ) |>
-  dplyr::select(step, discharges, weighted_discharges)
-
-if (knitr::is_html_output()) {
-  gt::gt(flow_display)
-} else {
-  flextable::flextable(flow_display)
-}
+flow_display <- rlang::inject(easyNIS:::nis_study_flow(
+  nis_data, principal_dx, !!cohort, analysis_design, pooled_mask, disclosure_limit,
+  exposure_restricted = exposure_restricted
+))
+render_table(flow_display)
 ```
 
 ## Table 1
 
 ```{r}
 #| label: table-one
-#| cache: true
-#| dependson: design
-#| cache.extra: !expr report_key
 if (!has_cohort) {
   knitr::asis_output(
     "Table 1 is unavailable because the cohort has no rows in the survey design."
   )
-} else if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe)) {
+} else if (nzchar(pooled_mask) || (has_exposure_comparison && !support$by_arm)) {
   knitr::asis_output("Table 1 is withheld under the study disclosure policy.")
 } else {
   variables <- c("AGE", "FEMALE", names(outcome_ok)[outcome_ok])
-  table_one <- if (has_exposure_comparison) {
+  table_one <- if (support$by_arm) {
     gtsummary::tbl_svysummary(
-      study_design,
+      analysis_design,
       by = dplyr::all_of(exposure),
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       gtsummary::add_p() |>
-      gtsummary::add_overall() |>
-      nis_suppress(threshold = disclosure_limit)
+      gtsummary::add_overall()
   } else {
     gtsummary::tbl_svysummary(
-      study_design,
+      analysis_design,
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
-    ) |>
-      nis_suppress(threshold = disclosure_limit)
+    )
   }
 
-  table_one <- study_header(study_mask_p(table_one))
-  if (knitr::is_html_output()) {
-    gtsummary::as_gt(table_one)
-  } else {
-    gtsummary::as_flex_table(table_one)
-  }
+  table_one <- easyNIS:::nis_study_summary_table(table_one, support$variables, disclosure_limit, study_header)
+  render_table(table_one)
 }
 ```
 
@@ -313,9 +223,6 @@ if (!has_cohort) {
 
 ```{r}
 #| label: outcomes
-#| cache: true
-#| dependson: design
-#| cache.extra: !expr report_key
 if (!has_cohort) {
   knitr::asis_output(
     "Outcome summaries are unavailable because the cohort has no rows in the survey design."
@@ -324,19 +231,14 @@ if (!has_cohort) {
   knitr::asis_output("Outcome summaries are withheld under the study disclosure policy.")
 } else {
   outcome_table <- gtsummary::tbl_svysummary(
-    study_design,
+    analysis_design,
     include = dplyr::all_of(names(outcome_ok)[outcome_ok]),
     type = list(dplyr::any_of(c("LOS", "cost_adj")) ~ "continuous"),
     statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
-  ) |>
-    nis_suppress(threshold = disclosure_limit)
+  )
 
-  outcome_table <- study_header(outcome_table)
-  if (knitr::is_html_output()) {
-    gtsummary::as_gt(outcome_table)
-  } else {
-    gtsummary::as_flex_table(outcome_table)
-  }
+  outcome_table <- easyNIS:::nis_study_summary_table(outcome_table, support$variables, disclosure_limit, study_header)
+  render_table(outcome_table)
 }
 ```
 
@@ -347,26 +249,14 @@ support. Mortality and length of stay also require support for each estimate.
 
 ```{r}
 #| label: trends
-#| cache: true
-#| dependson: design
-#| cache.extra: !expr report_key
 if (!has_cohort) {
   knitr::asis_output(
     "Trends are unavailable because the cohort has no rows in the survey design."
   )
 } else {
-trend <- study_design |>
-  dplyr::mutate(.one = 1) |>
-  dplyr::group_by(YEAR) |>
-  dplyr::summarise(
-    mortality = srvyr::survey_mean(DIED, vartype = "ci", na.rm = TRUE),
-    mean_los = srvyr::survey_mean(LOS, vartype = "ci", na.rm = TRUE),
-    n_unweighted = dplyr::n(),
-    weighted_n = srvyr::survey_total(.one, vartype = NULL),
-    .groups = "drop"
-  ) |>
-  dplyr::ungroup() |>
-  dplyr::left_join(trend_support, by = "YEAR")
+trend_estimates <- easyNIS:::nis_study_trend_estimates(analysis_design)
+trend <- dplyr::left_join(trend_estimates, support$by_year, by = "YEAR") |>
+  dplyr::rename(mortality_ok = DIED, los_ok = LOS)
 
 trend_long <- dplyr::bind_rows(
   trend |>
@@ -396,62 +286,36 @@ if (nrow(trend_long)) print(ggplot2::ggplot(
   ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
   ggplot2::theme_minimal())
 
-trend_display <- trend |>
-  dplyr::mutate(
-    YEAR = as.character(YEAR),
-    discharges = study_cell_display(count_mask, format(n_unweighted, big.mark = ",", trim = TRUE)),
-    weighted_N = study_cell_display(count_mask, formatC(weighted_n, format = "f", digits = 1, big.mark = ",")),
-    mortality = study_cell_display(
-      ifelse(!nzchar(count_mask) & !mortality_ok, "Masked", count_mask),
-      paste0(formatC(100 * mortality, format = "f", digits = 1), "%")
-    ),
-    mean_LOS = study_cell_display(
-      ifelse(!nzchar(count_mask) & !los_ok, "Masked", count_mask),
-      formatC(mean_los, format = "f", digits = 2)
-    )
-  ) |>
-  dplyr::select(
-    `Discharge year` = YEAR, discharges, weighted_N, mortality, mean_LOS
-  )
-
-if (knitr::is_html_output()) {
-  gt::gt(trend_display)
-} else {
-  flextable::flextable(trend_display)
-}
+render_table(easyNIS:::nis_study_trend_table(trend))
 }
 ```
 
 ## Multivariable models
 
 Models use the exposure and covariates declared above. A model is shown only
-when the observed data and fitted estimates are finite and usable. A valid
+when the reporting cohort has complete model data and the fitted estimates
+are finite and usable. A valid
 model with a design warning remains visible, with that warning shown below.
 Unavailable models include the reason; the declared model specification is
 not changed to make a model fit.
 
 ```{r}
 #| label: models
-#| cache: true
-#| dependson: design
-#| cache.extra: !expr report_key
 model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
   outcome <- current$outcome[[1L]]
+  formula <- formulas[[i]]
+  model_variables <- intersect(all.vars(formula), names(support$variables))
   report_supported <- !nzchar(pooled_mask) &&
-    (!has_exposure_comparison || comparisons_safe) && !isFALSE(outcome_ok[outcome])
+    (!has_exposure_comparison || support$by_arm) && all(support$variables[model_variables])
   model_family <- switch(
     current$family[[1L]],
     quasibinomial = stats::quasibinomial(),
     gaussian = stats::gaussian()
   )
-  formula <- stats::reformulate(
-    c(exposure, covariates),
-    response = outcome
-  )
   easyNIS:::nis_study_fit_report_model(
     formula,
-    design = study_design,
+    design = analysis_design,
     family = model_family,
     outcome = outcome,
     exposure = exposure,
@@ -463,20 +327,9 @@ model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
 valid_models <- which(vapply(model_results, function(result) {
   !is.null(result$model)
 }, logical(1)))
-model_tables <- purrr::map(valid_models, function(i) {
-  gtsummary::tbl_regression(
-    model_results[[i]]$model,
-    exponentiate = outcomes$exponentiate[[i]]
-  )
-})
-
-names(model_tables) <- as.character(valid_models)
 family_rows <- split(valid_models, outcomes$family[valid_models])
 family_tables <- purrr::map(family_rows, function(rows) {
-  gtsummary::tbl_merge(
-    tbls = model_tables[as.character(rows)],
-    tab_spanner = paste0("**", outcomes$outcome[rows], "**")
-  )
+  easyNIS:::nis_study_model_table(model_results[rows], outcomes[rows, ])
 })
 
 model_notes <- purrr::map_chr(seq_along(model_results), function(i) {
@@ -498,11 +351,7 @@ model_notes <- purrr::map_chr(seq_along(model_results), function(i) {
 ```{r}
 #| label: model-tables
 rendered_tables <- purrr::map_chr(family_tables, function(family_table) {
-  table <- if (knitr::is_html_output()) {
-    gtsummary::as_gt(family_table)
-  } else {
-    gtsummary::as_flex_table(family_table)
-  }
+  table <- render_table(family_table)
   rendered <- knitr::knit_print(table)
   metadata <- attr(rendered, "knit_meta", exact = TRUE)
   if (length(metadata) > 0L) {
@@ -516,6 +365,24 @@ if (length(model_output) == 0L) {
 } else {
   knitr::asis_output(paste(model_output, collapse = "\n\n"))
 }
+```
+
+## Checklist receipt
+
+The receipt covers the generated report and follows the
+[HCUP NIS checklist](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp)
+and [Khera et al.](https://doi.org/10.1001/jama.2017.17653).
+The receipt marks manuscript and clinical checks “Analyst review.”
+Review the finished outputs under the
+[HCUP Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.pdf).
+
+```{r}
+#| label: checklist-receipt
+receipt <- easyNIS:::nis_study_checklist(
+  report, list(table_one, outcome_table), purrr::map(model_results[valid_models], "model"),
+  trend_estimates, analysis_design
+)
+knitr::kable(receipt)
 ```
 
 <!--

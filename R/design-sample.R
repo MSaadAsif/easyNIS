@@ -29,6 +29,7 @@ nis_design_sample <- function(
     cohort_rows = collected[selected],
     hospital_rows = summary$hospital_rows,
     years = summary$years,
+    input_rows = summary$input_rows,
     excluded = summary$excluded,
     coverage = summary$coverage,
     cohort_2015_quarters = if (check_transition) nis_cohort_2015_quarters(collected) else integer()
@@ -75,7 +76,8 @@ nis_sample_summary <- function(prepared, quarter_prototype, call) {
   }
   years <- sort(unique(hospital_rows$YEAR))
   coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags))
-  list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage)
+  input_rows <- sum(as.numeric(design_groups$n))
+  list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage, input_rows = input_rows)
 }
 
 nis_sample_group_rows <- function(prepared, keys, quarter_flags = list()) {
