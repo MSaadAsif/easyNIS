@@ -94,7 +94,7 @@ The runner reads the same limits from
 | `svymean()` and `svyby()`, cohort | 850 / 13 / 1 | 850 / 14 / 1 |
 | `svyglm()`, cohort | 1000 / 14 / 1 | 1000 / 13 / 1 |
 | `tbl_svysummary()`, cohort | 1000 / 88 / 1 | 1000 / 80 / 1 |
-| `nis_design()` and `svyglm()`, whole sample, 6 years | 8000 / 166 / 1 | 16000 / 166 / 1 |
+| `nis_survey()` and `svyglm()`, whole sample, 6 years | 8000 / 166 / 1 | 16000 / 166 / 1 |
 
 The core limits use the largest observed value plus 25%, rounded up to the
 next 50 MB of commit, whole second, or whole MB of disk, with a 1 MB disk
@@ -114,17 +114,17 @@ both profiles, and every repeat left zero temporary files.
 | Model | 792.4 / 793.9 | 10.42 / 10.46 | 788.8 / 790.0 | 9.32 / 10.25 |
 | Summary table | 779.8 / 783.1 | 63.39 / 69.84 | 774.5 / 774.9 | 59.68 / 63.67 |
 
-**Known minimum-profile failure.** The six-year whole-sample survey workflow
-crossed 8 GB peak commit. The calibration stopped it at 8004 MB after 132.34
-seconds of process time, with zero observed temporary bytes and zero files
-left over. The 8 GB and 16 GB commit limits come from the machine profiles.
-The provisional wall and disk limits use that stopped trial with the same
-margin and rounding. The two reference attempts ended at the system commit
-headroom check, so reference whole-sample performance remains unverified.
-We expect the whole-sample step to meet criterion 9 once the
-[in-database estimator](adr/0001-in-database-survey-estimation.md) lands.
-Re-run the six-year probe on both profiles to verify all limits, including
-the provisional time limit.
+The original in-memory six-year whole-sample workflow crossed 8 GB peak
+commit. The calibration stopped the minimum-profile trial at 8004 MB after
+132.34 seconds of process time. The reference trials stopped at the host
+commit headroom check. The provisional wall and disk limits use the stopped
+trial with the same margin and rounding as the core limits.
+
+The whole-sample step now uses the
+[in-database estimator](adr/0001-in-database-survey-estimation.md).
+Run `Rscript --vanilla tools/probe/probe-performance.R --whole-sample` to
+measure this step on both profiles. The full probe is needed to qualify
+all of criterion 9.
 
 ## Scope decisions
 
