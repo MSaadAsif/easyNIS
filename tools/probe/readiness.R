@@ -11,8 +11,8 @@ quality <- load_quality_evidence(quality_files)
 current_evidence <- git_evidence()
 current_commit <- current_evidence$commit
 current_tree_clean <- current_evidence$working_tree_clean
-ci_files <- list.files(".github/workflows", pattern = "[.]ya?ml$", full.names = TRUE)
-ci_text <- paste(unlist(lapply(ci_files, readLines, warn = FALSE)), collapse = "\n")
+ci_file <- file.path(".github", "workflows", "R-CMD-check.yaml")
+ci_configured <- file.exists(ci_file) && any(grepl("--as-cran", readLines(ci_file, warn = FALSE), fixed = TRUE))
 reference_studies <- load_reference_studies(file.path(root, "tools", "probe", "reference-studies.yml"))
 headline_results <- if (current_tree_clean && valid_nonempty_string(current_commit)) {
   study_verification_results(
@@ -39,11 +39,11 @@ query_open_issues <- function(label) {
   parse_open_issue_query(result, status = if (is.null(query_status)) 0L else query_status)
 }
 issue_queries <- lapply(c("P0", "P1"), query_open_issues)
-ci_configured <- grepl("--as-cran", ci_text, fixed = TRUE)
-ci_runs <- if (ci_configured) {
-  tryCatch(system2("gh", ci_run_list_args(current_commit), stdout = TRUE, stderr = FALSE), error = identity)
-} else {
-  character()
+ci_runs <- if (ci_configured && current_tree_clean && valid_nonempty_string(current_commit)) {
+  tryCatch(
+    suppressWarnings(system2("gh", ci_run_list_args(current_commit), stdout = TRUE, stderr = FALSE)),
+    error = identity
+  )
 }
 doc_files <- c("README.md", list.files("vignettes", pattern = "[.](Rmd|qmd|md)$", recursive = TRUE, full.names = TRUE))
 doc_text <- paste(unlist(lapply(doc_files[file.exists(doc_files)], readLines, warn = FALSE)), collapse = "\n")
@@ -60,4 +60,5 @@ criteria <- evaluate_readiness(
   ci_configured,
   ci_runs
 )
-print(rbind(criteria, performance_readiness(loop_dir, current_evidence)), row.names = FALSE)
+criteria <- rbind(criteria, performance_readiness(loop_dir, current_evidence))
+print(criteria, row.names = FALSE)

@@ -63,16 +63,7 @@ quality_record <- function(x, evidence) {
   value <- x$value
   counts <- check_counts_for(value)
   definition <- quality_definition(x$name)
-  provenance <- definition$provenance
-  passed <- provenance_pass(quality_step_pass(x, definition, counts), provenance)
+  passed <- quality_step_pass(x, definition, counts)
   detail <- redact_paths(quality_step_detail(x, definition, counts, passed))
-  record <- quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
-  record$provenance <- if (inherits(value, "error")) {
-    "failed"
-  } else if (identical(value, "skipped_by_selection") || identical(value, "not installed")) {
-    "not_measured"
-  } else {
-    provenance
-  }
-  record
+  quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
 }
