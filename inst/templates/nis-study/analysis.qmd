@@ -122,17 +122,13 @@ analysis_design <- if (exposure_restricted) {
 records <- analysis_design$variables
 cohort_n <- nrow(records)
 has_cohort <- cohort_n > 0L
-support <- easyNIS:::nis_study_support(records, disclosure_limit)
-trend_support <- if (has_cohort) easyNIS:::nis_study_trend_support(records, disclosure_limit)
-pooled_mask <- support$mask
-if (!nzchar(pooled_mask) && any(nzchar(trend_support$count_mask))) pooled_mask <- "Masked"
-outcome_ok <- c(
-  DIED = has_cohort && all(trend_support$mortality_ok),
-  LOS = has_cohort && all(trend_support$los_ok),
-  cost_adj = has_cohort && all(vapply(split(records, records$YEAR), function(rows) {
-    easyNIS:::nis_study_supported(rows[which(is.finite(rows$cost_adj)), ], disclosure_limit)
-  }, logical(1)))
+formulas <- lapply(outcomes$outcome, stats::reformulate, termlabels = c(exposure, covariates))
+report_variables <- unique(c("AGE", "FEMALE", "DIED", "LOS", "cost_adj", unlist(lapply(formulas, all.vars))))
+support <- easyNIS:::nis_study_report_support(
+  records, report_variables, if (comparisons_safe) exposure, disclosure_limit
 )
+pooled_mask <- support$pooled
+outcome_ok <- support$variables[intersect(c("DIED", "LOS", "cost_adj"), names(support$variables))]
 study_header <- function(table) {
   metadata <- table$table_styling$header
   grouped <- "stat_1" %in% names(table$table_body)
@@ -176,7 +172,7 @@ scientific approval.
 ## Cohort flow
 
 `r if (exposure_restricted) "The flow table shows the final reporting cohort." else "The flow follows the analysis input through the principal diagnosis flag, the cohort criterion, and the survey design’s eligibility checks."`
-Flow totals sum finite positive, unscaled discharge weights.
+Weighted flow totals sum unscaled discharge weights from valid-design records.
 
 ```{r}
 #| label: flow
@@ -218,7 +214,7 @@ if (!has_cohort) {
     )
   }
 
-  table_one <- easyNIS:::nis_study_summary_table(table_one, disclosure_limit, study_header)
+  table_one <- easyNIS:::nis_study_summary_table(table_one, support$variables, disclosure_limit, study_header)
   render_table(table_one)
 }
 ```
@@ -241,7 +237,7 @@ if (!has_cohort) {
     statistic = list(gtsummary::all_continuous() ~ "{mean} ({sd})")
   )
 
-  outcome_table <- easyNIS:::nis_study_summary_table(outcome_table, disclosure_limit, study_header)
+  outcome_table <- easyNIS:::nis_study_summary_table(outcome_table, support$variables, disclosure_limit, study_header)
   render_table(outcome_table)
 }
 ```
@@ -259,7 +255,8 @@ if (!has_cohort) {
   )
 } else {
 trend_estimates <- easyNIS:::nis_study_trend_estimates(analysis_design)
-trend <- dplyr::left_join(trend_estimates, trend_support, by = "YEAR")
+trend <- dplyr::left_join(trend_estimates, support$by_year, by = "YEAR") |>
+  dplyr::rename(mortality_ok = DIED, los_ok = LOS)
 
 trend_long <- dplyr::bind_rows(
   trend |>
@@ -296,7 +293,8 @@ render_table(easyNIS:::nis_study_trend_table(trend))
 ## Multivariable models
 
 Models use the exposure and covariates declared above. A model is shown only
-when the observed data and fitted estimates are finite and usable. A valid
+when the reporting cohort has complete model data and the fitted estimates
+are finite and usable. A valid
 model with a design warning remains visible, with that warning shown below.
 Unavailable models include the reason; the declared model specification is
 not changed to make a model fit.
@@ -306,16 +304,14 @@ not changed to make a model fit.
 model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   current <- outcomes[i, ]
   outcome <- current$outcome[[1L]]
+  formula <- formulas[[i]]
+  model_variables <- intersect(all.vars(formula), names(support$variables))
   report_supported <- !nzchar(pooled_mask) &&
-    (!has_exposure_comparison || comparisons_safe) && !isFALSE(outcome_ok[outcome])
+    (!has_exposure_comparison || comparisons_safe) && all(support$variables[model_variables])
   model_family <- switch(
     current$family[[1L]],
     quasibinomial = stats::quasibinomial(),
     gaussian = stats::gaussian()
-  )
-  formula <- stats::reformulate(
-    c(exposure, covariates),
-    response = outcome
   )
   easyNIS:::nis_study_fit_report_model(
     formula,

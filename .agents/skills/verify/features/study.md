@@ -31,6 +31,11 @@ One-year and six-year fixtures check the shared analysis cohort across Table
 1, Outcomes, Trends, models, and cohort flow. The one-year fixture includes
 three deaths among discharges with missing exposure.
 
+The `study-support` journey renders rare annual missing-mortality and
+missing-length-of-stay cells, plus an invalid-design cohort with mixed
+weight validity. Every HTML journey retains the invented input and audits
+the rendered cells against independently counted discharge and hospital support.
+
 The `study` journey renders the default scaffold with built-in example
 data. The `study-ci` journey supplies a synthetic Parquet directory and
 edits the cohort definition to include some discharges outside the principal

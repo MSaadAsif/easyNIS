@@ -12,42 +12,83 @@ nis_study_support <- function(data, threshold) {
   list(n = n, hospitals = hospitals, mask = nis_study_mask(n, hospitals, threshold))
 }
 
-nis_study_supported <- function(data, threshold) {
-  support <- nis_study_support(data, threshold)
-  support$n > 0L && !nzchar(support$mask)
+nis_study_split <- function(values) {
+  if (is.null(values)) {
+    return(list())
+  }
+  split(seq_len(vctrs::vec_size(values)), vctrs::vec_group_id(values))
 }
 
-# jarl-ignore unused_function: Called by the bundled Quarto study.
-nis_study_trend_support <- function(data, threshold) {
-  dplyr::group_by(data, !!rlang::sym("YEAR")) |>
-    dplyr::group_modify(function(rows, year) {
-      rows$YEAR <- year$YEAR[[1L]]
-      supported <- function(selected) nis_study_supported(rows[which(selected), ], threshold)
-      dplyr::tibble(
-        count_mask = nis_study_support(rows, threshold)$mask,
-        mortality_ok = supported(rows$DIED) && supported(!rows$DIED),
-        los_ok = supported(is.finite(rows$LOS))
-      )
-    }) |>
-    dplyr::ungroup()
-}
-
-nis_study_model_group_ok <- function(data, response, binary, threshold) {
-  if (!nis_study_supported(data, threshold)) {
-    return(FALSE)
-  }
-  if (!binary) {
-    return(TRUE)
-  }
-  values <- unique(response)
-  length(values) == 2L &&
+nis_study_supported <- function(data, threshold, cells = list(seq_len(nrow(data)))) {
+  length(cells) > 0L &&
     all(vapply(
-      values,
-      function(value) {
-        nis_study_supported(data[which(response == value), ], threshold)
+      cells,
+      function(i) {
+        !nzchar(nis_study_support(data[i, , drop = FALSE], threshold)$mask)
       },
       logical(1)
     ))
+}
+
+nis_study_variable_supported <- function(rows, values, threshold) {
+  if (is.logical(values) && !all(c(TRUE, FALSE) %in% values)) {
+    return(FALSE)
+  }
+  # Continuous estimates expose the measured subset and its missing complement.
+  if (is.numeric(values) && !is.factor(values)) {
+    values <- ifelse(is.finite(values), "observed", as.character(values))
+  }
+  nis_study_supported(rows, threshold, nis_study_split(values))
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_report_support <- function(data, variables, exposure, threshold) {
+  keys <- data[c("YEAR", "HOSP_NIS")]
+  yearly <- split(seq_len(nrow(data)), data$YEAR)
+  by_year <- dplyr::tibble(
+    YEAR = as.integer(names(yearly)),
+    count_mask = vapply(yearly, function(i) nis_study_support(keys[i, ], threshold)$mask, character(1))
+  )
+  arms <- if (length(exposure)) nis_study_split(data[[exposure]]) else list()
+  groups <- c(list(seq_len(nrow(data))), yearly)
+  variables <- intersect(variables, names(data))
+  supported <- stats::setNames(
+    vapply(
+      variables,
+      function(variable) {
+        value <- data[[variable]]
+        scopes <- if (identical(variable, exposure)) groups else c(groups, arms)
+        all(vapply(
+          scopes,
+          function(i) {
+            nis_study_variable_supported(keys[i, , drop = FALSE], value[i], threshold)
+          },
+          logical(1)
+        ))
+      },
+      logical(1)
+    ),
+    variables
+  )
+  pooled <- nis_study_support(keys, threshold)$mask
+  if (!nzchar(pooled) && any(nzchar(by_year$count_mask))) {
+    pooled <- "Masked"
+  }
+  # When pooled results are withheld, safe annual estimates stand on their own.
+  for (variable in c("DIED", "LOS")) {
+    by_year[[variable]] <- if (nzchar(pooled)) {
+      vapply(
+        yearly,
+        function(i) {
+          nis_study_variable_supported(keys[i, , drop = FALSE], data[[variable]][i], threshold)
+        },
+        logical(1)
+      )
+    } else {
+      rep(isTRUE(supported[[variable]]), nrow(by_year))
+    }
+  }
+  list(variables = supported, by_year = by_year, pooled = pooled)
 }
 
 nis_study_model_groupings <- function(frame, exposure) {
@@ -91,30 +132,37 @@ nis_study_complete_cases <- function(formula, data, exposure) {
   if (!all(valid)) {
     return(NULL)
   }
-  list(frame = frame, data = data[rows, , drop = FALSE], response = response)
+  list(frame = frame, data = data[rows, , drop = FALSE], response = response, rows = rows)
 }
 
 nis_study_model_disclosure <- function(formula, data, family, exposure, threshold) {
   cases <- nis_study_complete_cases(formula, data, exposure)
-  if (is.null(cases)) {
+  # Different complete-case samples would introduce competing denominators.
+  if (is.null(cases) || length(cases$rows) != nrow(data)) {
     return(FALSE)
   }
   frame <- cases$frame
-  data <- cases$data
   response <- cases$response
-  binary <- family$family %in% c("binomial", "quasibinomial")
-  supported <- function(i) {
-    nis_study_model_group_ok(data[i, , drop = FALSE], response[i], binary, threshold)
+  if (family$family %in% c("binomial", "quasibinomial")) {
+    if (length(unique(response)) != 2L) {
+      return(FALSE)
+    }
+    response <- factor(response)
   }
-  if (!supported(seq_len(nrow(data)))) {
-    return(FALSE)
-  }
-  groupings <- nis_study_model_groupings(frame, exposure)
+  groups <- c(
+    list(seq_len(nrow(frame))),
+    unlist(
+      lapply(
+        nis_study_model_groupings(frame, exposure),
+        function(fields) nis_study_split(as.data.frame(frame[fields]))
+      ),
+      recursive = FALSE
+    )
+  )
   all(vapply(
-    groupings,
-    function(fields) {
-      groups <- split(seq_len(nrow(frame)), unname(as.list(frame[fields])), drop = TRUE)
-      length(groups) > 0L && all(vapply(groups, supported, logical(1)))
+    groups,
+    function(i) {
+      nis_study_variable_supported(cases$data[i, , drop = FALSE], response[i], threshold)
     },
     logical(1)
   ))
@@ -156,7 +204,7 @@ nis_study_render_table <- function(table, html) {
 }
 
 # jarl-ignore unused_function: Called by the bundled Quarto study.
-nis_study_summary_table <- function(table, threshold, header) {
+nis_study_summary_table <- function(table, supported, threshold, header) {
   table <- nis_suppress(table, threshold = threshold)
   # Hide the remaining statistics for a variable with a protected cell.
   # Otherwise, a displayed percentage and a group header can recover the count.
@@ -164,7 +212,7 @@ nis_study_summary_table <- function(table, threshold, header) {
     stat <- grep("^stat_[0-9]+$", names(body), value = TRUE)
     masks <- c(paste0("\u2264", threshold), "<2 hospitals", "Masked")
     masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
-    related <- body$variable %in% body$variable[masked]
+    related <- body$variable %in% c(body$variable[masked], names(supported)[!supported])
     for (column in stat) {
       value <- body[[column]]
       value[related & !is.na(value) & nzchar(value) & !value %in% masks] <- "Masked"
@@ -237,12 +285,11 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
   }
   cohort <- rlang::enquo(cohort)
   principal <- rlang::enquo(principal)
-  weight_valid <- nis_is_positive_finite_expr(data, "DISCWT")
   data <- nis_sample_fields(dplyr::ungroup(data), cohort) |>
     dplyr::mutate(
       .cohort = dplyr::coalesce(.data$.nis_cohort, FALSE),
       .principal = dplyr::coalesce(!!principal, FALSE),
-      .flow_weight = dplyr::if_else(dplyr::coalesce(!!weight_valid, FALSE), as.double(DISCWT), 0),
+      .flow_weight = dplyr::if_else(.nis_valid, as.double(DISCWT), 0),
       .hospital = dbplyr::sql(paste0(
         'CASE WHEN "YEAR" > 0 AND isfinite(CAST("YEAR" AS DOUBLE)) ',
         'AND "HOSP_NIS" > 0 AND isfinite(CAST("HOSP_NIS" AS DOUBLE)) ',
@@ -254,8 +301,10 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
     .principal,
     .cohort,
     .cohort & .nis_valid,
-    !.principal & !.cohort,
-    .principal & !.cohort,
+    !.principal & !.cohort & .nis_valid,
+    .principal & !.cohort & .nis_valid,
+    !.principal & !.cohort & !.nis_valid,
+    .principal & !.cohort & !.nis_valid,
     !.principal & .cohort & .nis_valid,
     .principal & .cohort & .nis_valid,
     !.principal & .cohort & !.nis_valid,

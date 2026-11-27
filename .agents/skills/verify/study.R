@@ -1,5 +1,5 @@
 study_verification_packages <- function(journey) {
-  if (!journey %in% c("study", "study-ci", "study-small", "study-reporting")) return(character())
+  if (!journey %in% c("study", "study-ci", "study-small", "study-reporting", "study-support")) return(character())
   packages <- c("broom.helpers", "cardx", "ggplot2", "gt", "gtsummary", "knitr",
     "purrr", "rmarkdown", "survey", "xml2")
   if (journey == "study-ci") c(packages, "flextable") else packages
@@ -42,6 +42,18 @@ drive_study_small <- function(scratch, evidence) {
     fixture <- study_disclosure_fixture(directory, case, one_hospital = name == "one_hospital")
     verify_study(directory, results, "html", fixture$input,
       disclosure_case = c(case, fixture[c("years", "weights")]))
+  }
+}
+
+drive_study_support <- function(scratch, evidence) {
+  cases <- list(missing_died = "DIED", missing_los = "LOS", mixed_invalid = "DISCWT")
+  for (name in names(cases)) {
+    run <- file.path(scratch, name)
+    proof <- file.path(evidence, name)
+    stopifnot(dir.create(run), dir.create(proof))
+    case <- list(sizes = rep(144L, 2L), support_case = cases[[name]])
+    fixture <- study_disclosure_fixture(run, case, one_hospital = FALSE)
+    verify_study(run, proof, "html", fixture$input, disclosure_case = c(case, fixture["years"]))
   }
 }
 
@@ -169,6 +181,17 @@ study_disclosure_fixture <- function(scratch, case, one_hospital) {
       AGE = 41L + position %% 37L, FEMALE = position %% 3L == 0L,
       I10_DX1 = principal, I10_DX2 = ifelse(exposed, "Z515", "E119")
     )
+    if (length(case$support_case)) {
+      records$DISCWT <- 5
+      if (i == 2L) {
+        if (case$support_case == "DISCWT") {
+          records$DISCWT[1:15] <- NA_real_
+          records$NIS_STRATUM[16:18] <- 0L
+        } else {
+          records[[case$support_case]][1:3] <- NA
+        }
+      }
+    }
     weights[[i]] <- sum(records$DISCWT)
     destination <- file.path(input, sprintf("NIS_%d.parquet", years[[i]]))
     easyNIS:::nis_duckdb_write_parquet(records, destination, con)
@@ -316,6 +339,22 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     stopifnot(file.copy(analysis, evidence, overwrite = TRUE))
   }
 
+  if ("html" %in% formats) {
+    analysis <- file.path(path, "analysis.qmd")
+    definition <- readLines(analysis, encoding = "UTF-8")
+    definition <- c(definition, "", "```{r}", "#| include: false",
+      'source_rows <- nis_data |> dplyr::transmute(YEAR, HOSP_NIS, NIS_STRATUM, DISCWT,',
+      '  principal = principal_dx, cohort = !!cohort) |> dplyr::collect()',
+      'dput(list(rows = analysis_design$variables, source = source_rows, exposure = table_one$inputs$by,',
+      '  restricted = exposure_restricted, summary = lapply(list(table_one, outcome_table), function(x) x$table_body$variable),',
+      '  models = lapply(model_results[valid_models], function(x) list(formula = stats::formula(x$model),',
+      '    family = stats::family(x$model)$family)),',
+      '  chart = if (exists("trend_long")) as.data.frame(trend_long[c("YEAR", "measure")])),',
+      '  file = "support-input.R")', "```")
+    writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
+    stopifnot(file.copy(analysis, evidence, overwrite = TRUE))
+  }
+
   original <- getwd()
   on.exit(setwd(original))
   setwd(path)
@@ -323,7 +362,8 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
   for (format in formats) {
     report <- render_study(quarto, format, input, evidence)
     validate_study_report(report, format, input, expected, evidence, small_cohort)
-    if (!is.null(disclosure_case)) verify_study_disclosure(report, disclosure_case)
+    if (format == "html") verify_study_cell_support(report, evidence, disclosure_case)
+    if (!is.null(disclosure_case) && is.null(disclosure_case$support_case)) verify_study_disclosure(report, disclosure_case)
     if (!is.null(reporting_variant)) verify_study_reporting(report, reporting_variant, evidence)
   }
 }
@@ -473,8 +513,9 @@ verify_study_denominator <- function(document, variant, evidence) {
       isTRUE(all.equal(proof$chart$estimate[proof$chart$YEAR == year],
         c(mortality, los), check.attributes = FALSE)))
   }
-  stopifnot(length(xml2::xml_find_all(study_report_section(document, "multivariable-models"), ".//table")) > 0L,
-    length(proof$models) > 0L, all(unlist(proof$models) == n))
+  model_tables <- xml2::xml_find_all(study_report_section(document, "multivariable-models"), ".//table")
+  if (variant == "one-year-denominator") stopifnot(length(model_tables) > 0L, length(proof$models) > 0L)
+  stopifnot(all(unlist(proof$models) == n))
 }
 
 validate_study_flow <- function(document, expected, evidence, small_cohort) {
@@ -502,6 +543,141 @@ study_report_section <- function(document, id) {
   section <- xml2::xml_find_first(document, sprintf("//section[@id='%s']", id))
   stopifnot(!inherits(section, "xml_missing"))
   section
+}
+
+study_audit_groups <- function(values) {
+  split(seq_along(values), match(values, unique(values)))
+}
+
+study_audit_supported <- function(data) {
+  valid <- is.finite(data$HOSP_NIS) & data$HOSP_NIS > 0 & is.finite(data$YEAR) & data$YEAR > 0
+  nrow(data) >= 11L && nrow(unique(data[valid, c("YEAR", "HOSP_NIS")])) >= 2L
+}
+
+study_audit_levels <- function(data, variable) {
+  value <- data[[variable]]
+  if (is.numeric(value) && !is.factor(value)) {
+    observed <- is.finite(value)
+    value <- as.character(value)
+    value[observed] <- "observed"
+  }
+  levels <- unique(value)
+  if (is.logical(data[[variable]])) levels <- union(c(FALSE, TRUE), levels)
+  all(vapply(levels, function(level) {
+    selected <- if (is.na(level)) is.na(value) else which(value == level)
+    study_audit_supported(data[selected, ])
+  }, logical(1)))
+}
+
+verify_study_cell_support <- function(report, evidence, case) {
+  stopifnot(file.copy("support-input.R", evidence))
+  proof <- dget("support-input.R")
+  doc <- xml2::read_html(report)
+  rows <- proof$rows
+  arms <- if (length(proof$exposure)) study_audit_groups(rows[[proof$exposure]]) else list()
+  groups <- c(list(seq_len(nrow(rows))), study_audit_groups(rows$YEAR))
+  valid <- function(variable) {
+    scopes <- if (identical(variable, proof$exposure)) groups else c(groups, arms)
+    all(vapply(scopes, function(i) study_audit_levels(rows[i, ], variable), logical(1)))
+  }
+  numeric_cell <- function(x) grepl("[0-9]", x) & !trimws(x) %in% c("\u226410", "<2 hospitals")
+  check_summary <- function(id, variables) {
+    section <- study_report_section(doc, id)
+    headers <- xml2::xml_find_all(section, ".//thead//th[starts-with(@id,'stat_')]")
+    for (header in headers) {
+      group <- xml2::xml_text(xml2::xml_find_first(header, "./strong"))
+      tab_rows <- if (xml2::xml_attr(header, "id") == "stat_0") rows else {
+        rows[which(as.character(rows[[proof$exposure]]) == group), ]
+      }
+      stopifnot(study_audit_supported(tab_rows))
+    }
+    table_rows <- xml2::xml_find_all(section, ".//tbody/tr")
+    stopifnot(length(variables) == length(table_rows))
+    for (i in seq_along(variables)) {
+      cells <- xml2::xml_find_all(table_rows[[i]],
+        "./td[starts-with(@headers,'stat_') or @headers='p.value']")
+      if (any(numeric_cell(xml2::xml_text(cells)))) stopifnot(valid(variables[[i]]))
+    }
+  }
+  check_summary("table-1", proof$summary[[1L]])
+  check_summary("outcomes", proof$summary[[2L]])
+  totals <- xml2::xml_find_all(study_report_section(doc, "trends-by-year"), ".//tbody/tr")
+  pooled <- all(vapply(study_audit_groups(rows$YEAR), function(i) study_audit_supported(rows[i, ]), logical(1)))
+  trend_valid <- function(year, variable) {
+    if (pooled) valid(variable) else study_audit_levels(rows[rows$YEAR == year, ], variable)
+  }
+  for (row in totals) {
+    cell <- xml2::xml_text(xml2::xml_find_all(row, "td"))
+    if (any(numeric_cell(cell[2:3]))) stopifnot(study_audit_supported(rows[rows$YEAR == cell[[1L]], ]))
+    if (numeric_cell(cell[[4L]])) stopifnot(trend_valid(cell[[1L]], "DIED"))
+    if (numeric_cell(cell[[5L]])) stopifnot(trend_valid(cell[[1L]], "LOS"))
+  }
+  chart <- proof$chart
+  for (i in seq_len(NROW(chart))) {
+    variable <- if (chart$measure[[i]] == "In-hospital mortality") "DIED" else "LOS"
+    stopifnot(trend_valid(chart$YEAR[[i]], variable))
+  }
+  model_tables <- xml2::xml_find_all(study_report_section(doc, "multivariable-models"), ".//table")
+  if (length(model_tables)) {
+    stopifnot(length(proof$models) > 0L)
+    for (model in proof$models) {
+      stopifnot(all(vapply(all.vars(model$formula), valid, logical(1))))
+      study_audit_model(rows, model)
+    }
+  }
+  if (any(case$support_case %in% c("DIED", "LOS"))) {
+    variable <- case$support_case
+    unaffected <- if (variable == "DIED") "Mean length of stay" else "In-hospital mortality"
+    stopifnot(sum(is.na(rows[[variable]]) & rows$YEAR == max(rows$YEAR)) == 3L,
+      !valid(variable), unaffected %in% chart$measure)
+  }
+  verify_study_flow_support(doc, proof, case, numeric_cell)
+}
+
+study_audit_model <- function(rows, model) {
+  frame <- stats::model.frame(model$formula, rows, na.action = stats::na.omit)
+  stopifnot(nrow(frame) == nrow(rows))
+  response <- stats::model.response(frame)
+  if (model$family %in% c("binomial", "quasibinomial")) response <- factor(response)
+  rows$.response <- response
+  categorical <- names(frame)[vapply(frame, function(x) is.factor(x) || is.logical(x) || is.character(x),
+    logical(1))]
+  categorical <- setdiff(categorical, names(frame)[attr(attr(frame, "terms"), "response")])
+  term_factors <- attr(attr(frame, "terms"), "factors")
+  interactions <- lapply(seq_len(ncol(term_factors)), function(i) {
+    intersect(categorical, rownames(term_factors)[term_factors[, i] > 0L])
+  })
+  groups <- unique(c(as.list(categorical), Filter(length, interactions)))
+  for (fields in groups) {
+    keys <- interaction(frame[fields], drop = TRUE)
+    for (i in study_audit_groups(keys)) stopifnot(study_audit_levels(rows[i, ], ".response"))
+  }
+}
+
+verify_study_flow_support <- function(doc, proof, case, numeric_cell) {
+  source <- proof$source
+  valid <- Reduce(`&`, lapply(source[c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")],
+    function(x) is.finite(x) & x > 0))
+  flow <- xml2::xml_find_all(study_report_section(doc, "cohort-flow"), ".//tbody/tr")
+  cells <- do.call(rbind, lapply(flow, function(x) xml2::xml_text(xml2::xml_find_all(x, "td"))))
+  if (proof$restricted) {
+    if (any(numeric_cell(cells[, 2:3]))) stopifnot(study_audit_supported(proof$rows))
+    return(invisible(NULL))
+  }
+  principal <- source$principal %in% TRUE
+  cohort <- source$cohort %in% TRUE
+  atoms <- interaction(principal, cohort, valid, drop = TRUE)
+  if (any(numeric_cell(cells[, 2:3]))) {
+    # Primary masks may leave safe labels, but a protected atom closes every numeric flow total.
+    stopifnot(all(vapply(split(source, atoms), study_audit_supported, logical(1))))
+  }
+  weights <- ifelse(valid, source$DISCWT, 0)
+  expected <- c(sum(weights), sum(weights[principal]), sum(weights[cohort]), sum(weights[cohort & valid]))
+  visible <- numeric_cell(cells[, 3L])
+  stopifnot(all(cells[visible, 3L] == formatC(expected[visible], format = "f", digits = 1, big.mark = ",")))
+  if (identical(case$support_case, "DISCWT")) {
+    stopifnot(sum(!valid & is.finite(source$DISCWT) & source$DISCWT > 0) == 3L, all(visible))
+  }
 }
 
 verify_study_disclosure <- function(report, case) {
