@@ -34,6 +34,18 @@ nis_flag_slot_names <- function(data_names, slots, system, position) {
 }
 
 code_system_valid_year <- function(data) {
+  if (inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")) {
+    # DuckDB folds typeof() at bind time. Keep decimal fractions exact
+    # instead of rounding a high-precision calendar year to DOUBLE.
+    return(dbplyr::sql(paste(
+      "(CASE WHEN starts_with(typeof(\"YEAR\"), 'DECIMAL(')",
+      "THEN NOT regexp_matches(CAST(\"YEAR\" AS VARCHAR), '[.][0-9]*[1-9]')",
+      "WHEN typeof(\"YEAR\") IN ('FLOAT', 'DOUBLE')",
+      "THEN isfinite(TRY_CAST(\"YEAR\" AS DOUBLE))",
+      "AND TRY_CAST(\"YEAR\" AS DOUBLE) = floor(TRY_CAST(\"YEAR\" AS DOUBLE))",
+      "ELSE TRUE END)"
+    )))
+  }
   schema <- if (inherits(data, "tbl_sql")) {
     nis_collect(utils::head(dplyr::select(data, dplyr::all_of("YEAR")), 0L))
   } else {

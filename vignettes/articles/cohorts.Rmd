@@ -31,6 +31,11 @@ a principal-only diagnosis flag, call `nis_flag_dx()` with
 `position = "principal"`; use `"secondary"` for slots after the principal one.
 `nis_flag_pr()` supports `"any"` and `"principal"`.
 
+Supply several named definitions in one call when they share the same
+`position` and `system`. For example, use
+`nis_flag_dx(nis, heart_failure = "I50", hypertension = "I10")` to add both
+flags to the same DuckDB projection.
+
 ## Classify diagnoses and procedures with CCSR
 
 `nis_add_ccsr()` matches complete ICD-10 codes to the bundled AHRQ mappings
