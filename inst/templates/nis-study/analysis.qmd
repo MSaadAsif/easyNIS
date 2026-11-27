@@ -394,6 +394,10 @@ and [Khera et al.](https://doi.org/10.1001/jama.2017.17653).
 The receipt marks manuscript and clinical checks “Analyst review.”
 Review the finished outputs under the
 [HCUP Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.pdf).
+After rendering, stage only the files you intend to publish in a separate
+folder, then run `easyNIS::nis_scan_outputs("path/to/public-outputs", error = TRUE)`.
+Review the findings and check manually for counts that readers could
+recover from related tables, figures, or other releases.
 
 ```{r}
 #| label: checklist-receipt

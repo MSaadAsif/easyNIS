@@ -43,6 +43,7 @@ Suggests:
     broom.helpers,
     arrow,
     cardx,
+    commonmark,
     flextable,
     forcats,
     ggplot2,
@@ -58,6 +59,7 @@ Suggests:
     testthat (>= 3.1.7),
     tibble,
     withr,
+    xml2,
     zip
 VignetteBuilder: knitr
 Encoding: UTF-8
