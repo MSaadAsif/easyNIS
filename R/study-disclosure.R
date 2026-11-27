@@ -50,25 +50,7 @@ nis_study_report_support <- function(data, variables, exposure, threshold) {
   by_year$count_mask <- nis_study_mask(by_year$n, by_year$hospitals, threshold)
   arms <- if (length(exposure)) nis_study_split(data[[exposure]]) else list()
   groups <- c(list(seq_len(nrow(data))), yearly)
-  variables <- intersect(variables, names(data))
-  supported <- stats::setNames(
-    vapply(
-      variables,
-      function(variable) {
-        value <- data[[variable]]
-        scopes <- if (identical(variable, exposure)) groups else c(groups, arms)
-        all(vapply(
-          scopes,
-          function(i) {
-            nis_study_variable_supported(keys[i, , drop = FALSE], value[i], threshold)
-          },
-          logical(1)
-        ))
-      },
-      logical(1)
-    ),
-    variables
-  )
+  supported <- nis_study_variable_support(data, keys, variables, exposure, groups, arms, threshold)
   pooled <- nis_study_support(keys, threshold)$mask
   if (!nzchar(pooled) && any(nzchar(by_year$count_mask))) {
     pooled <- "Masked"
@@ -97,6 +79,28 @@ nis_study_report_support <- function(data, variables, exposure, threshold) {
     by_year = by_year,
     pooled = pooled,
     by_arm = !nzchar(pooled) && length(exposure) > 0L && isTRUE(supported[[exposure]])
+  )
+}
+
+nis_study_variable_support <- function(data, keys, variables, exposure, groups, arms, threshold) {
+  variables <- intersect(variables, names(data))
+  stats::setNames(
+    vapply(
+      variables,
+      function(variable) {
+        value <- data[[variable]]
+        scopes <- if (identical(variable, exposure)) groups else c(groups, arms)
+        all(vapply(
+          scopes,
+          function(i) {
+            nis_study_variable_supported(keys[i, , drop = FALSE], value[i], threshold)
+          },
+          logical(1)
+        ))
+      },
+      logical(1)
+    ),
+    variables
   )
 }
 
@@ -312,21 +316,7 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
         'THEN struct_pack(year_id := "YEAR", hospital_id := "HOSP_NIS") END'
       ))
     )
-  groups <- rlang::exprs(
-    TRUE,
-    .principal,
-    .cohort,
-    .cohort & .nis_valid,
-    !.principal & !.cohort & .nis_valid,
-    .principal & !.cohort & .nis_valid,
-    !.principal & !.cohort & !.nis_valid,
-    .principal & !.cohort & !.nis_valid,
-    !.principal & .cohort & .nis_valid,
-    .principal & .cohort & .nis_valid,
-    !.principal & .cohort & !.nis_valid,
-    .principal & .cohort & !.nis_valid
-  )
-  totals <- nis_study_flow_summary(data, groups)
+  totals <- nis_study_flow_totals(data)
   same_cohort <- totals[4L, 1L] == nrow(design$variables) &&
     identical(attr(design, "nis_design_input", exact = TRUE)$cohort, nis_design_cohort_text(cohort))
   mask <- nis_study_mask(totals[, 1L], totals[, 2L], threshold)
@@ -349,6 +339,24 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
     totals[primary, 3L],
     mask[primary]
   )
+}
+
+nis_study_flow_totals <- function(data) {
+  groups <- rlang::exprs(
+    TRUE,
+    .principal,
+    .cohort,
+    .cohort & .nis_valid,
+    !.principal & !.cohort & .nis_valid,
+    .principal & !.cohort & .nis_valid,
+    !.principal & !.cohort & !.nis_valid,
+    .principal & !.cohort & !.nis_valid,
+    !.principal & .cohort & .nis_valid,
+    .principal & .cohort & .nis_valid,
+    !.principal & .cohort & !.nis_valid,
+    .principal & .cohort & !.nis_valid
+  )
+  nis_study_flow_summary(data, groups)
 }
 
 nis_study_flow_display <- function(step, discharges, weights, mask) {

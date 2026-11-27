@@ -73,7 +73,7 @@ evaluate_readiness <- function(
       if (!pkgcheck_available) {
         "pkgcheck is unavailable; manual checklist alone cannot establish conformance"
       } else {
-        "Requires passing pkgcheck and the passing manual subset from a clean current commit"
+        "Requires pkgcheck to pass except the listed roadmap exceptions, and a passing manual subset, on the clean current commit"
       }
     ),
     record(

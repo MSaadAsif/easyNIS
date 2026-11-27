@@ -193,6 +193,21 @@ nis_study_methods <- function(report, is_example) {
     },
     "Discharges with missing, nonfinite, or nonpositive YEAR, HOSP_NIS, NIS_STRATUM, or DISCWT were excluded before defining the domain.",
     "Summary table headers show cohort or group N. Estimate denominators and model sample sizes are unweighted.",
+    nis_study_methods_survey(report),
+    if (!is.null(report$cost)) {
+      sprintf(
+        "Costs were estimated from %s and %s and expressed in %d US dollars using CPI-U.",
+        report$cost$charge_field,
+        report$cost$ccr_field,
+        report$cost$base_year
+      )
+    },
+    paste0("The analysis used R ", getRversion(), ", ", paste(package_names, versions, collapse = ", "), ".")
+  )
+}
+
+nis_study_methods_survey <- function(report) {
+  paste(
     if (report$design$weighted || isTRUE(report$reweighted)) {
       adjustment <- if (isTRUE(report$annualize)) {
         units <- ngettext(report$divisor, "year", "years")
@@ -214,15 +229,6 @@ nis_study_methods <- function(report, is_example) {
           if (report$domain_lonely) "enabled" else "disabled"
         )
       )
-    },
-    if (!is.null(report$cost)) {
-      sprintf(
-        "Costs were estimated from %s and %s and expressed in %d US dollars using CPI-U.",
-        report$cost$charge_field,
-        report$cost$ccr_field,
-        report$cost$base_year
-      )
-    },
-    paste0("The analysis used R ", getRversion(), ", ", paste(package_names, versions, collapse = ", "), ".")
+    }
   )
 }

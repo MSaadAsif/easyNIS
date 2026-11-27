@@ -11,8 +11,9 @@ real NIS results.
    `R CMD check --as-cran` criterion in `readiness.R`. CI runs are looked up
    by the current commit SHA; readiness still requires an `R-CMD-check` run
    with that exact head SHA, completed status, and successful conclusion.
-2. **rOpenSci packaging guide:** conform to the packaging guide. See
-   `rOpenSci packaging-guide conformance`.
+2. **rOpenSci packaging guide:** the readiness probe's pkgcheck run must pass
+   except for the [listed exceptions](#packaging-guide-exceptions), and the
+   manual subset must pass. Both receipts must be from the clean current commit.
 3. **Coverage:** test coverage is at least 90%. See `Test coverage >= 90%`.
 4. **Examples:** every exported function has runnable examples. See
    `Every export has runnable examples`.
@@ -30,6 +31,44 @@ real NIS results.
 9. **Performance.** Every workload step meets the
    [performance budgets](#performance-budgets) under both profile settings.
    Each repeat must meet all three limits and leave zero temporary files.
+
+## Packaging guide exceptions
+
+The readiness probe runs pkgcheck with `goodpractice = FALSE`. The package
+check, coverage, Jarl and Air lint, and namespace complexity have separate
+checks. Use a version of urlchecker with the `fail` argument to
+`url_check()`, as required by goodpractice 1.2.0. The packaging probe
+allows only the following findings by file and function.
+
+- **Function length.** `nis_convert_sas_encoding()` keeps the ReadStat code
+  page lookup together. `.nis_example_base_records()` keeps the full invented
+  discharge schema in one tibble. `nis_survey_aggregate()` keeps the projections,
+  centering, and grouped aggregate together so readers can trace the SQL.
+- **Unused internal functions.** `$.nis_survey` dispatches through its registered
+  S3 method. `nis_diagnosis_fields()` and `nis_open_available_years()` serve the
+  repository's excluded real-data probe. Exporting them would turn probe
+  implementation details into supported APIs.
+- **Bundled study helpers.** The generated Quarto report calls the following
+  package functions. Prior scaffolds also call these names directly. Keep the
+  workflow's cache, disclosure, and reporting logic in one implementation
+  while those reports depend on it. Exporting the helpers would commit the
+  package to report-specific interfaces.
+  - Cache: `nis_study_cache_key()`.
+  - Disclosure and display: `nis_study_report_support()`,
+    `nis_study_fit_report_model()`, `nis_study_render_table()`,
+    `nis_study_summary_table()`, `nis_study_trend_table()`,
+    `nis_study_model_table()`, and `nis_study_flow()`.
+  - Estimates and reporting: `nis_study_trend_estimates()`,
+    `nis_study_checklist()`, `nis_study_reporting()`, and `nis_study_methods()`.
+  - The template also uses `nis_open_source_paths()` to fingerprint exactly the
+    Parquet parts selected by the opener, including Hive parts. It is used by
+    other package code and produces no unused-function finding.
+
+The manual subset follows the guide's allowance for registered
+`print.*()` and `str.*()` methods. Its data-first check allows the value
+accessor `nis_attrition_cohort(flow)`, the category lookup
+`nis_ccsr_codes(categories, ...)`, the example generator `nis_example(years)`,
+and the five zero-argument `nis_vars_*()` column selectors.
 
 ## Performance budgets
 
