@@ -143,7 +143,7 @@ nis_comorbidity_lazy <- function(records, spec, slots, added) {
   nis_comorbidity_warn_poa(slots, colnames(records))
   nis_comorbidity_warn_unusable(unusable, spec$systems)
   sql <- nis_cmrb_score_sql(con, inputs, quoted_keys, spec, added)
-  scores <- dplyr::tbl(con, dbplyr::sql(sql))
+  scores <- dplyr::tbl(con, dbplyr::sql(sql), vars = c(keys, added))
   dplyr::left_join(records, scores, by = keys)
 }
 

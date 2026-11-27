@@ -218,23 +218,12 @@ nis_cmrb_lookup_sql <- function(con, map) {
   masks <- lapply(map[columns], sprintf, fmt = "%.0f")
   group <- do.call(paste, c(list(version, kind), masks, sep = ", "))
   codes <- split(code, group)
-  rows <- paste0(
-    "(",
-    names(codes),
-    ", [",
-    vapply(
-      codes,
-      function(values) {
-        paste(DBI::dbQuoteString(con, values), collapse = ", ")
-      },
-      character(1)
-    ),
-    "])"
-  )
+  packed <- unname(vapply(codes, paste, character(1), collapse = ","))
+  rows <- paste0("(", names(codes), ", ", DBI::dbQuoteString(con, packed), ")")
   paste0(
     "SELECT icdv, dx, ",
     paste(paste0(columns, "::BIGINT AS ", columns), collapse = ", "),
-    ", UNNEST(codes) AS code FROM (VALUES ",
+    ", UNNEST(STRING_SPLIT(codes, ',')) AS code FROM (VALUES ",
     paste(rows, collapse = ", "),
     ") AS dictionary(icdv, dx, ",
     paste(columns, collapse = ", "),

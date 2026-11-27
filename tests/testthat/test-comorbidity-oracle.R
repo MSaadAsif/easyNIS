@@ -88,7 +88,6 @@ test_that("Charlson methods choose the codes and weights by discharge era", {
   expect_identical(nis_comorbidity(fixture, "charlson_quan2011")$cmrb_cci, rep(2L, 4L))
 })
 test_that("AHRQ FY2027 uses its published measures, hierarchies and weights", {
-  skip_if_not_installed("medicalcoder", minimum_version = "0.10.0")
   input <- data.frame(
     I10_DX1 = "ZZZ99",
     I10_DX2 = c("C78.31", "F0670", "D6911", "D6911", "Z6818", "C7832"),
