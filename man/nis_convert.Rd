@@ -8,7 +8,8 @@ nis_convert(path, dir, encoding = NULL)
 }
 \arguments{
 \item{path}{Path to one annual NIS Stata (\code{.dta}), SAS (\code{.sas7bdat}),
-or SPSS (\code{.sav}) file with a numeric \code{YEAR} column.}
+or SPSS (\code{.sav}) file with a numeric \code{YEAR} column, or one HCUP
+fixed-width \verb{NIS_<year>_Core.ASC} file from 2012 through 2024.}
 
 \item{dir}{Existing directory in which to create \verb{NIS_<year>.parquet/}.}
 
@@ -34,6 +35,14 @@ provide the discharge quarter or the corresponding diagnosis and procedure
 version column. Later SAS and SPSS batches can require rescanning the source
 from the beginning. This keeps memory bounded but increases conversion time
 as the file grows.
+
+Native Core files use HCUP's published SAS layouts, including the 2019
+and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
+Character fields lose their right padding and blank fields become nulls.
+Use a consistent LF or CRLF line ending throughout the file.
+The 2015 native Core file contains no diagnosis or procedure slots.
+The Core converter does not join the separate 2015 diagnosis and
+procedure groups or other supplementary HCUP files.
 
 The annual directory is published after validation and is never
 overwritten. \code{\link[=nis_open]{nis_open()}} checks converted data against the HCUP annual
