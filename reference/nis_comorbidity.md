@@ -99,7 +99,7 @@ indicators](https://msaadasif.github.io/easyNIS/articles/comorbidity.html).
 discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")
 nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

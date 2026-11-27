@@ -44,7 +44,8 @@ nis_audit_dx_position(
 
   \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
   Outcome columns to summarize. By default, selects `DIED` and
-  `ELECTIVE` when present. Use `NULL` to omit rates or `all_of()` to
+  `ELECTIVE` when present. Use `NULL` to omit rates or
+  [`all_of()`](https://tidyselect.r-lib.org/reference/all_of.html) to
   select a character vector of names. Use name-based selectors on DuckDB
   queries.
 
@@ -78,7 +79,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -86,7 +87,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

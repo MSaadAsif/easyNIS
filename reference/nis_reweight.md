@@ -38,11 +38,11 @@ survey design.
 ## Weighted totals
 
 The result multiplies the discharge weights by `weights`, so
-`survey_total()` and similar totals no longer estimate national
-discharge counts. Use the result for ratios, means and model estimates,
-and report national counts from the design before reweighting. Each call
-multiplies the weights again, so call `nis_reweight()` once on the
-result of
+[`survey_total()`](http://gdfe.co/srvyr/reference/survey_total.md) and
+similar totals no longer estimate national discharge counts. Use the
+result for ratios, means and model estimates, and report national counts
+from the design before reweighting. Each call multiplies the weights
+again, so call `nis_reweight()` once on the result of
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md);
 calling it on an already reweighted design compounds the weights.
 
@@ -62,7 +62,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -70,7 +70,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

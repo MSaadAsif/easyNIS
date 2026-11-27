@@ -1,69 +1,30 @@
 # Articles
 
-### Learn the workflow
+### Get started
 
-- [Get started with
-  easyNIS](https://msaadasif.github.io/easyNIS/articles/getting-started.md):
+- [Analyze your first NIS
+  cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.md):
 
-  A ten-minute, synthetic end-to-end NIS workflow.
+### Guides
 
-- [Opening NIS
-  data](https://msaadasif.github.io/easyNIS/articles/opening-data.md):
-
-  Scan annual Parquet data and inspect columns with easyNIS.
-
-- [Defining
-  cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.md):
-
-  Build and audit diagnosis, procedure, and timing definitions.
-
-- [Survey design and
-  weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md):
-
-  Build NIS domain designs and understand weights and variance.
-
-- [Descriptives and
-  regression](https://msaadasif.github.io/easyNIS/articles/descriptives-models.md):
-
-  Summarize and model a cohort with srvyr, survey, and gtsummary.
-
-- [Hospitalization
-  outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.md):
-
-  Define mortality, length of stay, disposition, and hospital cost
-  before survey estimation.
-
-- [Trends](https://msaadasif.github.io/easyNIS/articles/trends.md):
-
-  Estimate discharge totals, rates, and means by period, and model
-  change over calendar time.
-
-- [Disclosure and
-  suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md):
-
-  Review small cells and contributing hospitals before reporting.
-
-- [Charges, costs, and
-  provenance](https://msaadasif.github.io/easyNIS/articles/costs.md):
-
-  Convert NIS charges to estimated costs and document inflation.
-
-- [Comorbidity
-  indicators](https://msaadasif.github.io/easyNIS/articles/comorbidity.md):
-
-  Add experimental Elixhauser and Charlson indicators and scores.
-
-- [Code transitions and
-  sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.md):
-
-  Audit code frequency changes and compare diagnosis positions.
-
-- [Data notes by
-  year](https://msaadasif.github.io/easyNIS/articles/year-notes.md):
-
-  Account for year-specific layouts, coding systems, and weights.
-
-- [Glossary](https://msaadasif.github.io/easyNIS/articles/glossary.md):
+- [Prepare annual NIS
+  files](https://msaadasif.github.io/easyNIS/articles/prepare-data.md):
+- [Define and save a
+  cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.md):
+- [Derive outcomes, comorbidities, and
+  costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.md):
+- [Make tables and fit survey
+  models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.md):
+- [Analyze the whole sample in
+  DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.md):
+- [Estimate trends across NIS
+  years](https://msaadasif.github.io/easyNIS/articles/trends.md):
+- [Check disclosure before sharing
+  results](https://msaadasif.github.io/easyNIS/articles/disclosure.md):
+- [Start a Quarto
+  study](https://msaadasif.github.io/easyNIS/articles/study-template.md):
+- [Port a discharge analysis to
+  easyNIS](https://msaadasif.github.io/easyNIS/articles/porting.md):
 
 ### Concepts
 
@@ -73,16 +34,4 @@
   works](https://msaadasif.github.io/easyNIS/articles/nis-design.md):
 - [Years and coding
   eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.md):
-
-### More about easyNIS
-
-- [Background: Why
-  easyNIS](https://msaadasif.github.io/easyNIS/articles/why-easynis.md):
-
-- [Survey design validation
-  protocol](https://msaadasif.github.io/easyNIS/articles/design-validation.md):
-
-  Cases and reference calculations used to validate nis_design().
-
-- [Porting an existing NIS study to
-  easyNIS](https://msaadasif.github.io/easyNIS/articles/porting.md):
+- [Glossary](https://msaadasif.github.io/easyNIS/articles/glossary.md):

@@ -9,11 +9,9 @@ WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.o
 [![Lifecycle:
 experimental](https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
-**A tidy workflow for opening, defining cohorts in, and analyzing HCUP
-National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet
-files, flags codes, prepares survey designs, and helps review outputs.
-Methods and some year-specific support are experimental; consult the
-articles and official HCUP documentation before analysis.
+easyNIS opens annual HCUP National Inpatient Sample (NIS) files and
+helps you define discharge cohorts. Use it to estimate national totals,
+fit survey-weighted models, and review results for disclosure.
 
 ## Install
 
@@ -22,89 +20,44 @@ articles and official HCUP documentation before analysis.
 pak::pak("MSaadAsif/easyNIS")
 ```
 
-This installs the development version from GitHub.
+## Estimate a cohort total
 
-## Quick start
-
-This example runs entirely on invented
-[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-data.
+This example uses invented data.
 
 ``` r
 
 library(easyNIS)
-nis <- nis_open(nis_example(years = 2019:2020))
-nis <- nis |> nis_flag_dx(heart_failure = "I50")
-design <- nis_design(nis, heart_failure & AGE >= 18,
-                     keep = c(AGE, FEMALE, DIED, LOS), annualize = TRUE)
-srvyr::summarise(design, discharges = srvyr::survey_total(),
-                 mean_age = srvyr::survey_mean(AGE))
+library(dplyr)
+library(srvyr)
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+design <- nis_design(nis, cohort = AGE >= 18 & heart_failure, keep = LOS)
+filtered <- nis_design(filter(nis, AGE >= 18, heart_failure), cohort = TRUE, keep = LOS)
+bind_rows(cohort = summarise(design, discharges = survey_total()),
+          prefiltered = summarise(filtered, discharges = survey_total()), .id = "design")
 ```
 
-These results demonstrate the workflow and are not NIS population
-estimates.
+Both designs estimate the same weighted total. Their standard errors
+differ. Pass eligibility to `cohort` to account for every sampled
+hospital. [See the two calculations side by
+side](https://msaadasif.github.io/easyNIS/articles/how-easynis-works.html#define-the-domain-after-identifying-the-sample).
 
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-reads Parquet with DuckDB and returns a lazy dbplyr table. Use
-[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
-and
-[`dplyr::select()`](https://dplyr.tidyverse.org/reference/select.html)
-before
-[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
-to limit the data transferred into R.
+## Using real NIS files
 
-## Using real NIS data
+Unpack each annual Core file and convert it with
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.html).
+Open the Parquet directory with
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
+Keep the files in your private workspace. The [HCUP Data Use
+Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) prohibits
+publishing cells based on 1 through 10 discharges.
 
-easyNIS does not bundle or download NIS data. HCUP distributes
-fixed-width ASCII files with SAS, Stata, and SPSS load programs; see the
-[Data Use Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
-and [Checklist for Working with the
-NIS](https://hcup-us.ahrq.gov/db/nation/nis/nischecklist.jsp).
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-accepts a directory containing `NIS_YYYY.parquet` files or `YEAR=YYYY`
-subdirectories; convert HCUP files to Parquet first. The HCUP Nationwide
-Data Use Agreement advises avoiding publication of values of 1–10 in
-text and tables. The checklist says at least two hospitals must
-contribute to each cell.
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-masks counts at or below `threshold` (10 by default), applies
-complementary suppression by default for data frames, and, when given
-hospital counts from
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md),
-masks cells from fewer than two hospitals. Try with invented
-[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-data before using licensed files.
-
-## Articles
-
-- [Get
-  started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
-- [Opening NIS
-  data](https://msaadasif.github.io/easyNIS/articles/opening-data.html)
-- [Defining
-  cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html)
-- [Survey design and
-  weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html)
-  · [Survey design
-  validation](https://msaadasif.github.io/easyNIS/articles/design-validation.html)
-- [Descriptives and
-  regression](https://msaadasif.github.io/easyNIS/articles/descriptives-models.html)
-- [Disclosure and
-  suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html)
-- [Costs](https://msaadasif.github.io/easyNIS/articles/costs.html)
-- [Comorbidity](https://msaadasif.github.io/easyNIS/articles/comorbidity.html)
-- [Code transitions and
-  sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html)
-- [Data notes by
-  year](https://msaadasif.github.io/easyNIS/articles/year-notes.html)
-- [Glossary](https://msaadasif.github.io/easyNIS/articles/glossary.html)
-- [Porting a
-  study](https://msaadasif.github.io/easyNIS/articles/porting.html) ·
-  [Background](https://msaadasif.github.io/easyNIS/articles/why-easynis.html)
-
-Browse the [function
-reference](https://msaadasif.github.io/easyNIS/reference/index.html) for
-all exported topics.
+[Get
+started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
+·
+[Guides](https://msaadasif.github.io/easyNIS/articles/index.html#guides)
+·
+[Concepts](https://msaadasif.github.io/easyNIS/articles/index.html#concepts)
 
 ## Citation
 

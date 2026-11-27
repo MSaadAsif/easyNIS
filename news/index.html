@@ -21,29 +21,24 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
-    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
-    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
-    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
-    <li><a class="dropdown-item" href="../articles/outcomes.html">Hospitalization outcomes</a></li>
-    <li><a class="dropdown-item" href="../articles/trends.html">Trends</a></li>
-    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
-    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
-    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
-    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
-    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
-    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Analyze your first NIS cohort</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/prepare-data.html">Prepare annual NIS files</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Define and save a cohort</a></li>
+    <li><a class="dropdown-item" href="../articles/outcomes-and-costs.html">Derive outcomes, comorbidities, and costs</a></li>
+    <li><a class="dropdown-item" href="../articles/tables-and-models.html">Make tables and fit survey models</a></li>
+    <li><a class="dropdown-item" href="../articles/whole-sample.html">Analyze the whole sample in DuckDB</a></li>
+    <li><a class="dropdown-item" href="../articles/trends.html">Estimate trends across NIS years</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Check disclosure before sharing results</a></li>
+    <li><a class="dropdown-item" href="../articles/study-template.html">Start a Quarto study</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Port a discharge analysis to easyNIS</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
     <li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
     <li><a class="dropdown-item" href="../articles/nis-design.html">How the NIS survey design works</a></li>
     <li><a class="dropdown-item" href="../articles/years-and-eras.html">Years and coding eras</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
@@ -177,7 +172,7 @@
 <div class="section level3">
 <h3 id="disclosure-control-0-2-0">Disclosure control<a class="anchor" aria-label="anchor" href="#disclosure-control-0-2-0"></a></h3>
 <ul><li>
-<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> also masks the overall (<code>add_overall()</code>) cell in any row where a by-group cell is masked. It marks that secondary mask <code>Masked</code>, unless the overall cell is itself at or below the threshold.</li>
+<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> also masks the overall (<code><a href="https://www.danieldsjoberg.com/gtsummary/reference/add_overall.html" class="external-link">add_overall()</a></code>) cell in any row where a by-group cell is masked. It marks that secondary mask <code>Masked</code>, unless the overall cell is itself at or below the threshold.</li>
 <li>For <code>continuous2</code> statistic rows, suppression uses the displayed output column’s non-missing count and errors when that count is missing, ambiguous, or non-finite. Other derivable cells, such as column totals across levels, are not masked; review tables before sharing.</li>
 </ul></div>
 <div class="section level3">

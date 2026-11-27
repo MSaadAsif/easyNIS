@@ -4,14 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Defining cohorts • easyNIS</title>
+<title>Define and save a cohort • easyNIS</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Defining cohorts">
-<meta name="description" content="Build and audit diagnosis, procedure, and timing definitions.">
-<meta property="og:description" content="Build and audit diagnosis, procedure, and timing definitions.">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Define and save a cohort">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -37,29 +35,24 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
-    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
-    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
-    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
-    <li><a class="dropdown-item" href="../articles/outcomes.html">Hospitalization outcomes</a></li>
-    <li><a class="dropdown-item" href="../articles/trends.html">Trends</a></li>
-    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
-    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
-    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
-    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
-    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
-    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Analyze your first NIS cohort</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/prepare-data.html">Prepare annual NIS files</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Define and save a cohort</a></li>
+    <li><a class="dropdown-item" href="../articles/outcomes-and-costs.html">Derive outcomes, comorbidities, and costs</a></li>
+    <li><a class="dropdown-item" href="../articles/tables-and-models.html">Make tables and fit survey models</a></li>
+    <li><a class="dropdown-item" href="../articles/whole-sample.html">Analyze the whole sample in DuckDB</a></li>
+    <li><a class="dropdown-item" href="../articles/trends.html">Estimate trends across NIS years</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Check disclosure before sharing results</a></li>
+    <li><a class="dropdown-item" href="../articles/study-template.html">Start a Quarto study</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Port a discharge analysis to easyNIS</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
     <li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
     <li><a class="dropdown-item" href="../articles/nis-design.html">How the NIS survey design works</a></li>
     <li><a class="dropdown-item" href="../articles/years-and-eras.html">Years and coding eras</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +72,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Defining cohorts</h1>
+      <h1>Define and save a cohort</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/MSaadAsif/easyNIS/blob/main/vignettes/articles/cohorts.Rmd" class="external-link"><code>vignettes/articles/cohorts.Rmd</code></a></small>
@@ -88,117 +81,23 @@
 
     
     
-<div class="section level2">
-<h2 id="flag-diagnoses-and-procedures">Flag diagnoses and procedures<a class="anchor" aria-label="anchor" href="#flag-diagnoses-and-procedures"></a>
-</h2>
-<p>The analyst supplies literal code prefixes. Each slot is tested
-separately; punctuation, spaces, and case in the supplied prefixes are
-normalized.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>principal_hf <span class="op">=</span> <span class="st">"I50"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>ablation <span class="op">=</span> <span class="st">"02L"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="va">principal_hf</span>, <span class="va">ablation</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 4</span></span></span>
-<span><span class="co">#&gt;   heart_failure principal_hf ablation     n</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> FALSE         FALSE        FALSE       36</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> TRUE          TRUE         FALSE      108</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> FALSE         FALSE        TRUE        48</span></span></code></pre></div>
-<p>The table shows synthetic discharge counts for each flag combination.
-To make a principal-only diagnosis flag, call <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code>
-with <code>position = "principal"</code>; use <code>"secondary"</code>
-for slots after the principal one. <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> supports
-<code>"any"</code> and <code>"principal"</code>.</p>
-<p>Supply several named definitions in one call when they share the same
-<code>position</code> and <code>system</code>. For example, use
-<code>nis_flag_dx(nis, heart_failure = "I50", hypertension = "I10")</code>
-to add both flags to the same DuckDB projection.</p>
-</div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MSaadAsif/easyNIS" class="external-link">easyNIS</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/knitr/man/opts_chunk.html" class="external-link">opts_chunk</a></span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>collapse <span class="op">=</span> <span class="cn">TRUE</span>, comment <span class="op">=</span> <span class="st">"#&gt;"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="classify-diagnoses-and-procedures-with-ccsr">Classify diagnoses and procedures with CCSR<a class="anchor" aria-label="anchor" href="#classify-diagnoses-and-procedures-with-ccsr"></a>
+<h2 id="match-diagnosis-and-procedure-codes">Match diagnosis and procedure codes<a class="anchor" aria-label="anchor" href="#match-diagnosis-and-procedure-codes"></a>
 </h2>
-<p><code><a href="../reference/nis_add_ccsr.html">nis_add_ccsr()</a></code> matches complete ICD-10 codes to the
-bundled AHRQ mappings in DuckDB. An any-slot search returns a list of
-distinct categories for each discharge. Supply <code>categories</code>
-to keep only the categories relevant to the study. For a mutually
-exclusive grouping by principal diagnosis, use
-<code>position = "default"</code> to return the inpatient default
-category.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_add_ccsr.html">nis_add_ccsr</a></span><span class="op">(</span>categories <span class="op">=</span> <span class="st">"CIR019"</span>, name <span class="op">=</span> <span class="st">"hf_categories"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_add_ccsr.html">nis_add_ccsr</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"default"</span>, name <span class="op">=</span> <span class="st">"principal_ccsr"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">hf_categories</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0L</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">principal_ccsr</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
-<span><span class="co">#&gt;   principal_ccsr     n</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CIR019           108</span></span></code></pre></div>
-<p>Use <code>type = "pr"</code> for procedures. The default release
-selection covers Q4 2015 and calendar years 2016–2024 with the bundled
-v2025.1. ICD-9 and years outside the bundled coverage yield missing
-results. Pin <code>version = "2025.1"</code> to use the same definitions
-across years and to include Q1–Q3 2025 if <code>DQTR</code> is present.
-Report the CCSR version in the study methods. <a href="https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccsr_archive.jsp" class="external-link">Agency
-for Healthcare Research and Quality, Healthcare Cost and Utilization
-Project. Clinical Classifications Software Refined (CCSR), v2025.1,
-November 2024.</a></p>
-</div>
-<div class="section level2">
-<h2 id="add-procedure-timing">Add procedure timing<a class="anchor" aria-label="anchor" href="#add-procedure-timing"></a>
-</h2>
-<p>Procedure timing compares matching procedure slots with the
-corresponding <code>PRDAY</code> fields. This small invented data frame
-makes the slot relationship visible.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  I10_PR1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"02UG0JZ"</span>, <span class="st">"02UG0JZ"</span>, <span class="st">"02UG0JZ"</span><span class="op">)</span>,</span>
-<span>  I10_PR2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0JH604Z"</span>, <span class="st">"0JH604Z"</span>, <span class="st">"0JH604Z"</span><span class="op">)</span>,</span>
-<span>  PRDAY1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0L</span>, <span class="fl">2L</span>, <span class="fl">0L</span><span class="op">)</span>, PRDAY2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">1L</span>, <span class="cn">NA_integer_</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing</a></span><span class="op">(</span><span class="va">toy</span>, <span class="st">"02UG0"</span>, <span class="st">"0JH60"</span>, relation <span class="op">=</span> <span class="st">"after"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   I10_PR1 I10_PR2 PRDAY1 PRDAY2 outcome_post_index</span></span>
-<span><span class="co">#&gt; 1 02UG0JZ 0JH604Z      0      1               TRUE</span></span>
-<span><span class="co">#&gt; 2 02UG0JZ 0JH604Z      2      1              FALSE</span></span>
-<span><span class="co">#&gt; 3 02UG0JZ 0JH604Z      0     NA              FALSE</span></span></code></pre></div>
-<p>The flag is true when an outcome procedure is documented after the
-earliest index procedure. Missing or sentinel days need an explicit
-<code>missing_day</code> policy. <code><a href="../reference/nis_audit_prday.html">nis_audit_prday()</a></code>
-summarizes how often matching slots have a known day.</p>
-</div>
-<div class="section level2">
-<h2 id="count-cohort-steps">Count cohort steps<a class="anchor" aria-label="anchor" href="#count-cohort-steps"></a>
-</h2>
-<p>Define the eligibility rules once in <code><a href="../reference/nis_attrition.html">nis_attrition()</a></code>.
-With <code>.design = TRUE</code>, the baseline includes discharges with
-valid survey design fields. Missing criterion values exclude discharges
-at that step. Inject the combined rule with
-<code>!!nis_attrition_cohort(flow)</code> to use the same eligibility
-criteria in <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span></span>
+<span>    heart_failure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>prefix <span class="op">=</span> <span class="st">"I50"</span>, regex <span class="op">=</span> <span class="st">"^I50[0-9]+$"</span>, exclude <span class="op">=</span> <span class="st">"I509"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>principal_hf <span class="op">=</span> <span class="st">"I50"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>pci <span class="op">=</span> <span class="st">"0270"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -206,52 +105,41 @@ criteria in <code><a href="../reference/nis_design.html">nis_design()</a></code>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_attrition.html">nis_attrition</a></span><span class="op">(</span></span>
-<span>  <span class="va">nis</span>, adults <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, heart_failure <span class="op">=</span> <span class="va">heart_failure</span>, .design <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">flow</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 7</span></span></span>
-<span><span class="co">#&gt;    step criterion               n_unweighted n_dropped_unweighted n_weighted</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     0 Valid design discharges           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 adults                            96                    0      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     2 heart_failure                     54                   42       62.4</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: n_dropped_weighted &lt;dbl&gt;, pct_retained &lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, cohort <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="../reference/nis_attrition.html">nis_attrition_cohort</a></span><span class="op">(</span><span class="va">flow</span><span class="op">)</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
-<span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/unweighted.html" class="external-link">unweighted</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 1</span></span></span>
-<span><span class="co">#&gt;   discharges</span></span>
-<span><span class="co">#&gt;        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>         54</span></span></code></pre></div>
-<p>Pass the same input to both calls so the last unweighted attrition
-count is the survey domain denominator. The design retains the sampling
-structure of hospital-years with zero eligible discharges. Leave
-<code>.design</code> at its default when the attrition table should
-start with every discharge in the input. For alternate diagnosis
-positions and changes over time, see <a href="code-transitions.html">Code transitions and sensitivity</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="record-eligibility-across-the-2015-transition">Record eligibility across the 2015 transition<a class="anchor" aria-label="anchor" href="#record-eligibility-across-the-2015-transition"></a>
-</h2>
-<p>Supply named code criteria in <code>.codes</code> to use the same
-definitions for eligibility and the transition audit. The code criteria
-run in list order after the logical criteria in <code>...</code>. Here
-the first code step finds a match in any diagnosis slot and the second
-requires a principal match. These definitions illustrate the workflow on
-invented data.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="va">principal_hf</span>, <span class="va">pci</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
+<span><span class="co">#&gt;   heart_failure principal_hf pci       n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> TRUE          TRUE         TRUE     54</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> FALSE         FALSE        FALSE    42</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> TRUE          TRUE         FALSE    54</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> FALSE         FALSE        TRUE     42</span></span></code></pre></div>
+<p>The default position checks all slots. Use
+<code>position = "principal"</code> for slot 1. A prefix or full-code
+regular expression can set a flag. Exclusions apply to individual
+matching codes, so another slot can still set the flag.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>icd9 <span class="op">=</span> <span class="st">"428"</span>, icd10 <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span>, system <span class="op">=</span> <span class="st">"both"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">DQTR</span>, <span class="va">hf</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -262,93 +150,120 @@ invented data.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
 <span><span class="co">#&gt;   slots.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">prefixes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>icd9 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"123"</span>, <span class="st">"12345"</span>, <span class="st">"V0001"</span><span class="op">)</span>, icd10 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"I50"</span>, <span class="st">"Z515"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_attrition.html">nis_attrition</a></span><span class="op">(</span></span>
-<span>  <span class="va">nis</span>,</span>
-<span>  adults <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>,</span>
-<span>  .codes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    matching_dx <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"dx"</span>, system <span class="op">=</span> <span class="st">"both"</span>, position <span class="op">=</span> <span class="st">"any"</span>, codes <span class="op">=</span> <span class="va">prefixes</span><span class="op">)</span>,</span>
-<span>    principal_dx <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"dx"</span>, system <span class="op">=</span> <span class="st">"both"</span>, position <span class="op">=</span> <span class="st">"principal"</span>, codes <span class="op">=</span> <span class="va">prefixes</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  .design <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 3</span></span></span>
+<span><span class="co">#&gt;    DQTR hf        n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     2 FALSE    24</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 FALSE    24</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     4 TRUE     18</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     3 FALSE    24</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     4 FALSE     6</span></span></code></pre></div>
+<p>Supply separate definitions for each system when the source contains
+both slot sets. Check how the code sets behave around the transition. <a href="years-and-eras.html">Years and coding eras</a></p>
+</div>
+<div class="section level2">
+<h2 id="use-ccsr-categories-or-procedure-days">Use CCSR categories or procedure days<a class="anchor" aria-label="anchor" href="#use-ccsr-categories-or-procedure-days"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_add_ccsr.html">nis_add_ccsr</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"default"</span>, version <span class="op">=</span> <span class="st">"2025.1"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">ccsr</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
+<span><span class="co">#&gt;   ccsr       n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CIR019   108</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> RSP002    84</span></span>
+<span></span>
+<span><span class="va">timing</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>PRDAY1 <span class="op">=</span> <span class="fl">0L</span>, PRDAY2 <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nis_audit_prday.html">nis_audit_prday</a></span><span class="op">(</span><span class="va">timing</span>, pr <span class="op">=</span> <span class="st">"0270"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 50 × 8</span></span></span>
+<span><span class="co">#&gt;     YEAR  slot matched_slots known_day missing_day sentinel_invalid_day</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>  <span style="text-decoration: underline;">2</span>019     1            48        48           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>  <span style="text-decoration: underline;">2</span>019     2             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>  <span style="text-decoration: underline;">2</span>019     3             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>  <span style="text-decoration: underline;">2</span>019     4             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>  <span style="text-decoration: underline;">2</span>019     5             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>  <span style="text-decoration: underline;">2</span>019     6             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>  <span style="text-decoration: underline;">2</span>019     7             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>  <span style="text-decoration: underline;">2</span>019     8             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>  <span style="text-decoration: underline;">2</span>019     9             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>  <span style="text-decoration: underline;">2</span>019    10             0         0           0                    0</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 40 more rows</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: absent_prday_column &lt;int&gt;, pct_known &lt;dbl&gt;</span></span></span>
+<span><span class="va">timing</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_pr_timing.html">nis_flag_pr_timing</a></span><span class="op">(</span></span>
+<span>    index_pr <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>prefix <span class="op">=</span> <span class="st">"0270"</span>, exclude <span class="op">=</span> <span class="st">"02703DZ"</span><span class="op">)</span>,</span>
+<span>    outcome_pr <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>regex <span class="op">=</span> <span class="st">"02L73.*"</span><span class="op">)</span>,</span>
+<span>    relation <span class="op">=</span> <span class="st">"after"</span>, missing_day <span class="op">=</span> <span class="st">"indeterminate"</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">outcome_post_index</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
+<span><span class="co">#&gt;   outcome_post_index     n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> FALSE                168</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> TRUE                  24</span></span></code></pre></div>
+<p>CCSR groups ICD-10 codes. The bundled v2025.1 mappings can keep the
+same definitions across study years. <code>position = "default"</code>
+returns one inpatient category for the principal diagnosis. The example
+supplies invented procedure days. Timing uses the earliest known index
+day and accepts the same prefixes, full-code regular expressions, and
+exact exclusions as <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code>. For
+<code>system = "both"</code>, supply named <code>icd9</code> and
+<code>icd10</code> definitions for each procedure. Timing compares slots
+within the same code system. Audit procedure-day availability before
+interpreting an order.</p>
+</div>
+<div class="section level2">
+<h2 id="count-eligibility-steps-and-save-the-cohort">Count eligibility steps and save the cohort<a class="anchor" aria-label="anchor" href="#count-eligibility-steps-and-save-the-cohort"></a>
+</h2>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">flow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_attrition.html">nis_attrition</a></span><span class="op">(</span></span>
+<span>  <span class="va">nis</span>, adult <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, hf <span class="op">=</span> <span class="va">heart_failure</span>, by_year <span class="op">=</span> <span class="cn">TRUE</span>, .design <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">flow</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 7</span></span></span>
-<span><span class="co">#&gt;    step criterion               n_unweighted n_dropped_unweighted n_weighted</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     0 Valid design discharges           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     1 adults                            96                    0      114. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     2 matching_dx                       91                    5      108. </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     3 principal_dx                      54                   37       62.4</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
+<span><span class="co">#&gt;    YEAR  step criterion             n_unweighted n_dropped_unweighted n_weighted</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>020     0 Valid design dischar…           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>020     1 adult                           96                    0      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020     2 hf                              54                   42       62.4</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>019     0 Valid design dischar…           96                   <span style="color: #BB0000;">NA</span>      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>  <span style="text-decoration: underline;">2</span>019     1 adult                           96                    0      114. </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>  <span style="text-decoration: underline;">2</span>019     2 hf                              54                   42       62.4</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: n_dropped_weighted &lt;dbl&gt;, pct_retained &lt;dbl&gt;</span></span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">flow</span>, <span class="st">"nis_criteria"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
-<span><span class="co">#&gt;   criterion    type  position  system codes           </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;list&gt;</span>          </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> adults       <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>     <span style="color: #949494;">&lt;NULL&gt;</span>          </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> matching_dx  dx    any       both   <span style="color: #949494;">&lt;named list [2]&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> principal_dx dx    principal both   <span style="color: #949494;">&lt;named list [2]&gt;</span></span></span>
 <span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, cohort <span class="op">=</span> <span class="op">!</span><span class="op">!</span><span class="fu"><a href="../reference/nis_attrition.html">nis_attrition_cohort</a></span><span class="op">(</span><span class="va">flow</span><span class="op">)</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">LOS</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">LOS</span> <span class="op">~</span> <span class="va">AGE</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
-<span><span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/nobs.html" class="external-link">nobs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 54</span></span></code></pre></div>
-<p>The criteria table records the system and slot rule for Methods. Here
-the last attrition count equals the number of observations in the model
-because <code>AGE</code> and <code>LOS</code> are complete among
-eligible discharges. See the <a href="code-transitions.html#reuse-cohort-criteria">quarterly audit of
-these criteria</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="save-a-cohort-for-another-session">Save a cohort for another session<a class="anchor" aria-label="anchor" href="#save-a-cohort-for-another-session"></a>
-</h2>
-<p>Pass the full lazy sample and the eligibility rule to
-<code><a href="../reference/nis_write_cohort.html">nis_write_cohort()</a></code>. Keep the columns you expect to use in
-later analyses. The writer creates a new directory with yearly Parquet
-parts and saves the eligibility expression, source years, and easyNIS
-version in each part’s metadata.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
+<span><span class="va">eligible</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_attrition.html">nis_attrition_cohort</a></span><span class="op">(</span><span class="va">flow</span><span class="op">)</span></span>
+<span><span class="va">export</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>stayDays <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span></span>
+<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_write_cohort.html">nis_write_cohort</a></span><span class="op">(</span><span class="va">export</span>, <span class="op">!</span><span class="op">!</span><span class="va">eligible</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">stayDays</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>, keep <span class="op">=</span> <span class="va">stayDays</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_write_cohort.html">nis_write_cohort</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span> <span class="op">&amp;</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">50</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>                         keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">LOS</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span></span>
-<span><span class="co"># In a later session</span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">LOS</span><span class="op">)</span>, annualize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpaRTyzo/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpkxf5IU/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -356,43 +271,17 @@ version in each part’s metadata.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
-<span><span class="va">design</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">65</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
-<span><span class="co">#&gt;   discharges discharges_se</span></span>
-<span><span class="co">#&gt;        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>       25.2          3.57</span></span></code></pre></div>
-<p>The saved cohort carries one placeholder per sampled hospital-year
-with no eligible discharge. This preserves the survey variance
-structure, including whole strata and years where the cohort is empty.
-Annualization still uses all years with valid design records. Keep the
-original design run if you need its invalid-design exclusion counts or
-full-sample quarter coverage.</p>
-<p>Apply additional patient filters to the survey design after
-reopening. When inspecting raw Parquet rows, use
-<code>dplyr::filter(.in_cohort)</code> before counting discharges. To
-re-save a cohort with fewer columns, pass its reopened query to
-<code><a href="../reference/nis_write_cohort.html">nis_write_cohort()</a></code> and omit <code>cohort</code>. To change
-the eligibility rule, return to the source sample.</p>
-</div>
-<div class="section level2">
-<h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
-</h2>
-<blockquote>
-<p><strong>Common pitfalls</strong></p>
-<ul>
-<li>A prefix is not a validated clinical code set. Define, document, and
-review it for the study question.</li>
-<li>A cross-year definition may span different code systems. Do not
-assume code counts are comparable across the 2015 transition.</li>
-<li>Unknown procedure days are not equivalent to day zero; choose and
-report a missing-day policy.</li>
-</ul>
-</blockquote>
-<p>Reference pages: <a href="../reference/nis_flag_dx.html"><code>nis_flag_dx()</code></a>, <a href="../reference/nis_flag_pr.html"><code>nis_flag_pr()</code></a>, <a href="../reference/nis_flag_pr_timing.html"><code>nis_flag_pr_timing()</code></a>,
-<a href="../reference/nis_attrition.html"><code>nis_attrition()</code></a>,
-<a href="../reference/nis_audit_prday.html"><code>nis_audit_prday()</code></a>.</p>
+<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, total <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span>, mean_stay <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">stayDays</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 4</span></span></span>
+<span><span class="co">#&gt;   total total_se mean_stay mean_stay_se</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  125.     17.3      5.66        0.229</span></span></code></pre></div>
+<p>The flow counts remaining discharges after each criterion. The saved
+Parquet cohort retains the hospital structure used for variance. Open it
+without supplying a new <code>cohort</code> to
+<code><a href="../reference/nis_design.html">nis_design()</a></code>. Derived names such as <code>stayDays</code>
+keep their spelling when you reopen the saved cohort. Keep the code that
+defined your flags with the study.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

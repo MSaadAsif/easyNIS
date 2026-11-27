@@ -507,9 +507,11 @@
 ### Disclosure control
 
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-  also masks the overall (`add_overall()`) cell in any row where a
-  by-group cell is masked. It marks that secondary mask `Masked`, unless
-  the overall cell is itself at or below the threshold.
+  also masks the overall
+  ([`add_overall()`](https://www.danieldsjoberg.com/gtsummary/reference/add_overall.html))
+  cell in any row where a by-group cell is masked. It marks that
+  secondary mask `Masked`, unless the overall cell is itself at or below
+  the threshold.
 - For `continuous2` statistic rows, suppression uses the displayed
   output column’s non-missing count and errors when that count is
   missing, ambiguous, or non-finite. Other derivable cells, such as

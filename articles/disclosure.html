@@ -4,14 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Disclosure and suppression • easyNIS</title>
+<title>Check disclosure before sharing results • easyNIS</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Disclosure and suppression">
-<meta name="description" content="Review small cells and contributing hospitals before reporting.">
-<meta property="og:description" content="Review small cells and contributing hospitals before reporting.">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Check disclosure before sharing results">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -37,29 +35,24 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Get started with easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/opening-data.html">Opening NIS data</a></li>
-    <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
-    <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
-    <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
-    <li><a class="dropdown-item" href="../articles/outcomes.html">Hospitalization outcomes</a></li>
-    <li><a class="dropdown-item" href="../articles/trends.html">Trends</a></li>
-    <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
-    <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
-    <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
-    <li><a class="dropdown-item" href="../articles/code-transitions.html">Code transitions and sensitivity</a></li>
-    <li><a class="dropdown-item" href="../articles/year-notes.html">Data notes by year</a></li>
-    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
+    <li><a class="dropdown-item" href="../articles/getting-started.html">Analyze your first NIS cohort</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
+    <li><a class="dropdown-item" href="../articles/prepare-data.html">Prepare annual NIS files</a></li>
+    <li><a class="dropdown-item" href="../articles/cohorts.html">Define and save a cohort</a></li>
+    <li><a class="dropdown-item" href="../articles/outcomes-and-costs.html">Derive outcomes, comorbidities, and costs</a></li>
+    <li><a class="dropdown-item" href="../articles/tables-and-models.html">Make tables and fit survey models</a></li>
+    <li><a class="dropdown-item" href="../articles/whole-sample.html">Analyze the whole sample in DuckDB</a></li>
+    <li><a class="dropdown-item" href="../articles/trends.html">Estimate trends across NIS years</a></li>
+    <li><a class="dropdown-item" href="../articles/disclosure.html">Check disclosure before sharing results</a></li>
+    <li><a class="dropdown-item" href="../articles/study-template.html">Start a Quarto study</a></li>
+    <li><a class="dropdown-item" href="../articles/porting.html">Port a discharge analysis to easyNIS</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
     <li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
     <li><a class="dropdown-item" href="../articles/nis-design.html">How the NIS survey design works</a></li>
     <li><a class="dropdown-item" href="../articles/years-and-eras.html">Years and coding eras</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/why-easynis.html">Background: Why easyNIS</a></li>
-    <li><a class="dropdown-item" href="../articles/design-validation.html">Survey design validation protocol</a></li>
-    <li><a class="dropdown-item" href="../articles/porting.html">Porting an existing NIS study to easyNIS</a></li>
+    <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -79,7 +72,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Disclosure and suppression</h1>
+      <h1>Check disclosure before sharing results</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/MSaadAsif/easyNIS/blob/main/vignettes/articles/disclosure.Rmd" class="external-link"><code>vignettes/articles/disclosure.Rmd</code></a></small>
@@ -88,85 +81,20 @@
 
     
     
-<p>HCUP’s reporting rules prohibit reporting cells with 10 or fewer
-discharges and require that reported estimates represent at least two
-hospitals. Follow the terms of the applicable Data Use Agreement and
-institutional review. Suppression is a review aid, not a guarantee
-against every disclosure path.</p>
-<div class="section level2">
-<h2 id="count-data-frame-cells">Count data-frame cells<a class="anchor" aria-label="anchor" href="#count-data-frame-cells"></a>
-</h2>
-<p><code><a href="../reference/nis_cell_counts.html">nis_cell_counts()</a></code> counts unweighted discharges and
-distinct hospitals using year-scoped hospital IDs. This invented fixture
-has one cell with a small count and a separate cell with more than 10
-discharges but support from only one hospital.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">records</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  YEAR <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">14</span><span class="op">)</span>,</span>
-<span>  HOSP_NIS <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"B"</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">2.1</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">8.4</span>, <span class="fl">11</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">cell_estimates</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">records</span>, <span class="va">group</span><span class="op">)</span>,</span>
-<span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">estimate</span><span class="op">)</span>,</span>
-<span>  .groups <span class="op">=</span> <span class="st">"drop"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">records</span>, by <span class="op">=</span> <span class="va">group</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">cell_estimates</span>, by <span class="op">=</span> <span class="st">"group"</span><span class="op">)</span></span>
-<span><span class="va">cells</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 4</span></span></span>
-<span><span class="co">#&gt;   group     n hospitals estimate</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> A         3         2      2.1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> B        11         1      8.4</span></span></code></pre></div>
-<p><code>A</code> has three discharges across two hospitals;
-<code>B</code> has 11 discharges at one hospital. Counts are unweighted
-and the displayed <code>estimate</code> is only a made-up value.</p>
-</div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MSaadAsif/easyNIS" class="external-link">easyNIS</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/knitr/man/opts_chunk.html" class="external-link">opts_chunk</a></span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>collapse <span class="op">=</span> <span class="cn">TRUE</span>, comment <span class="op">=</span> <span class="st">"#&gt;"</span><span class="op">)</span></span></code></pre></div>
+<p>The examples use invented data.</p>
 <div class="section level2">
-<h2 id="suppress-data-frames">Suppress data frames<a class="anchor" aria-label="anchor" href="#suppress-data-frames"></a>
+<h2 id="count-the-discharges-and-hospitals-behind-each-cell">Count the discharges and hospitals behind each cell<a class="anchor" aria-label="anchor" href="#count-the-discharges-and-hospitals-behind-each-cell"></a>
 </h2>
-<p>For data frames, provide the count column and any estimate columns to
-mask. The default threshold is inclusive: counts at or below 10 are
-suppressed. Cells with fewer than two hospitals are marked as such.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span></span>
-<span>  <span class="va">cells</span>,</span>
-<span>  count_col <span class="op">=</span> <span class="va">n</span>,</span>
-<span>  weighted_cols <span class="op">=</span> <span class="va">estimate</span>,</span>
-<span>  hospital_col <span class="op">=</span> <span class="va">hospitals</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 4</span></span></span>
-<span><span class="co">#&gt;   group n            hospitals    estimate    </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> A     ≤10          ≤10          ≤10         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> B     &lt;2 hospitals &lt;2 hospitals &lt;2 hospitals</span></span></code></pre></div>
-<p>The output suppresses <code>A</code> under the inclusive ≤10
-discharge rule and marks <code>B</code> under the two-hospital rule,
-despite its count being above 10. When a table has totals or grouped
-subtotals, inspect them for complementary disclosure.</p>
-</div>
-<div class="section level2">
-<h2 id="suppress-a-gtsummary-table">Suppress a gtsummary table<a class="anchor" aria-label="anchor" href="#suppress-a-gtsummary-table"></a>
-</h2>
-<p>For a <code><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">gtsummary::tbl_svysummary()</a></code> object,
-<code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> reads unweighted counts from the table cards
-and compares them with the matching survey records. It uses the smaller
-count for masking and counts distinct year-scoped <code>YEAR</code> and
-<code>HOSP_NIS</code> identities from those records. Hospital support is
-checked within the cohort and the displayed non-missing, category, and
-by-group cell. Cells at or below the discharge threshold or supported by
-fewer than two hospitals are marked. A dichotomous row is also masked
-when the non-missing complement is protected, even when the displayed
-event has sufficient support. Overall cells follow the same
-complementary masking behavior described above. If the records or cards
-cannot unambiguously map a displayed cell, the function errors.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpzICmBx/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpPvgUXS/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -174,39 +102,80 @@ cannot unambiguously map a displayed cell, the function errors.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpzICmBx/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpPvgUXS/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">RACE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">nis</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">counts</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
+<span><span class="co">#&gt;    YEAR heart_failure     n hospitals</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019 FALSE            42        12</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019 TRUE             54         9</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020 FALSE            42        12</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>020 TRUE             54         9</span></span></code></pre></div>
+<p>The HCUP Data Use Agreement prohibits publishing cells based on 1
+through 10 sampled discharges and prohibits publishing identifying
+information. easyNIS also masks statistics supported by fewer than two
+hospitals. Check support for the records contributing to each statistic.
+<a href="https://hcup-us.ahrq.gov/team/NationwideDUA.jsp" class="external-link">HCUP Data Use
+Agreement</a></p>
+</div>
+<div class="section level2">
+<h2 id="mask-a-summary-and-check-what-can-be-recovered">Mask a summary and check what can be recovered<a class="anchor" aria-label="anchor" href="#mask-a-summary-and-check-what-can-be-recovered"></a>
+</h2>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">groups</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>age_group <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">87</span>, <span class="st">"87 and older"</span>, <span class="st">"under 87"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">groups</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">age_group</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cells</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span>count_col <span class="op">=</span> <span class="va">n</span>, hospital_col <span class="op">=</span> <span class="va">hospitals</span>,</span>
+<span>               by <span class="op">=</span> <span class="va">YEAR</span>, secondary <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
+<span><span class="co">#&gt;    YEAR age_group    n      hospitals</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>019 87 and older ≤10    ≤10      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019 under 87     Masked Masked   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020 87 and older ≤10    ≤10      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>  <span style="text-decoration: underline;">2</span>020 under 87     Masked Masked</span></span></code></pre></div>
+<p>If the year total is public, a reader can subtract the published age
+group to recover the masked group. Complementary suppression hides
+another value to prevent that deduction. The data-frame helper can mask
+the smallest remaining positive cell when a group has one primary mask.
+Keep totals out of that input and decide which totals can be released.
+The helper also masks zeros as a conservative default.</p>
+</div>
+<div class="section level2">
+<h2 id="mask-a-survey-table">Mask a survey table<a class="anchor" aria-label="anchor" href="#mask-a-survey-table"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ddsjoberg/gtsummary" class="external-link">gtsummary</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">RACE</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
-<span><span class="va">table_one</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span>
-<span>  <span class="va">design</span>,</span>
-<span>  by <span class="op">=</span> <span class="va">RACE</span>,</span>
-<span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="va">FEMALE</span> <span class="op">~</span> <span class="st">"Female"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">table_one</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
-<div id="eexombwkke" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#eexombwkke table {
+<span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span><span class="va">design</span>, by <span class="op">=</span> <span class="va">heart_failure</span>, include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">RACE</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div id="ulbfdpbcyv" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ulbfdpbcyv table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#eexombwkke thead, #eexombwkke tbody, #eexombwkke tfoot, #eexombwkke tr, #eexombwkke td, #eexombwkke th {
+#ulbfdpbcyv thead, #ulbfdpbcyv tbody, #ulbfdpbcyv tfoot, #ulbfdpbcyv tr, #ulbfdpbcyv td, #ulbfdpbcyv th {
   border-style: none;
 }
 
-#eexombwkke p {
+#ulbfdpbcyv p {
   margin: 0;
   padding: 0;
 }
 
-#eexombwkke .gt_table {
+#ulbfdpbcyv .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -232,12 +201,12 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-left-color: #D3D3D3;
 }
 
-#eexombwkke .gt_caption {
+#ulbfdpbcyv .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#eexombwkke .gt_title {
+#ulbfdpbcyv .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -249,7 +218,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-bottom-width: 0;
 }
 
-#eexombwkke .gt_subtitle {
+#ulbfdpbcyv .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -261,7 +230,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-top-width: 0;
 }
 
-#eexombwkke .gt_heading {
+#ulbfdpbcyv .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -273,13 +242,13 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-right-color: #D3D3D3;
 }
 
-#eexombwkke .gt_bottom_border {
+#ulbfdpbcyv .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#eexombwkke .gt_col_headings {
+#ulbfdpbcyv .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -294,7 +263,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-right-color: #D3D3D3;
 }
 
-#eexombwkke .gt_col_heading {
+#ulbfdpbcyv .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -314,7 +283,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   overflow-x: hidden;
 }
 
-#eexombwkke .gt_column_spanner_outer {
+#ulbfdpbcyv .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -326,15 +295,15 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 4px;
 }
 
-#eexombwkke .gt_column_spanner_outer:first-child {
+#ulbfdpbcyv .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#eexombwkke .gt_column_spanner_outer:last-child {
+#ulbfdpbcyv .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#eexombwkke .gt_column_spanner {
+#ulbfdpbcyv .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -346,11 +315,11 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   width: 100%;
 }
 
-#eexombwkke .gt_spanner_row {
+#ulbfdpbcyv .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#eexombwkke .gt_group_heading {
+#ulbfdpbcyv .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -376,7 +345,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   text-align: left;
 }
 
-#eexombwkke .gt_empty_group_heading {
+#ulbfdpbcyv .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -391,15 +360,15 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   vertical-align: middle;
 }
 
-#eexombwkke .gt_from_md > :first-child {
+#ulbfdpbcyv .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#eexombwkke .gt_from_md > :last-child {
+#ulbfdpbcyv .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#eexombwkke .gt_row {
+#ulbfdpbcyv .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -418,7 +387,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   overflow-x: hidden;
 }
 
-#eexombwkke .gt_stub {
+#ulbfdpbcyv .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -431,7 +400,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 5px;
 }
 
-#eexombwkke .gt_stub_row_group {
+#ulbfdpbcyv .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -445,15 +414,15 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   vertical-align: top;
 }
 
-#eexombwkke .gt_row_group_first td {
+#ulbfdpbcyv .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#eexombwkke .gt_row_group_first th {
+#ulbfdpbcyv .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#eexombwkke .gt_summary_row {
+#ulbfdpbcyv .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -463,16 +432,16 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 5px;
 }
 
-#eexombwkke .gt_first_summary_row {
+#ulbfdpbcyv .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#eexombwkke .gt_first_summary_row.thick {
+#ulbfdpbcyv .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#eexombwkke .gt_last_summary_row {
+#ulbfdpbcyv .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -482,7 +451,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-bottom-color: #D3D3D3;
 }
 
-#eexombwkke .gt_grand_summary_row {
+#ulbfdpbcyv .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -492,7 +461,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 5px;
 }
 
-#eexombwkke .gt_first_grand_summary_row {
+#ulbfdpbcyv .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -502,7 +471,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-top-color: #D3D3D3;
 }
 
-#eexombwkke .gt_last_grand_summary_row_top {
+#ulbfdpbcyv .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -512,11 +481,11 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-bottom-color: #D3D3D3;
 }
 
-#eexombwkke .gt_striped {
+#ulbfdpbcyv .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#eexombwkke .gt_table_body {
+#ulbfdpbcyv .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -525,7 +494,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-bottom-color: #D3D3D3;
 }
 
-#eexombwkke .gt_footnotes {
+#ulbfdpbcyv .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -539,7 +508,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-right-color: #D3D3D3;
 }
 
-#eexombwkke .gt_footnote {
+#ulbfdpbcyv .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -548,7 +517,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 5px;
 }
 
-#eexombwkke .gt_sourcenotes {
+#ulbfdpbcyv .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -562,7 +531,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   border-right-color: #D3D3D3;
 }
 
-#eexombwkke .gt_sourcenote {
+#ulbfdpbcyv .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -570,180 +539,148 @@ cannot unambiguously map a displayed cell, the function errors.</p>
   padding-right: 5px;
 }
 
-#eexombwkke .gt_left {
+#ulbfdpbcyv .gt_left {
   text-align: left;
 }
 
-#eexombwkke .gt_center {
+#ulbfdpbcyv .gt_center {
   text-align: center;
 }
 
-#eexombwkke .gt_right {
+#ulbfdpbcyv .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#eexombwkke .gt_font_normal {
+#ulbfdpbcyv .gt_font_normal {
   font-weight: normal;
 }
 
-#eexombwkke .gt_font_bold {
+#ulbfdpbcyv .gt_font_bold {
   font-weight: bold;
 }
 
-#eexombwkke .gt_font_italic {
+#ulbfdpbcyv .gt_font_italic {
   font-style: italic;
 }
 
-#eexombwkke .gt_super {
+#ulbfdpbcyv .gt_super {
   font-size: 65%;
 }
 
-#eexombwkke .gt_footnote_marks {
+#ulbfdpbcyv .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#eexombwkke .gt_asterisk {
+#ulbfdpbcyv .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#eexombwkke .gt_indent_1 {
+#ulbfdpbcyv .gt_indent_1 {
   text-indent: 5px;
 }
 
-#eexombwkke .gt_indent_2 {
+#ulbfdpbcyv .gt_indent_2 {
   text-indent: 10px;
 }
 
-#eexombwkke .gt_indent_3 {
+#ulbfdpbcyv .gt_indent_3 {
   text-indent: 15px;
 }
 
-#eexombwkke .gt_indent_4 {
+#ulbfdpbcyv .gt_indent_4 {
   text-indent: 20px;
 }
 
-#eexombwkke .gt_indent_5 {
+#ulbfdpbcyv .gt_indent_5 {
   text-indent: 25px;
 }
 
-#eexombwkke .katex-display {
+#ulbfdpbcyv .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#eexombwkke div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#ulbfdpbcyv div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
 <table class="table gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
 <thead><tr class="gt_col_headings">
 <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label"><span class="gt_from_md"><strong>Characteristic</strong></span></th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_1">
-<span class="gt_from_md"><strong>White</strong><br>
-N = 10</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_2">
-<span class="gt_from_md"><strong>Black</strong><br>
-N = 10</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
+<span class="gt_from_md"><strong>TRUE</strong><br>
+N = 125</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
 </th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_3">
-<span class="gt_from_md"><strong>Hispanic</strong><br>
-N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_4">
-<span class="gt_from_md"><strong>Asian or Pacific Islander</strong><br>
-N = 10</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_5">
-<span class="gt_from_md"><strong>Native American</strong><br>
-N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_6">
-<span class="gt_from_md"><strong>Other</strong><br>
-N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_1">
+<span class="gt_from_md"><strong>FALSE</strong><br>
+N = 104</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1,2</sup></span>
 </th>
     </tr></thead>
 <tbody class="gt_table_body">
 <tr>
 <td headers="label" class="gt_row gt_left">Age, years</td>
-<td headers="stat_1" class="gt_row gt_center">≤10</td>
-<td headers="stat_2" class="gt_row gt_center">≤10</td>
-<td headers="stat_3" class="gt_row gt_center">≤10</td>
-<td headers="stat_4" class="gt_row gt_center">≤10</td>
-<td headers="stat_5" class="gt_row gt_center">≤10</td>
-<td headers="stat_6" class="gt_row gt_center">≤10</td>
+<td headers="stat_2" class="gt_row gt_center">59 (41, 76)</td>
+<td headers="stat_1" class="gt_row gt_center">65 (49, 77)</td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">Female</td>
-<td headers="stat_1" class="gt_row gt_center">≤10</td>
-<td headers="stat_2" class="gt_row gt_center">≤10</td>
-<td headers="stat_3" class="gt_row gt_center">≤10</td>
-<td headers="stat_4" class="gt_row gt_center">≤10</td>
-<td headers="stat_5" class="gt_row gt_center">≤10</td>
-<td headers="stat_6" class="gt_row gt_center">≤10</td>
+<td headers="label" class="gt_row gt_left">Race, uniform coding</td>
+<td headers="stat_2" class="gt_row gt_center"><br></td>
+<td headers="stat_1" class="gt_row gt_center"><br></td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    White</td>
+<td headers="stat_2" class="gt_row gt_center">19 (16%)</td>
+<td headers="stat_1" class="gt_row gt_center">18 (18%)</td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    Black</td>
+<td headers="stat_2" class="gt_row gt_center">21 (17%)</td>
+<td headers="stat_1" class="gt_row gt_center">17 (16%)</td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    Hispanic</td>
+<td headers="stat_2" class="gt_row gt_center">21 (17%)</td>
+<td headers="stat_1" class="gt_row gt_center">17 (16%)</td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    Asian or Pacific Islander</td>
+<td headers="stat_2" class="gt_row gt_center">20 (16%)</td>
+<td headers="stat_1" class="gt_row gt_center">18 (17%)</td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    Native American</td>
+<td headers="stat_2" class="gt_row gt_center">22 (18%)</td>
+<td headers="stat_1" class="gt_row gt_center">17 (16%)</td>
+</tr>
+<tr>
+<td headers="label" class="gt_row gt_left">    Other</td>
+<td headers="stat_2" class="gt_row gt_center">22 (17%)</td>
+<td headers="stat_1" class="gt_row gt_center">17 (17%)</td>
 </tr>
 </tbody>
 <tfoot>
 <tr class="gt_footnotes">
-<td class="gt_footnote" colspan="7">
+<td class="gt_footnote" colspan="3">
 <span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span> <span class="gt_from_md">Median (Q1, Q3); n (%)</span>
 </td>
     </tr>
 <tr class="gt_footnotes">
-<td class="gt_footnote" colspan="7">
+<td class="gt_footnote" colspan="3">
 <span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10; cells contributed by fewer than two distinct year-scoped hospitals are marked '&lt;2 hospitals', regardless of count. The discharge-count mask takes precedence when both rules apply. Dichotomous rows with a protected complement are marked 'Masked' when the displayed event passes both rules. When a categorical variable has one masked level in a column, the smallest remaining positive level is marked 'Masked'. Before sharing under the HCUP Data Use Agreement, review tables for other derivable cells.</td>
     </tr>
 </tfoot>
 </table>
 </div>
-<p>The masked table is a starting point for review. Data-frame inputs
-continue to use the supplied count and optional hospital-count
-columns.</p>
-</div>
-<div class="section level2">
-<h2 id="generated-studies">Generated studies<a class="anchor" aria-label="anchor" href="#generated-studies"></a>
-</h2>
-<p>Render an analysis created with <code><a href="../reference/nis_new_study.html">nis_new_study()</a></code> to
-generate a Methods paragraph and checklist receipt. Copy the paragraph
-into your manuscript or edit the generated section in
-<code>analysis.qmd</code>. The receipt compares the input to the survey
-design with the query returned by <code><a href="../reference/nis_open.html">nis_open()</a></code>. Use the
-design’s cohort argument to restrict the analysis domain.</p>
-<p>The built-in report checks support for each variable across the
-displayed groups, including missing values and dichotomous complements.
-It masks related table cells and withholds linked estimates when they
-could reveal a protected cell. Models require complete data on the
-reporting cohort. Table 1 shows unweighted denominators alongside its
-survey estimates, model headings show the fitted discharge count, and
-each annual plot point shows the number of discharges with the outcome
-measured. These counts are masked with the corresponding estimates.
-Cohort flow checks the discharges excluded between steps and counts only
-valid-design records in weighted totals. The receipt describes the
-generated report and flags decisions that require manuscript or release
-review, including whether counts can be derived across tables or from
-prior releases. Apply disclosure protection to any tables you add to the
-study.</p>
-</div>
-<div class="section level2">
-<h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
-</h2>
-<blockquote>
-<p><strong>Common pitfalls</strong></p>
-<ul>
-<li>Suppressing only values below 10 misses the prohibited count of
-exactly 10; the default masks 10 and below.</li>
-<li>A single-hospital cell needs review even when its discharge count is
-large.</li>
-<li>Masking a cell can leave it derivable from totals, subtotals, or
-another table. Review the complete set of planned outputs.</li>
-</ul>
-</blockquote>
-<p>See <a href="../reference/nis_cell_counts.html"><code>nis_cell_counts()</code></a>
-and <a href="../reference/nis_suppress.html"><code>nis_suppress()</code></a>.</p>
+<p>The helper checks the non-missing complement of a displayed two-level
+indicator and masks related overall statistics when a group is masked.
+If exactly one level of a categorical variable is masked in a column,
+the helper also masks the smallest remaining positive level in that
+column. Check whether percentages, totals, or other outputs reveal a
+masked cell before release.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

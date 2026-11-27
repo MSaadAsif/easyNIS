@@ -1,96 +1,23 @@
-# Disclosure and suppression
-
-HCUP’s reporting rules prohibit reporting cells with 10 or fewer
-discharges and require that reported estimates represent at least two
-hospitals. Follow the terms of the applicable Data Use Agreement and
-institutional review. Suppression is a review aid, not a guarantee
-against every disclosure path.
-
-## Count data-frame cells
-
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
-counts unweighted discharges and distinct hospitals using year-scoped
-hospital IDs. This invented fixture has one cell with a small count and
-a separate cell with more than 10 discharges but support from only one
-hospital.
+# Check disclosure before sharing results
 
 ``` r
 
-records <- data.frame(
-  YEAR = rep(2020, 14),
-  HOSP_NIS = c(1, 1, 2, rep(3, 11)),
-  group = c(rep("A", 3), rep("B", 11)),
-  estimate = c(rep(2.1, 3), rep(8.4, 11))
-)
-cell_estimates <- dplyr::summarise(
-  dplyr::group_by(records, group),
-  estimate = mean(estimate),
-  .groups = "drop"
-)
-cells <- nis_cell_counts(records, by = group) |>
-  dplyr::left_join(cell_estimates, by = "group")
-cells
-#> # A tibble: 2 × 4
-#>   group     n hospitals estimate
-#>   <chr> <int>     <int>    <dbl>
-#> 1 A         3         2      2.1
-#> 2 B        11         1      8.4
+library(easyNIS)
+library(dplyr)
+library(srvyr)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`A` has three discharges across two hospitals; `B` has 11 discharges at
-one hospital. Counts are unweighted and the displayed `estimate` is only
-a made-up value.
+The examples use invented data.
 
-## Suppress data frames
-
-For data frames, provide the count column and any estimate columns to
-mask. The default threshold is inclusive: counts at or below 10 are
-suppressed. Cells with fewer than two hospitals are marked as such.
+## Count the discharges and hospitals behind each cell
 
 ``` r
 
-nis_suppress(
-  cells,
-  count_col = n,
-  weighted_cols = estimate,
-  hospital_col = hospitals
-)
-#> # A tibble: 2 × 4
-#>   group n            hospitals    estimate    
-#>   <chr> <chr>        <chr>        <chr>       
-#> 1 A     ≤10          ≤10          ≤10         
-#> 2 B     <2 hospitals <2 hospitals <2 hospitals
-```
-
-The output suppresses `A` under the inclusive ≤10 discharge rule and
-marks `B` under the two-hospital rule, despite its count being above 10.
-When a table has totals or grouped subtotals, inspect them for
-complementary disclosure.
-
-## Suppress a gtsummary table
-
-For a
-[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-object,
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-reads unweighted counts from the table cards and compares them with the
-matching survey records. It uses the smaller count for masking and
-counts distinct year-scoped `YEAR` and `HOSP_NIS` identities from those
-records. Hospital support is checked within the cohort and the displayed
-non-missing, category, and by-group cell. Cells at or below the
-discharge threshold or supported by fewer than two hospitals are marked.
-A dichotomous row is also masked when the non-missing complement is
-protected, even when the displayed event has sufficient support. Overall
-cells follow the same complementary masking behavior described above. If
-the records or cards cannot unambiguously map a displayed cell, the
-function errors.
-
-``` r
-
-nis <- nis_open(nis_example(years = 2019)) |>
+nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzICmBx/duckdb
+#> ℹ /tmp/RtmpPvgUXS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -98,67 +25,74 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzICmBx/duckdb
+#> ℹ /tmp/RtmpPvgUXS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
+counts <- nis_cell_counts(nis, by = c(YEAR, heart_failure))
+counts
+#> # A tibble: 4 × 4
+#>    YEAR heart_failure     n hospitals
+#>   <int> <lgl>         <dbl>     <dbl>
+#> 1  2019 FALSE            42        12
+#> 2  2019 TRUE             54         9
+#> 3  2020 FALSE            42        12
+#> 4  2020 TRUE             54         9
+```
+
+The HCUP Data Use Agreement prohibits publishing cells based on 1
+through 10 sampled discharges and prohibits publishing identifying
+information. easyNIS also masks statistics supported by fewer than two
+hospitals. Check support for the records contributing to each statistic.
+[HCUP Data Use
+Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp)
+
+## Mask a summary and check what can be recovered
+
+``` r
+
+groups <- nis |>
+  mutate(age_group = if_else(AGE >= 87, "87 and older", "under 87"))
+cells <- nis_cell_counts(groups, by = c(YEAR, age_group))
+cells |>
+  nis_suppress(count_col = n, hospital_col = hospitals,
+               by = YEAR, secondary = TRUE)
+#> # A tibble: 4 × 4
+#>    YEAR age_group    n      hospitals
+#>   <int> <chr>        <chr>  <chr>    
+#> 1  2019 87 and older ≤10    ≤10      
+#> 2  2019 under 87     Masked Masked   
+#> 3  2020 87 and older ≤10    ≤10      
+#> 4  2020 under 87     Masked Masked
+```
+
+If the year total is public, a reader can subtract the published age
+group to recover the masked group. Complementary suppression hides
+another value to prevent that deduction. The data-frame helper can mask
+the smallest remaining positive cell when a group has one primary mask.
+Keep totals out of that input and decide which totals can be released.
+The helper also masks zeros as a conservative default.
+
+## Mask a survey table
+
+``` r
+
+library(gtsummary)
+
+design <- nis_design(nis, AGE >= 18, keep = c(AGE, RACE, heart_failure))
 #> Preparing the cohort survey design.
-table_one <- gtsummary::tbl_svysummary(
-  design,
-  by = RACE,
-  include = c(AGE, FEMALE),
-  label = FEMALE ~ "Female"
-)
-nis_suppress(table_one, threshold = 10)
+tbl_svysummary(design, by = heart_failure, include = c(AGE, RACE)) |>
+  nis_suppress()
 ```
 
 [TABLE]
 
-The masked table is a starting point for review. Data-frame inputs
-continue to use the supplied count and optional hospital-count columns.
-
-## Generated studies
-
-Render an analysis created with
-[`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
-to generate a Methods paragraph and checklist receipt. Copy the
-paragraph into your manuscript or edit the generated section in
-`analysis.qmd`. The receipt compares the input to the survey design with
-the query returned by
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
-Use the design’s cohort argument to restrict the analysis domain.
-
-The built-in report checks support for each variable across the
-displayed groups, including missing values and dichotomous complements.
-It masks related table cells and withholds linked estimates when they
-could reveal a protected cell. Models require complete data on the
-reporting cohort. Table 1 shows unweighted denominators alongside its
-survey estimates, model headings show the fitted discharge count, and
-each annual plot point shows the number of discharges with the outcome
-measured. These counts are masked with the corresponding estimates.
-Cohort flow checks the discharges excluded between steps and counts only
-valid-design records in weighted totals. The receipt describes the
-generated report and flags decisions that require manuscript or release
-review, including whether counts can be derived across tables or from
-prior releases. Apply disclosure protection to any tables you add to the
-study.
-
-## Common pitfalls
-
-> **Common pitfalls**
->
-> - Suppressing only values below 10 misses the prohibited count of
->   exactly 10; the default masks 10 and below.
-> - A single-hospital cell needs review even when its discharge count is
->   large.
-> - Masking a cell can leave it derivable from totals, subtotals, or
->   another table. Review the complete set of planned outputs.
-
-See
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
-and
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md).
+The helper checks the non-missing complement of a displayed two-level
+indicator and masks related overall statistics when a group is masked.
+If exactly one level of a categorical variable is masked in a column,
+the helper also masks the smallest remaining positive level in that
+column. Check whether percentages, totals, or other outputs reveal a
+masked cell before release.

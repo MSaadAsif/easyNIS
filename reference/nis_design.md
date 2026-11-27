@@ -4,11 +4,11 @@ Collects cohort rows and one zero-domain placeholder per hospital-year
 with no cohort discharges, then builds a nested NIS survey design. The
 placeholder-row method is experimental and is gated against a full-data
 design. After this function returns,
-[`filter()`](https://rdrr.io/r/stats/filter.html) may only narrow the
-declared cohort; it cannot define a new cohort. Hospital geography
-columns are optional. Hospital and stratum identifiers are scoped by
-year (`YEAR` + `HOSP_NIS` and `YEAR` + `NIS_STRATUM`), because HCUP
-reassigns hospital numbers annually and 2023 stratum codes are
+[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) may only
+narrow the declared cohort; it cannot define a new cohort. Hospital
+geography columns are optional. Hospital and stratum identifiers are
+scoped by year (`YEAR` + `HOSP_NIS` and `YEAR` + `NIS_STRATUM`), because
+HCUP reassigns hospital numbers annually and 2023 stratum codes are
 sequential. Costs and charges use `TOTCHG` only, unless `charges` names
 another column such as `TOTCHG_2023`; nothing is coalesced silently,
 because the 2023 field is not comparable to earlier-year `TOTCHG`. The
@@ -137,7 +137,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -145,7 +145,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmphDG7ip/duckdb
+#> ℹ /tmp/RtmpEkIRZU/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
