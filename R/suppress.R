@@ -96,12 +96,14 @@ nis_suppress <- function(
     count_col <- nis_select_columns(.data, count_col, error_call)
     hospital_col <- nis_select_columns(.data, hospital_col, error_call)
     validate_dataframe_count_columns(count_col, hospital_col, error_call)
+    weighted_cols <- nis_select_columns(.data, weighted_cols, error_call)
+    by <- nis_select_columns(.data, by, error_call)
     return(suppress_dataframe(
       .data,
       threshold,
       count_col,
-      nis_select_columns(.data, weighted_cols, error_call),
-      nis_select_columns(.data, by, error_call),
+      weighted_cols,
+      by,
       secondary,
       hospital_col,
       error_call
