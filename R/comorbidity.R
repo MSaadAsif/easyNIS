@@ -132,8 +132,11 @@ nis_comorbidity_lazy <- function(records, spec, slots, added) {
 }
 
 nis_comorbidity_frame <- function(records, spec, slots, added) {
-  db <- nis_duckdb_open_data()
-  on.exit(db$release(), add = TRUE)
+  db <- NULL
+  on.exit(if (!is.null(db)) db$release(), add = TRUE)
+  suspendInterrupts({
+    db <- nis_duckdb_open_data()
+  })
   con <- db$con
   nis_comorbidity_warn_poa(slots, names(records))
   extra <- intersect(c("YEAR", "DQTR", "DXVER", "PRVER"), names(records))

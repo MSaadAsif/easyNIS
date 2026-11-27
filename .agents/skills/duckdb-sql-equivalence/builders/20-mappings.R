@@ -4,7 +4,7 @@ ccsr_cases <- function(con) {
       type = c("dx", "pr"),
       position = c("any", "principal", "default"),
       pinned = c(FALSE, TRUE),
-      filtered = c(FALSE, TRUE)
+      filter = c("none", "single", "multiple")
     ),
     type == "dx" | position != "default"
   )
@@ -16,11 +16,12 @@ ccsr_cases <- function(con) {
       ")"
     )
   )
-  lapply(seq_len(nrow(configs)), function(i) {
+  cases <- lapply(seq_len(nrow(configs)), function(i) {
     args <- as.list(configs[i, ])
     codes <- if (args$type == "dx") c("E119", "E1165", "I509", "Z370") else c("02703ZZ", "02L73DK")
     args$map <- raw[raw$type == args$type & raw$code %in% codes, ]
-    args$categories <- if (args$filtered) sort(unique(args$map$category))[1L]
+    available <- sort(unique(args$map$category))
+    args$categories <- switch(args$filter, single = available[1L], multiple = available)
     slots <- c(codes, NA, "", "ZZZZZZZ", tolower(codes[1L]))
     rows <- fixture(
       one = slots,
@@ -32,8 +33,23 @@ ccsr_cases <- function(con) {
     type <- toupper(args$type)
     names(rows)[1:2] <- slot_names(type, "icd10")
     names(rows)[names(rows) == "version"] <- paste0(type, "VER")
+    rows[[paste0(type, "1")]] <- codes[1L]
     case(rows, args)
   })
+  wide <- which(configs$position == "any" & !configs$pinned & configs$filter == "multiple")
+  c(
+    cases,
+    lapply(cases[wide], function(x) {
+      rows <- utils::tail(x$rows, 128L)
+      width <- if (x$args$type == "dx") 40L else 25L
+      codes <- c(unique(x$args$map$code), NA, "", "ZZZZZZZ")
+      for (slot in 3:width) {
+        name <- paste0("I10_", toupper(x$args$type), slot)
+        rows[[name]] <- sample(codes, nrow(rows), replace = TRUE)
+      }
+      case(rows, x$args)
+    })
+  )
 }
 
 ccsr_sql <- function(con, rows, args) {
@@ -68,7 +84,12 @@ ccsr_reference <- function(rows, args) {
     map <- map[map$inpatient %in% "Y", ]
   }
   mapping <- split(map$category, map$code)
-  slots <- rows[slot_names(type, "icd10")[if (args$position == "any") 1:2 else 1L]]
+  prefix <- paste0("I10_", type)
+  slots <- if (args$position == "any") {
+    rows[grepl(paste0("^", prefix, "[1-9][0-9]*$"), names(rows))]
+  } else {
+    rows[paste0(prefix, "1")]
+  }
   lookup <- function(i) {
     if (!covered[i]) {
       return(if (default) NA_character_ else NULL)
@@ -90,7 +111,12 @@ mapping_slot_relation <- function(case) {
 }
 
 ccsr_relation_case <- function(cases) {
-  x <- cases[[1L]]
+  x <- Filter(
+    function(x) {
+      x$args$type == "dx" && x$args$position == "any" && x$args$filter == "multiple"
+    },
+    cases
+  )[[1L]]
   x$rows <- x$rows[c(1L, 2L, 3L), ]
   x$rows$YEAR <- c(2020, 2020, 2026)
   x$rows$I10_DX1 <- c("E119", "I509", NA)
@@ -104,10 +130,16 @@ register(
   ccsr_cases,
   ccsr_sql,
   ccsr_reference,
-  mutation("ccsr-query.R", "ccsr_query_sql", "list_distinct(list_concat(", "list_sort(list_concat("),
+  mutation("ccsr-query.R", "ccsr_presence_sql", "list_has_any(", "list_has_all("),
   relations = list(slots = mapping_slot_relation, years = split_years, rows = shuffle_rows),
   relation_case = ccsr_relation_case,
   relation_mutations = list(
+    slots = mutation(
+      "ccsr-query.R",
+      "ccsr_presence_sql",
+      "dbQuoteIdentifier(con, slots)",
+      "dbQuoteIdentifier(con, slots[1L])"
+    ),
     years = mutation(
       "ccsr-query.R",
       "ccsr_query_sql",

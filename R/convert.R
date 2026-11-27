@@ -54,15 +54,24 @@ nis_convert <- function(path, dir, encoding = NULL) {
 }
 
 nis_convert_with_stage <- function(dir, year, write) {
-  stage <- nis_convert_stage(dir, year)
-  on.exit(nis_remove_owned_directory(stage$temp), add = TRUE)
-  db <- nis_duckdb_open_data()
-  on.exit(db$release(), add = TRUE, after = FALSE)
+  dir <- normalizePath(dir, winslash = "/", mustWork = TRUE)
+  target <- file.path(dir, paste0("NIS_", year, ".parquet"))
+  nis_convert_check_target(target)
+  temp <- nis_owned_temp_path(".easynis-convert-", dir)
+  on.exit(nis_remove_owned_directory(temp), add = TRUE)
+  if (!dir.create(temp, mode = "0700")) {
+    cli::cli_abort("Could not create a temporary sibling of {.path {target}}.")
+  }
+  db <- NULL
+  on.exit(if (!is.null(db)) db$release(), add = TRUE, after = FALSE)
+  suspendInterrupts({
+    db <- nis_duckdb_open_data()
+  })
   DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
-  rows <- write(stage$temp, db$con)
-  nis_convert_check_count(db$con, stage$temp, rows)
+  rows <- write(temp, db$con)
+  nis_convert_check_count(db$con, temp, rows)
   db$release()
-  nis_convert_publish(stage)
+  nis_convert_publish(list(target = target, temp = temp))
 }
 
 nis_convert_check_paths <- function(path, dir) {
@@ -187,17 +196,6 @@ nis_convert_filename_year <- function(filename) {
     1L
   ]]
   as.integer(match[2L])
-}
-
-nis_convert_stage <- function(dir, year) {
-  dir <- normalizePath(dir, winslash = "/", mustWork = TRUE)
-  target <- file.path(dir, paste0("NIS_", year, ".parquet"))
-  nis_convert_check_target(target)
-  temp <- tempfile(".easynis-convert-", tmpdir = dir)
-  if (!dir.create(temp, mode = "0700")) {
-    cli::cli_abort("Could not create a temporary sibling of {.path {target}}.")
-  }
-  list(target = target, temp = normalizePath(temp, winslash = "/", mustWork = TRUE))
 }
 
 nis_convert_publish <- function(stage) {
@@ -332,8 +330,8 @@ nis_convert_invalid <- function(reason, column, row) {
 }
 
 nis_convert_copy_batch <- function(con, data, path) {
-  duckdb::duckdb_register(con, "nis_convert_batch", data)
   on.exit(duckdb::duckdb_unregister(con, "nis_convert_batch"), add = TRUE)
+  duckdb::duckdb_register(con, "nis_convert_batch", data)
   target <- DBI::dbQuoteString(con, path)
   DBI::dbExecute(con, paste("COPY nis_convert_batch TO", target, "(FORMAT PARQUET, COMPRESSION ZSTD)"))
 }
