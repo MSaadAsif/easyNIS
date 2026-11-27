@@ -1,8 +1,8 @@
 nis_study_mask <- function(n, hospitals, threshold) {
   masks <- nis_disclosure_masks(n, hospitals, threshold)
   result <- rep("", length(n))
-  result[n > 0L & masks$count] <- paste0("\u2264", threshold)
-  result[n > 0L & masks$hospital] <- "<2 hospitals"
+  result[masks$count] <- paste0("\u2264", threshold)
+  result[masks$hospital] <- "<2 hospitals"
   result
 }
 
@@ -145,4 +145,144 @@ nis_study_fit_report_model <- function(
     return(nis_study_withheld_model())
   }
   nis_study_fit_model(formula, design, family, outcome = outcome, exposure = exposure, ...)
+}
+
+nis_study_protected_table <- function(table) {
+  structure(list(table = table), class = "nis_study_protected_table")
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_render_table <- function(table, html) {
+  if (!inherits(table, "nis_study_protected_table")) {
+    cli::cli_abort("Apply the study disclosure policy before rendering a results table.")
+  }
+  table <- table$table
+  if (inherits(table, "gtsummary")) {
+    return(if (html) gtsummary::as_gt(table) else gtsummary::as_flex_table(table))
+  }
+  if (html) gt::gt(table) else flextable::flextable(table)
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_summary_table <- function(table, threshold, header) {
+  table <- nis_suppress(table, threshold = threshold)
+  # Hide the remaining statistics for a variable with a protected cell.
+  # Otherwise, a displayed percentage and a group header can recover the count.
+  table <- gtsummary::modify_table_body(table, function(body) {
+    stat <- grep("^stat_[0-9]+$", names(body), value = TRUE)
+    masks <- c(paste0("\u2264", threshold), "<2 hospitals", "Masked")
+    masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
+    related <- body$variable %in% body$variable[masked]
+    for (column in stat) {
+      value <- body[[column]]
+      value[related & !is.na(value) & nzchar(value) & !value %in% masks] <- "Masked"
+      body[[column]] <- value
+    }
+    if ("p.value" %in% names(body)) {
+      body$p.value[related] <- NA_real_
+    }
+    body
+  })
+  nis_study_protected_table(header(table))
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_trend_table <- function(trend) {
+  display <- function(mask, value) ifelse(nzchar(mask), mask, value)
+  table <- dplyr::transmute(
+    trend,
+    `Discharge year` = as.character(!!rlang::sym("YEAR")),
+    discharges = display(.data$count_mask, format(.data$n_unweighted, big.mark = ",", trim = TRUE)),
+    weighted_N = display(.data$count_mask, formatC(.data$weighted_n, format = "f", digits = 1, big.mark = ",")),
+    mortality = display(
+      ifelse(!nzchar(.data$count_mask) & !.data$mortality_ok, "Masked", .data$count_mask),
+      paste0(formatC(.data$mortality * 100, format = "f", digits = 1), "%")
+    ),
+    mean_LOS = display(
+      ifelse(!nzchar(.data$count_mask) & !.data$los_ok, "Masked", .data$count_mask),
+      formatC(.data$mean_los, format = "f", digits = 2)
+    )
+  )
+  nis_study_protected_table(table)
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_model_table <- function(fits, outcomes) {
+  models <- lapply(seq_len(nrow(outcomes)), function(i) {
+    gtsummary::tbl_regression(fits[[i]]$model, exponentiate = outcomes$exponentiate[[i]])
+  })
+  nis_study_protected_table(gtsummary::tbl_merge(
+    tbls = models,
+    tab_spanner = paste0("**", outcomes$outcome, "**")
+  ))
+}
+
+nis_study_flow_summary <- function(data, groups) {
+  support <- function(keep) {
+    rlang::expr(list(
+      n = dplyr::coalesce(sum(dplyr::if_else(!!keep, 1L, 0L)), 0L),
+      hospitals = dplyr::n_distinct(dplyr::if_else(!!keep, .hospital, NA), na.rm = TRUE),
+      weighted = dplyr::coalesce(sum(dplyr::if_else(!!keep, DISCWT, 0), na.rm = TRUE), 0)
+    ))
+  }
+  expressions <- lapply(groups, function(keep) as.list(support(keep))[-1L])
+  keys <- paste0("flow_", seq_len(3L * length(groups)))
+  totals <- dplyr::summarise(data, !!!stats::setNames(unlist(expressions, recursive = FALSE), keys)) |>
+    nis_collect()
+  matrix(unlist(totals, use.names = FALSE), ncol = 3L, byrow = TRUE)
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_flow <- function(data, principal, cohort, design, pooled_mask, threshold) {
+  cohort <- rlang::enquo(cohort)
+  principal <- rlang::enquo(principal)
+  data <- nis_sample_fields(data, cohort) |>
+    dplyr::mutate(
+      .cohort = dplyr::coalesce(.data$.nis_cohort, FALSE),
+      .principal = dplyr::coalesce(!!principal, FALSE),
+      .hospital = dbplyr::sql(paste0(
+        'CASE WHEN "YEAR" > 0 AND isfinite(CAST("YEAR" AS DOUBLE)) ',
+        'AND "HOSP_NIS" > 0 AND isfinite(CAST("HOSP_NIS" AS DOUBLE)) ',
+        'THEN struct_pack(year_id := "YEAR", hospital_id := "HOSP_NIS") END'
+      ))
+    )
+  groups <- rlang::exprs(
+    TRUE,
+    .principal,
+    .cohort,
+    .cohort & .nis_valid,
+    !.principal & !.cohort,
+    .principal & !.cohort,
+    !.principal & .cohort & .nis_valid,
+    .principal & .cohort & .nis_valid,
+    !.principal & .cohort & !.nis_valid,
+    .principal & .cohort & !.nis_valid
+  )
+  totals <- nis_study_flow_summary(data, groups)
+  same_cohort <- totals[4L, 1L] == nrow(design$variables) &&
+    identical(attr(design, "nis_study_design", exact = TRUE)$cohort, rlang::expr_text(rlang::quo_get_expr(cohort)))
+  mask <- nis_study_mask(totals[, 1L], totals[, 2L], threshold)
+  primary <- seq_len(4L)
+  if (nzchar(pooled_mask)) {
+    mask[4L] <- pooled_mask
+  }
+  complementary <- !same_cohort || any(nzchar(mask[primary])) || any(nzchar(mask[-primary]) & totals[-primary, 1L] > 0)
+  if (complementary) {
+    mask[mask == ""] <- "Masked"
+  }
+  table <- dplyr::tibble(
+    step = c(
+      "All discharges",
+      "Principal diagnosis prefix",
+      "Cohort definition",
+      "Analysis cohort (valid survey design)"
+    ),
+    discharges = ifelse(nzchar(mask[primary]), mask[primary], format(totals[primary, 1L], big.mark = ",", trim = TRUE)),
+    weighted_discharges = ifelse(
+      nzchar(mask[primary]),
+      mask[primary],
+      formatC(totals[primary, 3L], format = "f", digits = 1, big.mark = ",")
+    )
+  )
+  nis_study_protected_table(table)
 }

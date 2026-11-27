@@ -1,5 +1,5 @@
 study_verification_packages <- function(journey) {
-  if (!journey %in% c("study", "study-ci", "study-small")) return(character())
+  if (!journey %in% c("study", "study-ci", "study-small", "study-reporting")) return(character())
   packages <- c("broom.helpers", "cardx", "ggplot2", "gt", "gtsummary", "knitr",
     "purrr", "rmarkdown", "survey", "xml2")
   if (journey == "study-ci") c(packages, "flextable") else packages
@@ -42,6 +42,15 @@ drive_study_small <- function(scratch, evidence) {
     fixture <- study_disclosure_fixture(directory, case, one_hospital = name == "one_hospital")
     verify_study(directory, results, "html", fixture$input,
       disclosure_case = c(case, fixture[c("years", "weights")]))
+  }
+}
+
+drive_study_reporting <- function(scratch, evidence) {
+  for (variant in c("domain", "prefiltered", "small-exclusion")) {
+    run <- file.path(scratch, variant)
+    proof <- file.path(evidence, variant)
+    stopifnot(dir.create(run), dir.create(proof))
+    verify_study(run, proof, "html", reporting_variant = variant)
   }
 }
 
@@ -112,7 +121,8 @@ study_disclosure_fixture <- function(scratch, case, one_hospital) {
   list(input = input, years = years, weights = weights)
 }
 
-verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort = FALSE, disclosure_case = NULL) {
+verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort = FALSE,
+                         disclosure_case = NULL, reporting_variant = NULL) {
   quarto <- Sys.which("quarto")
   if (!nzchar(quarto)) stop("Quarto must be on PATH to drive the study feature.")
   version <- system2(quarto, "--version", stdout = TRUE)
@@ -170,6 +180,25 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
   }
   stopifnot(all(file.copy(file.path(path, scaffold_files), evidence)))
+  if (!is.null(reporting_variant)) {
+    analysis <- file.path(path, "analysis.qmd")
+    definition <- readLines(analysis, encoding = "UTF-8")
+    definition[grepl("^  years:", definition)] <- "  years: [2019, 2020]"
+    definition[definition == "annualize <- FALSE"] <- "annualize <- TRUE"
+    if (reporting_variant == "prefiltered") {
+      line <- grep("^# Quarto can put chunk options", definition)
+      stopifnot(length(line) == 1L)
+      definition <- append(definition, "nis_data <- dplyr::filter(nis_data, AGE >= 30)", after = line - 1L)
+    }
+    if (reporting_variant == "small-exclusion") {
+      line <- grep("^cohort <- ", definition)
+      stopifnot(length(line) == 1L)
+      definition[line] <- paste0("cohort <- rlang::expr(",
+        "principal_dx & !(YEAR == 2019L & HOSP_NIS == 1L & AGE == 28))")
+    }
+    writeLines(enc2utf8(definition), analysis, useBytes = TRUE)
+    stopifnot(file.copy(analysis, evidence, overwrite = TRUE))
+  }
 
   original <- getwd()
   on.exit(setwd(original))
@@ -179,6 +208,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
     report <- render_study(quarto, format, input, evidence)
     validate_study_report(report, format, input, expected, evidence, small_cohort)
     if (!is.null(disclosure_case)) verify_study_disclosure(report, disclosure_case)
+    if (!is.null(reporting_variant)) verify_study_reporting(report, reporting_variant)
   }
 }
 
@@ -208,8 +238,7 @@ validate_study_report <- function(report, format, input, expected, evidence, sma
     if (small_cohort) {
       methods <- xml2::xml_text(xml2::xml_find_first(document, "//section[@id='methods']"))
       methods <- gsub("[[:space:]]+", " ", methods)
-      stopifnot(grepl("contains \u226410 discharges", methods, fixed = TRUE),
-        grepl("includes \u226410 hospitals", methods, fixed = TRUE))
+      stopifnot(!grepl("contains.*discharges|includes.*hospitals", methods))
     }
     validate_study_flow(document, expected, evidence, small_cohort)
     if (small_cohort) {
@@ -240,6 +269,29 @@ validate_study_report <- function(report, format, input, expected, evidence, sma
     grepl("HCUP Data Use Agreement", body, fixed = TRUE),
     grepl("experimental pending", body, fixed = TRUE))
   cat("RENDER PASS ", format, " ", file.info(report)$size, " bytes\n", sep = "")
+}
+
+verify_study_reporting <- function(report, variant) {
+  document <- xml2::read_html(report)
+  methods <- xml2::xml_text(study_report_section(document, "methods"))
+  methods <- gsub("[[:space:]]+", " ", methods)
+  criterion <- if (variant == "small-exclusion") {
+    "principal_dx & !(YEAR == 2019L & HOSP_NIS == 1L & AGE == 28)"
+  } else "principal_dx & AGE >= 18"
+  expected <- c("2019, 2020", criterion, "DISCWT", "divided by 2",
+    "HOSP_NIS", "NIS_STRATUM", "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
+  stopifnot(all(vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)))
+  domain <- xml2::xml_text(xml2::xml_find_first(document,
+    "//section[@id='checklist-receipt']//tr[td[normalize-space(.)='Survey domain']]"))
+  prefilter <- variant == "prefiltered"
+  stopifnot(grepl(if (prefilter) "Needs attention" else "Pass", domain, fixed = TRUE))
+  stopifnot(grepl("could not verify that the design input retained the opened sample",
+    methods, fixed = TRUE) == prefilter)
+  if (variant == "small-exclusion") {
+    flow <- study_report_section(document, "cohort-flow")
+    counts <- xml2::xml_text(xml2::xml_find_all(flow, ".//tbody/tr/td[position() > 1]"), trim = TRUE)
+    stopifnot(length(counts) == 8L, all(counts == "Masked"))
+  }
 }
 
 validate_study_flow <- function(document, expected, evidence, small_cohort) {
@@ -322,11 +374,9 @@ verify_study_disclosure <- function(report, case) {
     identical(cells[seq_len(n_masked), 2L], case$masks),
     identical(cells[seq_len(n_masked), 3L], case$masks),
     cells[nrow(cells), 2L] == as.character(tail(case$sizes, 1L)))
-  methods <- study_report_section(document, "methods")
   outcomes <- study_report_section(document, "outcomes")
   flow <- study_report_section(document, "cohort-flow")
   stopifnot(!length(xml2::xml_find_all(outcomes, ".//table")),
-    grepl("contains Masked discharges", gsub("[[:space:]]+", " ", xml2::xml_text(methods)), fixed = TRUE),
     all(xml2::xml_text(xml2::xml_find_all(flow, ".//tbody/tr[last()]/td[position() > 1]")) == "Masked"))
   protected <- formatC(c(case$weights[seq_len(n_masked)], sum(case$weights)),
     format = "f", digits = 1L, big.mark = ",")

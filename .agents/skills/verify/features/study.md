@@ -19,7 +19,12 @@ Keep Quarto on PATH and install the package's suggested dependencies and
 Rscript --vanilla .agents/skills/verify/drive.R study
 Rscript --vanilla .agents/skills/verify/drive.R study-ci
 Rscript --vanilla .agents/skills/verify/drive.R study-small
+Rscript --vanilla .agents/skills/verify/drive.R study-reporting
 ```
+
+The `study-reporting` journey renders the same annualized two-year example
+with and without a pre-design filter. It checks the rendered Methods and
+domain receipt, then tests complementary masking with a single excluded discharge.
 
 The `study` journey renders the default scaffold with built-in example
 data. The `study-ci` journey supplies a synthetic Parquet directory and

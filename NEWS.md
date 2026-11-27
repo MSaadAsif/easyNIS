@@ -8,6 +8,11 @@
 
 - `nis_comorbidity()` now scores lazy DuckDB cohorts in bounded batches
   and returns the scores joined to the original query by discharge key.
+- Studies created by `nis_new_study()` generate Methods and an HCUP/Khera
+  checklist receipt from the opened sample, survey design, and rendered
+  results. The receipt flags sample changes before domain creation. Cohort
+  flow and survey summaries mask complementary figures that could reveal
+  protected counts within those tables.
 
 - `nis_attrition(..., .design = TRUE)` counts discharges with valid survey
   design fields. Reuse the same eligibility rules in `nis_design()` with

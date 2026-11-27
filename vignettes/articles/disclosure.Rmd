@@ -95,6 +95,21 @@ nis_suppress(table_one, threshold = 10)
 The masked table is a starting point for review. Data-frame inputs continue to
 use the supplied count and optional hospital-count columns.
 
+## Generated studies
+
+Render an analysis created with `nis_new_study()` to generate a Methods paragraph
+and checklist receipt. Copy the paragraph into your manuscript or edit the
+generated section in `analysis.qmd`. The receipt compares the input to the
+survey design with the query returned by `nis_open()`. Use the design's cohort
+argument to restrict the analysis domain.
+
+Every built-in results table passes through the scaffold's disclosure policy
+before rendering. Cohort flow also checks the discharges excluded between
+steps, since subtraction can reveal a protected cell. The receipt describes
+the generated report and flags decisions that require manuscript or release
+review, including whether counts can be derived across tables or from prior
+releases. Apply disclosure protection to any tables you add to the study.
+
 ## Common pitfalls
 
 > **Common pitfalls**
