@@ -92,7 +92,7 @@
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpOgOaHF/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpWh4Uu2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -100,7 +100,7 @@
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpOgOaHF/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpWh4Uu2/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -1138,9 +1138,121 @@ labeling or reporting N. <a href="disclosure.html">Check
 disclosure</a></p>
 </div>
 <div class="section level2">
+<h2 id="report-weighted-event-rates">Report weighted event rates<a class="anchor" aria-label="anchor" href="#report-weighted-event-rates"></a>
+</h2>
+<p>To report in-hospital mortality among adults under age 65, filter the
+survey design so hospitals with no discharges in the domain still
+contribute to variance estimation. Here the rates and the model use the
+same complete cases. Include any additional model covariates in the
+missing-value checks if you want both analyses to use the same
+discharges.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mortality_design</span> <span class="op">&lt;-</span> <span class="va">design</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&lt;</span> <span class="fl">65</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">DIED</span><span class="op">)</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">design_df</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svychisq.html" class="external-link">degf</a></span><span class="op">(</span><span class="va">mortality_design</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">rates</span> <span class="op">&lt;-</span> <span class="va">mortality_design</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">heart_failure</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
+<span>    events_sampled <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/unweighted.html" class="external-link">unweighted</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">DIED</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    discharges_sampled <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/unweighted.html" class="external-link">unweighted</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    events_weighted <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="va">DIED</span>, vartype <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>    discharges_weighted <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span>vartype <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>    rate <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">DIED</span>, vartype <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"se"</span>, <span class="st">"ci"</span><span class="op">)</span>, df <span class="op">=</span> <span class="va">design_df</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<p>The rate is the weighted share of discharges with an in-hospital
+death. The sampled columns count observed deaths and discharges. The
+weighted columns estimate their totals over the years in the design. The
+rate, standard error, and 95% confidence limits are on the 0–1
+scale.</p>
+<p>Before displaying the rates or their counts, check support for both
+deaths and discharges without a death. An absent outcome level has zero
+support. Mask the rate, its uncertainty, and all counts together when
+either outcome level is protected.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">support</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">mortality_design</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="va">DIED</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">heart_failure</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
+<span>    min_sampled <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="kw">else</span> <span class="fl">0L</span>,</span>
+<span>    min_hospitals <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="fl">2L</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">hospitals</span><span class="op">)</span> <span class="kw">else</span> <span class="fl">0L</span>,</span>
+<span>    .groups <span class="op">=</span> <span class="st">"drop"</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span><span class="va">rates_for_review</span> <span class="op">&lt;-</span> <span class="va">rates</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">support</span>, by <span class="op">=</span> <span class="st">"heart_failure"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span></span>
+<span>    count_col <span class="op">=</span> <span class="va">min_sampled</span>,</span>
+<span>    hospital_col <span class="op">=</span> <span class="va">min_hospitals</span>,</span>
+<span>    weighted_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">events_sampled</span>, <span class="va">discharges_sampled</span>, <span class="va">events_weighted</span>,</span>
+<span>                      <span class="va">discharges_weighted</span>, <span class="va">rate</span>, <span class="va">rate_se</span>, <span class="va">rate_low</span>, <span class="va">rate_upp</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="op">-</span><span class="va">min_sampled</span>, <span class="op">-</span><span class="va">min_hospitals</span><span class="op">)</span></span>
+<span><span class="va">rates_for_review</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 9</span></span></span>
+<span><span class="co">#&gt;   heart_failure events_sampled discharges_sampled events_weighted</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> FALSE         ≤10            ≤10                ≤10            </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> TRUE          ≤10            ≤10                ≤10            </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 5 more variables: discharges_weighted &lt;chr&gt;, rate &lt;chr&gt;, rate_se &lt;chr&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   rate_low &lt;chr&gt;, rate_upp &lt;chr&gt;</span></span></span></code></pre></div>
+<p>Complementary suppression is on by default: if one exposure group is
+masked, a second group is masked too, so the masked group can’t be
+recovered from the cohort total reported elsewhere. Still review
+overlapping tables, totals, and contrasts for deductions from masked
+cells before sharing. See <a href="disclosure.html">disclosure
+review</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="estimate-adjusted-probabilities-and-a-reference-difference">Estimate adjusted probabilities and a reference difference<a class="anchor" aria-label="anchor" href="#estimate-adjusted-probabilities-and-a-reference-difference"></a>
+</h2>
+<p><code><a href="https://rdrr.io/pkg/survey/man/svypredmeans.html" class="external-link">survey::svypredmeans()</a></code> takes an adjustment model whose
+formula omits the exposure. It adds the exposure as a main effect, then
+averages the predicted probabilities at each exposure level over the
+same weighted age distribution in the analytic domain.
+<code><a href="https://rdrr.io/pkg/survey/man/svycontrast.html" class="external-link">survey::svycontrast()</a></code> uses the covariance of the margins to
+estimate the difference from the no-heart-failure reference.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">adjustment</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span></span>
+<span>  <span class="va">DIED</span> <span class="op">~</span> <span class="va">AGE</span>,</span>
+<span>  design <span class="op">=</span> <span class="va">mortality_design</span>,</span>
+<span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">margins</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svypredmeans.html" class="external-link">svypredmeans</a></span><span class="op">(</span></span>
+<span>  <span class="va">adjustment</span>, <span class="op">~</span><span class="va">heart_failure</span>, predictat <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">estimates</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svycontrast.html" class="external-link">svycontrast</a></span><span class="op">(</span></span>
+<span>  <span class="va">margins</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="st">"No heart failure"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FALSE"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Heart failure"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TRUE"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    <span class="st">"Difference vs. no heart failure"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FALSE"</span> <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, <span class="st">"TRUE"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">limits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">estimates</span>, df <span class="op">=</span> <span class="va">design_df</span><span class="op">)</span></span>
+<span><span class="va">adjusted</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
+<span>  term <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">estimates</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">estimates</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  std.error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/SE.html" class="external-link">SE</a></span><span class="op">(</span><span class="va">estimates</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  conf.low <span class="op">=</span> <span class="va">limits</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span>
+<span>  conf.high <span class="op">=</span> <span class="va">limits</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">adjusted</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
+<span><span class="co">#&gt;   term                            estimate std.error conf.low conf.high</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> No heart failure                  0.051<span style="text-decoration: underline;">5</span>    0.028<span style="text-decoration: underline;">4</span> -<span style="color: #BB0000;">0.008</span><span style="color: #BB0000; text-decoration: underline;">14</span>    0.111 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Heart failure                     0.028<span style="text-decoration: underline;">5</span>    0.021<span style="text-decoration: underline;">0</span> -<span style="color: #BB0000;">0.015</span><span style="color: #BB0000; text-decoration: underline;">7</span>     0.072<span style="text-decoration: underline;">7</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> Difference vs. no heart failure  -<span style="color: #BB0000;">0.023</span><span style="color: #BB0000; text-decoration: underline;">0</span>    0.041<span style="text-decoration: underline;">5</span> -<span style="color: #BB0000;">0.110</span>      0.064<span style="text-decoration: underline;">2</span></span></span></code></pre></div>
+<p>Multiply the difference by 100 to report percentage points. The
+adjusted probabilities and contrast above are for invented data. Before
+reporting results from a study, check the outcome and exposure cells in
+the fitted sample and assess what the predictions and contrast could
+reveal together with the other outputs.</p>
+</div>
+<div class="section level2">
 <h2 id="apply-prespecified-reweights">Apply prespecified reweights<a class="anchor" aria-label="anchor" href="#apply-prespecified-reweights"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reweighted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_reweight.html">nis_reweight</a></span><span class="op">(</span><span class="va">design</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">65</span>, <span class="fl">1.2</span>, <span class="fl">0.9</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">reweighted</span>, mean_los <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">LOS</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>

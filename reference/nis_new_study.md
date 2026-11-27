@@ -43,7 +43,7 @@ study](https://msaadasif.github.io/easyNIS/articles/study-template.html).
 ``` r
 study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
-#> [1] "/tmp/Rtmpq6Jh4y/nis-study-example-19e04fa66e2e"
+#> [1] "/tmp/RtmpDuFgaD/nis-study-example-190d5203ff66"
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 #> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"
 ```
