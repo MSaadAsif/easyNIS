@@ -107,6 +107,10 @@ The built-in report checks support for each variable across the displayed
 groups, including missing values and dichotomous complements. It masks
 related table cells and withholds linked estimates when they could reveal a
 protected cell. Models require complete data on the reporting cohort.
+Table 1 shows unweighted denominators alongside its survey estimates, model
+headings show the fitted discharge count, and each annual plot point shows the
+number of discharges with the outcome measured. These counts are masked with
+the corresponding estimates.
 Cohort flow checks the discharges excluded between steps and counts only
 valid-design records in weighted totals. The receipt describes
 the generated report and flags decisions that require manuscript or release

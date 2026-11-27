@@ -1,0 +1,3 @@
+- Default analysis diagnostics report stages and affected fields without printing discharge counts, estimates, or raw codes. Survey exclusion counts remain available on the returned design.
+- Malformed UTF-8 errors recommend reconversion with `nis_convert()`. The data-opening guide explains why DuckDB's buffer limit cannot bound the Arrow reader's process memory.
+- The porting and outcomes guides demonstrate slot-level regex matching and distinguish discharge disposition from in-hospital mortality.

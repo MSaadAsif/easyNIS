@@ -26,7 +26,7 @@ test_that("the design labels documented residence and ICD-10 indicator values", 
 
 test_that("labels preserve annual residence fields and keep unknown codes visible", {
   input <- data.frame(PL_NCHS2006 = c(1L, 6L, NA), PL_NCHS2 = c(21L, 98L, NA))
-  expect_warning(labelled <- nis_label(input), "Unknown code.*PL_NCHS2.*98")
+  expect_warning(labelled <- nis_label(input), "Unknown code.*PL_NCHS2")
   expect_identical(
     as.character(labelled$PL_NCHS2006),
     c("Central metro, population 1 million or more", "Nonmetropolitan, nonmicropolitan", NA)

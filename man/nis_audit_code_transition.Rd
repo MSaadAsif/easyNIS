@@ -21,7 +21,8 @@ nis_audit_code_transition(
 
 \item{codes}{A named character vector or named list of character vectors.
 Each name is a \code{code_group}; each value contains prefixes. Names must be
-non-empty and unique.}
+non-empty and unique. For \code{output = "summary"}, can also be the result of
+\code{\link[=nis_attrition]{nis_attrition()}} with \code{.codes}. Omit \code{type} and \code{system} in that case.}
 
 \item{cohort}{Optional tidy-evaluation logical expression defining the
 cohort. Rows where it evaluates to \code{NA} are excluded.}
@@ -64,10 +65,16 @@ Prefix matching follows \code{\link[=nis_flag_pr]{nis_flag_pr()}} or \code{\link
 with zero counts where a group has no matches.
 Counts apply only to the selected code system; zero does not mean the code
 is absent under another system. Audits across the 2015 ICD transition need
-separate calls for each system. The change compares with the previous
-observed period in sorted order.
+separate calls for each system when supplying prefixes directly. The
+change compares with the previous observed period in sorted order.
 }
 \details{
+To reuse code criteria from \code{\link[=nis_attrition]{nis_attrition()}}, pass its result as \code{codes}.
+The audit uses each criterion's recorded code definition, system, and
+position. It counts each code criterion independently within the audit
+sample. Supply \code{cohort} to restrict that sample. Ordinary logical
+criteria and design exclusions from the attrition table are not applied.
+
 \code{by} may name several columns, such as \code{c("YEAR", "DQTR")}. A period is
 then one observed combination of their values, sorted by the columns in the
 order given. A period with a missing value in any component is kept as its

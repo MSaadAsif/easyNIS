@@ -231,18 +231,22 @@ nis_survey_roster <- function(design) {
   if (anyDuplicated(roster[c("YEAR", "HOSP_NIS")])) {
     cli::cli_abort("Each hospital must map to one stratum within a year.")
   }
+  nis_survey_roster_sizes(roster)
+}
+
+nis_survey_roster_sizes <- function(roster) {
   roster$stratum <- vctrs::vec_group_id(roster[c("YEAR", "NIS_STRATUM")])
   roster$n_psu <- tabulate(roster$stratum)[roster$stratum]
   roster
 }
 
-nis_survey_variance <- function(scores, psu, roster) {
+nis_survey_variance <- function(scores, psu, roster, lonely.psu = nis_survey_policy()) {
   strata <- roster$stratum[psu]
   survey::svyrecvar(
     scores,
     matrix(psu),
     matrix(strata),
     list(sampsize = matrix(roster$n_psu[psu]), popsize = NULL),
-    lonely.psu = nis_survey_policy()
+    lonely.psu = lonely.psu
   )
 }

@@ -107,7 +107,7 @@ HCUP's Core Weighted and Hospital Weights summary statistics for 2012–2024.
 
 When those fields are present, missing `YEAR`, `YEAR` outside the opened
 years, and nonpositive `NIS_STRATUM` values also warn.
-Warnings leave the lazy query available. Files from `nis_example()` still
+Warnings identify affected checks or fields and leave the lazy query available. Files from `nis_example()` still
 undergo these integrity checks and are excluded from the published totals.
 If you open an intentional extract, set `check_release = FALSE` to skip the
 check.
@@ -146,8 +146,7 @@ helper. [HCUP guidance on hospital volume estimates](https://hcup-us.ahrq.gov/db
 `nis_open()` uses DuckDB's native Parquet reader by default and returns a lazy
 dbplyr table. `duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter
 and select before collecting when later analysis needs an in-memory data
-frame. The default reader is unchanged; `reader = "arrow"` opts in to the
-optional `arrow` package for reading Parquet files individually.
+frame.
 
 ```{r duckdb}
 duck <- nis_open(path, years = 2020)
@@ -156,14 +155,24 @@ duck |> dplyr::count(YEAR) |> dplyr::collect()
 
 This count is the same synthetic year summary, evaluated through DuckDB.
 
-Arrow preserves source bytes in string columns, including malformed UTF-8
-bytes. It does not repair or automatically detect every invalid string, and
-malformed values may still fail in downstream string operations. Validate or
-repair text before analysis when those operations are needed.
+## Malformed UTF-8
 
-When converting HCUP ASCII files to Parquet, declare the source encoding so
-string values are written as valid UTF-8. For example, convert Latin-1 text to
-UTF-8 rather than writing bytes under the wrong encoding label.
+The default reader raises an error when a scan encounters malformed UTF-8 in
+a string column. A lazy query can open successfully and fail later during
+flagging, collection, or survey preparation. A clean projection can still
+work because DuckDB need only read the requested columns.
+
+Reconvert the source with [`nis_convert()`](../reference/nis_convert.html)
+into a new directory. Conversion validates text and rejects malformed
+strings. For Stata, SAS, or SPSS input, supply the known original encoding
+when it differs from the format's default.
+
+The optional `reader = "arrow"` preserves malformed bytes, which can still
+cause downstream string operations to fail. Arrow scan allocations are
+outside DuckDB's `memory_limit`, which controls DuckDB-managed buffers.
+R allocations also contribute to process memory. A DuckDB buffer limit
+cannot bound process commit when scanning with Arrow. Reconvert the
+source before analysis.
 
 ## Common pitfalls
 

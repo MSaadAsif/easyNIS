@@ -37,9 +37,9 @@ test_that("untyped and typed missing logical cohorts agree across backends", {
       expect_message(
         expect_warning(
           design <- nis_design(data, !!cohort, keep = AGE),
-          "No cohort discharges in year 2020"
+          "No cohort discharges in some sample years"
         ),
-        "Treated 8 missing cohort values as outside the cohort"
+        "Treated missing cohort values as outside the cohort"
       )
       expect_equal(nrow(design$variables), 0L)
       expect_identical(attr(design, "nis_cohort_rows"), 0L)
@@ -53,7 +53,7 @@ test_that("empty cohorts and empty sources preserve backend parity", {
   frame <- missing_cohort_fixture()
   query <- duckdb_query_fixture(frame)
   for (data in list(frame, query)) {
-    expect_warning(design <- nis_design(data, FALSE, keep = AGE), "No cohort discharges in year 2020")
+    expect_warning(design <- nis_design(data, FALSE, keep = AGE), "No cohort discharges in some sample years")
     expect_equal(nrow(design$variables), 0L)
     expect_equal(nrow(attr(design, "nis_placeholder_rows")), 4L)
     empty <- dplyr::filter(data, FALSE)
@@ -67,7 +67,7 @@ test_that("missing cohorts count only discharges with valid design fields", {
   for (data in list(frame, duckdb_query_fixture(frame))) {
     expect_message(
       design <- suppressWarnings(nis_design(data, NA, keep = AGE)),
-      "Treated 7 missing cohort values as outside the cohort"
+      "Treated missing cohort values as outside the cohort"
     )
     expect_equal(attr(design, "nis_excluded")$total, 1)
     expect_equal(nrow(design$variables), 0L)
@@ -77,8 +77,8 @@ test_that("missing cohorts count only discharges with valid design fields", {
 test_that("mixed logical missing cohorts retain survey estimates and variance", {
   frame <- missing_cohort_fixture()
   query <- duckdb_query_fixture(frame)
-  expect_message(local <- nis_design(frame, eligible, keep = AGE), "Treated 3 missing cohort values")
-  expect_message(lazy <- nis_design(query, eligible, keep = AGE), "Treated 3 missing cohort values")
+  expect_message(local <- nis_design(frame, eligible, keep = AGE), "Treated missing cohort values")
+  expect_message(lazy <- nis_design(query, eligible, keep = AGE), "Treated missing cohort values")
   reference <- survey::svydesign(
     ids = ~HOSP_NIS,
     strata = ~NIS_STRATUM,
