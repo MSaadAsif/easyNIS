@@ -73,6 +73,24 @@ test_that("CCSR assigns exact codes in DuckDB using the release for each NIS yea
   expect_error(nis_add_ccsr(data, version = "1999.1"), "1999.1")
 })
 
+test_that("a CCSR-enriched query can be saved after its original query goes out of scope", {
+  path <- nis_example(years = 2020)
+  withr::defer(unlink(path, recursive = TRUE))
+  output <- file.path(withr::local_tempdir(), "cohort")
+
+  classified <- nis_open(path) |>
+    nis_add_ccsr(position = "default")
+  invisible(gc())
+
+  nis_write_cohort(classified, AGE >= 18, output, keep = c(AGE, ccsr))
+  restored <- nis_open(output) |>
+    nis_design(keep = c(AGE, ccsr))
+
+  expect_gt(nrow(restored$variables), 0)
+  expect_true(all(restored$variables$AGE >= 18))
+  expect_true("ccsr" %in% names(restored$variables))
+})
+
 test_that("CCSR works through nis_open on invented annual Parquet files", {
   ref <- ccsr_test_reference()
   local_mocked_bindings(ccsr_reference_dir = function() ref$path)

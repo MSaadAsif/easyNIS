@@ -159,6 +159,10 @@ nis_comorbidity_frame <- function(records, spec, slots, added) {
     value[!validUTF8(value)] <- NA_character_
     value
   })
+  if (is.factor(input$DQTR)) {
+    # Design labels store Q1 through Q4, while the scoring SQL uses codes.
+    input$DQTR <- match(sub("^Q", "", as.character(input$DQTR)), as.character(1:4))
+  }
   input$.nis_cmrb_row <- seq_len(nrow(records))
   duckdb::duckdb_register(con, "discharges", input)
 

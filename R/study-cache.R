@@ -64,16 +64,3 @@ nis_study_cache_key <- function(
     survey_options = survey_options
   )
 }
-
-nis_study_package_versions <- function(packages) {
-  vapply(
-    packages,
-    function(name) {
-      if (!requireNamespace(name, quietly = TRUE)) {
-        return("<not-installed>")
-      }
-      as.character(utils::packageVersion(name))
-    },
-    character(1)
-  )
-}
