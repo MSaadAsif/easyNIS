@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpPH1cwM/duckdb
+#> ℹ /tmp/RtmpeffRbF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpPH1cwM/duckdb
+#> ℹ /tmp/RtmpeffRbF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -102,11 +102,13 @@ masked cell before release.
 ## Export a three-group table to CSV
 
 The oldest age group in this invented example has ten or fewer sampled
-discharges. Use `col_labels = FALSE` to export the masked cells with
-plain column names. The formatted table headings can still contain group
-denominators. Check the group order before replacing the plain column
-names. The CSV uses `<=` for the less-than-or-equal suppression marker
-so it also works in non-UTF-8 locales.
+discharges.
+[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
+masks its header denominator and its statistics.
+[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html)
+carries the masked heading into the CSV. Use `<=` for the
+less-than-or-equal suppression marker so the file also works in
+non-UTF-8 locales.
 
 ``` r
 
@@ -120,14 +122,15 @@ age_design <- nis_design(bands, cohort = AGE >= 18, keep = c(age_group, LOS))
 #> Preparing the cohort survey design.
 masked <- tbl_svysummary(age_design, by = age_group, include = LOS) |>
   nis_suppress()
-csv <- tibble::as_tibble(masked, col_labels = FALSE) |>
-  mutate(across(starts_with("stat_"), ~ sub("\u2264", "<=", .x, fixed = TRUE)))
-names(csv) <- c("Characteristic", "18 to 64", "65 to 89", "90 and older")
+csv <- tibble::as_tibble(masked) |>
+  mutate(across(-1L, ~ sub("\u2264", "<=", .x, fixed = TRUE)))
 file <- tempfile(fileext = ".csv")
 write.csv(csv, file, row.names = FALSE)
 read.csv(file, check.names = FALSE)
-#>         Characteristic       18 to 64       65 to 89 90 and older
-#> 1 Length of stay, days 6.0 (5.0, 8.0) 3.0 (1.0, 9.0)         <=10
+#>     **Characteristic** **18 to 64**  \nN = 124 **65 to 89**  \nN = 98
+#> 1 Length of stay, days          6.0 (5.0, 8.0)         3.0 (1.0, 9.0)
+#>   **90 and older**  \nN = Masked
+#> 1                           <=10
 ```
 
 Review the CSV alongside any table headings, footnotes, totals, and
