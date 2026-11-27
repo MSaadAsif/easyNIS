@@ -1,6 +1,19 @@
 #!/usr/bin/env Rscript
 
 check_committed_package <- function() {
+  # rcmdcheck records session metadata after checking. Before 1.2.4,
+  # sessioninfo passes TMPDIR as a Quarto argument on Windows.
+  if (
+    .Platform$OS.type == "windows" &&
+      nzchar(Sys.which("quarto")) &&
+      utils::packageVersion("sessioninfo") < "1.2.4"
+  ) {
+    stop(
+      'Update sessioninfo to 1.2.4 or later for Windows checks with Quarto on PATH. Run install.packages("sessioninfo").',
+      call. = FALSE
+    )
+  }
+
   commit <- system2("git", c("rev-parse", "--verify", "HEAD"), stdout = TRUE)
   if (length(commit) != 1L || !grepl("^[0-9a-f]{40,64}$", commit)) {
     stop("Could not identify the committed package source.")
