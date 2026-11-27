@@ -28,6 +28,7 @@ export(nis_outcomes)
 export(nis_prday_completeness)
 export(nis_reweight)
 export(nis_suppress)
+export(nis_write_cohort)
 importClassesFrom(duckdb,duckdb_connection)
 importClassesFrom(duckdb,duckdb_result)
 importFrom(DBI,

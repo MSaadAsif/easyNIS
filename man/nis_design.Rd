@@ -97,6 +97,9 @@ A lazy query is scanned twice. The sample scan summarises design fields,
 exclusion counts, and quarter coverage when annualizing. The cohort scan
 evaluates the cohort expression once over the full data and collects the
 retained analysis columns.
+For a dataset written with \code{\link[=nis_write_cohort]{nis_write_cohort()}}, omit \code{cohort}. The saved
+membership flag excludes placeholders from the analysis. Original
+exclusion counts and full-sample quarter coverage are unavailable.
 }
 
 \examples{
