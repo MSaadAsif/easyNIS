@@ -58,8 +58,11 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   error_call <- rlang::current_call()
   dataset <- nis_open_discover(path, years, error_call)
   nis_open_notice(dataset$years)
-  connection <- nis_duckdb_open_data()
-  on.exit(connection$release(), add = TRUE)
+  connection <- NULL
+  on.exit(if (!is.null(connection)) connection$release(), add = TRUE)
+  suspendInterrupts({
+    connection <- nis_duckdb_open_data()
+  })
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
   release <- if (check_release) nis_open_check_release(plan, dataset) else "skipped"
