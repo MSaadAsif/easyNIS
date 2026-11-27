@@ -14,10 +14,10 @@ studies:
     definition: 'National discharge total for 2019 NIS stays at age 18 years or older using DISCWT.'
     tolerance: 0.000002
     rounding: '0.0002% covers rounding to the nearest hundred discharges. Age eligibility is explicit.'
-  - id: matsuzaki-covid
-    citation: 'Matsuzaki S et al. Nationwide assessment of COVID-19 ventilator and non-invasive respiratory support burden during the early pandemic in the United States. Scientific Reports. 2025. Volume 15, article 15340.'
-    url: https://doi.org/10.1038/s41598-025-99863-3
-    location: 'Abstract and first Results paragraph, hospital admissions with a diagnosis of COVID-19 infection.'
-    definition: 'National discharge total using DISCWT for any-listed exact ICD-10-CM U07.1, discharges in 2020 Q2–Q4 and all of 2021. Pool both years without annualizing.'
-    tolerance: 0.001
-    rounding: '0.1% covers whole-discharge rounding and a narrow margin for the paper’s unspecified handling of diagnosis position and missing or ambiguous discharge quarters.'
+  - id: hcup-2021-covid
+    citation: 'AHRQ. An Assessment of Sepsis in the United States and its Burden on Hospital Care. Report to Congress, 2024.'
+    url: https://hcup-us.ahrq.gov/reports/SepsisUSBurdenHospitalCare-Appendices.pdf
+    location: 'Appendix Table E.4.8, Number of inpatient stays, Estimate for Inpatient Stays Involving a Diagnosis of COVID-19.'
+    definition: 'National discharge total using DISCWT for 2021 NIS stays with any-listed exact ICD-10-CM J12.82, U07.1 or U09.9 (Appendix Table C.5).'
+    tolerance: 0.0000005
+    rounding: '0.00005% covers whole-discharge rounding and minor numerical differences. The discharge year, diagnoses and diagnosis placement are explicit.'

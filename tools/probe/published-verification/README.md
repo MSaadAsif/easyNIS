@@ -1,9 +1,10 @@
 # Published NIS estimates
 
 [The study list](../reference-studies.yml) gives the exact source locations,
-discharge definitions and predetermined tolerances. All three comparisons use
-national totals. The corresponding source rows give point estimates without
-standard errors. The probe retains its own survey standard errors locally.
+discharge definitions and predetermined tolerances. All three readiness
+comparisons use national totals. The probe retains its survey standard errors
+locally. For the 2021 COVID-19 total, Appendix Table E.4.8 also gives a published
+standard error for a separate comparison.
 
 Set `EASYNIS_DATA` to the directory containing the annual licensed Parquet
 files. In the loop workspace, create

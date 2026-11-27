@@ -21,11 +21,11 @@ published_adult <- function(data_root) {
 }
 
 published_covid <- function(data_root) {
-  easyNIS::nis_open(data_root, years = 2020:2021) |>
-    easyNIS::nis_flag_dx(covid = list(regex = "U071"), position = "any") |>
+  easyNIS::nis_open(data_root, years = 2021L) |>
+    easyNIS::nis_flag_dx(covid = list(regex = "J1282|U071|U099"), position = "any") |>
     dplyr::mutate(discharge = 1) |>
     easyNIS::nis_design(
-      cohort = covid & (YEAR == 2021L | DQTR %in% c(2L, 3L, 4L)),
+      cohort = covid,
       keep = discharge
     ) |>
     published_total()
@@ -35,6 +35,6 @@ published_estimands <- function(data_root) {
   list(
     "hcup-2022-all" = published_all(data_root),
     "hcup-2019-adult" = published_adult(data_root),
-    "matsuzaki-covid" = published_covid(data_root)
+    "hcup-2021-covid" = published_covid(data_root)
   )
 }
