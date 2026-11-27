@@ -1,0 +1,55 @@
+name: DuckDB proofs
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/duckdb-proofs.yaml
+      - tools/formal/duckdb/**
+      - .agents/skills/duckdb-sql-equivalence/**
+      - .claude/skills/duckdb-sql-equivalence/**
+      - R/attrition.R
+      - R/ccsr-query.R
+      - R/cell-counts.R
+      - R/code-audit.R
+      - R/code-flags.R
+      - R/code-layout.R
+      - R/collect-prudence.R
+      - R/comorbidity.R
+      - R/comorbidity-sql.R
+      - R/convert.R
+      - R/design-sample.R
+      - R/duckdb.R
+      - R/lazy-survey.R
+      - R/lazy-survey-glm.R
+      - R/lazy-survey-stat.R
+      - R/open.R
+      - R/pr-timing.R
+      - R/procedure-days.R
+      - R/query-expressions.R
+      - R/trends.R
+      - R/write-cohort.R
+  schedule:
+    - cron: '37 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  lean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/formal/duckdb
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan and the pinned Lean toolchain
+        run: |
+          curl --fail --silent --show-error --location +            https://raw.githubusercontent.com/leanprover/elan/v4.4.0/elan-init.sh +            --output "$RUNNER_TEMP/elan-init.sh"
+          sh "$RUNNER_TEMP/elan-init.sh" -y --no-modify-path --default-toolchain none
+          "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build DuckDB proofs
+        run: |
+          lean --version
+          time lake build
