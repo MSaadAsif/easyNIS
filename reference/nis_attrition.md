@@ -90,6 +90,8 @@ toy_nis <- dplyr::tibble(
   AGE = c(16, 45, 60, 72, 55),
   ELECTIVE = c(1, 1, 0, 1, 1),
   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
+  HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
+  NIS_STRATUM = rep(1L, 5),
   YEAR = rep(2020L, 5)
 )
 nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
@@ -100,4 +102,9 @@ nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
 #> 2     1 adult                     4                    1       20.1
 #> 3     2 elective                  3                    1       15.3
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
+flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
+nis_attrition_cohort(flow)
+#> <quosure>
+#> expr: ^AGE >= 18
+#> env:  0x5a8e6c9ce5c0
 ```
