@@ -59,7 +59,8 @@ Here is what each registration exercises.
 | Builder | Production paths | Declared bound and mutation |
 | --- | --- | --- |
 | `code-flags` | `R/code-flags.R:nis_code_flag_exprs, nis_code_match, nis_sql_match` and `R/code-layout.R:code_system_filter, code_system_valid_year` | Two diagnosis slots per system, five code values per slot, three positions, both single systems and mixed, eight year values, six quarters, five version values. Drop the match from the second slot. |
-| `prday-timing` | `R/pr-timing.R:timing_flag_system, timing_index_day, timing_result` and `R/procedure-days.R:nis_decode_procedure_day` | Two slots per system, three code and eight day values per slot, three years, three quarters and versions, all relations and missing-day policies, window 1. Also a missing third PRDAY column and 512 generated 25-slot records. Decode fractional days as integers. |
+| `prday-timing` | `R/pr-timing-sql.R:timing_query_sql, timing_system_sql, timing_result_sql, timing_relation_sql` and `R/procedure-days.R:nis_prday_day_sql, nis_prday_match_sql, nis_prday_eligible_sql` | Two slots per system, three code and eight day values per slot, three years, three quarters and versions, all relations and missing-day policies, window 1. Two slots with overlapping regex/prefix rules and exact exclusions, five code and five day values, window 0. Also a missing third PRDAY column, empty input, no procedure/day columns, and 512 generated 25-slot records. Exclude the lower endpoint and fractional days below 1. |
+| `prday-audit` | `R/prday-completeness.R:nis_prday_audit_sql, nis_prday_slot_counts_sql` and the shared procedure-day decoder and matcher | Two slots per system, three codes and eight days per slot, four year values, three quarters and versions. Also an empty table, one missing PRDAY column, and no PRDAY columns. Drop day zero from known counts, or use the first slot's day for both slots. |
 | `code-inventory` | `R/code-audit.R:.nis_audit_lazy_codes` | Two slots with five code values, two years and three weights. Keep duplicate codes when unnesting the slot list. |
 | `ccsr` | `R/ccsr-query.R:nis_add_ccsr, ccsr_release_sql, ccsr_mapping_filter, ccsr_query_sql, ccsr_mapping_joins, ccsr_presence_sql` | Two slots with up to eight code values, eight years, six quarters and three coding-system values. Diagnosis and procedure categories, diagnosis defaults, pinned and unpinned 2025.1, and unrestricted, single- and multiple-category requests. Mixed ICD eras and seeded 40-slot diagnosis and 25-slot procedure draws. Require every mapped code instead of any mapped code. |
 | `comorbidity` | `R/comorbidity.R:nis_comorbidity_lazy` and `R/comorbidity-sql.R:nis_cmrb_inputs, nis_cmrb_validate_keys, nis_cmrb_score_sql` | Bundled FY2027 Elixhauser, one principal and two secondary slots, capped fiscal year and Q4 transition, five POA values per secondary slot, chosen hierarchical and POA-sensitive codes. Drop POA `W` from positive evidence. |
@@ -122,11 +123,11 @@ rebuilds the original model.
   existence and earliest-known-day folds for any number of slots. The
   POA step models eligibility for positive evidence with an exemption or
   an unrestricted condition and excludes the principal diagnosis.
-  This refers to `nis_code_match()`, `timing_index_day()`,
-  `nis_decode_procedure_day()`, and `nis_cmrb_score_sql()`. It covers
-  the algebra for a future UNPIVOT path. The code predicates, SQL null
-  handling, negative evidence, and physical slot pairing still need
-  independent checks on the actual implementation.
+  The timing proof also relates the row fold to a matching outcome slot,
+  proves invariance under paired slot permutation, and checks that both
+  window bounds are inclusive and a slot can match both rules. The SQL
+  harness checks normalization, code predicates, null handling, and
+  physical slot pairing.
 - CCSR presence. `ccsrLookup` proves that, within a release, testing the
   category's code list for a match is equivalent to finding a matching
   assignment through the individual slots. `ccsrSlotOrder` proves invariance
@@ -216,8 +217,3 @@ failed native cleanup, and filesystem durability after rename.
 6. Record affected paths, bounds, observed outputs, and platform. Advance
    the sync commit only after checking the package paths, proof assumptions,
    and clean and mutated outcomes against the new product source.
-
-The next target is the post-#243 native PRDAY rewrite. Reuse the timing
-registration with its two-slot oracle and 25-slot draw, then move the
-scratch mutation to the new SQL builder and add any changed PRDAY schema
-rules to the finite domain.

@@ -24,6 +24,8 @@ on:
       - R/lazy-survey-stat.R
       - R/open.R
       - R/pr-timing.R
+      - R/pr-timing-sql.R
+      - R/prday-completeness.R
       - R/procedure-days.R
       - R/query-expressions.R
       - R/trends.R
