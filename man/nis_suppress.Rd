@@ -62,8 +62,10 @@ non-missing count for their corresponding output column. If that count is
 absent, ambiguous, or non-finite for a displayed statistic, the function
 errors; blank statistic cells do not require a count. When a by-group cell
 is masked, the overall cell (\code{stat_0}) in the same row is marked \code{Masked},
-unless its own count is at or below the threshold. Other derivable cells
-still need analyst review before sharing. For survey summaries, hospital
+unless it already has a primary mask. If exactly one categorical level is
+masked within a column, the smallest remaining positive level is also
+marked \code{Masked}. Other derivable cells still need analyst review before
+sharing. For survey summaries, hospital
 support is counted from retained records using year-scoped \code{YEAR} and
 \code{HOSP_NIS} identities, within the cohort, non-missing/category, and by-group
 cells represented by the table. The rule is applied only when the survey

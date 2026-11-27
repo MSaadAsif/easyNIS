@@ -1,0 +1,1 @@
+- `nis_suppress()` masks the smallest remaining positive categorical level when a survey summary column has exactly one masked level, and carries by-group masks into the overall column.
