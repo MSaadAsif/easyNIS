@@ -250,7 +250,7 @@ label_binary <- function(x, values, variable, call) {
   unknown <- !is.na(raw) & is.na(index)
   if (any(unknown)) {
     cli::cli_warn(
-      "Unknown code(s) in {.var {variable}}: {paste(unique(raw[unknown]), collapse = ', ')}. Converted to missing.",
+      "Unknown code(s) in {.var {variable}}. Converted to missing.",
       call = call
     )
   }
@@ -291,10 +291,7 @@ label_raw_codes <- function(raw, codes, values, variable, call) {
   }
   if (any(unknown)) {
     cli::cli_warn(
-      paste0(
-        "Unknown code(s) in {.var {variable}}: ",
-        "{paste(unique(raw[unknown]), collapse = ', ')}. Retained as their own factor levels."
-      ),
+      "Unknown code(s) in {.var {variable}}. Retained as their own factor levels.",
       call = call
     )
   }

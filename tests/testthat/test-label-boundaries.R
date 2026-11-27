@@ -54,7 +54,7 @@ test_that("classed numeric storage is not mistaken for a plain numeric NaN", {
 
   expect_length(warnings, 1L)
   expect_match(warnings, "Unknown code.*TRAN_IN")
-  expect_match(warnings, "-9", fixed = TRUE)
+  expect_false(grepl("-9", warnings, fixed = TRUE))
   expect_identical(
     as.character(labelled$TRAN_IN),
     c("No transfer", "Code -9", NA_character_, "Transferred from acute-care hospital")
@@ -99,7 +99,7 @@ test_that("labelled_spss numeric NaN is missing and finite sentinel stays visibl
 
   expect_length(warnings, 1L)
   expect_match(warnings, "Unknown code.*TRAN_IN")
-  expect_match(warnings, "-9", fixed = TRUE)
+  expect_false(grepl("-9", warnings, fixed = TRUE))
   expect_identical(
     as.character(labelled$TRAN_IN),
     c("No transfer", NA_character_, "Code -9", "Transferred from acute-care hospital")
@@ -174,8 +174,7 @@ test_that("numeric unknown codes still warn while NaN remains missing", {
 
   expect_length(warnings, 1L)
   expect_match(warnings, "Unknown code.*TRAN_IN")
-  expect_match(warnings, "-9, Inf", fixed = TRUE)
-  expect_false(grepl("NaN", warnings, fixed = TRUE))
+  expect_false(grepl("-9|Inf|NaN", warnings))
   expect_identical(
     as.character(labelled$TRAN_IN),
     c(

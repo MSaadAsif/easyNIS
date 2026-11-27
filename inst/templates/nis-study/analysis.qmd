@@ -185,6 +185,9 @@ render_table(flow_display)
 
 ## Table 1
 
+Brackets show the unweighted count used for a continuous summary or the
+unweighted cell count and observed denominator for a categorical percentage.
+
 ```{r}
 #| label: table-one
 if (!has_cohort) {
@@ -195,12 +198,18 @@ if (!has_cohort) {
   knitr::asis_output("Table 1 is withheld under the study disclosure policy.")
 } else {
   variables <- c("AGE", "FEMALE", names(outcome_ok)[outcome_ok])
+  baseline_statistics <- list(
+    gtsummary::all_continuous() ~ "{median} ({p25}, {p75}) [{N_nonmiss_unweighted}]",
+    gtsummary::all_categorical() ~ "{n} ({p}%) [{n_unweighted}/{N_unweighted}]"
+  )
   table_one <- if (support$by_arm) {
     gtsummary::tbl_svysummary(
       analysis_design,
       by = dplyr::all_of(exposure),
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
+      statistic = baseline_statistics,
+      missing_stat = "{N_miss_unweighted}",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     ) |>
       gtsummary::add_p() |>
@@ -210,6 +219,8 @@ if (!has_cohort) {
       analysis_design,
       include = dplyr::all_of(variables),
       label = FEMALE ~ "Female",
+      statistic = baseline_statistics,
+      missing_stat = "{N_miss_unweighted}",
       type = list(dplyr::any_of(c("AGE", "LOS", "cost_adj")) ~ "continuous")
     )
   }
@@ -245,7 +256,8 @@ if (!has_cohort) {
 ## Trends by year
 
 The chart and table mask yearly figures with insufficient discharge or hospital
-support. Mortality and length of stay also require support for each estimate.
+support. Each point shows the unweighted number of discharges with an observed
+outcome. The bars show 95% confidence intervals.
 
 ```{r}
 #| label: trends
@@ -263,12 +275,14 @@ trend_long <- dplyr::bind_rows(
     dplyr::transmute(
       YEAR, measure = "In-hospital mortality",
       estimate = mortality, lower = mortality_low, upper = mortality_upp,
+      n = DIED_n,
       visible = !nzchar(count_mask) & mortality_ok
     ),
   trend |>
     dplyr::transmute(
       YEAR, measure = "Mean length of stay",
       estimate = mean_los, lower = mean_los_low, upper = mean_los_upp,
+      n = LOS_n,
       visible = !nzchar(count_mask) & los_ok
     )
 ) |>
@@ -276,13 +290,14 @@ trend_long <- dplyr::bind_rows(
 
 if (nrow(trend_long)) print(ggplot2::ggplot(
   trend_long,
-  ggplot2::aes(x = YEAR, y = estimate, ymin = lower, ymax = upper, group = 1)
+  ggplot2::aes(x = YEAR, y = estimate, ymin = lower, ymax = upper)
 ) +
-  ggplot2::geom_ribbon(alpha = 0.2) +
-  ggplot2::geom_line() +
+  ggplot2::geom_errorbar(width = 0.15) +
   ggplot2::geom_point() +
+  ggplot2::geom_text(ggplot2::aes(y = upper, label = paste0("n = ", n)), vjust = -0.6, size = 3) +
   ggplot2::facet_wrap(~measure, scales = "free_y") +
   ggplot2::scale_x_continuous(breaks = params$years) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0.05, 0.18))) +
   ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
   ggplot2::theme_minimal())
 
@@ -294,7 +309,7 @@ render_table(easyNIS:::nis_study_trend_table(trend))
 
 Models use the exposure and covariates declared above. A model is shown only
 when the reporting cohort has complete model data and the fitted estimates
-are finite and usable. A valid
+are finite and usable. Each model heading gives its fitted unweighted sample size. A valid
 model with a design warning remains visible, with that warning shown below.
 Unavailable models include the reason; the declared model specification is
 not changed to make a model fit.

@@ -139,17 +139,10 @@ nis_sample_exclusions <- function(design_groups) {
     dplyr::arrange(YEAR)
   excluded <- list(total = excluded_count, by_field = excluded_by_field, by_year = year_counts)
   if (excluded_count > 0L) {
-    by_field_text <- paste0(names(excluded_by_field), ": ", excluded_by_field, collapse = ", ")
-    year_text <- if (nrow(year_counts) > 1L) {
-      paste0(" Affected valid years: ", paste0(year_counts$YEAR, ": ", year_counts$n, collapse = ", "), ".")
-    } else {
-      ""
-    }
-    cli::cli_warn(paste0(
-      "Excluded {excluded_count} discharge{?s} with invalid design fields (",
-      by_field_text,
-      "); a discharge can fail more than one field. Exclusion happens before cohort filtering.",
-      year_text
+    fields <- names(excluded_by_field)[excluded_by_field > 0L]
+    cli::cli_warn(c(
+      "Excluded discharges with invalid design fields ({.field {fields}}) before cohort filtering.",
+      i = "A discharge can fail more than one field. See the design's `nis_excluded` attribute for the audit."
     ))
   }
   excluded
@@ -209,9 +202,8 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
     collected$DISCWT <- as.double(collected$DISCWT)
   }
   missing <- which(is.na(collected$.nis_cohort))
-  missing_count <- length(missing)
-  if (missing_count > 0L) {
-    cli::cli_inform("Treated {missing_count} missing cohort value{?s} as outside the cohort.")
+  if (length(missing)) {
+    cli::cli_inform("Treated missing cohort values as outside the cohort.")
     collected <- collected[-missing, , drop = FALSE]
   }
   collected
@@ -219,7 +211,7 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
 
 nis_sample_annual_warnings <- function(summary, collected) {
   if (!is.null(summary$coverage)) {
-    nis_design_quarter_warning(summary$coverage, summary$years)
+    nis_design_quarter_warning(summary$coverage)
     nis_design_2015_warning(summary$years, collected)
   } else if (2015L %in% summary$years) {
     cli::cli_inform(paste0(
@@ -229,28 +221,13 @@ nis_sample_annual_warnings <- function(summary, collected) {
   }
 }
 
-nis_design_quarter_warning <- function(quarter_coverage, design_years) {
-  partial <- lengths(quarter_coverage) < 4L
-  if (any(partial)) {
-    coverage_text <- vapply(
-      which(partial),
-      function(i) {
-        quarters <- quarter_coverage[[i]]
-        present <- if (length(quarters)) paste0("Q", quarters, collapse = ", ") else "none"
-        paste0(design_years[[i]], " (", present, ")")
-      },
-      character(1)
-    )
+nis_design_quarter_warning <- function(quarter_coverage) {
+  if (any(lengths(quarter_coverage) < 4L)) {
     cli::cli_warn(c(
-      paste0(
-        "Annualization includes year(s) with incomplete data-quarter coverage: ",
-        paste(coverage_text, collapse = "; "),
-        "."
-      ),
+      "Annualization includes incomplete quarter coverage in `DQTR`.",
       i = paste0(
-        "Each listed year still counts as one whole year. Exclude partial ",
-        "years or set `annualize = FALSE` and apply a fractional-year ",
-        "factor with `nis_reweight()`."
+        "Partial years count as whole years. Exclude partial years or set ",
+        "`annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
       )
     ))
   }
