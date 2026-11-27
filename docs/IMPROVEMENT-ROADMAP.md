@@ -94,7 +94,7 @@ The runner reads the same limits from
 | `svymean()` and `svyby()`, cohort | 850 / 13 / 1 | 850 / 14 / 1 |
 | `svyglm()`, cohort | 1000 / 14 / 1 | 1000 / 13 / 1 |
 | `tbl_svysummary()`, cohort | 1000 / 88 / 1 | 1000 / 80 / 1 |
-| `nis_survey()` and `svyglm()`, whole sample, 6 years | 8000 / 166 / 1 | 16000 / 166 / 1 |
+| `nis_survey()` and `svyglm()`, whole sample, 6 years | 8000 / 166 / 1 | 650 / 166 / 1 |
 
 The core limits use the largest observed value plus 25%, rounded up to the
 next 50 MB of commit, whole second, or whole MB of disk, with a 1 MB disk
@@ -123,7 +123,20 @@ trial with the same margin and rounding as the core limits.
 The whole-sample step now uses the
 [in-database estimator](adr/0001-in-database-survey-estimation.md).
 Run `Rscript --vanilla tools/probe/probe-performance.R --whole-sample` to
-measure this step on both profiles. The full probe is needed to qualify
+measure this step on both profiles. Three repeats per profile completed
+on the shared Windows host in each fixture. Maximum observed commit
+and wall time were:
+
+| Data | Minimum (MB / s) | Reference (MB / s) |
+| --- | ---: | ---: |
+| Invented | 418.8 / 184.72 | 472.6 / 108.71 |
+| Licensed | 437.6 / 278.79 | 511.3 / 160.86 |
+
+All repeats used zero temporary disk and left zero temporary files.
+The reference profile met the provisional time limit, and its commit
+budget is the largest observed commit plus 25%, rounded up to the next
+50 MB. The minimum profile exceeded the provisional time limit and
+retains its existing limits. The full probe is needed to qualify
 all of criterion 9.
 
 ## Scope decisions
