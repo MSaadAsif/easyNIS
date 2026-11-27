@@ -2,6 +2,13 @@
 
 ## easyNIS (development version)
 
+- The survey design article demonstrates analytic domains with
+  [`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
+  on a
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  result and explains how filtering the lazy input can affect variance
+  estimation.
+
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   checks annual Core files by default against HCUP’s published discharge
   counts, weight sums, and hospital counts for each opened year in

@@ -17,7 +17,7 @@ design when you need grouped survey summaries.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCPjRPQ/duckdb
+#> ℹ /tmp/RtmpgfTnjr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCPjRPQ/duckdb
+#> ℹ /tmp/RtmpgfTnjr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -48,14 +48,62 @@ srvyr::summarise(design, total = srvyr::survey_total(),
 ```
 
 The output contains a weighted fixture total and mean LOS with
-design-based standard errors. Empty cohort hospital-years are retained
-as zero-domain placeholder rows so domain variance uses the full sampled
-structure. This placeholder strategy is experimental.
+design-based standard errors. Hospital placeholders account for
+hospital-years with no cohort discharges in the variance calculation.
+The returned design exposes only cohort discharges to summaries. This
+placeholder strategy is experimental.
 
 For lazy inputs, DuckDB computes hospital-year strata, invalid-field
 counts, and annualization coverage in one sample scan. The separate
 cohort scan collects the selected columns needed to build the survey
 design in R.
+
+## Analyze a domain within the cohort
+
+The object returned by
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+is already an srvyr survey design. Use
+[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
+on that object to define an analytic domain. Like
+[`subset()`](https://rdrr.io/r/base/subset.html) on a survey design, it
+uses the original sampling structure for variance. Hospitals with no
+domain discharges contribute zero, including when an entire stratum
+falls outside the domain.
+
+On the design returned by
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
+[`filter()`](https://rdrr.io/r/stats/filter.html) also removes
+out-of-domain records from the stored analysis data. The survey design
+retains the original sampled hospital counts for variance estimation, so
+there is no separate compaction step. If you no longer need the wider
+design, assign the filtered result back to the same variable.
+
+``` r
+
+design |>
+  dplyr::filter(AGE >= 65) |>
+  dplyr::group_by(YEAR) |>
+  dplyr::summarise(
+    mean_los = srvyr::survey_mean(LOS),
+    discharges = srvyr::unweighted(dplyr::n())
+  )
+#> # A tibble: 2 × 4
+#>    YEAR mean_los mean_los_se discharges
+#>   <int>    <dbl>       <dbl>      <int>
+#> 1  2019     5.11       0.606         22
+#> 2  2020     5.11       0.606         22
+```
+
+`discharges` counts only observed domain discharges. The filtered design
+can also be passed directly to survey functions and to
+[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
+
+Filtering the lazy input before
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+restricts the records available to construct the design and can remove
+entire hospitals or strata. To define a cohort within the available
+sample, pass the inclusion criteria to `cohort`. To narrow an existing
+design to a subpopulation, filter the returned design.
 
 ## Choose a pooling convention
 
@@ -122,8 +170,6 @@ This list gives counts by field and year, not record-level information.
 
 > **Common pitfalls**
 >
-> - Filtering the source data to the cohort before constructing the
->   design removes non-cohort sampled records.
 > - Treating annualized weights as a correction for arbitrary
 >   partial-year coverage.
 > - Using non-survey summaries for estimates or uncertainty.
