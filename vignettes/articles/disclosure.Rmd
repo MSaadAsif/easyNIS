@@ -67,11 +67,10 @@ before release.
 ## Export a three-group table to CSV
 
 The oldest age group in this invented example has ten or fewer sampled
-discharges. Use `col_labels = FALSE` to export the masked cells with
-plain column names. The formatted table headings can still contain group
-denominators. Check the group order before replacing the plain column names.
-The CSV uses `<=` for the less-than-or-equal suppression marker so it also
-works in non-UTF-8 locales.
+discharges. `nis_suppress()` masks its header denominator and its statistics.
+`as_tibble()` carries the masked heading into the CSV. Use `<=` for the
+less-than-or-equal suppression marker so the file also works in non-UTF-8
+locales.
 
 ```{r export-table}
 bands <- nis |>
@@ -83,9 +82,8 @@ bands <- nis |>
 age_design <- nis_design(bands, cohort = AGE >= 18, keep = c(age_group, LOS))
 masked <- tbl_svysummary(age_design, by = age_group, include = LOS) |>
   nis_suppress()
-csv <- tibble::as_tibble(masked, col_labels = FALSE) |>
-  mutate(across(starts_with("stat_"), ~ sub("\u2264", "<=", .x, fixed = TRUE)))
-names(csv) <- c("Characteristic", "18 to 64", "65 to 89", "90 and older")
+csv <- tibble::as_tibble(masked) |>
+  mutate(across(-1L, ~ sub("\u2264", "<=", .x, fixed = TRUE)))
 file <- tempfile(fileext = ".csv")
 write.csv(csv, file, row.names = FALSE)
 read.csv(file, check.names = FALSE)
