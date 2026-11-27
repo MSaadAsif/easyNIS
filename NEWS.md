@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- Select design, demographic, diagnosis, procedure, and hospital fields with
+  `nis_vars_design()`, `nis_vars_demographics()`, `nis_vars_dx()`,
+  `nis_vars_pr()`, and `nis_vars_hospital()` on data frames and lazy tables.
 - `nis_flag_dx()` and `nis_flag_pr()` can combine separate ICD-9 and ICD-10
   definitions in one flag with experimental `system = "both"`.
 - The descriptives and regression article shows how to use `nis_design()`

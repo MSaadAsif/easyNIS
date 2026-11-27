@@ -20,7 +20,7 @@ test_that("Local and DuckDB sensitivity ignores all input groups", {
     data <- make_input(dx_boundary_fixture())
     for (groups in list(character(), c("g", "h"))) {
       grouped <- dplyr::group_by(data, !!!rlang::syms(groups))
-      expect_no_warning(out <- nis_dx_sensitivity(grouped, "A1"))
+      expect_no_warning(out <- nis_audit_dx_position(grouped, "A1"))
       expect_identical(out$presentation, c("principal", "secondary_only", "any"))
       expect_equal(out$n_unweighted, c(2, 2, 4))
       expect_equal(out$n_weighted, c(5, 0, 5))
@@ -39,7 +39,7 @@ test_that("Local and DuckDB empty and unmatched summaries have zero totals", {
     data <- make_input(dx_boundary_fixture())
     grouped <- dplyr::group_by(data, g, h)
     for (input in list(dplyr::filter(grouped, FALSE), grouped)) {
-      out <- nis_dx_sensitivity(input, "B2")
+      out <- nis_audit_dx_position(input, "B2")
       expect_equal(out$n_unweighted, c(0, 0, 0))
       expect_equal(out$n_weighted, c(0, 0, 0))
       expect_true(all(is.na(out$pct_of_any_unweighted)))
@@ -47,7 +47,7 @@ test_that("Local and DuckDB empty and unmatched summaries have zero totals", {
       expect_true(all(is.na(out$DIED_rate_unweighted)))
       expect_true(all(is.na(out$DIED_rate_weighted)))
     }
-    out <- nis_dx_sensitivity(dplyr::filter(data, FALSE), "A1", outcomes = character())
+    out <- nis_audit_dx_position(dplyr::filter(data, FALSE), "A1", outcomes = character())
     expect_named(out, c("presentation", "n_unweighted", "n_weighted", "pct_of_any_unweighted", "pct_of_any_weighted"))
   }
 })
@@ -65,11 +65,11 @@ test_that("Local and DuckDB outcome rates are independent of names and order", {
       "odd outcome"
     )
     alone <- lapply(outcomes, function(outcome) {
-      nis_dx_sensitivity(data, "A1", outcomes = outcome)
+      nis_audit_dx_position(data, "A1", outcomes = outcome)
     })
     names(alone) <- outcomes
     for (order in list(outcomes, rev(outcomes))) {
-      out <- nis_dx_sensitivity(data, "A1", outcomes = order)
+      out <- nis_audit_dx_position(data, "A1", outcomes = order)
       expect_named(
         out,
         c(
@@ -99,7 +99,7 @@ test_that("Local and DuckDB zero and missing weights keep omission arithmetic", 
     for (weights in list(rep(0, 5), rep(NA_real_, 5))) {
       fixture <- dx_boundary_fixture()
       fixture$DISCWT <- weights
-      out <- nis_dx_sensitivity(make_input(fixture), "A1")
+      out <- nis_audit_dx_position(make_input(fixture), "A1")
       expect_equal(out$n_unweighted, c(2, 2, 4))
       expect_equal(out$n_weighted, c(0, 0, 0))
       expect_equal(out$DIED_rate_unweighted, c(1 / 2, 1, 2 / 3))
@@ -108,7 +108,7 @@ test_that("Local and DuckDB zero and missing weights keep omission arithmetic", 
     }
     fixture <- dx_boundary_fixture()
     fixture$DIED <- NA_real_
-    out <- nis_dx_sensitivity(make_input(fixture), "A1")
+    out <- nis_audit_dx_position(make_input(fixture), "A1")
     expect_equal(out$n_weighted, c(5, 0, 5))
     expect_true(all(is.na(out$DIED_rate_unweighted)))
     expect_true(all(is.na(out$DIED_rate_weighted)))
@@ -126,11 +126,11 @@ test_that("DuckDB physical NaN weights and outcomes are missing", {
       "AS t(I10_DX1, DISCWT, DIED)"
     ))
   )
-  result <- nis_dx_sensitivity(query, "I50")
+  result <- nis_audit_dx_position(query, "I50")
   expect_equal(result$n_weighted, c(6, 0, 6))
   expect_equal(result$DIED_rate_unweighted, c(1 / 2, NA, 1 / 2))
   expect_equal(result$DIED_rate_weighted, c(1, NA, 1))
-  expect_equal(result, nis_dx_sensitivity(dplyr::collect(query), "I50"))
+  expect_equal(result, nis_audit_dx_position(dplyr::collect(query), "I50"))
 })
 
 test_that("Local and DuckDB available slots and eligibility still govern flags", {
@@ -139,9 +139,9 @@ test_that("Local and DuckDB available slots and eligibility still govern flags",
     fixture$YEAR <- 2019L
     fixture$DXVER <- c(10L, 9L, 10L, 10L, 10L)
     data <- make_input(fixture)
-    out <- nis_dx_sensitivity(data, "A1")
+    out <- nis_audit_dx_position(data, "A1")
     expect_equal(out$n_unweighted, c(1, 2, 3))
-    capped <- nis_dx_sensitivity(dplyr::select(data, -I10_DX2), "A1")
+    capped <- nis_audit_dx_position(dplyr::select(data, -I10_DX2), "A1")
     expect_equal(capped$n_unweighted, c(1, 0, 1))
   }
 })
@@ -150,7 +150,7 @@ test_that("sensitivity does not alter input metadata", {
   data <- dx_boundary_fixture()
   attr(data, "synthetic_metadata") <- list(source = "invented", slots = 2L)
   before <- data
-  invisible(nis_dx_sensitivity(data, "A1"))
+  invisible(nis_audit_dx_position(data, "A1"))
   expect_identical(data, before)
 })
 
@@ -158,7 +158,7 @@ test_that("sensitivity does not alter input metadata", {
 test_that("sensitivity does not overwrite or reject analyst fields named like flags", {
   data <- dplyr::tibble(YEAR = 2020L, I10_DX1 = c("I50", "Z99"), DISCWT = c(2, 5), .NIS_DX_ANY = c(1, 0))
   for (input in list(data, duckdb_query_fixture(data))) {
-    result <- nis_dx_sensitivity(input, "I50", outcomes = ".NIS_DX_ANY")
+    result <- nis_audit_dx_position(input, "I50", outcomes = ".NIS_DX_ANY")
     expect_identical(result$n_unweighted, c(1, 0, 1))
     expect_equal(result[[".NIS_DX_ANY_rate_unweighted"]], c(1, NA, 1))
   }

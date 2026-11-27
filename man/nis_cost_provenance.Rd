@@ -4,10 +4,10 @@
 \alias{nis_cost_provenance}
 \title{Read cost adjustment provenance}
 \usage{
-nis_cost_provenance(x)
+nis_cost_provenance(.data)
 }
 \arguments{
-\item{x}{A data frame returned by \code{\link[=nis_cost]{nis_cost()}} or a survey design returned
+\item{.data}{A data frame returned by \code{\link[=nis_cost]{nis_cost()}} or a survey design returned
 by \code{\link[=nis_design]{nis_design()}}.}
 }
 \value{

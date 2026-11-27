@@ -121,3 +121,29 @@ test_that("the release exemption comes from the Parquet footer", {
   DBI::dbExecute(con, paste0("COPY (", sql, ") TO ", file, " (FORMAT PARQUET)"))
   expect_warning(nis_open(unmarked), class = "easynis_release_mismatch")
 })
+
+test_that("an enriched example can be saved and reopened as a survey domain", {
+  skip_if_not_installed("medicalcoder", "0.10.0")
+  local_sql_na_warnings()
+  sample <- nis_open(nis_example(2019:2020))
+  reference <- nis_design(sample, cohort = I10_DX1 == "I5022", keep = LOS)
+  expect_warning(
+    source <- sample |>
+      dplyr::select(YEAR, KEY_NIS, HOSP_NIS, NIS_STRATUM, DISCWT, AGE, LOS, I10_DX1, I10_DX2) |>
+      nis_comorbidity(method = "charlson_quan2005") |>
+      nis_add_ccsr(position = "default"),
+    "No matching POA column"
+  )
+  expect_s3_class(source, "tbl_lazy")
+  expect_match(as.character(dbplyr::sql_render(source)), "read_parquet", fixed = TRUE)
+
+  path <- nis_write_cohort(.data = source, cohort = ccsr == "CIR019", path = tempfile(), keep = c(LOS, cmrb_any))
+  design <- nis_design(nis_open(path), keep = c(LOS, cmrb_any))
+  expect_equal(nrow(design$variables), 108L)
+  expect_type(design$variables$cmrb_any, "logical")
+  expect_equal(nis_cell_counts(design, by = starts_with("cmrb"))$n |> sum(), 108L)
+  actual <- survey::svymean(~LOS, design)
+  expected <- survey::svymean(~LOS, reference)
+  expect_equal(coef(actual), coef(expected))
+  expect_equal(vcov(actual), vcov(expected))
+})

@@ -13,15 +13,6 @@
 }
 
 nis_hospital_count_query <- function(data, by) {
-  schema <- data |>
-    dplyr::ungroup() |>
-    dplyr::select(dplyr::all_of(.nis_hospital_fields)) |>
-    utils::head(0L) |>
-    nis_collect()
-  if (!all(vapply(schema, is.numeric, logical(1)))) {
-    nis_invalid_hospital_ids()
-  }
-
   invalid <- reduce_or(lapply(.nis_hospital_fields, function(field) {
     finite <- nis_is_finite_expr(data, field)
     rlang::expr(!dplyr::coalesce(!!finite & !!rlang::sym(field) > 0, FALSE))
@@ -50,9 +41,6 @@ nis_hospital_count_query <- function(data, by) {
 }
 
 .nis_cell_count_validate_by <- function(by) {
-  if (!is.character(by) || anyNA(by) || !all(nzchar(by))) {
-    cli::cli_abort("`by` must be a character vector of cell-defining columns.")
-  }
   reserved <- intersect(by, c("n", "hospitals"))
   if (length(reserved)) {
     cli::cli_abort("`by` must not contain reserved summary names: {.val {reserved}}.")
@@ -69,8 +57,8 @@ nis_hospital_count_query <- function(data, by) {
 #' only the grouped summary.
 #'
 #' @param .data Record-level data frame, lazy DuckDB query, or result of [nis_design()].
-#' @param by Character vector of cell-defining columns. The summary names `n`
-#'   and `hospitals` are reserved and cannot be used as cell-defining columns.
+#' @param by <[tidy-select][dplyr::dplyr_tidy_select]> Cell-defining columns.
+#'   Omit for overall counts. The summary names `n` and `hospitals` are reserved.
 #'
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).
@@ -81,12 +69,21 @@ nis_hospital_count_query <- function(data, by) {
 #' records <- data.frame(
 #'   YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
 #' )
-#' nis_cell_counts(records, by = "group")
-nis_cell_counts <- function(.data, by) {
+#' nis_cell_counts(records, by = group)
+nis_cell_counts <- function(.data, by = NULL) {
   .data <- .nis_cell_count_records(.data)
+  schema <- if (inherits(.data, "tbl_sql")) {
+    nis_collect(utils::head(dplyr::ungroup(.data), 0L))
+  } else {
+    .data
+  }
+  by <- names(tidyselect::eval_select(rlang::enquo(by), schema, allow_rename = FALSE))
   .nis_cell_count_validate_by(by)
   nis_validate_hospital_columns(.data, by)
   if (inherits(.data, "tbl_sql")) {
+    if (!all(vapply(schema[.nis_hospital_fields], is.numeric, logical(1)))) {
+      nis_invalid_hospital_ids()
+    }
     return(nis_hospital_count_query(.data, by))
   }
   nis_validate_hospital_ids(.data)
