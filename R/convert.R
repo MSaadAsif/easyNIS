@@ -1,0 +1,275 @@
+#' Convert a NIS file to annual Parquet
+#'
+#' @param path Path to one annual NIS Stata (`.dta`), SAS (`.sas7bdat`),
+#'   or SPSS (`.sav`) file with a numeric `YEAR` column.
+#' @param dir Existing directory in which to create `NIS_<year>.parquet/`.
+#' @param encoding Source encoding override passed to haven. The default uses
+#'   the reader's format-specific encoding. Use `"latin1"` for a legacy
+#'   Stata file known to use Latin-1.
+#'
+#' @details
+#' Conversion reads bounded batches and writes zstd-compressed Parquet parts
+#' in source order. All records must have the same year, which must agree
+#' with the year in filenames starting with `NIS_<year>`. Invalid UTF-8 or
+#' malformed ICD slot values stop conversion. Blank codes and HCUP's
+#' `invl` and `incn` codes are accepted.
+#'
+#' The annual directory is published after validation and is never
+#' overwritten. [nis_open()] checks converted data against the HCUP annual
+#' release statistics by default.
+#'
+#' @return The path of the annual Parquet directory, invisibly.
+#' @family data-access
+#' @export
+#' @examples
+#' if (requireNamespace("haven", quietly = TRUE)) {
+#'   dir <- tempfile()
+#'   dir.create(dir)
+#'   path <- file.path(dir, "NIS_2020.dta")
+#'   haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), path)
+#'   nis_convert(path, dir)
+#'   nis_open(dir, check_release = FALSE)
+#' }
+nis_convert <- function(path, dir, encoding = NULL) {
+  nis_convert_check_paths(path, dir)
+  read <- nis_convert_haven_reader(path, encoding)
+  first <- read(0L)
+  year <- nis_convert_source_year(first, basename(path))
+  stage <- nis_convert_stage(dir, year)
+  on.exit(nis_remove_owned_directory(stage$temp), add = TRUE)
+  db <- nis_duckdb_open_data()
+  on.exit(db$release(), add = TRUE, after = FALSE)
+  DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
+  rows <- nis_convert_write_batches(read, first, year, stage$temp, db$con)
+  nis_convert_check_count(db$con, stage$temp, rows)
+  nis_convert_publish(stage)
+}
+
+nis_convert_check_paths <- function(path, dir) {
+  if (!rlang::is_string(path) || !file.exists(path) || dir.exists(path)) {
+    cli::cli_abort("`path` must name an existing file.")
+  }
+  if (!rlang::is_string(dir) || !dir.exists(dir)) {
+    cli::cli_abort("`dir` must name an existing directory.")
+  }
+}
+
+nis_convert_haven_reader <- function(path, encoding) {
+  format <- tolower(tools::file_ext(path))
+  if (!format %in% c("dta", "sas7bdat", "sav")) {
+    cli::cli_abort("Supported source extensions are `.dta`, `.sas7bdat`, and `.sav`.")
+  }
+  rlang::check_installed("haven", reason = "to convert statistical data files.")
+  reader <- switch(
+    format,
+    dta = haven::read_dta,
+    sas7bdat = haven::read_sas,
+    sav = function(...) haven::read_sav(..., user_na = TRUE)
+  )
+  read <- function(offset, size, input_encoding = encoding) {
+    reader(path, encoding = input_encoding, skip = offset, n_max = size, .name_repair = "minimal")
+  }
+  function(offset, size = 100000L) {
+    tryCatch(
+      read(offset, size),
+      error = function(error) nis_convert_read_error(error, read, encoding, offset, size)
+    )
+  }
+}
+
+nis_convert_read_error <- function(error, read, encoding, offset, size) {
+  if (!nis_convert_decode_error(error)) {
+    cli::cli_abort("Could not read source batch starting at row {offset + 1L}.", parent = error)
+  }
+  probe <- function(offset, size, ...) tryCatch(read(offset, size, ...), error = identity)
+  begin <- 1L
+  end <- size
+  while (begin < end) {
+    middle <- (begin + end) %/% 2L
+    if (nis_convert_decode_error(probe(offset, middle))) end <- middle else begin <- middle + 1L
+  }
+  row <- offset + begin
+  columns <- nis_convert_undecodable_columns(probe(row - 1L, 1L, "latin1"), encoding)
+  if (length(columns)) {
+    label <- if (length(columns) == 1L) "column" else "columns"
+    cli::cli_abort("Malformed source encoding in {label} {.field {columns}} at source row {row}.", parent = error)
+  }
+  cli::cli_abort("Could not decode source row {row}.", parent = error)
+}
+
+nis_convert_decode_error <- function(error) {
+  inherits(error, "error") && grepl("invalid byte sequence", conditionMessage(error), fixed = TRUE)
+}
+
+nis_convert_undecodable_columns <- function(data, encoding) {
+  if (!is.data.frame(data)) {
+    return(character())
+  }
+  if (is.null(encoding)) {
+    encoding <- "UTF-8"
+  }
+  text <- data[vapply(data, is.character, logical(1))]
+  invalid <- vapply(
+    text,
+    function(value) {
+      # Latin-1 maps each input byte to one character. Reverse that diagnostic
+      # read so iconv can check the original bytes in the intended encoding.
+      bytes <- iconv(value, from = "UTF-8", to = "latin1")
+      decoded <- iconv(bytes, from = encoding, to = "UTF-8")
+      any(!is.na(bytes) & is.na(decoded))
+    },
+    logical(1)
+  )
+  names(text)[invalid]
+}
+
+nis_convert_source_year <- function(data, filename) {
+  columns <- nis_convert_column_keys(names(data))
+  year_column <- match("year", columns)
+  if (is.na(year_column)) {
+    nis_convert_invalid("Missing", "YEAR", 1L)
+  }
+  values <- data[[year_column]]
+  if (!is.numeric(values)) {
+    nis_convert_invalid("Expected numeric", "YEAR", 1L)
+  }
+  if (!nrow(data)) {
+    cli::cli_abort("Source file has no records.")
+  }
+  year <- values[[1L]]
+  if (!nis_open_whole_years(year) || year < 2012 || year > 9999) {
+    nis_convert_invalid("Invalid NIS year in", "YEAR", 1L)
+  }
+  named_year <- nis_convert_filename_year(filename)
+  if (!is.na(named_year) && year != named_year) {
+    nis_convert_invalid(paste("Expected filename year", named_year, "in"), "YEAR", 1L)
+  }
+  as.integer(year)
+}
+
+nis_convert_column_keys <- function(columns) {
+  if (!all(validUTF8(columns)) || !all(nzchar(columns))) {
+    cli::cli_abort("Source column names must be nonempty and valid UTF-8.")
+  }
+  keys <- nis_sql_identifier_key(columns)
+  if (anyDuplicated(keys)) {
+    cli::cli_abort("Source column names must be unique.")
+  }
+  keys
+}
+
+nis_convert_filename_year <- function(filename) {
+  match <- regmatches(filename, regexec("^NIS[_-]?([0-9]{4})(?![0-9])", filename, ignore.case = TRUE, perl = TRUE))[[
+    1L
+  ]]
+  as.integer(match[2L])
+}
+
+nis_convert_stage <- function(dir, year) {
+  dir <- normalizePath(dir, winslash = "/", mustWork = TRUE)
+  target <- file.path(dir, paste0("NIS_", year, ".parquet"))
+  nis_convert_check_target(target)
+  temp <- tempfile(".easynis-convert-", tmpdir = dir)
+  if (!dir.create(temp, mode = "0700")) {
+    cli::cli_abort("Could not create a temporary sibling of {.path {target}}.")
+  }
+  list(target = target, temp = normalizePath(temp, winslash = "/", mustWork = TRUE))
+}
+
+nis_convert_publish <- function(stage) {
+  nis_convert_check_target(stage$target)
+  if (!suppressWarnings(file.rename(stage$temp, stage$target))) {
+    cli::cli_abort("Could not publish {.path {stage$target}}.")
+  }
+  invisible(stage$target)
+}
+
+nis_convert_check_target <- function(path) {
+  if (file.exists(path)) cli::cli_abort("Output {.path {path}} already exists.")
+}
+
+nis_convert_write_batches <- function(read, data, year, temp, con) {
+  offset <- 0L
+  part <- 1L
+  year_column <- match("year", nis_sql_identifier_key(names(data)))
+  repeat {
+    size <- nrow(data)
+    if (!size) {
+      break
+    }
+    nis_convert_validate_batch(data, year, offset)
+    data[[year_column]] <- as.integer(data[[year_column]])
+    path <- file.path(temp, sprintf("part-%06d.parquet", part))
+    nis_convert_copy_batch(con, data, path)
+    offset <- offset + size
+    if (size < 100000L) {
+      break
+    }
+    part <- part + 1L
+    data <- read(offset)
+  }
+  offset
+}
+
+nis_convert_validate_batch <- function(data, year, offset) {
+  columns <- nis_sql_identifier_key(names(data))
+  values <- data[[match("year", columns)]]
+  wrong <- which(is.na(values) | values != year)
+  if (length(wrong)) {
+    nis_convert_invalid(paste("Expected", year, "in"), "YEAR", offset + wrong[[1L]])
+  }
+
+  for (i in seq_along(columns)) {
+    column <- names(data)[[i]]
+    values <- data[[i]]
+    pattern <- nis_convert_code_pattern(toupper(columns[[i]]))
+    if (is.character(values)) {
+      invalid <- which(!validUTF8(values) & !is.na(values))
+      if (length(invalid)) nis_convert_invalid("Malformed UTF-8 in", column, offset + invalid[[1L]])
+    }
+    if (is.null(pattern)) {
+      next
+    }
+    if (!is.character(values)) {
+      nis_convert_invalid("Expected text in", column, offset + 1L)
+    }
+    wrong <- which(!is.na(values) & !grepl(pattern, values, perl = TRUE, useBytes = TRUE))
+    if (length(wrong)) nis_convert_invalid("Malformed ICD code in", column, offset + wrong[[1L]])
+  }
+}
+
+nis_convert_code_pattern <- function(column) {
+  stem <- sub("[0-9]+$", "", column)
+  if (identical(stem, column)) {
+    return(NULL)
+  }
+  code <- switch(
+    stem,
+    DX = "[0-9]{3,5}|V[0-9]{2,4}|E[0-9]{3,4}",
+    PR = "[0-9]{2,4}",
+    I10_DX = "[A-Z][0-9][A-Z0-9]{1,5}",
+    I10_PR = "[A-HJ-NP-Z0-9]{7}"
+  )
+  if (!is.null(code)) paste0("^(?:", code, "|invl|incn)? *\\z")
+}
+
+nis_convert_invalid <- function(reason, column, row) {
+  cli::cli_abort("{reason} column {.field {column}} at source row {row}.")
+}
+
+nis_convert_copy_batch <- function(con, data, path) {
+  duckdb::duckdb_register(con, "nis_convert_batch", data)
+  on.exit(duckdb::duckdb_unregister(con, "nis_convert_batch"))
+  target <- DBI::dbQuoteString(con, path)
+  DBI::dbExecute(con, paste("COPY nis_convert_batch TO", target, "(FORMAT PARQUET, COMPRESSION ZSTD)"))
+}
+
+nis_convert_check_count <- function(con, temp, rows) {
+  parts <- list.files(temp, pattern = "[.]parquet$", full.names = TRUE)
+  paths <- nis_parquet_paths(con, parts)
+  metadata <- DBI::dbGetQuery(con, paste0("SELECT num_rows FROM parquet_file_metadata(", paths, ")"))
+  written <- sum(metadata$num_rows)
+  if (written != rows) {
+    cli::cli_abort("Parquet row count mismatch: read {rows} source rows and wrote {written}.")
+  }
+}
