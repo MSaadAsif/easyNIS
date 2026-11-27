@@ -2,8 +2,10 @@ reduce_or <- function(terms) {
   Reduce(function(left, right) rlang::expr((!!left) | (!!right)), terms)
 }
 
-nis_and_expr <- function(left, right) {
-  rlang::expr(dplyr::if_else(!!left, !!right, FALSE))
+nis_gate_expr <- function(condition, value) {
+  # Code-system predicates handle missing inputs explicitly. A single WHEN
+  # avoids dbplyr emitting the same condition again for the false branch.
+  rlang::expr(dplyr::case_when(!!condition ~ !!value, .default = FALSE))
 }
 
 nis_is_nonnegative_integer <- function(threshold) {

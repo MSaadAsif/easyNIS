@@ -238,7 +238,7 @@ nis_sql_regex_match <- function(patterns, column) {
   per_pattern <- lapply(patterns, function(pattern) {
     rlang::expr(regexp_full_match(as.character(!!rlang::sym(column)), !!pattern))
   })
-  rlang::expr(dplyr::coalesce(!!reduce_or(per_pattern), FALSE))
+  reduce_or(per_pattern)
 }
 
 normalize_prefixes <- function(value, arg = NULL) {
@@ -284,7 +284,7 @@ nis_code_match <- function(rule, data, slot_names) {
       return(matched)
     }
     excluded <- rlang::expr(!!value %in% !!rule$exclude)
-    nis_and_expr(matched, rlang::expr(!dplyr::coalesce(!!excluded, FALSE)))
+    rlang::expr((!!matched) & !dplyr::coalesce(!!excluded, FALSE))
   })
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
 }
@@ -324,5 +324,5 @@ nis_sql_match <- function(prefix, column) {
     # jarl-ignore string_boundary: Keep the existing SQL SUBSTR translation.
     rlang::expr(substr(!!rlang::sym(column), 1L, !!nchar(code)) == !!code)
   })
-  rlang::expr(dplyr::coalesce(!!reduce_or(per_prefix), FALSE))
+  reduce_or(per_prefix)
 }
