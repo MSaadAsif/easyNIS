@@ -1,0 +1,1 @@
+- DuckDB diagnosis and procedure flags validate calendar years within the query. `nis_add_ccsr()` uses the known output names to avoid an extra bind of wide flag pipelines.

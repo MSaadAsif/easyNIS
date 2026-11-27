@@ -64,7 +64,7 @@ nis_add_ccsr <- function(
     validate_ccsr_category_names(categories, available, call, source = "bundled releases")
   }
   sql <- ccsr_query_sql(.data, con, columns, slots, type, position, releases, version, categories, name)
-  out <- dplyr::tbl(con, dbplyr::sql(sql))
+  out <- dplyr::tbl(con, dbplyr::sql(sql), vars = c(columns, name))
   out$src <- .data$src
   if (inherits(.data, "tbl_nis")) {
     class(out) <- c("tbl_nis", class(out))

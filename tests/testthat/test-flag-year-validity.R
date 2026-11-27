@@ -82,3 +82,20 @@ test_that("absent YEAR leaves code-system version eligibility unchanged", {
     }
   }
 })
+
+test_that("DuckDB checks fractional decimal years without rounding to double", {
+  con <- DBI::dbConnect(duckdb::duckdb())
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  data <- dplyr::tbl(
+    con,
+    dbplyr::sql(paste(
+      "SELECT id, CAST(y AS DECIMAL(38, 30)) AS \"YEAR\", 'TOKEN' AS I10_DX1",
+      "FROM (VALUES (1, '2016.0'), (2, '2016.0000000000000000001'), (3, NULL)) AS years(id, y)"
+    ))
+  )
+  result <- data |>
+    nis_flag_dx(hit = "TOKEN") |>
+    dplyr::arrange(id) |>
+    dplyr::collect()
+  expect_identical(result$hit, c(TRUE, FALSE, TRUE))
+})
