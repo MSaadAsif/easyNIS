@@ -1,5 +1,23 @@
-# Study selection is deferred to a future loop cycle.
-# Each selected study must include an id, doi, cohort_definition, tolerance,
-# and headline_estimates with id, label, estimate_printed, estimate, ci_printed,
-# and ci (the numeric lower and upper limits).
-studies: []
+# Tolerances are absolute relative errors, expressed as fractions.
+studies:
+  - id: hcup-2022-all
+    citation: 'AHRQ. Introduction to the HCUP National Inpatient Sample (NIS), 2022. November 2024.'
+    url: https://hcup-us.ahrq.gov/db/nation/nis/NISIntroduction2022.pdf
+    location: 'Appendix I, Table 3, 2022 row, Number of Discharges in the NIS, Weighted.'
+    definition: 'National discharge total for all 2022 NIS stays using DISCWT.'
+    tolerance: 0.0000001
+    rounding: '0.00001% covers rounding to a whole discharge and minor numerical differences. The population is explicitly defined.'
+  - id: hcup-2019-adult
+    citation: 'Owens PL, Liang L, Barrett ML, Fingar KR. Comorbidities Associated With Adult Inpatient Stays, 2019. HCUP Statistical Brief #303. December 2022.'
+    url: https://hcup-us.ahrq.gov/reports/statbriefs/sb303-Comorbidities-Adult-Hospitalizations-2019.jsp
+    location: 'Supplemental Table 3, All inpatient stays, N. Transcribe the table value rather than the rounded figure in the text.'
+    definition: 'National discharge total for 2019 NIS stays at age 18 years or older using DISCWT.'
+    tolerance: 0.000002
+    rounding: '0.0002% covers rounding to the nearest hundred discharges. Age eligibility is explicit.'
+  - id: hcup-2021-covid
+    citation: 'AHRQ. An Assessment of Sepsis in the United States and its Burden on Hospital Care. Report to Congress, 2024.'
+    url: https://hcup-us.ahrq.gov/reports/SepsisUSBurdenHospitalCare-Appendices.pdf
+    location: 'Appendix Table E.4.8, Number of inpatient stays, Estimate for Inpatient Stays Involving a Diagnosis of COVID-19.'
+    definition: 'National discharge total using DISCWT for 2021 NIS stays with any-listed exact ICD-10-CM J12.82, U07.1 or U09.9 (Appendix Table C.5).'
+    tolerance: 0.0000005
+    rounding: '0.00005% covers whole-discharge rounding and minor numerical differences. The discharge year, diagnoses and diagnosis placement are explicit.'

@@ -13,16 +13,14 @@ current_tree_clean <- current_evidence$working_tree_clean
 ci_files <- list.files(".github/workflows", pattern = "[.]ya?ml$", full.names = TRUE)
 ci_text <- paste(unlist(lapply(ci_files, readLines, warn = FALSE)), collapse = "\n")
 reference_studies <- load_reference_studies(file.path(root, "tools", "probe", "reference-studies.yml"))
-headline_pass <- current_tree_clean &&
-  valid_reference_studies(reference_studies) &&
-  all(vapply(
+headline_results <- if (current_tree_clean && valid_nonempty_string(current_commit)) {
+  study_verification_results(
+    study_receipt_path(loop_dir, current_commit),
+    current_commit,
     reference_studies,
-    function(study) {
-      receipt <- file.path(loop_dir, "private", "study-verification", paste0(study$id, ".json"))
-      study_verification_ready(receipt, current_commit, study)
-    },
-    logical(1)
-  ))
+    read_study_json(study_reference_path(loop_dir))
+  )
+}
 query_open_issues <- function(label) {
   result <- tryCatch(
     system2(
@@ -56,7 +54,7 @@ criteria <- evaluate_readiness(
   quality,
   exported_example_status(root),
   workflow_documented,
-  headline_pass,
+  headline_results,
   issue_queries,
   ci_configured,
   ci_runs
