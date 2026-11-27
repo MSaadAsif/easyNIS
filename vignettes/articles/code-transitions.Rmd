@@ -16,8 +16,8 @@ library(easyNIS)
 ## Audit code frequencies
 
 `nis_audit_code_transition()` summarizes named code groups by period. The
-example is a small invented data frame; use separate calls for ICD-9 and
-ICD-10 because the function matches only one code system at a time.
+example is a small invented data frame. When supplying prefixes directly,
+use separate calls for ICD-9 and ICD-10.
 
 ```{r audit}
 toy <- data.frame(
@@ -107,6 +107,23 @@ nis_open(nis_example(years = 2015)) |>
 Use a single-system call when only one slot set is present. Review clinical
 equivalence and trends with the study's code sets. Mixed-system flags are
 experimental.
+
+## Reuse cohort criteria
+
+Pass the `flow` from [the cohort example](cohorts.html#record-eligibility-across-the-2015-transition)
+as `codes` to compare its any-slot and principal criteria by quarter. Each
+criterion is counted independently within the audit denominator. This audit
+uses all discharges in each period. Supply `cohort` to choose a different
+denominator, for example adults with a known age.
+
+```{r audit-flow, eval=FALSE}
+attr(flow, "nis_criteria")
+nis_audit_code_transition(nis, codes = flow, by = c("YEAR", "DQTR"))
+```
+
+For the invented example, any-slot counts in Q3 and Q4 are 24 and 19.
+Principal counts are 9 and 18. A discharge matching several prefixes or
+slots contributes once per criterion.
 
 ## Common pitfalls
 

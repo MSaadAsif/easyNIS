@@ -14,6 +14,11 @@ test_that("saved cohorts preserve the full variance design and count only patien
   expect_equal(sum(!rows$.in_cohort & rows$YEAR == 2019L), 6)
   expect_true(all(is.na(rows$LOS[!rows$.in_cohort])))
   expect_error(nis_write_cohort(source, FALSE, path, keep), "already exists")
+  expect_error(nis_design(saved, TRUE, keep), "Omit .*cohort")
+  expect_error(
+    nis_design(dplyr::select(saved, -.in_cohort), keep = keep),
+    "Keep .*in_cohort.*membership column"
+  )
 
   estimates <- function(design) {
     dplyr::summarise(
@@ -70,6 +75,23 @@ test_that("an export failure leaves no target and the source remains usable", {
   nis_write_cohort(source, AGE >= 65, path, LOS)
   expect_equal(nrow(dplyr::collect(nis_open(parent))), 96L)
   expect_lt(nrow(dplyr::collect(nis_open(path))), 96L)
+})
+
+test_that("cohort exports cannot publish when all design weights are invalid", {
+  withr::local_options(easyNIS.duckdb_config = list(threads = 1L))
+  root <- withr::local_tempdir()
+  write_duckdb_parquet(
+    data.frame(YEAR = 2019L, HOSP_NIS = 1L, NIS_STRATUM = 1L, DISCWT = c(0, NA_real_), LOS = c(1L, 3L)),
+    file.path(root, "NIS_2019.parquet")
+  )
+  source <- nis_open(root, check_release = FALSE)
+  con <- dbplyr::remote_con(source)
+  withr::defer(DBI::dbDisconnect(con, shutdown = TRUE))
+  expect_error(
+    nis_write_cohort(source, TRUE, file.path(root, "cohort"), LOS),
+    "No discharges have valid design fields"
+  )
+  expect_identical(list.files(root, all.files = TRUE, no.. = TRUE), "NIS_2019.parquet")
 })
 
 test_that("the release exemption comes from the Parquet footer", {

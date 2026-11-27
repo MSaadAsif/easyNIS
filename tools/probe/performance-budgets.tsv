@@ -14,4 +14,4 @@ reference	glm	1000	13	1
 minimum	table	1000	88	1
 reference	table	1000	80	1
 minimum	whole_sample	8000	166	1
-reference	whole_sample	16000	166	1
+reference	whole_sample	650	166	1

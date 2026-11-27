@@ -266,6 +266,30 @@ test_that("method and prefix options and input errors are explicit", {
   expect_error(nis_comorbidity(open_duckdb_dataset(path)), "KEY_NIS")
 })
 
+test_that("comorbidity uses discharge quarters from a labelled survey design", {
+  records <- data.frame(
+    YEAR = 2026L,
+    DQTR = c(3L, 4L),
+    HOSP_NIS = 1:2,
+    NIS_STRATUM = 1L,
+    DISCWT = 5,
+    I10_DX1 = "ZZZ99",
+    I10_DX2 = "Z6818",
+    DXPOA1 = "Y",
+    DXPOA2 = "N"
+  )
+  design <- suppressMessages(nis_design(
+    records,
+    cohort = TRUE,
+    keep = c(DQTR, I10_DX1, I10_DX2, DXPOA1, DXPOA2)
+  ))
+
+  enriched <- nis_comorbidity(design, "elixhauser_ahrq2027")
+
+  expect_identical(enriched$variables$DQTR, design$variables$DQTR)
+  expect_identical(enriched$variables$cmrb_wghtloss, c(FALSE, TRUE))
+})
+
 test_that("comorbidity columns preserve survey design and support reweighting", {
   skip_if_not_installed("medicalcoder")
   path <- nis_example(2017:2018)
