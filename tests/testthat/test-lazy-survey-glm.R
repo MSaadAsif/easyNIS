@@ -127,3 +127,43 @@ test_that("wide whole-sample fits agree on the six-year invented fixture", {
   model <- stats::reformulate(c("AGE", "FEMALE", "factor(YEAR)", names(extra)), "LOS")
   expect_lazy_glm(survey::svyglm(model, design), survey::svyglm(model, reference))
 })
+
+test_that("lazy GLMs preserve ENUM levels and name non-treatment contrasts", {
+  withr::local_options(list(
+    survey.lonely.psu = "fail",
+    easyNIS.duckdb_config = list(threads = 2L),
+    contrasts = c("contr.treatment", "contr.poly")
+  ))
+  query <- lazy_glm_fixture() |>
+    dplyr::mutate(
+      severity = dbplyr::sql(
+        "CAST(CASE WHEN AGE < 40 THEN 'Low' WHEN AGE < 70 THEN 'Medium'
+        ELSE 'High' END AS ENUM('Low', 'Medium', 'High'))"
+      ),
+      event = dbplyr::sql(
+        "CAST(CASE WHEN response = 1 THEN 'Yes' WHEN response = 0 THEN 'No'
+        END AS ENUM('Yes', 'No'))"
+      )
+    )
+  design <- nis_survey(query)
+  reference <- lazy_reference(query)
+  expect_identical(levels(reference$variables$severity), c("Low", "Medium", "High"))
+  expect_identical(levels(reference$variables$event), c("Yes", "No"))
+  logistic <- stats::quasibinomial()
+  expect_lazy_glm(
+    survey::svyglm(event ~ AGE + severity, design, family = logistic),
+    survey::svyglm(event ~ AGE + severity, reference, family = logistic)
+  )
+  for (contrast in c("contr.sum", "contr.helmert")) {
+    withr::with_options(list(contrasts = c(contrast, "contr.poly")), {
+      expect_lazy_glm(
+        survey::svyglm(los_days ~ AGE + severity, design),
+        survey::svyglm(los_days ~ AGE + severity, reference)
+      )
+    })
+  }
+  expect_identical(
+    survey::degf(subset(design, HOSP_NIS < 6L)),
+    survey::degf(subset(reference, HOSP_NIS < 6L))
+  )
+})

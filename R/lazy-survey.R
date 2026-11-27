@@ -192,6 +192,26 @@ nis_survey_quos <- function(variables, formula) {
   })
 }
 
+#' @exportS3Method survey::degf
+degf.nis_survey <- function(design, ...) {
+  nis_survey_no_dots(...)
+  if (!length(design$domain)) {
+    roster <- nis_survey_roster(design)
+    return(nrow(roster) - length(unique(roster$stratum)))
+  }
+  query <- nis_survey_project(design, list())
+  keys <- paste(.nis_survey_keys, collapse = ", ")
+  psus <- nis_survey_get(
+    design,
+    sprintf(
+      "SELECT DISTINCT %s FROM %s WHERE inside",
+      keys,
+      nis_survey_sql(query)
+    )
+  )
+  nrow(psus) - nrow(unique(psus[c("YEAR", "NIS_STRATUM")]))
+}
+
 nis_survey_roster <- function(design) {
   keys <- paste(.nis_survey_keys, collapse = ", ")
   roster <- nis_survey_get(design, sprintf("SELECT DISTINCT %s FROM %s", keys, nis_survey_sql(design$query)))

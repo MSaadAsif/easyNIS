@@ -101,7 +101,7 @@ nis_survey_model_levels <- function(design, source, name, type) {
   }
   values <- nis_survey_get(design, sprintf("SELECT DISTINCT %1$s AS value FROM %2$s", name, source))$value
   if (is.factor(values)) {
-    values <- as.character(values)
+    return(levels(droplevels(values)))
   }
   sort(values)
 }
@@ -162,7 +162,11 @@ nis_survey_contrasts <- function(design, aliases, levels, labels, intercept) {
     sql <- apply(contrasts, 2L, function(column) {
       paste("CASE", field, paste("WHEN", literals, "THEN", nis_survey_number(column), collapse = " "), "END")
     })
-    stats::setNames(sql, paste0(labels[i], colnames(contrasts)))
+    suffix <- colnames(contrasts)
+    if (is.null(suffix)) {
+      suffix <- seq_len(ncol(contrasts))
+    }
+    stats::setNames(sql, paste0(labels[i], suffix))
   })
   sql <- c(if (intercept) c("(Intercept)" = "1.0::DOUBLE"), unlist(columns))
   if (!length(sql)) {

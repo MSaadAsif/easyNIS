@@ -147,6 +147,10 @@ fit <- survey::svyglm(LOS ~ AGE + factor(YEAR), whole)
 broom::tidy(fit, conf.int = TRUE)
 ```
 
+For a `nis_survey()` fit, `gtsummary::tbl_regression()` reports the unweighted
+number of complete discharges as N. For a `nis_design()` fit, N comes from
+the analysis weights.
+
 Use `nis_design()` for row-level cohort analysis, including quantiles,
 chi-square tests, `gtsummary::tbl_svysummary()`, and IPTW. Use the disclosure
 workflow before sharing results.
