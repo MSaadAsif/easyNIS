@@ -15,7 +15,7 @@ ident <- function(x) as.character(dbQuoteIdentifier(con, x))
 now <- function() as.numeric(Sys.time())
 connect <- function() dbConnect(duckdb(config = list(threads = threads, memory_limit = memory)))
 
-if (task %in% c("fixture", "ccsr-fixture")) {
+if (task %in% c("fixture", "ccsr-fixture", "prday-fixture")) {
   rows <- if (task == "fixture") 500000L else 50000L
   dir.create(fixture, showWarnings = FALSE)
   con <- connect()
@@ -67,7 +67,7 @@ if (task %in% c("fixture", "ccsr-fixture")) {
       )
     )
   }
-  if (task == "ccsr-fixture") {
+  if (task != "fixture") {
     dbDisconnect(con, shutdown = TRUE)
     quit()
   }

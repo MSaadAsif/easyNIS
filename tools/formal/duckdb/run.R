@@ -44,6 +44,8 @@ mutations <- function(lake, evidence) {
   run("slots-era", "Slots", "xs.filter code", "xs.filter Slot.matched")
   run("slots-day", "Slots", "(longRows xs).filterMap Slot.day", "xs.filterMap Slot.day")
   run("slots-principal", "Slots", "((longRows xs).filter fun x => !x.principal).any", "(longRows xs).any")
+  run("timing-window", "Slots", "decide (0 ", "decide (1 ")
+  run("timing-same-slot", "Slots", "x.outcome && start.any", "(x.outcome && !x.index) && start.any")
   run("ccsr-category", "Slots", "pair.2 == category", "pair.2 != category")
   run("lifetime-owner-198", "Lifetime", "def keepComputeRoot : Bool := true", "def keepComputeRoot : Bool := false")
   run("lifetime-drop-table", "Lifetime", "def keepLiveTable : Bool := true", "def keepLiveTable : Bool := false")

@@ -139,24 +139,62 @@ timing_cases <- function(con) {
     wide[[paste0("I10_PR", i)]] <- sample(c(NA, "I", "O", "X"), nrow(wide), replace = TRUE, prob = c(60, 4, 4, 32))
     wide[[paste0("PRDAY", i)]] <- sample(c(NA, -6, 0, 1, 2, 99, Inf), nrow(wide), replace = TRUE)
   }
-  c(draws, list(case(rows, args), case(wide, modifyList(args, list(width = 25L)))))
+  overlap <- fixture(
+    YEAR = c(2014L, 2020L),
+    DQTR = NA_integer_,
+    PRVER = NA_integer_,
+    I10_PR1 = c(NA, "I", "IX", "O", "X"),
+    I10_PR2 = c(NA, "I", "IX", "O", "X"),
+    PRDAY1 = c(NA, "-9", "0", ".5", "1"),
+    PRDAY2 = c(NA, "-9", "0", ".5", "1")
+  )
+  overlap_args <- modifyList(args, list(width = 2L, overlap = TRUE, window = 0L))
+  overlap_cases <- lapply(unique(configs$relation), function(relation) {
+    case(overlap, modifyList(overlap_args, list(relation = relation)))
+  })
+  c(
+    draws,
+    overlap_cases,
+    list(
+      case(rows, args),
+      case(wide, modifyList(args, list(width = 25L))),
+      case(rows[FALSE, ], args),
+      case(rows[c("id", "YEAR", "PRDAY1")], modifyList(args, list(error = "No ICD-10"))),
+      case(rows[c("id", "YEAR", "I10_PR1")], modifyList(args, list(error = "No PRDAY")))
+    )
+  )
 }
 
 timing_sql <- function(con, rows, args) {
+  input <- duck_table(con, rows)
+  if (!is.null(args$error)) {
+    return(tryCatch(
+      easyNIS::nis_flag_pr_timing(input, "I", "O"),
+      error = function(e) data.frame(rejected = grepl(args$error, conditionMessage(e), fixed = TRUE))
+    ))
+  }
+  index <- if (isTRUE(args$overlap)) list(prefix = "I", regex = "X", exclude = "IX") else mixed_rule("I", args$system)
+  outcome <- if (isTRUE(args$overlap)) list(regex = "[IO]") else mixed_rule("O", args$system)
   q <- easyNIS::nis_flag_pr_timing(
-    duck_table(con, rows),
-    mixed_rule("I", args$system),
-    mixed_rule("O", args$system),
+    input,
+    index,
+    outcome,
     name = "result",
     system = args$system,
     relation = args$relation,
     missing_day = args$missing_day,
-    window = if (args$relation == "within_days") 1L
+    window = if (args$relation == "within_days") {
+      if (is.null(args$window)) 1L else args$window
+    }
   )
   pull_columns(q, c("id", "result"))
 }
 
 timing_reference <- function(rows, args) {
+  if (!is.null(args$error)) {
+    return(data.frame(rejected = TRUE))
+  }
+  window <- if (is.null(args$window)) 1L else args$window
   day <- lapply(seq_len(args$width), function(slot) {
     raw <- rows[[paste0("PRDAY", slot)]]
     x <- if (is.null(raw)) rep(NA_real_, nrow(rows)) else suppressWarnings(as.numeric(raw))
@@ -167,8 +205,8 @@ timing_reference <- function(rows, args) {
   result <- rep(FALSE, nrow(rows))
   for (system in systems(args$system)) {
     code <- as.matrix(rows[slot_names("PR", system, args$width)])
-    index <- !is.na(code) & code == "I"
-    outcome <- !is.na(code) & code == "O"
+    index <- !is.na(code) & (code == "I" | (isTRUE(args$overlap) & code == "X"))
+    outcome <- !is.na(code) & (code == "O" | (isTRUE(args$overlap) & code == "I"))
     ref <- days
     ref[!index] <- NA_real_
     delta <- days - do.call(pmin, c(as.data.frame(ref), na.rm = TRUE))
@@ -178,7 +216,7 @@ timing_reference <- function(rows, args) {
       after = delta > 0,
       before = delta < 0,
       same_day = delta == 0,
-      within_days = delta >= 0 & delta <= 1
+      within_days = delta >= 0 & delta <= window
     )
     hit <- rowSums(outcome & match, na.rm = TRUE) > 0L
     if (args$missing_day == "indeterminate") {
@@ -202,7 +240,7 @@ register(
   timing_cases,
   timing_sql,
   timing_reference,
-  mutation("procedure-days.R", "nis_decode_procedure_day", " AS DOUBLE)", " AS BIGINT)"),
+  mutation("pr-timing-sql.R", "timing_relation_sql", "BETWEEN 0 AND %d", "BETWEEN 1 AND %d"),
   relations = list(slots = timing_slot_relation, years = split_years, rows = shuffle_rows),
   relation_case = function(cases) {
     x <- cases[[45L]]

@@ -102,14 +102,14 @@ if (task %in% c("flag", "ccsr", "comorbidity", "timing")) {
     if (!is_pr) {
       expr <- if (task == "comorbidity") {
         sprintf(
-          "list_reduce(list_transform(list_zip(%s, %s), x -> coalesce(%s, false)), (a,b) -> a OR b)",
+          "list_reduce(list_transform(list_zip(%s, %s), lambda x: coalesce(%s, false)), lambda a, b: a OR b)",
           arr(codes),
           arr(aux),
           dx("x[1]", "x[2]")
         )
       } else {
         sprintf(
-          "list_reduce(list_transform(%s, x -> coalesce(%s, false)), (a,b) -> a OR b)",
+          "list_reduce(list_transform(%s, lambda x: coalesce(%s, false)), lambda a, b: a OR b)",
           arr(codes),
           dx("x", "NULL")
         )
@@ -117,18 +117,18 @@ if (task %in% c("flag", "ccsr", "comorbidity", "timing")) {
       return(run_query(paste("SELECT", expr, "AS v FROM", source)))
     }
     items <- sprintf("list_zip(%s, %s)", arr(codes), arr(aux))
-    index <- "list_filter(items, x -> starts_with(x[1], '0270'))"
-    outcome <- "list_filter(items, x -> starts_with(x[1], '02L73'))"
-    match <- "length(list_filter(outs, x -> x[2] - ix BETWEEN 0 AND 3)) > 0"
+    index <- "list_filter(items, lambda x: starts_with(x[1], '0270'))"
+    outcome <- "list_filter(items, lambda x: starts_with(x[1], '02L73'))"
+    match <- "length(list_filter(outs, lambda x: x[2] - ix BETWEEN 0 AND 3)) > 0"
     missing <- paste(
       "length(outs) > 0 AND",
-      "length(list_filter(list_concat(inds, outs), x -> x[2] IS NULL OR x[2] < 0)) > 0"
+      "length(list_filter(list_concat(inds, outs), lambda x: x[2] IS NULL OR x[2] < 0)) > 0"
     )
     run_query(paste(
       "SELECT",
       timing("length(inds) > 0", match, missing),
       "AS v",
-      "FROM (SELECT inds, outs, list_min(list_transform(inds, x -> CASE WHEN x[2] >= 0 THEN x[2] END)) AS ix",
+      "FROM (SELECT inds, outs, list_min(list_transform(inds, lambda x: CASE WHEN x[2] >= 0 THEN x[2] END)) AS ix",
       "FROM (SELECT",
       index,
       "AS inds,",

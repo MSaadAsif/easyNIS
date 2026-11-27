@@ -262,6 +262,39 @@ test_that("procedure timing stays lazy and agrees with data frames on DuckDB", {
   expect_identical(dplyr::collect(lazy), expected)
 })
 
+test_that("procedure timing can outlive and compose with its grouped source", {
+  root <- withr::local_tempdir()
+  frame <- dplyr::tibble(
+    YEAR = 2020L,
+    id = 1:3,
+    I10_PR1 = "IX",
+    I10_PR2 = "OUT",
+    PRDAY1 = 0L,
+    PRDAY2 = c(2L, 1L, 0L),
+    .nis_timing_day_1 = 42L
+  )
+  write_duckdb_parquet(frame, file.path(root, "NIS_2020.parquet"))
+  flagged <- local({
+    source <- nis_open(root, check_release = FALSE) |>
+      dplyr::filter(id > 1L) |>
+      dplyr::group_by(YEAR) |>
+      dplyr::arrange(dplyr::desc(id))
+    result <- nis_flag_pr_timing(source, "IX", "OUT", name = 'a "flag"', relation = "after")
+    rm(source)
+    result
+  })
+  invisible(gc())
+  expect_s3_class(flagged, "tbl_nis")
+  expect_identical(dplyr::group_vars(flagged), "YEAR")
+  collected <- flagged |>
+    dplyr::mutate(sequence = dplyr::row_number()) |>
+    dplyr::collect()
+  expect_identical(collected$id, c(3L, 2L))
+  expect_equal(collected$sequence, 1:2)
+  expect_identical(collected[['a "flag"']], c(FALSE, TRUE))
+  expect_identical(collected$.nis_timing_day_1, c(42L, 42L))
+})
+
 test_that("procedure timing agrees across DuckDB policies and relations", {
   data <- pr_timing_parity_data()
   query <- duckdb_query_fixture(data)

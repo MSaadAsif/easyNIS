@@ -55,3 +55,10 @@ jobs:
           mkdir -p "$evidence"
           Rscript --vanilla tools/experiments/adr-0002/capture.R "$evidence" ccsr-fixture 2
           Rscript --vanilla tools/experiments/adr-0002/ccsr-gate.R "$evidence"
+      - name: Gate procedure-day query performance
+        timeout-minutes: 2
+        run: |
+          evidence="$RUNNER_TEMP/prday-gate"
+          mkdir -p "$evidence"
+          Rscript --vanilla tools/experiments/adr-0002/capture.R "$evidence" prday-fixture 2
+          Rscript --vanilla tools/experiments/adr-0002/prday-gate.R "$evidence"

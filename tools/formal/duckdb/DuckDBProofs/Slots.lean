@@ -2,8 +2,8 @@ import Lean
 
 namespace DuckDBProofs.Slots
 
--- R/code-flags.R:nis_code_match, R/pr-timing.R:timing_index_day,
--- R/procedure-days.R:nis_decode_procedure_day, and
+-- R/code-flags.R:nis_code_match, R/pr-timing-sql.R:timing_system_sql,
+-- R/procedure-days.R:nis_prday_day_sql, and
 -- R/comorbidity-sql.R:nis_cmrb_inputs/nis_cmrb_score_sql.
 -- One item is the paired code/day/POA from a single slot. UNPIVOT must
 -- preserve those associations. Decode non-usable days to none first.
@@ -57,6 +57,64 @@ theorem earliestAfterUnpivot (wide rows : List Slot) (perm : rows.Perm (longRows
       intro x _ y _ acc
       cases acc <;> simp only [prefer, Option.some.injEq] <;> grind
     _ = wideDay wide := earliest wide
+
+-- The SQL folds independent membership predicates over each paired slot.
+-- A slot may match both procedures. Its day is none after normalization
+-- when the policy retains an unknown day.
+structure TimingSlot where
+  index : Bool
+  outcome : Bool
+  day : Option Rat
+
+def indexDays (xs : List TimingSlot) :=
+  xs.filterMap fun x => if x.index then x.day else none
+
+def indexDay (xs : List TimingSlot) :=
+  (indexDays xs).foldr (fun d acc => prefer (some d) acc) none
+
+def withinWindow (window start day : Rat) : Bool :=
+  decide (0 ≤ day - start) && decide (day - start ≤ window)
+
+theorem windowBounds (window start day : Rat) :
+    withinWindow window start day = true ↔ 0 ≤ day - start ∧ day - start ≤ window := by
+  simp [withinWindow]
+
+def timingHit (rel : Rat → Rat → Bool) (start : Option Rat) (x : TimingSlot) : Bool :=
+  x.outcome && start.any (fun i => x.day.any (rel i))
+
+def timingUnknown (x : TimingSlot) : Bool :=
+  (x.index || x.outcome) && x.day.isNone
+
+def timingFlag (rel : Rat → Rat → Bool) (xs : List TimingSlot) : Option Bool :=
+  if xs.any (timingHit rel (indexDay xs)) then some true
+  else if xs.any TimingSlot.index && xs.any TimingSlot.outcome && xs.any timingUnknown then none
+  else some false
+
+theorem timingEvidence (rel : Rat → Rat → Bool) (xs : List TimingSlot) (start : Rat) :
+    xs.any (timingHit rel (some start)) = true ↔
+      ∃ x ∈ xs, x.outcome = true ∧ ∃ day, x.day = some day ∧ rel start day = true := by
+  simp only [List.any_eq_true, timingHit, Bool.and_eq_true, Option.any]
+  apply exists_congr
+  intro x
+  cases x.day <;> simp
+
+theorem timingSlotOrder (rel : Rat → Rat → Bool) (xs ys : List TimingSlot)
+    (order : xs.Perm ys) : timingFlag rel xs = timingFlag rel ys := by
+  have sameStart : indexDay xs = indexDay ys := by
+    unfold indexDay indexDays
+    apply (order.filterMap _).foldr_eq'
+    intro x _ y _ acc
+    cases acc <;> simp only [prefer, Option.some.injEq] <;> grind
+  have sameAny (p : TimingSlot → Bool) : xs.any p = ys.any p := by
+    rw [Bool.eq_iff_iff]
+    simp only [List.any_eq_true, order.mem_iff]
+  simp only [timingFlag, sameStart, sameAny]
+
+theorem timingSameSlot (day : Rat) :
+    timingFlag (withinWindow 0) [⟨true, true, some day⟩] = some true := by
+  have delta : day - day = 0 := by grind
+  have zero : (0 : Rat) ≤ 0 := by decide
+  simp [timingFlag, timingHit, indexDay, indexDays, prefer, withinWindow, delta, zero]
 
 def widePoa (xs : List Slot) :=
   xs.any fun x => code x && !x.principal && eligiblePoa x
