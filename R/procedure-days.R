@@ -28,7 +28,7 @@ nis_procedure_day <- function(column, data) {
     missing = missing,
     known = known,
     sentinel = sentinel,
-    usable = rlang::expr(dplyr::if_else(!!known, !!day, NA_real_))
+    usable = rlang::expr(dplyr::case_when(!!known ~ !!day))
   )
 }
 

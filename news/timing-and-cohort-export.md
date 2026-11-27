@@ -1,0 +1,2 @@
+- Procedure timing accepts regular expressions, exact exclusions, and mixed ICD-9/ICD-10 definitions through the same code matching rules as procedure flags. Wide timing queries reuse each slot's match and decoded day.
+- Saved cohorts preserve the spelling of exported analysis fields and stream patient rows to Parquet before adding hospital-year placeholders.
