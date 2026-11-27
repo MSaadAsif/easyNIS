@@ -34,7 +34,7 @@ Use the [quality probe](../tools/probe/probe-quality.R) and
 Rerun affected probes after merge. Readiness needs GitHub CLI access to check
 issues and CI.
 
-Only the owner runs the [real-data probe](../tools/probe/probe-real-data.R).
+Run the [real-data probe](../tools/probe/probe-real-data.R) and other licensed-data checks only on the owner's machine.
 It reads `EASYNIS_DATA` from the environment or the main checkout's ignored
 `.Renviron`. The probes keep evidence in the main checkout's ignored
 `local/loop/`. Any `EASYNIS_LOOP_DIR` override must resolve inside that directory.
