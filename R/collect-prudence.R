@@ -52,15 +52,19 @@ nis_collect_check <- function(con, sql, n = -1) {
 }
 
 nis_collect_estimate <- function(con, sql, n) {
+  # DuckDB discovers dynamic PIVOT columns by executing its input at bind time.
+  if (grepl("\\bpivot\\b", sql, ignore.case = TRUE, perl = TRUE)) {
+    return(NULL)
+  }
   # An exact count could rerun a join, filter or aggregation over every row.
   # EXPLAIN binds the query and reads planner statistics without executing it.
   plans <- DBI::dbGetQuery(con, paste("EXPLAIN (FORMAT JSON)", sql))
   physical <- plans$explain_value[plans$explain_key == "physical_plan"]
   plan <- jsonlite::fromJSON(physical, simplifyVector = FALSE)[[1L]]
-  rows <- nis_collect_plan_rows(plan)
-  if (n >= 0) {
-    rows <- min(rows, n, na.rm = TRUE)
-  }
+  # The physical plan omits the limit on STREAMING_LIMIT. dbplyr renders
+  # head() and collect(n = ...) as a trailing literal LIMIT.
+  limit <- regmatches(sql, regexec("\\nLIMIT ([0-9]+)\\s*$", sql, perl = TRUE))[[1L]]
+  rows <- min(nis_collect_plan_rows(plan), as.numeric(limit[-1L]), if (n >= 0) n else Inf, na.rm = TRUE)
   if (!is.finite(rows) || rows == 0) {
     return(NULL)
   }
@@ -80,6 +84,16 @@ nis_collect_plan_rows <- function(plan) {
     UNGROUPED_AGGREGATE = 1,
     PROJECTION = nis_collect_plan_rows(plan$children[[1L]]),
     ORDER_BY = nis_collect_plan_rows(plan$children[[1L]]),
+    STREAMING_LIMIT = nis_collect_plan_rows(plan$children[[1L]]),
+    TOP_N = min(nis_collect_plan_rows(plan$children[[1L]]), as.numeric(plan$extra_info$Top), Inf, na.rm = TRUE),
+    HASH_JOIN = {
+      # DuckDB can implement LIMIT as a semi-join on row IDs. In this plan
+      # a missing join estimate still allows us to bound its left input.
+      if (!identical(plan$extra_info$"Join Type", "SEMI")) {
+        return(NA_real_)
+      }
+      nis_collect_plan_rows(plan$children[[1L]])
+    },
     UNION = sum(vapply(plan$children, nis_collect_plan_rows, numeric(1))),
     NA_real_
   )

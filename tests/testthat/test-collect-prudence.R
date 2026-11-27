@@ -46,6 +46,41 @@ test_that("collect checks the projected result and respects explicit row limits"
   expect_equal(nrow(full), 2000L)
 })
 
+test_that("SQL row limits and collect caps use the available input estimate", {
+  query <- dplyr::select(collect_prudence_fixture(), ID)
+  memory <- 16 * 1024
+  local_mocked_bindings(nis_collect_available = function() memory)
+
+  ordered <- dplyr::arrange(query, ID)
+  expect_error(dplyr::collect(utils::head(ordered, 1500L)), class = "easyNIS_collect_too_large")
+  expect_error(dplyr::collect(utils::head(query, 1500L)), class = "easyNIS_collect_too_large")
+  memory <- 128 * 1024
+  expect_no_message(result <- dplyr::collect(query, n = 50000L))
+  expect_equal(nrow(result), 2000L)
+})
+
+test_that("collect does not discover dynamic pivot columns during preflight", {
+  query <- collect_prudence_fixture()
+  local_mocked_bindings(nis_collect_available = function() 1024^3)
+  con <- dbplyr::remote_con(query)
+  collect_pivot <- function(guard, sequence) {
+    withr::local_options(easyNIS.collect_prudence = guard)
+    DBI::dbExecute(con, paste("CREATE SEQUENCE", sequence, "START 1"))
+    pivot <- dbplyr::sql(sprintf(
+      "(SELECT \"0\" FROM (PIVOT (SELECT nextval('%s') %% 3 AS k FROM range(2000)) ON k USING count(*)) AS piv)",
+      sequence
+    ))
+    result <- query |>
+      dplyr::select(ID) |>
+      dplyr::mutate(n = !!pivot) |>
+      dplyr::collect()
+    expect_equal(nrow(result), 2000L)
+    as.numeric(DBI::dbGetQuery(con, sprintf("SELECT currval('%s') AS n", sequence))$n)
+  }
+  without_guard <- collect_pivot(FALSE, "pivot_off")
+  expect_equal(collect_pivot(TRUE, "pivot_on"), without_guard)
+})
+
 test_that("the message band permits a collect and tiny results stay quiet", {
   query <- collect_prudence_fixture()
   local_mocked_bindings(nis_collect_available = function() 16 * 1024^2)
