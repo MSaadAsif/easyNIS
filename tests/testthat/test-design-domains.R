@@ -18,21 +18,29 @@ test_that("srvyr filters retain the full NIS variance design", {
   expect_false(all(active_strata$psu[active_strata$heart_failure] %in% domain_rows$psu))
   expect_false(all(active_strata$psu %in% full$psu[full$heart_failure]))
 
-  design <- nis_design(query, cohort = heart_failure, keep = LOS)
+  design <- nis_design(query, cohort = heart_failure, keep = c(AGE, LOS))
   expect_identical(srvyr::as_survey(design), design)
   domain <- design |>
     dplyr::filter(NIS_STRATUM <= 2L, HOSP_NIS %% 4L != 1L) |>
     dplyr::mutate(stay = LOS + 1)
+  expect_lt(nrow(domain$variables), nrow(design$variables))
+  expect_equal(nrow(domain$variables), nrow(domain_rows))
+  expect_length(stats::weights(domain), nrow(domain_rows))
 
   result <- dplyr::summarise(
     domain,
     mean_stay = srvyr::survey_mean(stay),
+    total_stay = srvyr::survey_total(stay),
     discharges = srvyr::unweighted(dplyr::n())
   )
   expected <- survey::svymean(~stay, reference)
   expect_equal(result$mean_stay, unname(coef(expected)), tolerance = 1e-8)
   expect_equal(result$mean_stay_se, as.numeric(survey::SE(expected)), tolerance = 1e-8)
   expect_equal(result$discharges, nrow(domain_rows))
+
+  total <- survey::svytotal(~stay, reference)
+  expect_equal(result$total_stay, as.numeric(coef(total)), tolerance = 1e-8)
+  expect_equal(result$total_stay_se, as.numeric(survey::SE(total)), tolerance = 1e-8)
 
   # Constructing the design after filtering loses the sampled PSUs with zero
   # contributions. The fixture must distinguish that mistake from subsetting.
@@ -52,11 +60,10 @@ test_that("srvyr filters retain the full NIS variance design", {
   expect_equal(grouped$mean_stay_se, unname(survey::SE(by_year)), tolerance = 1e-8)
   expect_equal(grouped$discharges, as.integer(table(domain_rows$YEAR)))
 
-  expect_equal(
-    coef(survey::svymean(~stay, domain)),
-    coef(expected),
-    tolerance = 1e-8
-  )
+  fit <- survey::svyglm(stay ~ AGE, design = domain)
+  reference_fit <- survey::svyglm(stay ~ AGE, design = reference)
+  expect_equal(coef(fit), coef(reference_fit), tolerance = 1e-8)
+  expect_equal(survey::SE(fit), survey::SE(reference_fit), tolerance = 1e-8)
 })
 
 test_that("gtsummary displays only the unweighted discharges in the domain", {

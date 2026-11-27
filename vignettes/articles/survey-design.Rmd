@@ -54,6 +54,12 @@ The object returned by `nis_design()` is already an srvyr survey design. Use
 variance. Hospitals with no domain discharges contribute zero, including
 when an entire stratum falls outside the domain.
 
+On the design returned by `nis_design()`, `filter()` also removes
+out-of-domain records from the stored analysis data. The survey design
+retains the original sampled hospital counts for variance estimation, so
+there is no separate compaction step. If you no longer need the wider
+design, assign the filtered result back to the same variable.
+
 ```{r domain}
 design |>
   dplyr::filter(AGE >= 65) |>
