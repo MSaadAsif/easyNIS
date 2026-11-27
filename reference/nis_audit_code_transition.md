@@ -10,8 +10,9 @@ according to `type`. The complete grid of observed periods and code
 groups is returned, with zero counts where a group has no matches.
 Counts apply only to the selected code system; zero does not mean the
 code is absent under another system. Audits across the 2015 ICD
-transition need separate calls for each system. The change compares with
-the previous observed period in sorted order.
+transition need separate calls for each system when supplying prefixes
+directly. The change compares with the previous observed period in
+sorted order.
 
 ## Usage
 
@@ -39,7 +40,10 @@ nis_audit_code_transition(
 
   A named character vector or named list of character vectors. Each name
   is a `code_group`; each value contains prefixes. Names must be
-  non-empty and unique.
+  non-empty and unique. For `output = "summary"`, can also be the result
+  of
+  [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
+  with `.codes`. Omit `type` and `system` in that case.
 
 - cohort:
 
@@ -89,6 +93,14 @@ every row when `by` names more than one column. For
 `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, and `status`.
 
 ## Details
+
+To reuse code criteria from
+[`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
+pass its result as `codes`. The audit uses each criterion's recorded
+code definition, system, and position. It counts each code criterion
+independently within the audit sample. Supply `cohort` to restrict that
+sample. Ordinary logical criteria and design exclusions from the
+attrition table are not applied.
 
 `by` may name several columns, such as `c("YEAR", "DQTR")`. A period is
 then one observed combination of their values, sorted by the columns in

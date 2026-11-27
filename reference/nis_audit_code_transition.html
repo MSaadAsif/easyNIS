@@ -6,16 +6,16 @@ type. The complete grid of observed periods and code groups is returned,
 with zero counts where a group has no matches.
 Counts apply only to the selected code system; zero does not mean the code
 is absent under another system. Audits across the 2015 ICD transition need
-separate calls for each system. The change compares with the previous
-observed period in sorted order."><meta property="og:description" content="Counts discharges matching each named code-prefix group by period. A
+separate calls for each system when supplying prefixes directly. The
+change compares with the previous observed period in sorted order."><meta property="og:description" content="Counts discharges matching each named code-prefix group by period. A
 discharge is counted once per group, even when multiple slots match.
 Prefix matching follows nis_flag_pr() or nis_flag_dx(), according to
 type. The complete grid of observed periods and code groups is returned,
 with zero counts where a group has no matches.
 Counts apply only to the selected code system; zero does not mean the code
 is absent under another system. Audits across the 2015 ICD transition need
-separate calls for each system. The change compares with the previous
-observed period in sorted order."></head><body>
+separate calls for each system when supplying prefixes directly. The
+change compares with the previous observed period in sorted order."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -79,8 +79,8 @@ Prefix matching follows <code><a href="nis_flag_pr.html">nis_flag_pr()</a></code
 with zero counts where a group has no matches.
 Counts apply only to the selected code system; zero does not mean the code
 is absent under another system. Audits across the 2015 ICD transition need
-separate calls for each system. The change compares with the previous
-observed period in sorted order.</p>
+separate calls for each system when supplying prefixes directly. The
+change compares with the previous observed period in sorted order.</p>
     </div>
 
     <div class="section level2">
@@ -109,7 +109,8 @@ observed period in sorted order.</p>
 <dt id="arg-codes">codes<a class="anchor" aria-label="anchor" href="#arg-codes"></a></dt>
 <dd><p>A named character vector or named list of character vectors.
 Each name is a <code>code_group</code>; each value contains prefixes. Names must be
-non-empty and unique.</p></dd>
+non-empty and unique. For <code>output = "summary"</code>, can also be the result of
+<code><a href="nis_attrition.html">nis_attrition()</a></code> with <code>.codes</code>. Omit <code>type</code> and <code>system</code> in that case.</p></dd>
 
 
 <dt id="arg-cohort">cohort<a class="anchor" aria-label="anchor" href="#arg-cohort"></a></dt>
@@ -162,7 +163,12 @@ For <code>output = "inventory"</code>, the period columns, <code>code_group</cod
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>by</code> may name several columns, such as <code>c("YEAR", "DQTR")</code>. A period is
+    <p>To reuse code criteria from <code><a href="nis_attrition.html">nis_attrition()</a></code>, pass its result as <code>codes</code>.
+The audit uses each criterion's recorded code definition, system, and
+position. It counts each code criterion independently within the audit
+sample. Supply <code>cohort</code> to restrict that sample. Ordinary logical
+criteria and design exclusions from the attrition table are not applied.</p>
+<p><code>by</code> may name several columns, such as <code>c("YEAR", "DQTR")</code>. A period is
 then one observed combination of their values, sorted by the columns in the
 order given. A period with a missing value in any component is kept as its
 own row, sorted after every complete period. Combinations that do not occur

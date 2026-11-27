@@ -87,9 +87,8 @@
 <h2 id="audit-code-frequencies">Audit code frequencies<a class="anchor" aria-label="anchor" href="#audit-code-frequencies"></a>
 </h2>
 <p><code><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition()</a></code> summarizes named code groups
-by period. The example is a small invented data frame; use separate
-calls for ICD-9 and ICD-10 because the function matches only one code
-system at a time.</p>
+by period. The example is a small invented data frame. When supplying
+prefixes directly, use separate calls for ICD-9 and ICD-10.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  YEAR <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
@@ -186,7 +185,7 @@ any-position definitions.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpnTkPUy/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP8vY8Y/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -194,7 +193,7 @@ any-position definitions.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpnTkPUy/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP8vY8Y/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -229,7 +228,7 @@ eligible quarters. These invented codes illustrate the syntax.</p>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">DQTR</span>, <span class="va">flag</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpnTkPUy/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP8vY8Y/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -240,7 +239,7 @@ eligible quarters. These invented codes illustrate the syntax.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
 <span><span class="co">#&gt;   slots.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpnTkPUy/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpP8vY8Y/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -263,6 +262,22 @@ clinical equivalence and trends with the study’s code sets. Mixed-system
 flags are experimental.</p>
 </div>
 <div class="section level2">
+<h2 id="reuse-cohort-criteria">Reuse cohort criteria<a class="anchor" aria-label="anchor" href="#reuse-cohort-criteria"></a>
+</h2>
+<p>Pass the <code>flow</code> from <a href="cohorts.html#record-eligibility-across-the-2015-transition">the
+cohort example</a> as <code>codes</code> to compare its any-slot and
+principal criteria by quarter. Each criterion is counted independently
+within the audit denominator. This audit uses all discharges in each
+period. Supply <code>cohort</code> to choose a different denominator,
+for example adults with a known age.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">flow</span>, <span class="st">"nis_criteria"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nis_audit_code_transition.html">nis_audit_code_transition</a></span><span class="op">(</span><span class="va">nis</span>, codes <span class="op">=</span> <span class="va">flow</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"DQTR"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>For the invented example, any-slot counts in Q3 and Q4 are 24 and 19.
+Principal counts are 9 and 18. A discharge matching several prefixes or
+slots contributes once per criterion.</p>
+</div>
+<div class="section level2">
 <h2 id="common-pitfalls">Common pitfalls<a class="anchor" aria-label="anchor" href="#common-pitfalls"></a>
 </h2>
 <blockquote>
@@ -282,7 +297,7 @@ independent groups.</li>
 <p>To keep the flags for later analysis, call <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code>
 once for each position, then derive the mutually exclusive
 secondary-only flag.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf_any <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf_principal <span class="op">=</span> <span class="st">"I50"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>

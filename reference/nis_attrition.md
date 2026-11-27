@@ -19,7 +19,8 @@ nis_attrition(
   ...,
   by_year = FALSE,
   weight_var = "DISCWT",
-  .design = FALSE
+  .design = FALSE,
+  .codes = NULL
 )
 
 nis_attrition_cohort(flow)
@@ -54,6 +55,17 @@ nis_attrition_cohort(flow)
   the survey design from the rules in `flow`. Use deterministic
   criteria, since they are evaluated by both functions.
 
+- .codes:
+
+  Optional named list of code criteria applied after `...`, in list
+  order. Each criterion is a list with `type` (`"dx"` or `"pr"`),
+  `position`, `system`, and `codes` (one flag definition). See
+  [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+  and
+  [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
+  for the matching rules and definitions. Criterion names must be unique
+  across `...` and `.codes`.
+
 - flow:
 
   Result from `nis_attrition(..., .design = TRUE)`.
@@ -67,6 +79,11 @@ discharges and the tibble stores the combined cohort expression.
 `nis_attrition_cohort()` extracts that expression for injection with
 `!!` into `cohort` in
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+With `.codes`, `attr(flow, "nis_criteria")` is a tibble of criterion
+names and their code type, position, system, and definitions. These
+fields are missing for ordinary logical criteria. Pass the flow to
+[`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
+to summarize its code criteria by period.
 
 ## See also
 
@@ -105,5 +122,5 @@ flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
 nis_attrition_cohort(flow)
 #> <quosure>
 #> expr: ^AGE >= 18
-#> env:  0x56969c603ae8
+#> env:  0x563a028c9350
 ```
