@@ -552,7 +552,7 @@ test_that("mixed-year procedure timing keeps code rules and days within each sys
     PRVER = c(9L, 10L, 10L, 10L, 10L, NA_integer_),
     PR1 = c("371", NA, NA, "371", NA, "371"),
     PR2 = c("330", NA, NA, "330", NA, NA),
-    I10_PR1 = c(NA, "IXBAD", "IXBAD", "IXBAD", "IX", NA),
+    I10_PR1 = c(NA, "IXBAD", "IXBAD", "IXBAD", "ALT", NA),
     I10_PR2 = c(NA, "IX", "IX", "IX", "OUT7", "OUT7"),
     I10_PR3 = c(NA, "OUT7", "OUT70", "OUT7", NA, NA),
     PRDAY1 = c(0L, 0L, 0L, 0L, 0L, 0L),
@@ -564,7 +564,7 @@ test_that("mixed-year procedure timing keeps code rules and days within each sys
   for (input in list(data, query)) {
     result <- input |>
       nis_flag_pr_timing(
-        index_pr = list(icd9 = "37", icd10 = list(prefix = "IX", exclude = "IXBAD")),
+        index_pr = list(icd9 = "37", icd10 = list(prefix = c("IX", "ALT"), exclude = "IXBAD")),
         outcome_pr = list(icd9 = "33", icd10 = list(regex = "OUT[0-9]")),
         relation = "after",
         missing_day = "indeterminate",

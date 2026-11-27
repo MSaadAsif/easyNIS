@@ -101,9 +101,9 @@ code_system_filter <- function(data, columns, slots, system) {
   if (length(conditions) == 0L) {
     return(NULL)
   }
-  Reduce(nis_and_expr, conditions)
+  Reduce(nis_gate_expr, conditions)
 }
 
 nis_in_code_system <- function(value, eligibility) {
-  if (is.null(eligibility)) value else nis_and_expr(eligibility, value)
+  if (is.null(eligibility)) value else nis_gate_expr(eligibility, value)
 }
