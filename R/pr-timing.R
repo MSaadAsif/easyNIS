@@ -55,6 +55,9 @@ nis_flag_pr_timing <- function(
   if (relation == "within_days") {
     window <- as.integer(window)
   }
+  if (nis_prday_duckdb(.data)) {
+    return(timing_flag_duckdb(.data, index_pr, outcome_pr, name, relation, window, missing_day, system, error_call))
+  }
   if (system == "both") {
     return(timing_flag_both(.data, index_pr, outcome_pr, name, relation, window, missing_day, error_call))
   }
@@ -86,6 +89,21 @@ timing_flag_both <- function(data, index_pr, outcome_pr, name, relation, window,
 }
 
 timing_flag_system <- function(data, index_pr, outcome_pr, name, relation, window, missing_day, system, error_call) {
+  spec <- timing_spec(data, index_pr, outcome_pr, system, error_call)
+  reserved <- c(nis_names(data), name)
+  slots <- timing_slot_fields(data, spec$layout, spec$rules, missing_day, reserved)
+  min_name <- nis_internal_names(data, c(reserved, names(slots$fields)), ".nis_timing_min_index_day")
+  earliest <- timing_index_day(slots$days, slots$index)
+  result <- timing_result(slots, rlang::sym(min_name), relation, window, missing_day)
+  result <- nis_in_code_system(result, spec$eligibility)
+  data |>
+    dplyr::mutate(!!!slots$fields) |>
+    dplyr::mutate(!!min_name := !!earliest) |>
+    dplyr::mutate(!!name := !!result) |>
+    dplyr::select(-dplyr::all_of(c(names(slots$fields), min_name)))
+}
+
+timing_spec <- function(data, index_pr, outcome_pr, system, error_call) {
   rules <- list(normalize_flag_definition(index_pr, "index_pr"), normalize_flag_definition(outcome_pr, "outcome_pr"))
   nis_validate_flag_rules(rules)
   data_names <- nis_names(data)
@@ -94,18 +112,7 @@ timing_flag_system <- function(data, index_pr, outcome_pr, name, relation, windo
     cli::cli_abort("No PRDAY<n> columns were found for procedure timing.", call = error_call)
   }
 
-  reserved <- c(data_names, name)
-  slots <- timing_slot_fields(data, layout, rules, missing_day, reserved)
-  min_name <- nis_internal_names(data, c(reserved, names(slots$fields)), ".nis_timing_min_index_day")
-  earliest <- timing_index_day(slots$days, slots$index)
-  result <- timing_result(slots, rlang::sym(min_name), relation, window, missing_day)
-  eligibility <- code_system_filter(data, data_names, "PR", system)
-  result <- nis_in_code_system(result, eligibility)
-  data |>
-    dplyr::mutate(!!!slots$fields) |>
-    dplyr::mutate(!!min_name := !!earliest) |>
-    dplyr::mutate(!!name := !!result) |>
-    dplyr::select(-dplyr::all_of(c(names(slots$fields), min_name)))
+  list(layout = layout, rules = rules, eligibility = code_system_filter(data, data_names, "PR", system))
 }
 
 timing_validate_name <- function(name, data, data_names, error_call) {
