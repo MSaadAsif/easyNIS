@@ -27,6 +27,12 @@
 
   Summarize and model a cohort with srvyr, survey, and gtsummary.
 
+- [Hospitalization
+  outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.md):
+
+  Define mortality, length of stay, disposition, and hospital cost
+  before survey estimation.
+
 - [Disclosure and
   suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md):
 

@@ -12,11 +12,12 @@ articles:
   getting-started: getting-started.html
   articles/glossary: glossary.html
   articles/opening-data: opening-data.html
+  articles/outcomes: outcomes.html
   porting: porting.html
   articles/survey-design: survey-design.html
   articles/why-easynis: why-easynis.html
   articles/year-notes: year-notes.html
-last_built: 2026-11-27T04:08Z
+last_built: 2026-11-27T04:15Z
 urls:
   reference: https://msaadasif.github.io/easyNIS/reference
   article: https://msaadasif.github.io/easyNIS/articles

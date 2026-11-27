@@ -56,8 +56,11 @@ Build survey designs and apply optional reweighting.
 
 Add analysis variables
 
-Compute comorbidity indicators and inflation-adjusted costs.
+Derive discharge outcomes, comorbidity indicators, and
+inflation-adjusted costs.
 
+- [`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
+  : Add standard discharge outcomes
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   : Add AHRQ Elixhauser comorbidity columns (experimental)
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)

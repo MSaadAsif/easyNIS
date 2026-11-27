@@ -26,6 +26,7 @@
     <li><a class="dropdown-item" href="../articles/cohorts.html">Defining cohorts</a></li>
     <li><a class="dropdown-item" href="../articles/survey-design.html">Survey design and weighting</a></li>
     <li><a class="dropdown-item" href="../articles/descriptives-models.html">Descriptives and regression</a></li>
+    <li><a class="dropdown-item" href="../articles/outcomes.html">Hospitalization outcomes</a></li>
     <li><a class="dropdown-item" href="../articles/disclosure.html">Disclosure and suppression</a></li>
     <li><a class="dropdown-item" href="../articles/costs.html">Charges, costs, and provenance</a></li>
     <li><a class="dropdown-item" href="../articles/comorbidity.html">Comorbidity indicators</a></li>
@@ -59,6 +60,7 @@
 <li><p><code><a href="../reference/nis_comorbidity.html">nis_comorbidity()</a></code> now scores lazy DuckDB cohorts in bounded batches and returns the scores joined to the original query by discharge key.</p></li>
 <li><p><code>nis_attrition(..., .design = TRUE)</code> counts discharges with valid survey design fields. Reuse the same eligibility rules in <code><a href="../reference/nis_design.html">nis_design()</a></code> with <code>cohort = !!nis_attrition_cohort(flow)</code>.</p></li>
 <li><p>The survey design article demonstrates analytic domains with <code><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">dplyr::filter()</a></code> on a <code><a href="../reference/nis_design.html">nis_design()</a></code> result and explains how filtering the lazy input can affect variance estimation.</p></li>
+<li><p><code><a href="../reference/nis_outcomes.html">nis_outcomes()</a></code> adds in-hospital mortality, length of stay, and labeled discharge disposition to an analysis, including on lazy DuckDB tables. The hospitalization outcomes article covers survey estimators and denominators.</p></li>
 <li><p><code><a href="../reference/nis_open.html">nis_open()</a></code> checks annual Core files by default against HCUP’s published discharge counts, weight sums, and hospital counts for each opened year in 2012–2024. Discrepancies warn and the lazy query stays available. Files from <code><a href="../reference/nis_example.html">nis_example()</a></code> skip the comparison and still receive integrity checks. Cohort extracts are expected to differ. Set <code>check_release = FALSE</code> to skip the check.</p></li>
 <li><p>Parquet opening assigns nested Hive parts to the nearest partition year and inspects each source schema once. Compatible files share a native DuckDB scan, and integer year filters can use Parquet statistics. Configure memory, threads, and spill storage before opening with <code>easyNIS.duckdb_config</code>.</p></li>
 <li><p>Procedure timing, PRDAY completeness, and code-transition inventory use shared slot discovery and continue to accept zero-padded slots. Empty PRDAY summaries retain their typed columns. Procedure timing and diagnosis sensitivity avoid scratch-name collisions. DuckDB code inventory filters prefixes before expanding discharge code lists.</p></li>
