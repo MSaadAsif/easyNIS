@@ -26,6 +26,7 @@ articles:
       - '"articles/survey-design"'
       - '"articles/descriptives-models"'
       - '"articles/outcomes"'
+      - '"articles/trends"'
       - '"articles/disclosure"'
       - '"articles/costs"'
       - '"articles/comorbidity"'
@@ -66,6 +67,7 @@ reference:
     contents:
       - nis_design
       - nis_reweight
+      - nis_annual_totals
   - title: 4. Add analysis variables
     desc: Derive discharge outcomes, comorbidity indicators, and inflation-adjusted costs.
     contents:
