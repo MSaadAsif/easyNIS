@@ -9,9 +9,10 @@ and keep the columns needed by the summary and model.
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpjTdEZz/duckdb
+#> ℹ /tmp/RtmpCgGdWH/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -19,7 +20,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpjTdEZz/duckdb
+#> ℹ /tmp/RtmpCgGdWH/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -29,7 +30,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
+  keep = c(AGE, FEMALE, LOS, in_hospital_death, heart_failure),
   annualize = TRUE
 )
 #> Cohort: 192 discharges; weighted N 114.4; 24 hospitals across 2 years.
@@ -54,12 +55,13 @@ srvyr::summarise(
   design,
   discharges = srvyr::survey_total(),
   mean_age = srvyr::survey_mean(AGE),
-  death_rate = srvyr::survey_mean(DIED)
+  death_proportion = srvyr::survey_mean(in_hospital_death, na.rm = TRUE)
 )
 #> # A tibble: 1 × 6
-#>   discharges discharges_se mean_age mean_age_se death_rate death_rate_se
-#>        <dbl>         <dbl>    <dbl>       <dbl>      <dbl>         <dbl>
-#> 1       114.          2.83     59.6       0.597     0.0201       0.00829
+#>   discharges discharges_se mean_age mean_age_se death_proportion
+#>        <dbl>         <dbl>    <dbl>       <dbl>            <dbl>
+#> 1       114.          2.83     59.6       0.597           0.0201
+#> # ℹ 1 more variable: death_proportion_se <dbl>
 ```
 
 All values come from invented rows and illustrate output shape only.
@@ -72,37 +74,55 @@ generalized linear models using the design.
 ``` r
 
 fit <- survey::svyglm(
-  DIED ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  in_hospital_death ~ heart_failure + AGE + FEMALE + factor(YEAR),
   design = design,
   family = quasibinomial()
 )
-summary(fit)
-#> 
-#> Call:
-#> svyglm(formula = DIED ~ heart_failure + AGE + FEMALE + factor(YEAR), 
-#>     design = design, family = quasibinomial())
-#> 
-#> Survey design:
-#> Called via srvyr
-#> 
-#> Coefficients:
-#>                     Estimate Std. Error t value Pr(>|t|)    
-#> (Intercept)        1.639e+00  1.906e+00   0.860  0.40442    
-#> heart_failureTRUE -8.726e-01  1.715e+00  -0.509  0.61872    
-#> AGE               -9.999e-02  2.814e-02  -3.553  0.00318 ** 
-#> FEMALETRUE        -1.836e+01  7.455e-01 -24.626  6.3e-13 ***
-#> factor(YEAR)2020  -1.246e-16  8.742e-01   0.000  1.00000    
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
-#> (Dispersion parameter for quasibinomial family taken to be 0.1660637)
-#> 
-#> Number of Fisher Scoring iterations: 20
+term <- "heart_failureTRUE"
+interval <- exp(confint(fit, parm = term))
+data.frame(
+  model_n = nrow(stats::model.frame(fit)),
+  odds_ratio = exp(coef(fit)[[term]]),
+  lower = interval[1L],
+  upper = interval[2L]
+)
+#>   model_n odds_ratio      lower   upper
+#> 1     192  0.4178614 0.01056816 16.5221
 ```
 
-Coefficients describe model associations under the survey design; they
-do not establish causality. The synthetic data are too small and
-artificial for substantive conclusions.
+The odds ratio compares adult discharges with and without a recorded
+heart failure diagnosis at the same age, sex, and year in this model.
+The model frame counts discharges with complete values for this formula.
+The interval uses design-based standard errors and the model’s residual
+degrees of freedom. The results illustrate an adjusted association in
+invented data.
+
+### Contrast two mean lengths of stay
+
+With a single binary predictor, the Gaussian survey model coefficient is
+the difference in weighted mean LOS, in days. It subtracts the mean
+among discharges without a heart failure code from the mean among
+discharges with one. The fit gives the design-based standard error of
+the difference.
+
+``` r
+
+los_difference <- survey::svyglm(LOS ~ heart_failure, design = design)
+nrow(stats::model.frame(los_difference))
+#> [1] 192
+summary(los_difference)$coefficients[term, ]
+#>   Estimate Std. Error    t value   Pr(>|t|) 
+#>  0.2826923  0.4126637  0.6850428  0.5025514
+confint(los_difference, parm = term)
+#>                       2.5 %   97.5 %
+#> heart_failureTRUE -0.587952 1.153337
+```
+
+Report the complete-case discharge count for each model. See [Survey
+design and
+weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html#run-a-weighted-sensitivity-analysis)
+for an example that changes the target of the mean contrast through
+reweighting.
 
 ## Tables with gtsummary
 

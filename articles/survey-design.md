@@ -17,7 +17,7 @@ design when you need grouped survey summaries.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCS0w2O/duckdb
+#> ℹ /tmp/RtmpOT6Op8/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCS0w2O/duckdb
+#> ℹ /tmp/RtmpOT6Op8/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -114,24 +114,62 @@ the function warns about incomplete year coverage and a 2015 cohort
 restricted to one coding era. Exclude partial years or choose a
 documented alternative if this convention does not fit the estimand.
 
-[`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
-multiplies the design weights by analyst-supplied weights. It is
-experimental and does not replace the NIS discharge weight or the survey
-design.
+## Run a weighted sensitivity analysis
+
+Use the original survey design for national totals. The example below
+compares the original mean LOS difference with one weighted to balance
+the observed age distribution between groups. It uses invented data and
+targets the age distribution of the pooled adult discharge population.
+The propensity model uses age as its only predictor.
 
 ``` r
 
-weighted <- nis_reweight(design, weights = rep(1, nrow(design$variables)))
-srvyr::summarise(weighted, total = srvyr::survey_total())
+original <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS, heart_failure))
+#> Cohort: 192 discharges; weighted N 228.8; 24 hospitals across 2 years.
+propensity <- survey::svyglm(
+  heart_failure ~ AGE, design = original, family = quasibinomial()
+)
+p <- stats::predict(propensity, newdata = original$variables, type = "response")
+stopifnot(all(is.finite(p) & p > 0 & p < 1))
+
+weighted <- nis_reweight(original, ifelse(heart_failure, 1 / p, 1 / (1 - p)))
+age_by_group <- function(design) {
+  survey::svyby(~AGE, ~heart_failure, design, survey::svymean)
+}
+los_contrast <- function(design) {
+  fit <- survey::svyglm(LOS ~ heart_failure, design)
+  summary(fit)$coefficients["heart_failureTRUE", c("Estimate", "Std. Error")]
+}
+
+age_by_group(original)
+#>       heart_failure      AGE        se
+#> FALSE         FALSE 62.04231 1.2732597
+#> TRUE           TRUE 57.55769 0.9866784
+age_by_group(weighted)
+#>       heart_failure      AGE        se
+#> FALSE         FALSE 59.63008 1.4907428
+#> TRUE           TRUE 59.63404 0.9660242
+rbind(original = los_contrast(original), reweighted = los_contrast(weighted))
+#>             Estimate Std. Error
+#> original   0.2826923  0.4126637
+#> reweighted 0.1555133  0.4113503
+srvyr::summarise(original, national_discharges = srvyr::survey_total())
 #> # A tibble: 1 × 2
-#>   total total_se
-#>   <dbl>    <dbl>
-#> 1  62.4     8.67
+#>   national_discharges national_discharges_se
+#>                 <dbl>                  <dbl>
+#> 1                229.                   5.66
 ```
 
-With unit multipliers the result retains the original design-weighted
-total. This is only a syntax example, not a recommended reweighting
-model.
+[`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
+is experimental. It multiplies the survey weights by the supplied
+factors, in the order of the design rows. The weighted mean contrast and
+its standard error use that transformed design. This variance treats the
+supplied factors as fixed. Report the propensity specification, weight
+range, any trimming or exclusions, and balance in the variables used to
+justify the sensitivity analysis. The age means illustrate one balance
+check. The example uses all weights without trimming. Causal
+interpretation would require a justified exposure definition, target
+population, and assumptions about confounding and overlap.
 
 ## Why design-based standard errors matter
 

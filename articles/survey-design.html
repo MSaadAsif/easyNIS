@@ -100,7 +100,7 @@ grouped survey summaries.</p>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpCS0w2O/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpOT6Op8/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -108,7 +108,7 @@ grouped survey summaries.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpCS0w2O/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpOT6Op8/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -184,19 +184,60 @@ valid years; partial years count as a year. When quarter fields are
 present the function warns about incomplete year coverage and a 2015
 cohort restricted to one coding era. Exclude partial years or choose a
 documented alternative if this convention does not fit the estimand.</p>
-<p><code><a href="../reference/nis_reweight.html">nis_reweight()</a></code> multiplies the design weights by
-analyst-supplied weights. It is experimental and does not replace the
-NIS discharge weight or the survey design.</p>
+</div>
+<div class="section level2">
+<h2 id="run-a-weighted-sensitivity-analysis">Run a weighted sensitivity analysis<a class="anchor" aria-label="anchor" href="#run-a-weighted-sensitivity-analysis"></a>
+</h2>
+<p>Use the original survey design for national totals. The example below
+compares the original mean LOS difference with one weighted to balance
+the observed age distribution between groups. It uses invented data and
+targets the age distribution of the pooled adult discharge population.
+The propensity model uses age as its only predictor.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">weighted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_reweight.html">nis_reweight</a></span><span class="op">(</span><span class="va">design</span>, weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">design</span><span class="op">$</span><span class="va">variables</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">weighted</span>, total <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">original</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">LOS</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Cohort: 192 discharges; weighted N 228.8; 24 hospitals across 2 years.</span></span>
+<span><span class="va">propensity</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span></span>
+<span>  <span class="va">heart_failure</span> <span class="op">~</span> <span class="va">AGE</span>, design <span class="op">=</span> <span class="va">original</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">propensity</span>, newdata <span class="op">=</span> <span class="va">original</span><span class="op">$</span><span class="va">variables</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&gt;</span> <span class="fl">0</span> <span class="op">&amp;</span> <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">weighted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_reweight.html">nis_reweight</a></span><span class="op">(</span><span class="va">original</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="fl">1</span> <span class="op">/</span> <span class="va">p</span>, <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">age_by_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">design</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyby.html" class="external-link">svyby</a></span><span class="op">(</span><span class="op">~</span><span class="va">AGE</span>, <span class="op">~</span><span class="va">heart_failure</span>, <span class="va">design</span>, <span class="fu">survey</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">los_contrast</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">design</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span><span class="va">LOS</span> <span class="op">~</span> <span class="va">heart_failure</span>, <span class="va">design</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span><span class="op">[</span><span class="st">"heart_failureTRUE"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Estimate"</span>, <span class="st">"Std. Error"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu">age_by_group</span><span class="op">(</span><span class="va">original</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       heart_failure      AGE        se</span></span>
+<span><span class="co">#&gt; FALSE         FALSE 62.04231 1.2732597</span></span>
+<span><span class="co">#&gt; TRUE           TRUE 57.55769 0.9866784</span></span>
+<span><span class="fu">age_by_group</span><span class="op">(</span><span class="va">weighted</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       heart_failure      AGE        se</span></span>
+<span><span class="co">#&gt; FALSE         FALSE 59.63008 1.4907428</span></span>
+<span><span class="co">#&gt; TRUE           TRUE 59.63404 0.9660242</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>original <span class="op">=</span> <span class="fu">los_contrast</span><span class="op">(</span><span class="va">original</span><span class="op">)</span>, reweighted <span class="op">=</span> <span class="fu">los_contrast</span><span class="op">(</span><span class="va">weighted</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;             Estimate Std. Error</span></span>
+<span><span class="co">#&gt; original   0.2826923  0.4126637</span></span>
+<span><span class="co">#&gt; reweighted 0.1555133  0.4113503</span></span>
+<span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">original</span>, national_discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
-<span><span class="co">#&gt;   total total_se</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  62.4     8.67</span></span></code></pre></div>
-<p>With unit multipliers the result retains the original design-weighted
-total. This is only a syntax example, not a recommended reweighting
-model.</p>
+<span><span class="co">#&gt;   national_discharges national_discharges_se</span></span>
+<span><span class="co">#&gt;                 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>                229.                   5.66</span></span></code></pre></div>
+<p><code><a href="../reference/nis_reweight.html">nis_reweight()</a></code> is experimental. It multiplies the survey
+weights by the supplied factors, in the order of the design rows. The
+weighted mean contrast and its standard error use that transformed
+design. This variance treats the supplied factors as fixed. Report the
+propensity specification, weight range, any trimming or exclusions, and
+balance in the variables used to justify the sensitivity analysis. The
+age means illustrate one balance check. The example uses all weights
+without trimming. Causal interpretation would require a justified
+exposure definition, target population, and assumptions about
+confounding and overlap.</p>
 </div>
 <div class="section level2">
 <h2 id="why-design-based-standard-errors-matter">Why design-based standard errors matter<a class="anchor" aria-label="anchor" href="#why-design-based-standard-errors-matter"></a>
