@@ -98,7 +98,7 @@ adjustment.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpqSIuMC/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp8oXNvm/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -106,7 +106,7 @@ adjustment.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpqSIuMC/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp8oXNvm/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -128,6 +128,9 @@ adjustment.</p>
 describes where the patient went at discharge. <code>los_days</code>
 comes from <code>LOS</code>. Keep all three source fields when calling
 <code><a href="../reference/nis_outcomes.html">nis_outcomes()</a></code>.</p>
+<p>Install <code>medicalcoder</code> to run this Charlson example.
+Expect a warning about absent present-on-admission fields. The method
+assumes the diagnoses were present on admission.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scored</span> <span class="op">&lt;-</span> <span class="va">outcomes</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/nis_comorbidity.html">nis_comorbidity</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"charlson_quan2005"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,</span></span>
@@ -150,8 +153,7 @@ comes from <code>LOS</code>. Keep all three source fields when calling
 <span><span class="co">#&gt; <span style="color: #949494;">#   cmrb_cci &lt;int&gt;</span></span></span></code></pre></div>
 <p>Score before <code><a href="../reference/nis_design.html">nis_design()</a></code> while the diagnosis slots are
 available and DuckDB can still apply the mappings. Choose the method and
-code system for your study period. The Charlson example needs
-<code>medicalcoder</code>. The bundled
+code system for your study period. The bundled
 <code>"elixhauser_ahrq2027"</code> method has no
 <code>medicalcoder</code> dependency.</p>
 </div>

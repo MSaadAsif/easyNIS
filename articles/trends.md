@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp09oeaJ/duckdb
+#> ℹ /tmp/RtmpBnrp2o/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2021)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp09oeaJ/duckdb
+#> ℹ /tmp/RtmpBnrp2o/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -48,6 +48,32 @@ year. For analyses that include 2015 or cross the ICD transition, use
 `coding = "verified_comparable"` only after establishing comparability.
 [Years and coding
 eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.md)
+
+## Estimate an annual proportion within a domain
+
+Here the denominator is adult discharges in each year. The mean of the
+logical heart-failure flag estimates the share with a matching
+diagnosis.
+
+``` r
+
+adults <- nis_design(nis, cohort = AGE >= 18, keep = heart_failure)
+#> Preparing the cohort survey design.
+adults |>
+  group_by(YEAR) |>
+  summarise(heart_failure_share = survey_mean(heart_failure, vartype = "se"))
+#> # A tibble: 3 × 3
+#>    YEAR heart_failure_share heart_failure_share_se
+#>   <int>               <dbl>                  <dbl>
+#> 1  2019               0.545                  0.115
+#> 2  2020               0.545                  0.115
+#> 3  2021               0.545                  0.115
+```
+
+The result gives proportions and standard errors on the 0 to 1 scale.
+Multiply both columns by 100 for percent and percentage points,
+respectively. Review quarter coverage and coding comparability before
+interpreting a real trend.
 
 ## Review records outside the analysis years
 
@@ -134,9 +160,9 @@ pooled discharge count by the number of included years.
 
 fit <- survey::svyglm(LOS ~ I(YEAR - 2019), design = pooled)
 summary(fit)$coefficients
-#>                    Estimate Std. Error     t value     Pr(>|t|)
-#> (Intercept)    5.663462e+00  0.2956263 1.91575e+01 6.039735e-13
-#> I(YEAR - 2019) 2.646794e-16  0.2289912 1.15585e-15 1.000000e+00
+#>                    Estimate Std. Error      t value     Pr(>|t|)
+#> (Intercept)    5.663462e+00  0.2956263 1.915750e+01 6.039735e-13
+#> I(YEAR - 2019) 3.111381e-16  0.2289912 1.358734e-15 1.000000e+00
 ```
 
 The slope estimates the mean change in length of stay per calendar year

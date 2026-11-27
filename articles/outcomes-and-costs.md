@@ -21,7 +21,7 @@ The examples use invented data.
 
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpqSIuMC/duckdb
+#> ℹ /tmp/Rtmp8oXNvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -29,7 +29,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpqSIuMC/duckdb
+#> ℹ /tmp/Rtmp8oXNvm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -53,6 +53,10 @@ outcomes |> select(in_hospital_death, los_days) |> head() |> collect()
 patient went at discharge. `los_days` comes from `LOS`. Keep all three
 source fields when calling
 [`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md).
+
+Install `medicalcoder` to run this Charlson example. Expect a warning
+about absent present-on-admission fields. The method assumes the
+diagnoses were present on admission.
 
 ``` r
 
@@ -81,8 +85,7 @@ Score before
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
 while the diagnosis slots are available and DuckDB can still apply the
 mappings. Choose the method and code system for your study period. The
-Charlson example needs `medicalcoder`. The bundled
-`"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
+bundled `"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
 
 ## Estimate costs in a common dollar year
 

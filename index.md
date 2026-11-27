@@ -15,6 +15,8 @@ fit survey-weighted models, and review results for disclosure.
 
 ## Install
 
+Install pak first with `install.packages("pak")` if you need it.
+
 ``` r
 
 pak::pak("MSaadAsif/easyNIS")

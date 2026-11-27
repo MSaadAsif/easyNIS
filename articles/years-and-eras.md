@@ -21,7 +21,7 @@ library(srvyr)
 
 nis <- nis_open(nis_example(years = 2015))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpf929ks/duckdb
+#> ℹ /tmp/RtmpPMdNck/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -32,7 +32,7 @@ nis <- nis_open(nis_example(years = 2015))
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpf929ks/duckdb
+#> ℹ /tmp/RtmpPMdNck/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -41,16 +41,16 @@ nis <- nis_open(nis_example(years = 2015))
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> This message is displayed once per session.
 nis_audit_code_transition(
-  nis, codes = c(heart_failure = "I50"), system = "icd10",
+  nis, codes = c(heart_failure = "I50"), type = "dx", system = "icd10",
   by = c(YEAR, DQTR)
 )
 #> # A tibble: 4 × 8
 #>    YEAR  DQTR code_group    n_cohort_unweighted n_unweighted n_weighted
 #>   <int> <int> <chr>                       <int>        <int>      <dbl>
-#> 1  2015     1 heart_failure                  24            0          0
-#> 2  2015     2 heart_failure                  24            0          0
-#> 3  2015     3 heart_failure                  24            0          0
-#> 4  2015     4 heart_failure                  24            0          0
+#> 1  2015     1 heart_failure                  24            0        0  
+#> 2  2015     2 heart_failure                  24            0        0  
+#> 3  2015     3 heart_failure                  24            0        0  
+#> 4  2015     4 heart_failure                  24           18       20.8
 #> # ℹ 2 more variables: pct_within_year <dbl>, yoy_pct_change <dbl>
 nis_audit_dx_position(nis, "I50", system = "icd10", outcomes = DIED)
 #> # A tibble: 3 × 7
@@ -63,7 +63,9 @@ nis_audit_dx_position(nis, "I50", system = "icd10", outcomes = DIED)
 ```
 
 The examples use invented data. The transition audit counts matches by
-quarter. The position audit compares principal, secondary-only, and
+quarter in the ICD-10 diagnosis slots. Use a separate audit with
+`system = "icd9"` and the corresponding ICD-9 prefixes for earlier
+quarters. The position audit compares principal, secondary-only, and
 any-position definitions. Both give descriptive counts or rates. Use a
 survey design for standard errors.
 

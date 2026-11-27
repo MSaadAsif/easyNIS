@@ -22,7 +22,7 @@ library(srvyr)
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp3ZyozF/duckdb
+#> ℹ /tmp/RtmpHCeFRT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -30,7 +30,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp3ZyozF/duckdb
+#> ℹ /tmp/RtmpHCeFRT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -55,8 +55,9 @@ DuckDB reads the columns needed when you ask for a result.
 A cohort is the set of discharges that meet your study criteria. A
 survey domain is the subpopulation you estimate within the original
 sample design. In the next example, both designs estimate the same
-cohort total. Filtering the input first changes the standard error and
-design degrees of freedom.
+cohort total. Filtering the input first changes the standard error here
+and can change the design degrees of freedom. In this example both
+designs have 12 degrees of freedom.
 
 ``` r
 

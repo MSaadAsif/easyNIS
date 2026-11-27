@@ -93,14 +93,18 @@ annual archive and pass the <code>.asc</code> file to
 same private output directory. The supported ASCII layouts use the
 annual Core filenames and fields. The 2015 ASCII Core file has separate
 diagnosis and procedure files. Prepare those separately before an
-analysis that needs the code slots.</p>
+analysis that needs the code slots. <code><a href="../reference/nis_convert.html">nis_convert()</a></code> converts
+the 2015 ASCII Core file alone. For code-based work, use an annual
+Stata, SAS, or SPSS input with the code slots already attached.</p>
 <p>For Stata (<code>.dta</code>), SAS (<code>.sas7bdat</code>), or SPSS
-(<code>.sav</code>), the call is the same. This example converts a Stata
-file made from invented data.</p>
+(<code>.sav</code>), the call is the same. Install <code>haven</code>
+for these formats. Each input must have a numeric <code>YEAR</code>
+column with one data year. This example converts a Stata file made from
+invented data.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">source</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpu7i2IG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpggIKSv/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -108,7 +112,7 @@ file made from invented data.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpu7i2IG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpggIKSv/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -121,7 +125,7 @@ file made from invented data.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">annual</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/nis_convert.html">nis_convert</a></span><span class="op">(</span><span class="va">stata</span>, <span class="va">annual</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpu7i2IG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpggIKSv/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -139,7 +143,7 @@ input. An encoding override cannot repair damaged bytes.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">annual</span>, years <span class="op">=</span> <span class="fl">2019</span>, check_release <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpu7i2IG/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpggIKSv/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -177,8 +181,8 @@ works</a></p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 2</span></span></span>
 <span><span class="co">#&gt;   I10_PR1     n</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 02703ZZ    48</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 0JH60DZ    48</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 0JH60DZ    48</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 02703ZZ    48</span></span></code></pre></div>
 <p>A query can open before DuckDB reads text from the code fields. Check
 the diagnosis and procedure columns used in your study. If one fails
 with malformed UTF-8, reconvert from the correctly encoded source into a
@@ -200,7 +204,8 @@ Use
 <code>nis_join_companion(nis, hospital_path, component = "hospital", columns = all_of(missing))</code>
 to add hospital characteristics. Use <code>component = "severity"</code>
 with the Severity file. Select only fields you need and check coverage
-after joining.</p>
+after joining. See the <a href="../reference/nis_join_companion.html#ref-examples">companion join
+example</a> for a complete workflow with invented data.</p>
 <p><code>TOTAL_DISC</code> in the Hospital file counts sampled
 discharges. The join helper rejects that field. Use weighted discharge
 estimates for national totals. <a href="years-and-eras.html">Years and

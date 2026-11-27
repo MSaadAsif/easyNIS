@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp0AqlcK/duckdb
+#> ℹ /tmp/RtmpPH1cwM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp0AqlcK/duckdb
+#> ℹ /tmp/RtmpPH1cwM/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -78,6 +78,8 @@ The helper also masks zeros as a conservative default.
 
 ## Mask a survey table
 
+Install `gtsummary` and `cardx` to run the survey table examples.
+
 ``` r
 
 library(gtsummary)
@@ -96,3 +98,37 @@ If exactly one level of a categorical variable is masked in a column,
 the helper also masks the smallest remaining positive level in that
 column. Check whether percentages, totals, or other outputs reveal a
 masked cell before release.
+
+## Export a three-group table to CSV
+
+The oldest age group in this invented example has ten or fewer sampled
+discharges. Use `col_labels = FALSE` to export the masked cells with
+plain column names. The formatted table headings can still contain group
+denominators. Check the group order before replacing the plain column
+names. The CSV uses `<=` for the less-than-or-equal suppression marker
+so it also works in non-UTF-8 locales.
+
+``` r
+
+bands <- nis |>
+  mutate(age_group = case_when(
+    AGE >= 90 ~ "90 and older",
+    AGE >= 65 ~ "65 to 89",
+    AGE >= 18 ~ "18 to 64"
+  ))
+age_design <- nis_design(bands, cohort = AGE >= 18, keep = c(age_group, LOS))
+#> Preparing the cohort survey design.
+masked <- tbl_svysummary(age_design, by = age_group, include = LOS) |>
+  nis_suppress()
+csv <- tibble::as_tibble(masked, col_labels = FALSE) |>
+  mutate(across(starts_with("stat_"), ~ sub("\u2264", "<=", .x, fixed = TRUE)))
+names(csv) <- c("Characteristic", "18 to 64", "65 to 89", "90 and older")
+file <- tempfile(fileext = ".csv")
+write.csv(csv, file, row.names = FALSE)
+read.csv(file, check.names = FALSE)
+#>         Characteristic       18 to 64       65 to 89 90 and older
+#> 1 Length of stay, days 6.0 (5.0, 8.0) 3.0 (1.0, 9.0)         <=10
+```
+
+Review the CSV alongside any table headings, footnotes, totals, and
+related outputs you plan to share.
