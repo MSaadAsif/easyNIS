@@ -150,3 +150,33 @@ gp_receipt <- receipt("goodpractice", function() gp_failure)
 pkg_receipt <- receipt("pkgcheck", function() structure(list(goodpractice = gp_failure), class = "pkgcheck"))
 stopifnot(identical(gp_receipt$pass, FALSE), identical(pkg_receipt$pass, FALSE))
 cat("Nested failure receipts preserved\n")
+
+local({
+  path <- tempfile(fileext = ".R")
+  on.exit(unlink(path))
+  writeLines(
+    c(
+      'print.fixture <- function(x, ...) { cat("allowed"); invisible(x) }',
+      'announce <- function(x) { base::print(x); "cat() is text" }'
+    ),
+    path
+  )
+  stopifnot(identical(guide_console_calls(path, "S3method(print,fixture)"), paste0(path, ":2")))
+
+  position <- list(filename = "R/convert-encoding.R", line = "nis_convert_sas_encoding (59 lines)")
+  stopifnot(
+    pkgcheck_positions_allowed("complexity_function_length", list(position)),
+    !pkgcheck_positions_allowed("complexity_function_length", list()),
+    !pkgcheck_positions_allowed(
+      "complexity_function_length",
+      list(
+        position,
+        list(
+          filename = "R/convert-encoding.R",
+          line = "unreviewed_function (59 lines)"
+        )
+      )
+    ),
+    !pkgcheck_positions_allowed("unreviewed_check", list(position))
+  )
+})

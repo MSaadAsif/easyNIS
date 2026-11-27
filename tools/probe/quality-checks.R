@@ -46,7 +46,7 @@ quality_checks <- list(
       if (!requireNamespace("pkgcheck", quietly = TRUE)) {
         return("not installed")
       }
-      pkgcheck::pkgcheck(root, goodpractice = FALSE)
+      pkgcheck::pkgcheck(root, goodpractice = FALSE, use_cache = FALSE)
     },
     function(value) pkgcheck_pass(value)
   ),
@@ -57,6 +57,47 @@ quality_checks <- list(
     pkgdown::check_pkgdown(root)
   })
 )
+
+guide_console_calls <- function(path, namespace) {
+  code <- parse(path, keep.source = TRUE)
+  tokens <- utils::getParseData(code)
+  lines <- tokens$line1[tokens$token == "SYMBOL_FUNCTION_CALL" & tokens$text %in% c("print", "cat")]
+  methods <- grep("^S3method\\((print|str),[^,]+\\)$", namespace, value = TRUE)
+  methods <- chartr(",", ".", sub("^S3method\\((.*)\\)$", "\\1", methods))
+  for (i in seq_along(code)) {
+    definition <- code[[i]]
+    if (
+      is.call(definition) &&
+        identical(definition[[1L]], quote(`<-`)) &&
+        is.symbol(definition[[2L]]) &&
+        as.character(definition[[2L]]) %in% methods &&
+        is.call(definition[[3L]]) &&
+        identical(definition[[3L]][[1L]], quote(`function`))
+    ) {
+      span <- attr(code, "srcref")[[i]]
+      lines <- lines[lines < span[1L] | lines > span[3L]]
+    }
+  }
+  if (length(lines)) paste0(path, ":", lines) else character()
+}
+
+guide_first_argument_exceptions <- c(
+  nis_attrition_cohort = "flow",
+  nis_ccsr_codes = "categories",
+  nis_example = "years",
+  nis_vars_demographics = "",
+  nis_vars_design = "",
+  nis_vars_dx = "",
+  nis_vars_hospital = "",
+  nis_vars_pr = ""
+)
+
+guide_data_first <- function(exported_args) {
+  first <- vapply(exported_args, function(args) if (length(args)) args[[1L]] else "", character(1))
+  exceptions <- guide_first_argument_exceptions[names(first)]
+  allowed <- !is.na(exceptions) & first == exceptions
+  names(first)[!(first %in% c(".data", "data", "x", "design", "path", "file") | allowed)]
+}
 
 quality_receipt_ids <- c(
   vapply(quality_checks, "[[", character(1), "name"),

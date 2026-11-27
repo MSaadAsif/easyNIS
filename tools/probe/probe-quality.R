@@ -36,9 +36,10 @@ docs <- list(
   tools_in_buildignore = any(startsWith(trimws(readLines(file.path(root, ".Rbuildignore"), warn = FALSE)), "^tools"))
 )
 
-source_files <- list.files(file.path(root, "R"), pattern = "[.]R$", full.names = TRUE)
+source_files <- list.files("R", pattern = "[.]R$", full.names = TRUE)
 source_text <- unlist(lapply(source_files, readLines, warn = FALSE))
-print_cat_hits <- grep("\\b(?:print|cat)\\s*\\(", source_text, value = TRUE, perl = TRUE)
+namespace <- readLines(file.path(root, "NAMESPACE"), warn = FALSE)
+print_cat_hits <- unlist(lapply(source_files, guide_console_calls, namespace = namespace))
 description_text <- readLines(file.path(root, "DESCRIPTION"), warn = FALSE)
 required_fields <- c("Package", "Title", "Version", "Authors@R", "Description", "License")
 description_fields <- stats::setNames(
@@ -63,19 +64,11 @@ checks[["export_arguments"]] <- capture_quality_step(quality_receipt_ids[["expor
   })
 })
 exported_args <- checks$export_arguments$value
-if (inherits(exported_args, "error")) {
-  exported_args <- stats::setNames(rep(list(character()), length(exports)), exports)
+data_first_failures <- if (inherits(exported_args, "error")) {
+  exports
+} else {
+  guide_data_first(exported_args[exports])
 }
-exported_args <- exported_args[exports]
-data_first_exceptions <- names(exported_args)[
-  !vapply(
-    exported_args,
-    function(args) {
-      length(args) > 0L && args[[1L]] %in% c(".data", "data", "x", "design", "path", "file")
-    },
-    logical(1)
-  )
-]
 cli_calls <- grep("cli::cli_(abort|warn|inform|bullets)", source_text, value = TRUE)
 test_files <- list.files(file.path(root, "tests/testthat"), pattern = "[.]R$", full.names = TRUE)
 test_text <- paste(unlist(lapply(test_files, readLines, warn = FALSE)), collapse = "\n")
@@ -96,7 +89,7 @@ checklist <- list(
   cli_imported_for_messages = any(grepl("^\\s*cli,?$", description_text)),
   cli_calls_found = length(cli_calls),
   nis_prefix_consistent = all(grepl("^nis_", exports)),
-  exports_without_data_first_argument = data_first_exceptions
+  exports_without_data_first_argument = data_first_failures
 )
 manual_guide_pass <- with(
   checklist,
@@ -108,9 +101,10 @@ manual_guide_pass <- with(
     examples_for_every_export &&
     exports_mentioned_in_tests &&
     length(print_or_cat_source_hits) == 0L &&
+    cli_imported_for_messages &&
     cli_calls_found > 0L &&
     nis_prefix_consistent &&
-    identical(exports_without_data_first_argument, "nis_example")
+    length(exports_without_data_first_argument) == 0L
 )
 run_evidence$working_tree_clean <- isTRUE(run_evidence$working_tree_clean) &&
   identical(run_evidence, git_evidence())

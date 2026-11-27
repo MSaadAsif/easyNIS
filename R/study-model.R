@@ -31,6 +31,14 @@ nis_study_formula_status <- function(data, formula) {
     return(list(status = "The declared model has no complete-case rows after applying its covariates."))
   }
   outcome_values <- stats::model.response(model_frame)
+  status <- nis_study_matrix_status(formula, model_frame)
+  if (!is.null(status)) {
+    return(status)
+  }
+  list(status = NULL, model_frame = model_frame, outcome_values = outcome_values)
+}
+
+nis_study_matrix_status <- function(formula, model_frame) {
   model_matrix <- tryCatch(stats::model.matrix(formula, data = model_frame), error = function(error) error)
   if (inherits(model_matrix, "error")) {
     return(list(
@@ -67,7 +75,7 @@ nis_study_formula_status <- function(data, formula) {
       )
     ))
   }
-  list(status = NULL, model_frame = model_frame, outcome_values = outcome_values)
+  NULL
 }
 
 nis_study_variable_status <- function(model_frame, outcome_values, outcome, exposure, suffix) {
@@ -109,18 +117,19 @@ nis_study_model_data_status <- function(data, outcome, exposure, formula = NULL)
 }
 
 nis_study_run_model <- function(formula, design, family, fit) {
-  warnings <- character()
+  captured <- new.env(parent = emptyenv())
+  captured$warnings <- character()
   model <- tryCatch(
     withCallingHandlers(
       fit(formula, design = design, family = family),
       warning = function(warning) {
-        warnings <<- c(warnings, conditionMessage(warning))
+        captured$warnings <- c(captured$warnings, conditionMessage(warning))
         invokeRestart("muffleWarning")
       }
     ),
     error = function(error) error
   )
-  list(model = model, warnings = warnings)
+  list(model = model, warnings = captured$warnings)
 }
 
 nis_study_warning_status <- function(warnings) {

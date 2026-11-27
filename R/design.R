@@ -218,6 +218,28 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
   }
   discharge_weights <- cohort_rows$DISCWT
 
+  prepared <- nis_design_records(cohort_rows, fields, dollars, charges, sample$years, call)
+  layout <- nis_design_clusters(hospital_rows, hospital_index, empty, discharge_weights, divisor)
+  design <- nis_cohort_design(
+    prepared$rows,
+    layout$structure,
+    layout$placeholders,
+    sample$excluded,
+    prepared$cost_provenance,
+    nest = layout$nest
+  )
+  attr(design, "nis_design_input") <- list(
+    cohort = sample$cohort,
+    years = sample$years,
+    rows = sample$input_rows,
+    divisor = divisor,
+    annualize = annualize,
+    reweighted = FALSE
+  )
+  design
+}
+
+nis_design_records <- function(cohort_rows, fields, dollars, charges, years, call) {
   has_cost_inputs <- all(c(charges, "CCR_NIS") %in% fields$keep_names)
   if (!is.null(dollars) && !has_cost_inputs) {
     cli::cli_abort("Keep both {.field {charges}} and `CCR_NIS` when requesting `dollars`.")
@@ -244,9 +266,9 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
       ))
     }
     if (is.null(dollars)) {
-      dollars <- max(sample$years)
+      dollars <- max(years)
     }
-    cohort_rows <- nis_adjust_costs(cohort_rows, dollars, charges, call, cohort_years = sample$years)
+    cohort_rows <- nis_adjust_costs(cohort_rows, dollars, charges, call, cohort_years = years)
     cost_provenance <- nis_cost_provenance(cohort_rows)
   } else {
     cost_fields <- NULL
@@ -255,7 +277,10 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
 
   cli::cli_inform("Preparing the cohort survey design.")
   cohort_rows <- nis_design_aliases(cohort_rows, fields, cost_fields, alias_sources, call)
+  list(rows = cohort_rows, cost_provenance = cost_provenance)
+}
 
+nis_design_clusters <- function(hospital_rows, hospital_index, empty, discharge_weights, divisor) {
   # Form the nested labels once per hospital-year. Factor codes retain the
   # original stratum and PSU ordering used by survey's variance calculation.
   psu <- paste(hospital_rows$YEAR, hospital_rows$HOSP_NIS, sep = "::")
@@ -275,16 +300,7 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
     .nis_stratum = factor(stratum)[indices],
     .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
   )
-  design <- nis_cohort_design(cohort_rows, structure, placeholders, sample$excluded, cost_provenance, nest = nest)
-  attr(design, "nis_design_input") <- list(
-    cohort = sample$cohort,
-    years = sample$years,
-    rows = sample$input_rows,
-    divisor = divisor,
-    annualize = annualize,
-    reweighted = FALSE
-  )
-  design
+  list(structure = structure, placeholders = placeholders, nest = nest)
 }
 
 nis_design_cohort_text <- function(cohort) {
