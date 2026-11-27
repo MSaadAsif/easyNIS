@@ -187,7 +187,7 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #'   are missing for ordinary logical criteria. Pass the flow to
 #'   [nis_audit_code_transition()] to summarize its code criteria by period.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
+#' @seealso [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @export
 #' @examples
 #' toy_nis <- dplyr::tibble(

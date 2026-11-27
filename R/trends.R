@@ -64,7 +64,7 @@ nis_check_2015_cohort <- function(quarters, call) {
 #'   valid cohort discharges have zero support counts and missing estimates
 #'   and standard errors. Use the support counts with [nis_suppress()] before
 #'   sharing annual estimates.
-#' @seealso [Trends](articles/trends.html).
+#' @seealso [Trends](https://msaadasif.github.io/easyNIS/articles/trends.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>

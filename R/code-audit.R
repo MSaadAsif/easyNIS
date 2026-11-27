@@ -413,7 +413,7 @@
 #'   For `output = "inventory"`, the period columns, `code_group`, `code`,
 #'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, and `status`.
 #' @family cohort-definition
-#' @seealso [Code transitions and sensitivity](articles/code-transitions.html).
+#' @seealso [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
 #' @export
 #' @examples
 #' toy_data <- dplyr::tibble(

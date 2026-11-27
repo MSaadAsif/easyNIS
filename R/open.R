@@ -99,7 +99,7 @@
 #'   `HOSP_DIVISION`, sequential `NIS_STRATUM`) are UNVERIFIED against official
 #'   HCUP 2023 documentation and real 2023 data; none were available for testing.
 #' @family data-access
-#' @seealso [Opening NIS data](articles/opening-data.html).
+#' @seealso [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html).
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)

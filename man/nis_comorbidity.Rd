@@ -80,6 +80,6 @@ discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPO
 nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
 }
 \seealso{
-\href{articles/comorbidity.html}{Comorbidity indicators}.
+\href{https://msaadasif.github.io/easyNIS/articles/comorbidity.html}{Comorbidity indicators}.
 }
 \concept{comorbidity}

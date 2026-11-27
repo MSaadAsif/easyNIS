@@ -119,7 +119,7 @@ nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
   by = c(YEAR, DQTR))
 }
 \seealso{
-\href{articles/code-transitions.html}{Code transitions and sensitivity}.
+\href{https://msaadasif.github.io/easyNIS/articles/code-transitions.html}{Code transitions and sensitivity}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

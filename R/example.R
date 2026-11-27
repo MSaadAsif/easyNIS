@@ -166,7 +166,7 @@
 #'
 #' @return The temporary directory containing `NIS_<year>.parquet/` entries.
 #' @family data-access
-#' @seealso [Opening NIS data](articles/opening-data.html).
+#' @seealso [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html).
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)

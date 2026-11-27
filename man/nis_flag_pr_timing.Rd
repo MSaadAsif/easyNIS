@@ -66,7 +66,7 @@ toy <- data.frame(I10_PR1 = c("02UG0JZ", "0JH604Z"), PRDAY1 = c(0L, 1L))
 nis_flag_pr_timing(toy, "02UG0", "0JH60")
 }
 \seealso{
-\href{articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

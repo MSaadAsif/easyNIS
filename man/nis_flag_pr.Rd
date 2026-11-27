@@ -42,7 +42,7 @@ nis |>
   dplyr::collect()
 }
 \seealso{
-\href{articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

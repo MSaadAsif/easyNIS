@@ -43,5 +43,5 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 nis_annual_totals(nis, heart_failure)
 }
 \seealso{
-\href{articles/trends.html}{Trends}.
+\href{https://msaadasif.github.io/easyNIS/articles/trends.html}{Trends}.
 }

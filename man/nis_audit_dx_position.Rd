@@ -52,7 +52,7 @@ outcome_names <- c("ELECTIVE", "DIED")
 nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
 }
 \seealso{
-\href{articles/code-transitions.html}{Code transitions and sensitivity}.
+\href{https://msaadasif.github.io/easyNIS/articles/code-transitions.html}{Code transitions and sensitivity}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

@@ -23,7 +23,7 @@
 #'     enforcement) and 99 (alive, destination unknown) are valid codes.
 #'
 #'   For a lazy DuckDB input, the result is a lazy query.
-#' @seealso [Hospitalization outcomes](articles/outcomes.html), [nis_cost()]
+#' @seealso [Hospitalization outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.html), [nis_cost()]
 #' @export
 #' @examples
 #' nis_open(nis_example(years = 2024)) |>
