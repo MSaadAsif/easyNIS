@@ -65,8 +65,8 @@ nis_add_ccsr <- function(
   }
   sql <- ccsr_query_sql(.data, con, columns, slots, type, position, releases, version, categories, name)
   out <- dplyr::tbl(con, dbplyr::sql(sql))
+  out$src <- .data$src
   if (inherits(.data, "tbl_nis")) {
-    out$src <- .data$src
     class(out) <- c("tbl_nis", class(out))
   }
   dplyr::group_by(out, !!!rlang::syms(dplyr::group_vars(.data)))

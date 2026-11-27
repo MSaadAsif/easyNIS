@@ -293,7 +293,7 @@ test_that("nis_cell_counts handles an unstratified cell and validates its inputs
   overall <- nis_cell_counts(records, by = character())
   expect_equal(overall$n, 3L)
   expect_equal(overall$hospitals, 3L)
-  expect_error(nis_cell_counts(records, by = NA_character_), "cell-defining columns")
+  expect_error(nis_cell_counts(records, by = NA_character_), "missing values")
   expect_error(nis_cell_counts(records, by = "missing"), "missing")
   expect_error(nis_cell_counts(records["YEAR"], by = character()), "HOSP_NIS")
   expect_error(nis_cell_counts(list(records), by = character()), "record-level data frame")

@@ -1,17 +1,17 @@
 #' Attach an annual NIS companion to Core discharges
 #'
-#' @param x A lazy Core query from [nis_open()], including its linkage fields.
+#' @param .data A lazy Core query from [nis_open()], including its linkage fields.
 #' @param path Directory containing Parquet for one companion component, using
 #'   the annual or Hive layout accepted by [nis_open()]. Keep Core and each
 #'   companion in separate directories, with parts from the same release.
 #' @param component One of `"hospital"`, `"severity"`, or `"dx_pr_grps"`.
 #' @param columns Character vector of companion fields to add. Names are
 #'   matched case-insensitively using DuckDB's identifier rules. Choose fields
-#'   with names distinct from fields in `x`.
+#'   with names distinct from fields in `.data`.
 #'
 #' @details Hospital uses `YEAR` and `HOSP_NIS`. Severity and Diagnosis and
 #'   Procedure Groups use `YEAR` and `KEY_NIS`. Include companion parts for
-#'   every year opened in `x`. A field supplied only in some of those years
+#'   every year opened in `.data`. A field supplied only in some of those years
 #'   is missing in the others. A discharge without a matching companion row
 #'   is retained with missing companion values.
 #'
@@ -45,13 +45,13 @@
 #' nis_open(file.path(path, "core"), check_release = FALSE) |>
 #'   nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
 #'   dplyr::collect()
-nis_join_companion <- function(x, path, component, columns) {
+nis_join_companion <- function(.data, path, component, columns) {
   component <- rlang::arg_match(component, c("hospital", "severity", "dx_pr_grps"))
-  if (!inherits(x, "tbl_sql") || is.null(x$src$.easyNIS_years)) {
-    cli::cli_abort("`x` must be a lazy Core query from {.fn nis_open}.")
+  if (!inherits(.data, "tbl_sql") || is.null(.data$src$.easyNIS_years)) {
+    cli::cli_abort("`.data` must be a lazy Core query from {.fn nis_open}.")
   }
   id <- if (component == "hospital") "HOSP_NIS" else "KEY_NIS"
-  fields <- colnames(x)
+  fields <- colnames(.data)
   required <- unique(c("YEAR", "KEY_NIS", id))
   core_keys <- nis_companion_fields(required, fields)
   if (anyNA(core_keys)) {
@@ -59,17 +59,17 @@ nis_join_companion <- function(x, path, component, columns) {
   }
   nis_companion_check_columns(columns, fields, component)
 
-  con <- dbplyr::remote_con(x)
-  dataset <- nis_open_discover(path, x$src$.easyNIS_years, rlang::current_call())
-  sources <- nis_open_source_paths(x)
+  con <- dbplyr::remote_con(.data)
+  dataset <- nis_open_discover(path, .data$src$.easyNIS_years, rlang::current_call())
+  sources <- nis_open_source_paths(.data)
   if (any(dataset$parts$path %in% sources)) {
     cli::cli_abort("Keep Core and each companion in separate Parquet files.")
   }
   companion <- nis_companion_query(dataset$parts, con, id, columns)
   keys <- c("YEAR", id)
   names(keys) <- core_keys[match(keys, required)]
-  companion <- nis_companion_check_keys(x, companion, keys, con)
-  joined <- dplyr::left_join(x, companion, by = keys, na_matches = "never")
+  companion <- nis_companion_check_keys(.data, companion, keys, con)
+  joined <- dplyr::left_join(.data, companion, by = keys, na_matches = "never")
   joined$src$.easyNIS_source_paths <- c(sources, dataset$parts$path)
   joined
 }

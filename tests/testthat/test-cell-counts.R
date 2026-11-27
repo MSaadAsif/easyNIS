@@ -17,7 +17,7 @@ test_that("nis_cell_counts rejects reserved summary names in cell keys", {
 
   for (input in inputs) {
     for (by in keys) {
-      expect_error(nis_cell_counts(input, by = by), "`by`.*reserved.*(n|hospitals)")
+      expect_error(nis_cell_counts(input, by = dplyr::all_of(by)), "`by`.*reserved.*(n|hospitals)")
     }
   }
 })

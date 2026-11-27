@@ -77,12 +77,12 @@ nis_audit_code_transition(
 ## Compare diagnosis positions
 
 Principal and secondary diagnoses can capture different presentations.
-`nis_dx_sensitivity()` compares counts and selected outcome rates across
+`nis_audit_dx_position()` compares counts and selected outcome rates across
 principal, secondary-only, and any-position definitions.
 
 ```{r sensitivity}
 nis <- nis_open(nis_example(years = 2019))
-nis_dx_sensitivity(nis, "I50")
+nis_audit_dx_position(nis, "I50")
 ```
 
 The rows show how the synthetic definition changes with diagnosis position.
@@ -121,6 +121,17 @@ experimental.
 > - Principal and any-position summaries are nested definitions, not
 >   independent groups.
 
-See [`nis_audit_code_transition()`](../reference/nis_audit_code_transition.html),
-[`nis_dx_sensitivity()`](../reference/nis_dx_sensitivity.html), and
-[`nis_flag_dx_position()`](../reference/nis_flag_dx_position.html).
+To keep the flags for later analysis, call `nis_flag_dx()` once for each
+position, then derive the mutually exclusive secondary-only flag.
+
+```{r position-flags}
+nis |>
+  nis_flag_dx(hf_any = "I50") |>
+  nis_flag_dx(hf_principal = "I50", position = "principal") |>
+  dplyr::mutate(hf_secondary_only = hf_any & !hf_principal) |>
+  dplyr::count(hf_principal, hf_secondary_only) |>
+  dplyr::collect()
+```
+
+See [`nis_audit_code_transition()`](../reference/nis_audit_code_transition.html)
+and [`nis_audit_dx_position()`](../reference/nis_audit_dx_position.html).

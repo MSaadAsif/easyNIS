@@ -37,7 +37,7 @@ cell_estimates <- dplyr::summarise(
   estimate = mean(estimate),
   .groups = "drop"
 )
-cells <- nis_cell_counts(records, by = "group") |>
+cells <- nis_cell_counts(records, by = group) |>
   dplyr::left_join(cell_estimates, by = "group")
 cells
 ```

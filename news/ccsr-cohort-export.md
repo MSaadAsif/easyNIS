@@ -1,1 +1,0 @@
-- CCSR-enriched queries retain their NIS source metadata and connection lifetime, so they can be passed to `nis_write_cohort()`.

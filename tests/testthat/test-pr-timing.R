@@ -125,7 +125,7 @@ test_that("procedure timing pairs and orders two-digit slots by number", {
     result <- nis_flag_pr_timing(input, "IX", "OUT", missing_day = "indeterminate") |>
       dplyr::collect()
     expect_identical(result$outcome_post_index, c(TRUE, NA))
-    completion <- nis_prday_completeness(input, "OUT")
+    completion <- nis_audit_prday(input, "OUT")
     expect_identical(completion$slot, c(2L, 10L, 12L))
     expect_identical(completion$known_day, c(0L, 2L, 0L))
     expect_identical(completion$absent_prday_column, c(0L, 0L, 2L))
@@ -298,7 +298,7 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
     PRDAY1 = c(0L, -99L, 0L, 0L),
     PRDAY2 = c(0L, NA_integer_, -88L, 1L)
   )
-  actual <- nis_prday_completeness(data, c("ix", "out"))
+  actual <- nis_audit_prday(data, c("ix", "out"))
   expect_identical(
     actual,
     dplyr::tibble(
@@ -314,12 +314,12 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
   )
 
   no_slot_day <- dplyr::select(data, -PRDAY2)
-  absent <- nis_prday_completeness(no_slot_day, "out")
+  absent <- nis_audit_prday(no_slot_day, "out")
   absent_slot2 <- dplyr::filter(absent, slot == 2L)
   expect_identical(absent_slot2$absent_prday_column, c(2L, 2L))
   expect_identical(absent_slot2$matched_slots, c(2L, 2L))
 
-  duckdb_result <- nis_prday_completeness(duckdb_query_fixture(data), c("ix", "out"))
+  duckdb_result <- nis_audit_prday(duckdb_query_fixture(data), c("ix", "out"))
   expect_equal(duckdb_result, actual)
 })
 
@@ -331,7 +331,7 @@ test_that("PRDAY completeness aggregates on DuckDB queries", {
   on.exit(duckdb::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   DBI::dbWriteTable(con, "fixture", data, temporary = TRUE)
   query <- dplyr::tbl(con, "fixture")
-  result <- nis_prday_completeness(query, "IX")
+  result <- nis_audit_prday(query, "IX")
   expect_equal(result$matched_slots, 2L)
   expect_equal(result$known_day, 1L)
   expect_equal(result$sentinel_invalid_day, 1L)
@@ -357,7 +357,7 @@ test_that("PRDAY completeness separates matches by year and slot", {
     absent_prday_column = rep(0L, 6L),
     pct_known = c(100, 100, 50, 0, 50, 100)
   )
-  expect_identical(nis_prday_completeness(data, "IX"), expected)
+  expect_identical(nis_audit_prday(data, "IX"), expected)
 })
 
 test_that("PRDAY completeness classifies days like procedure timing", {
@@ -368,7 +368,7 @@ test_that("PRDAY completeness classifies days like procedure timing", {
     PRDAY1 = rep(0L, 4L),
     PRDAY2 = c(0L, 1L, NA_integer_, -99L)
   )
-  summary <- nis_prday_completeness(data, "OUT")
+  summary <- nis_audit_prday(data, "OUT")
   flag <- nis_flag_pr_timing(data, "IX", "OUT", relation = "same_day", missing_day = "indeterminate")$outcome_post_index
   expect_identical(flag, c(TRUE, FALSE, NA, NA))
   expect_identical(summary$known_day[summary$slot == 2L], as.integer(sum(!is.na(flag))))
@@ -383,7 +383,7 @@ test_that("PRDAY completeness uses factor labels across input types", {
     I10_PR1 = rep("OUT", length(values)),
     PRDAY1 = factor(values, levels = c("", "-1", "1", "999", "unused"))
   )
-  expected <- nis_prday_completeness(data, "OUT")
+  expected <- nis_audit_prday(data, "OUT")
   expect_identical(expected$known_day, 2L)
   expect_identical(expected$missing_day, 1L)
   expect_identical(expected$sentinel_invalid_day, 1L)
@@ -392,11 +392,11 @@ test_that("PRDAY completeness uses factor labels across input types", {
     character = dplyr::mutate(data, PRDAY1 = values),
     numeric = dplyr::mutate(data, PRDAY1 = c(-1, 999, NA_real_, 1))
   )) {
-    expect_identical(nis_prday_completeness(input, "OUT"), expected)
+    expect_identical(nis_audit_prday(input, "OUT"), expected)
   }
 
   query <- duckdb_query_fixture(data)
-  expect_identical(nis_prday_completeness(query, "OUT"), expected)
+  expect_identical(nis_audit_prday(query, "OUT"), expected)
 })
 
 test_that("PRDAY completeness buckets unparseable and NaN text days as missing", {
@@ -408,7 +408,7 @@ test_that("PRDAY completeness buckets unparseable and NaN text days as missing",
   )
   # Unparseable text days coerce to NA with a base R warning, as in
   # nis_flag_pr_timing().
-  expected <- suppressWarnings(nis_prday_completeness(data, "OUT"))
+  expected <- suppressWarnings(nis_audit_prday(data, "OUT"))
   expect_identical(expected$known_day, 1L)
   expect_identical(expected$sentinel_invalid_day, 1L)
   expect_identical(expected$missing_day, 4L)
@@ -420,12 +420,12 @@ test_that("PRDAY completeness buckets unparseable and NaN text days as missing",
   levels <- c("", "-1", "0", "NaN", "abc", "unused")
   factor_data <- dplyr::mutate(data, PRDAY1 = factor(values, levels = levels))
   expect_identical(
-    suppressWarnings(nis_prday_completeness(factor_data, "OUT")),
+    suppressWarnings(nis_audit_prday(factor_data, "OUT")),
     expected
   )
 
   query <- duckdb_query_fixture(data)
-  expect_identical(nis_prday_completeness(query, "OUT"), expected)
+  expect_identical(nis_audit_prday(query, "OUT"), expected)
 })
 
 test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
@@ -460,7 +460,7 @@ test_that("PRDAY NaN, infinities, sentinels, and missing values match frames", {
       expect_identical(actual, expected, info = paste(policy, relation))
     }
   }
-  expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"))
+  expect_identical(nis_audit_prday(query, "OUT"), nis_audit_prday(data, "OUT"))
 })
 
 test_that("PRDAY missing checks support logical, character, and numeric columns", {
@@ -482,7 +482,7 @@ test_that("PRDAY missing checks support logical, character, and numeric columns"
     actual <- nis_flag_pr_timing(query, "IX", "OUT", relation = "same_day", missing_day = "indeterminate") |>
       dplyr::collect()
     expect_identical(actual, expected, info = day_type)
-    expect_identical(nis_prday_completeness(query, "OUT"), nis_prday_completeness(data, "OUT"), info = day_type)
+    expect_identical(nis_audit_prday(query, "OUT"), nis_audit_prday(data, "OUT"), info = day_type)
   }
 })
 
@@ -505,7 +505,7 @@ test_that("procedure timing preserves requested flags with equivalent slot names
       expect_identical(collected[[output]], TRUE)
       expect_identical(names(collected), c(names(frame), output))
     }
-    expect_identical(nis_prday_completeness(data, "OUT")$matched_slots, c(0L, 1L, 1L))
+    expect_identical(nis_audit_prday(data, "OUT")$matched_slots, c(0L, 1L, 1L))
   }
 })
 
@@ -521,8 +521,8 @@ test_that("empty PRDAY summaries retain the yearly output schema", {
     absent_prday_column = integer(),
     pct_known = double()
   )
-  expect_identical(nis_prday_completeness(frame, "IX"), expected)
-  expect_identical(nis_prday_completeness(duckdb_query_fixture(frame), "IX"), expected)
+  expect_identical(nis_audit_prday(frame, "IX"), expected)
+  expect_identical(nis_audit_prday(duckdb_query_fixture(frame), "IX"), expected)
 })
 test_that("procedure timing and completeness preserve numeric slot pairing", {
   frame <- dplyr::tibble(YEAR = 2020L, I10_PR01 = "IX", I10_PR2 = "OUT", PRDAY1 = 0L, PRDAY01 = 9L, PRDAY2 = 5L)
@@ -536,7 +536,7 @@ test_that("procedure timing and completeness preserve numeric slot pairing", {
     expect_true(timing(frame))
     expect_false(timing(reversed))
     expect_true(timing(padded_day))
-    completion <- nis_prday_completeness(copier(legacy), "0123", system = "icd9")
+    completion <- nis_audit_prday(copier(legacy), "0123", system = "icd9")
     expect_identical(completion$slot, 0:1)
     expect_identical(completion$known_day, c(1L, 0L))
     expect_error(nis_flag_pr(copier(frame), matched = "IX", position = "principal"), "No ICD-10")

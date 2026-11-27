@@ -37,7 +37,13 @@ nis_cost_report <- function(provenance, cohort) {
 
 .nis_cost_validate_data <- function(data, call) {
   if (!is.data.frame(data)) {
-    cli::cli_abort("`data` must be a collected data frame.", call = call)
+    cli::cli_abort(
+      c(
+        "`.data` must be a collected data frame.",
+        i = "For a lazy query, select the columns you need and use `dplyr::collect()`, or pass `dollars` to `nis_design()`."
+      ),
+      call = call
+    )
   }
 }
 
@@ -51,7 +57,7 @@ nis_cost_report <- function(provenance, cohort) {
   required <- c("YEAR", charges, "CCR_NIS")
   missing <- setdiff(required, names(data))
   if (length(missing) > 0L) {
-    cli::cli_abort("`data` is missing required column{?s} {.val {missing}}.", call = call)
+    cli::cli_abort("`.data` is missing required column{?s} {.val {missing}}.", call = call)
   }
 }
 
@@ -102,7 +108,7 @@ nis_cost_report <- function(provenance, cohort) {
 
 #' Adjust NIS charges and costs to a reference dollar year
 #'
-#' @param data A collected data frame with `YEAR`, the `charges` column, and
+#' @param .data A collected data frame with `YEAR`, the `charges` column, and
 #'   `CCR_NIS`. Lazy DuckDB queries must be collected first.
 #' @param dollars Reference dollar year, from 2012 through 2024.
 #' @param charges Name of the total-charge column. Defaults to `"TOTCHG"`.
@@ -111,7 +117,7 @@ nis_cost_report <- function(provenance, cohort) {
 #'   missing from 2023, so it is not comparable to earlier-year `TOTCHG`, and it
 #'   is missing for earlier years.
 #'
-#' @return `data` with `cost_adj` and `charges_adj` in `dollars` USD. The
+#' @return `.data` with `cost_adj` and `charges_adj` in `dollars` USD. The
 #'   in-memory data frame has `nis_cost_provenance` metadata; retrieve it with
 #'   [nis_cost_provenance()].
 #' @family costs
@@ -122,8 +128,8 @@ nis_cost_report <- function(provenance, cohort) {
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect()
 #' head(nis_cost(charges, dollars = 2024))
-nis_cost <- function(data, dollars, charges = "TOTCHG") {
-  nis_adjust_costs(data, dollars, charges, call = rlang::current_call())
+nis_cost <- function(.data, dollars, charges = "TOTCHG") {
+  nis_adjust_costs(.data, dollars, charges, call = rlang::current_call())
 }
 
 nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) {
@@ -180,7 +186,7 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
 #' call this on the direct `nis_cost()` result or on the survey design returned
 #' by `nis_design()`.
 #'
-#' @param x A data frame returned by [nis_cost()] or a survey design returned
+#' @param .data A data frame returned by [nis_cost()] or a survey design returned
 #'   by [nis_design()].
 #'
 #' @return A list describing the charge and CCR fields, CPI-U source and base
@@ -196,9 +202,9 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
 #'   nis_cost(dollars = 2024)
 #' nis_cost_provenance(charges)
 #' @export
-nis_cost_provenance <- function(x) {
-  if (!is.data.frame(x) && !inherits(x, "tbl_svy")) {
-    cli::cli_abort("`x` must be a data frame or survey design.")
+nis_cost_provenance <- function(.data) {
+  if (!is.data.frame(.data) && !inherits(.data, "tbl_svy")) {
+    cli::cli_abort("`.data` must be a data frame or survey design.")
   }
-  attr(x, "nis_cost_provenance", exact = TRUE)
+  attr(.data, "nis_cost_provenance", exact = TRUE)
 }
