@@ -3,6 +3,8 @@
 - The descriptives and regression article shows how to use `nis_design()`
   with gtsummary for survey summaries, group comparisons, and regression
   tables. The workflow test checks cohort counts and full-sample survey results.
+- `nis_join_companion()` adds selected Hospital, Severity, or Diagnosis and
+  Procedure Groups fields to lazy Core queries using checked annual keys.
 
 - `nis_comorbidity()` now scores lazy DuckDB cohorts in bounded batches
   and returns the scores joined to the original query by discharge key.

@@ -117,6 +117,7 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
+  query$src$.easyNIS_years <- dataset$years
   result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)
   on.exit(NULL, add = FALSE)
   result
