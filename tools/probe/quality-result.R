@@ -60,7 +60,16 @@ pkgcheck_pass <- function(value) {
   if (!all(allowed)) {
     return(FALSE)
   }
-  if (!all(c("complexity_function_length", "complexity_unused_internal") %in% names(gp$checks))) {
+  required <- gp$checks[c("complexity_function_length", "complexity_unused_internal")]
+  if (
+    anyNA(vapply(
+      required,
+      function(check) {
+        if (is.logical(check$status) && length(check$status) == 1L) check$status else NA
+      },
+      logical(1)
+    ))
+  ) {
     return(NA)
   }
   # Use pkgcheck's own required-check summary. There is no exported verdict.

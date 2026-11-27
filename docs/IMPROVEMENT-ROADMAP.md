@@ -36,8 +36,9 @@ real NIS results.
 
 The readiness probe runs pkgcheck with `goodpractice = FALSE`. The package
 check, coverage, Jarl and Air lint, and namespace complexity have separate
-checks. The packaging probe allows only the following findings by file and
-function.
+checks. Use a version of urlchecker with the `fail` argument to
+`url_check()`, as required by goodpractice 1.2.0. The packaging probe
+allows only the following findings by file and function.
 
 - **Function length.** `nis_convert_sas_encoding()` keeps the ReadStat code
   page lookup together. `.nis_example_base_records()` keeps the full invented

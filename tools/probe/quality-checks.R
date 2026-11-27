@@ -46,6 +46,9 @@ quality_checks <- list(
       if (!requireNamespace("pkgcheck", quietly = TRUE)) {
         return("not installed")
       }
+      # goodpractice parses R files outside the package namespace.
+      library(DBI)
+      loadNamespace("duckdb")
       pkgcheck::pkgcheck(root, goodpractice = FALSE, use_cache = FALSE)
     },
     function(value) pkgcheck_pass(value)
