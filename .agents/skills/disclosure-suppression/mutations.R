@@ -24,9 +24,9 @@ check_mutations <- function() {
   mutations <- list(
     threshold = c("R/disclosure-policy.R", "counts <= threshold", "counts < threshold"),
     hospitals = c("R/disclosure-policy.R", "hospitals < 2L", "hospitals < 1L"),
-    complementary = c("R/suppress-data-frame.R", "if (args$secondary) {", "if (FALSE) {"),
-    weighted = c("R/suppress-data-frame.R", "args$count_col, args$weighted_cols, args$hospital_col",
-      "args$count_col, args$hospital_col")
+    complementary = c("R/suppress-data-frame.R", "if (secondary) {", "if (FALSE) {"),
+    weighted = c("R/suppress-data-frame.R", "count_col, weighted_cols, hospital_col))",
+      "count_col, hospital_col))")
   )
 
   for (name in names(mutations)) {

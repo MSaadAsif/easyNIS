@@ -23,13 +23,14 @@ or \code{add_overall()}, or a data frame/tibble.}
 
 \item{...}{Reserved for compatibility; unused arguments are errors.}
 
-\item{count_col}{For data frames, the unweighted-count column name (required).}
+\item{count_col}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> For data frames,
+select exactly one unweighted-count column.}
 
-\item{weighted_cols}{For data frames, other columns to mask on primary and
-secondary rows.}
+\item{weighted_cols}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> For data
+frames, other columns to mask on primary and secondary rows.}
 
-\item{by}{Optional data-frame grouping column names defining strata for
-complementary suppression.}
+\item{by}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Optional data-frame
+grouping columns defining strata for complementary suppression.}
 
 \item{secondary}{Apply complementary suppression. For data frames this masks
 the smallest remaining positive count when exactly one row in a stratum is
@@ -37,7 +38,8 @@ primary-masked. This is single-dimension complementary suppression, not a
 full cell-suppression solver; totals rows must be handled or excluded by
 the user.}
 
-\item{hospital_col}{Optional data-frame column containing the number of
+\item{hospital_col}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Optional
+selection of a single data-frame column containing the number of
 distinct contributing hospitals for each cell. Cells with fewer than two
 hospitals are marked \verb{<2 hospitals}. Missing
 or invalid hospital counts are errors. Hospital identifiers must be
@@ -81,6 +83,9 @@ table <- gtsummary::tbl_svysummary(
 )
 nis_suppress(table, threshold = 10)
 \dontshow{\}) # examplesIf}
+cells <- data.frame(n = c(4, 25), hospitals = c(2, 3), estimate_total = c(20, 125))
+nis_suppress(cells, count_col = n, hospital_col = hospitals,
+  weighted_cols = tidyselect::starts_with("estimate_"))
 }
 \seealso{
 \href{articles/disclosure.html}{Disclosure and suppression}.

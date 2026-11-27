@@ -34,8 +34,10 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #' @param system Code system of the diagnosis slots: `"icd10"` (default) or
 #'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
 #' @param weight_var Name of the discharge weight column. Defaults to `DISCWT`.
-#' @param outcomes Outcome columns to summarize. By default, `DIED` and
-#'   `ELECTIVE` are included when present and absent defaults are skipped.
+#' @param outcomes <[tidy-select][dplyr::dplyr_tidy_select]> Outcome columns to
+#'   summarize. By default, selects `DIED` and `ELECTIVE` when present. Use
+#'   `NULL` to omit rates or `all_of()` to select a character vector of names.
+#'   Use name-based selectors on DuckDB queries.
 #'
 #' @return A collected tibble with one row per presentation and unweighted and
 #'   weighted counts, shares of all prefix-positive presentations, and rates
@@ -51,18 +53,19 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))
 #' nis_audit_dx_position(nis, "I50")
+#' outcome_names <- c("ELECTIVE", "DIED")
+#' nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
 nis_audit_dx_position <- function(
   .data,
   code,
   system = c("icd10", "icd9"),
   weight_var = "DISCWT",
-  outcomes = c("DIED", "ELECTIVE")
+  outcomes = tidyselect::any_of(c("DIED", "ELECTIVE"))
 ) {
   system <- match.arg(system)
-  outcomes_were_supplied <- !missing(outcomes)
   dx_validate_weight(weight_var)
   columns <- nis_names(.data)
-  outcomes <- dx_validate_outcomes(outcomes, columns, outcomes_were_supplied)
+  outcomes <- nis_select_columns(.data, rlang::enquo(outcomes))
   if (!weight_var %in% columns) {
     cli::cli_abort("Weight column {.val {weight_var}} is missing from `.data`.")
   }
@@ -83,17 +86,6 @@ dx_validate_weight <- function(weight_var) {
   if (!is.character(weight_var) || length(weight_var) != 1L || is.na(weight_var) || !nzchar(weight_var)) {
     cli::cli_abort("`weight_var` must be one column name.", call = rlang::caller_call())
   }
-}
-
-dx_validate_outcomes <- function(outcomes, columns, supplied) {
-  if (!is.character(outcomes) || anyNA(outcomes) || !all(nzchar(outcomes)) || anyDuplicated(outcomes)) {
-    cli::cli_abort("`outcomes` must be a character vector of unique column names.", call = rlang::caller_call())
-  }
-  absent <- setdiff(outcomes, columns)
-  if (supplied && length(absent) > 0L) {
-    cli::cli_abort("Missing requested outcome column{?s}: {.val {absent}}.", call = rlang::caller_call())
-  }
-  intersect(outcomes, columns)
 }
 
 dx_summary_names <- function(columns, flags) {

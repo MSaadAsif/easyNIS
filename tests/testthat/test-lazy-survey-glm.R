@@ -112,6 +112,30 @@ test_that("lazy GLMs back-transform and reject numerically aliased Gram systems"
   )
 })
 
+test_that("GLMs with repeated model rows preserve discharge weights and hospital variance", {
+  withr::local_options(list(
+    survey.lonely.psu = "fail",
+    survey.adjust.domain.lonely = FALSE,
+    easyNIS.duckdb_config = list(threads = 2L)
+  ))
+  query <- dplyr::mutate(lazy_glm_fixture(), older = AGE >= 55L)
+  reference <- lazy_reference(dplyr::mutate(query, DISCWT = alternate))
+  design <- nis_survey(query, weights = alternate)
+  formula <- response ~ older + factor(YEAR)
+  expect_lazy_glm(
+    survey::svyglm(
+      formula,
+      subset(design, YEAR > 2018L & HOSP_NIS %% 6L != 0L),
+      family = stats::quasibinomial()
+    ),
+    survey::svyglm(
+      formula,
+      subset(reference, YEAR > 2018L & HOSP_NIS %% 6L != 0L),
+      family = stats::quasibinomial()
+    )
+  )
+})
+
 test_that("wide whole-sample fits agree on the six-year invented fixture", {
   skip_if_not(tolower(Sys.getenv("EASYNIS_FULL_TESTS")) %in% c("true", "1"))
   withr::local_options(list(

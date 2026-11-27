@@ -21,6 +21,21 @@ nis_names <- function(data) {
   if (inherits(data, "tbl_sql")) colnames(data) else names(data)
 }
 
+nis_select_columns <- function(data, selection, error_call = rlang::caller_call(), exclude = character()) {
+  lazy <- inherits(data, "tbl_sql")
+  if (lazy) {
+    columns <- setdiff(colnames(data), exclude)
+    data <- stats::setNames(vector("list", length(columns)), columns)
+  }
+  names(tidyselect::eval_select(
+    selection,
+    data,
+    allow_rename = FALSE,
+    allow_predicates = !lazy,
+    error_call = error_call
+  ))
+}
+
 nis_is_finite_expr <- function(data, column) {
   if (inherits(data, "tbl_sql")) {
     value <- if (inherits(column, "sql")) column else dbplyr::ident(column)

@@ -33,11 +33,11 @@ test_that("Parquet cell counts retain year scope and reject invalid identities",
   write_duckdb_parquet(records, file.path(path, "NIS_2020.parquet"))
   query <- nis_open(path, check_release = FALSE)
   valid <- dplyr::filter(query, is.finite(HOSP_NIS))
-  expect_error(nis_cell_counts(query, "N"), "finite positive")
-  expect_equal(nis_cell_counts(valid, "N"), nis_cell_counts(records[1:3, ], "N"))
-  expect_equal(nis_cell_counts(valid, character())$hospitals, 2)
-  expect_equal(nis_cell_counts(dplyr::filter(query, FALSE), character())$n, 0)
-  expect_error(nis_cell_counts(dplyr::mutate(query, HOSP_NIS = "1"), "N"), "finite positive")
+  expect_error(nis_cell_counts(query, N), "finite positive")
+  expect_equal(nis_cell_counts(valid, N), nis_cell_counts(records[1:3, ], N))
+  expect_equal(nis_cell_counts(valid)$hospitals, 2)
+  expect_equal(nis_cell_counts(dplyr::filter(query, FALSE))$n, 0)
+  expect_error(nis_cell_counts(dplyr::mutate(query, HOSP_NIS = "1"), N), "finite positive")
 })
 
 test_that("nis_cell_counts retains ordinary multi-key identities and counts", {
@@ -59,7 +59,7 @@ test_that("nis_cell_counts retains ordinary multi-key identities and counts", {
   )
 
   for (input in inputs) {
-    counts <- nis_cell_counts(input, by = c("group", "category"))
+    counts <- nis_cell_counts(input, by = c(group, category))
     expect_identical(names(counts), c("group", "category", "n", "hospitals"))
     expect_identical(counts$group, c("A", "A", "B"))
     expect_identical(counts$category, c("north", "south", "north"))

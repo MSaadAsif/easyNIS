@@ -22,8 +22,9 @@ nis_vars_hospital()
 Tidyselect column positions for the current selection.
 }
 \description{
-Use these tidyselect helpers inside \code{\link[dplyr:select]{dplyr::select()}} or the \code{keep}
-argument of \code{\link[=nis_design]{nis_design()}}. Groups use HCUP field names from 2012 onward.
+Use these helpers inside \code{\link[dplyr:select]{dplyr::select()}} and easyNIS tidy-select
+arguments, such as \code{keep} in \code{\link[=nis_design]{nis_design()}} or \code{columns} in
+\code{\link[=nis_join_companion]{nis_join_companion()}}. Groups use HCUP field names from 2012 onward.
 Each helper selects the columns present in the input. Combine groups
 with \code{c()} or exclude them with \code{-}.
 }

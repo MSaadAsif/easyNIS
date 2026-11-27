@@ -7,7 +7,8 @@
 #' Factor and ordered-factor PRDAY columns are interpreted by their labels,
 #' not their internal level numbers. Values that decode to missing numeric days
 #' are handled as missing. Input columns are preserved.
-#' Negative days (including HCUP sentinel values) and missing days are unknown.
+#' Negative days (including HCUP sentinel values), non-finite values, and
+#' missing days are unknown.
 #' If either procedure is absent, the result is FALSE. Otherwise, any outcome
 #' with a known day satisfying the relation returns TRUE. If none does and a
 #' matching procedure has an unknown day, exclude returns FALSE,

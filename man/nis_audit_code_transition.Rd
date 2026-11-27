@@ -8,7 +8,7 @@ nis_audit_code_transition(
   .data,
   codes,
   cohort = NULL,
-  by = "YEAR",
+  by = YEAR,
   type = c("pr", "dx"),
   system = c("icd10", "icd9"),
   weight_var = "DISCWT",
@@ -27,8 +27,9 @@ non-empty and unique. For \code{output = "summary"}, can also be the result of
 \item{cohort}{Optional tidy-evaluation logical expression defining the
 cohort. Rows where it evaluates to \code{NA} are excluded.}
 
-\item{by}{Names of one or more existing columns defining periods, with no
-duplicates.}
+\item{by}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> One or more columns
+defining periods. Defaults to \code{YEAR}. Use name-based selectors on DuckDB
+queries.}
 
 \item{type}{Whether to match diagnosis (\code{"dx"}) or procedure (\code{"pr"})
 slots.}
@@ -115,7 +116,7 @@ nis_audit_code_transition(toy_data,
 # Periods defined by several columns
 toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
 nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
-  by = c("YEAR", "DQTR"))
+  by = c(YEAR, DQTR))
 }
 \seealso{
 \href{articles/code-transitions.html}{Code transitions and sensitivity}.

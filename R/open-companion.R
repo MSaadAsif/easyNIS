@@ -5,9 +5,11 @@
 #'   the annual or Hive layout accepted by [nis_open()]. Keep Core and each
 #'   companion in separate directories, with parts from the same release.
 #' @param component One of `"hospital"`, `"severity"`, or `"dx_pr_grps"`.
-#' @param columns Character vector of companion fields to add. Names are
-#'   matched case-insensitively using DuckDB's identifier rules. Choose fields
-#'   with names distinct from fields in `.data`.
+#' @param columns <[tidy-select][dplyr::dplyr_tidy_select]> Select one or more
+#'   companion fields by name across the selected years. Linkage keys are
+#'   included automatically and are outside the selection. Use the field's
+#'   source spelling for bare names or `all_of()`. Selected fields keep
+#'   their source names and must have names distinct from fields in `.data`.
 #'
 #' @details Hospital uses `YEAR` and `HOSP_NIS`. Severity and Diagnosis and
 #'   Procedure Groups use `YEAR` and `KEY_NIS`. Include companion parts for
@@ -43,7 +45,7 @@
 #' write_component("hospital", "7 AS HOSP_NIS, 2 AS HOSP_BEDSIZE")
 #' DBI::dbDisconnect(con, shutdown = TRUE)
 #' nis_open(file.path(path, "core"), check_release = FALSE) |>
-#'   nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
+#'   nis_join_companion(file.path(path, "hospital"), "hospital", nis_vars_hospital()) |>
 #'   dplyr::collect()
 nis_join_companion <- function(.data, path, component, columns) {
   component <- rlang::arg_match(component, c("hospital", "severity", "dx_pr_grps"))
@@ -57,16 +59,19 @@ nis_join_companion <- function(.data, path, component, columns) {
   if (anyNA(core_keys)) {
     cli::cli_abort("The Core query must include {.field {required[is.na(core_keys)]}}.")
   }
-  nis_companion_check_columns(columns, fields, component)
-
   con <- dbplyr::remote_con(.data)
   dataset <- nis_open_discover(path, .data$src$.easyNIS_years, rlang::current_call())
   sources <- nis_open_source_paths(.data)
   if (any(dataset$parts$path %in% sources)) {
     cli::cli_abort("Keep Core and each companion in separate Parquet files.")
   }
-  companion <- nis_companion_query(dataset$parts, con, id, columns)
   keys <- c("YEAR", id)
+  companion <- nis_companion_query(dataset$parts, con, id)
+  available <- colnames(companion)
+  key_fields <- nis_companion_fields(keys, available)
+  columns <- nis_select_columns(companion, rlang::enquo(columns), exclude = key_fields)
+  nis_companion_check_columns(columns, fields, component)
+  companion <- dplyr::select(companion, tidyselect::all_of(c(stats::setNames(key_fields, keys), columns)))
   names(keys) <- core_keys[match(keys, required)]
   companion <- nis_companion_check_keys(.data, companion, keys, con)
   joined <- dplyr::left_join(.data, companion, by = keys, na_matches = "never")
@@ -79,13 +84,10 @@ nis_companion_fields <- function(requested, fields) {
 }
 
 nis_companion_check_columns <- function(columns, core, component) {
-  if (!is.character(columns) || !length(columns) || any(columns %in% c(NA, ""))) {
-    cli::cli_abort("`columns` must be a non-empty character vector of companion field names.")
+  if (!length(columns)) {
+    cli::cli_abort("`columns` must select at least one companion field.", call = rlang::caller_call())
   }
   keys <- nis_sql_identifier_key(columns)
-  if (anyDuplicated(keys)) {
-    cli::cli_abort("`columns` must identify distinct companion fields.")
-  }
   if (component == "hospital" && "total_disc" %in% keys) {
     cli::cli_abort("{.field TOTAL_DISC} is a sampled discharge count and cannot estimate hospital volume.")
   }
@@ -95,7 +97,7 @@ nis_companion_check_columns <- function(columns, core, component) {
   }
 }
 
-nis_companion_query <- function(parts, con, id, columns) {
+nis_companion_query <- function(parts, con, id) {
   # Annual filenames supply the year just as Hive partitions do.
   parts$partition_year <- parts$year
   plan <- nis_open_plan_parquet(parts, con, "duckdb")
@@ -109,12 +111,7 @@ nis_companion_query <- function(parts, con, id, columns) {
   if (!all(has_key)) {
     cli::cli_abort("Every companion part must contain {.field {id}}.")
   }
-  requested <- c("YEAR", id, columns)
-  fields <- nis_companion_fields(requested, colnames(plan$query))
-  if (anyNA(fields)) {
-    cli::cli_abort("Companion field{?s} {.field {requested[is.na(fields)]}} missing from the selected years.")
-  }
-  dplyr::select(plan$query, tidyselect::all_of(stats::setNames(fields, requested)))
+  plan$query
 }
 
 nis_companion_check_keys <- function(core, companion, keys, con) {

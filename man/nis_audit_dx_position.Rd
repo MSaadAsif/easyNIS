@@ -9,7 +9,7 @@ nis_audit_dx_position(
   code,
   system = c("icd10", "icd9"),
   weight_var = "DISCWT",
-  outcomes = c("DIED", "ELECTIVE")
+  outcomes = tidyselect::any_of(c("DIED", "ELECTIVE"))
 )
 }
 \arguments{
@@ -22,8 +22,10 @@ nis_audit_dx_position(
 
 \item{weight_var}{Name of the discharge weight column. Defaults to \code{DISCWT}.}
 
-\item{outcomes}{Outcome columns to summarize. By default, \code{DIED} and
-\code{ELECTIVE} are included when present and absent defaults are skipped.}
+\item{outcomes}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Outcome columns to
+summarize. By default, selects \code{DIED} and \code{ELECTIVE} when present. Use
+\code{NULL} to omit rates or \code{all_of()} to select a character vector of names.
+Use name-based selectors on DuckDB queries.}
 }
 \value{
 A collected tibble with one row per presentation and unweighted and
@@ -46,6 +48,8 @@ prohibits reporting cells of 1–10.
 \examples{
 nis <- nis_open(nis_example(years = 2019))
 nis_audit_dx_position(nis, "I50")
+outcome_names <- c("ELECTIVE", "DIED")
+nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
 }
 \seealso{
 \href{articles/code-transitions.html}{Code transitions and sensitivity}.

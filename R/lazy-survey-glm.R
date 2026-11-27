@@ -92,7 +92,7 @@ nis_survey_model_input <- function(formula, design, family, rescale) {
     paste(sprintf("%s AS %s", model$sql, x), collapse = ", "),
     source
   )
-  nis_survey_model_scale(design, rows, x, model, family$family, attr(terms, "intercept") == 1L)
+  nis_survey_model_scale(design, rows, x, model, family$family, attr(terms, "intercept") == 1L, rescale)
 }
 
 nis_survey_model_levels <- function(design, source, name, type) {
@@ -184,7 +184,7 @@ nis_survey_number <- function(x) {
   sprintf("CAST('%.17g' AS DOUBLE)", x)
 }
 
-nis_survey_model_scale <- function(design, rows, x, model, family, intercept) {
+nis_survey_model_scale <- function(design, rows, x, model, family, intercept, rescale) {
   gaussian <- family == "gaussian"
   logistic <- family %in% c("binomial", "quasibinomial")
   z <- c("y", x)
@@ -197,15 +197,12 @@ nis_survey_model_scale <- function(design, rows, x, model, family, intercept) {
     "y < 0"
   }
   invalid <- paste(c(response_bad, sprintf("NOT isfinite(%s)", z)), collapse = " OR ")
-  info <- nis_survey_get(
-    design,
-    sprintf(
-      "SELECT count(*) AS n, bool_or(%s) AS bad, %s FROM %s",
-      invalid,
-      bounds,
-      rows
-    )
-  )
+  stats <- c("count(*) AS n", sprintf("bool_or(%s) AS bad", invalid), bounds)
+  if (!gaussian && rescale) {
+    integral <- paste(sprintf("%1$s = trunc(%1$s)", z), collapse = " AND ")
+    stats <- c(stats, sprintf("bool_and(%s) AS integral", integral))
+  }
+  info <- nis_survey_get(design, sprintf("SELECT %s FROM %s", paste(stats, collapse = ", "), rows))
   if (info$n == 0L || isTRUE(info$bad)) {
     cli::cli_abort("Invalid or empty complete model rows.")
   }
@@ -233,6 +230,14 @@ nis_survey_model_scale <- function(design, rows, x, model, family, intercept) {
     "poisson"
   }
   model$n <- as.numeric(info$n)
+  # The integer ranges bound the number of distinct rows before scaling.
+  # Require a substantial reduction and cap the group's double payload at 1 MiB.
+  patterns <- prod(high - low + 1)
+  model$group_rows <- all(
+    isTRUE(info$integral),
+    patterns * (length(z) + 1L) <= 2^17,
+    model$n >= 16 * patterns
+  )
   model
 }
 
@@ -330,6 +335,17 @@ nis_survey_irls <- function(design, input, control) {
   q <- p * (p + 1L) / 2L
   beta <- NULL
   system <- nis_survey_model_system(design, input, beta)
+  if (input$group_rows) {
+    # The starting eta can depend on each discharge's weight. Later systems
+    # are linear in weight for identical outcomes and predictors.
+    con <- dbplyr::remote_con(design$query)
+    table <- paste0("temp.main.", DBI::dbQuoteIdentifier(con, basename(tempfile("nis_survey_"))))
+    columns <- paste(c("y", input$x), collapse = ", ")
+    sql <- sprintf("CREATE TEMP TABLE %s AS SELECT %s, fsum(w) AS w FROM %s GROUP BY ALL", table, columns, input$rows)
+    DBI::dbExecute(con, sql)
+    on.exit(DBI::dbExecute(con, paste("DROP TABLE", table)), add = TRUE)
+    input$rows <- table
+  }
   for (iteration in seq_len(control$maxit)) {
     inverse <- nis_survey_gram_inverse(nis_survey_cross_matrix(system[seq_len(q)], p), control$epsilon)
     previous <- beta
