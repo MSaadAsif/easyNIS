@@ -132,8 +132,7 @@ nis_collect_widths <- function(con, sql, plan, schema) {
   # for known code slots when sampling a derived query would rerun its work.
   code <- grepl("^(I10_)?(DX|PR|DXPOA)[0-9]+$", schema$column_name, ignore.case = TRUE)
   widths <- ifelse(fixed, 16, ifelse(text & code, 32, 112))
-  original <- inherits(con, "nis_duckdb_connection") &&
-    identical(as.character(sql), con@collect_source)
+  original <- identical(as.character(sql), attr(con, "easyNIS_collect")$source)
   unfiltered_scan <- identical(plan$name, "READ_PARQUET") && is.null(plan$extra_info$Filters)
   if (any(text) && (original || unfiltered_scan)) {
     widths[text] <- nis_collect_text_widths(con, sql, schema$column_name[text])

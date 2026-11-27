@@ -29,10 +29,12 @@ test_that("collect checks the projected result and respects explicit row limits"
   # The numeric projection is small; the long text crosses the danger line.
   expect_no_message(narrow <- dplyr::collect(dplyr::select(query, ID)))
   expect_equal(nrow(narrow), 2000L)
-  error <- expect_error(dplyr::collect(query), class = "easyNIS_collect_too_large")
-  expect_match(conditionMessage(error), "filter")
-  expect_match(conditionMessage(error), "select")
-  expect_match(conditionMessage(error), "nis_design")
+  expect_error(
+    dplyr::collect(query),
+    regexp = "(?s)filter.*select.*nis_design",
+    class = "easyNIS_collect_too_large",
+    perl = TRUE
+  )
   expect_error(as.data.frame(query), class = "easyNIS_collect_too_large")
   expect_no_message(small <- as.data.frame(query, n = 3L))
   expect_equal(nrow(small), 3L)

@@ -130,7 +130,8 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   query <- nis_open_normalize_names(plan$query, unlist(plan$names_by_part, use.names = FALSE))
   nis_open_warn_2023(query)
   if (reader == "duckdb") {
-    query$src$con@collect_source <- as.character(dbplyr::sql_render(query))
+    collect <- attr(connection$con, "easyNIS_collect")
+    collect$source <- as.character(dbplyr::sql_render(query))
   }
   query$src$.easyNIS_source_paths <- unique(dataset$parts$path)
   query$src$.easyNIS_years <- dataset$years

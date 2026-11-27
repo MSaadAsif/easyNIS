@@ -32,12 +32,6 @@
   scan, and integer year filters can use Parquet statistics. Configure memory,
   threads, and spill storage before opening with `easyNIS.duckdb_config`.
 
-- Collecting a lazy `nis_open()` table or using an easyNIS helper that collects
-  DuckDB results now checks estimated result size against available RAM. Large
-  collects emit a message and those estimated to need at least half of
-  available RAM raise an `easyNIS_collect_too_large` error. Set
-  `options(easyNIS.collect_prudence = FALSE)` to override the check.
-
 - Procedure timing, PRDAY completeness, and code-transition inventory use
   shared slot discovery and continue to accept zero-padded slots.
   Empty PRDAY summaries retain their typed columns.

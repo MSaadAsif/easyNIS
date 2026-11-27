@@ -2,11 +2,7 @@
 #' @importFrom DBI dbBind dbSendQuery
 NULL
 
-methods::setClass(
-  "nis_duckdb_connection",
-  contains = "duckdb_connection",
-  slots = c(collect_source = "character")
-)
+methods::setClass("nis_duckdb_connection", contains = "duckdb_connection")
 methods::setClass("nis_duckdb_result", contains = "duckdb_result")
 
 # DuckDB executes in dbSendQuery() or, for deferred parameters, dbBind().
@@ -87,6 +83,9 @@ nis_duckdb_open_data <- function() {
   }
   on.exit(release(), add = TRUE)
   con <- nis_duckdb_connect(config)
+  # dbplyr may keep both modern and legacy references to the connection.
+  # Attach the mutable metadata before handing the connection to dbplyr.
+  attr(con, "easyNIS_collect") <- new.env(parent = emptyenv())
   if (!is.null(spill_limit)) {
     # DuckDB 1.5.2 can report a startup cap without enforcing it during spill.
     DBI::dbExecute(con, paste("SET max_temp_directory_size =", DBI::dbQuoteString(con, spill_limit)))

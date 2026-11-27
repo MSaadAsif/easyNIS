@@ -507,6 +507,7 @@ test_that("derived DuckDB queries retain the connection until all are released",
 
   query <- nis_open(path, check_release = FALSE)
   con <- query$src$con
+  expect_identical(dbplyr::remote_con(query), con)
   lookup <- dplyr::tibble(YEAR = 2019L, adjustment = 2L)
   DBI::dbWriteTable(con, "lookup", lookup, temporary = TRUE)
   derived <- query |>
