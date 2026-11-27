@@ -23,9 +23,6 @@ nis_comorbidity_spec <- function(method) {
     return(nis_cmrb_ahrq2027())
   }
   rlang::check_installed("medicalcoder", version = "0.10.0", reason = "to look up comorbidity mappings.")
-  if (method %in% refined) {
-    return(nis_cmrb_refined(method))
-  }
   if (method %in% charlson) {
     return(nis_cmrb_charlson(method))
   }
