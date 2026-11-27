@@ -416,3 +416,29 @@ test_that("DuckDB scoring keeps empty types and rejects ambiguous keys and colum
   expect_error(nis_comorbidity(dplyr::mutate(query, CMRB_N = 0L)), "replace existing")
   expect_identical(DBI::dbListTables(con), tables)
 })
+
+test_that("lazy comorbidity survives garbage collection and other queries", {
+  fixture <- nis_example(2019)
+  withr::defer(unlink(fixture, recursive = TRUE))
+
+  scored <- local({
+    discharges <- nis_open(fixture) |>
+      dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
+      dplyr::compute()
+    invisible(gc())
+    suppressWarnings(nis_comorbidity(discharges, "elixhauser_ahrq2027"))
+  })
+  invisible(gc())
+  other <- nis_open(fixture)
+  expected <- suppressWarnings(nis_comorbidity(dplyr::collect(other), "elixhauser_ahrq2027"))
+  observed <- dplyr::collect(dplyr::select(scored, cmrb_n, cmrb_mortality_index, cmrb_readmission_index))
+  expect_identical(
+    dplyr::arrange(observed, cmrb_n, cmrb_mortality_index, cmrb_readmission_index),
+    dplyr::arrange(
+      dplyr::select(expected, dplyr::all_of(names(observed))),
+      cmrb_n,
+      cmrb_mortality_index,
+      cmrb_readmission_index
+    )
+  )
+})
