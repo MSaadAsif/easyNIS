@@ -44,6 +44,7 @@ reference:
     desc: Open annual NIS files and inspect data structure and labels.
     contents:
       - nis_example
+      - nis_convert
       - nis_open
       - nis_join_companion
       - nis_label

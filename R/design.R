@@ -1,3 +1,23 @@
+nis_design_input <- function(data) {
+  if (!inherits(data, "tbl_sql")) {
+    return(data)
+  }
+  query <- data$lazy_query
+  # Reuse the rendered projection across the design queries. Preserve
+  # dbplyr's original query when row selection or window context is pending.
+  keep_query <- c(
+    !inherits(query, "lazy_select_query"),
+    isTRUE(query$distinct),
+    !is.null(query$limit),
+    length(dbplyr::op_sort(data)) > 0L,
+    !is.null(dbplyr::op_frame(data))
+  )
+  if (any(keep_query)) {
+    return(data)
+  }
+  nis_duckdb_translate_errors(dplyr::collapse(data))
+}
+
 nis_design_validate <- function(.data, charges, annualize, call) {
   if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
     cli::cli_abort("`charges` must be a single column name.", call = call)
@@ -179,6 +199,7 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
   call <- rlang::current_call()
   .data <- dplyr::ungroup(.data)
   nis_design_validate(.data, charges, annualize, call)
+  .data <- nis_design_input(.data)
   fields <- nis_design_fields(.data, rlang::enquo(keep), call)
   sample <- nis_design_sample(.data, rlang::enquo(cohort), fields$selected, fields$quarter_prototype, annualize, call)
   hospital_rows <- sample$hospital_rows
