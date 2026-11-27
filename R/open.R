@@ -68,7 +68,8 @@
 #' `as.data.frame()` on these lazy tables, and to easyNIS helpers that collect
 #' DuckDB results. It estimates the size of the result from DuckDB's query plan
 #' and the projected column types. It uses a small sample to refine text widths
-#' for simple Parquet reads. Estimates for filtered queries and variable-width
+#' for simple Parquet reads and counts the result rows before denying a collect.
+#' Estimates for filtered queries and variable-width
 #' columns can be inaccurate, and the check cannot predict DuckDB's working
 #' memory or memory used by subsequent R operations.
 #' Estimated results from 20% of available physical memory emit a message; at

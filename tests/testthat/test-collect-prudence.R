@@ -54,7 +54,7 @@ test_that("SQL row limits and collect caps use the available input estimate", {
   ordered <- dplyr::arrange(query, ID)
   expect_error(dplyr::collect(utils::head(ordered, 1500L)), class = "easyNIS_collect_too_large")
   expect_error(dplyr::collect(utils::head(query, 1500L)), class = "easyNIS_collect_too_large")
-  memory <- 128 * 1024
+  memory <- 256 * 1024
   expect_no_message(result <- dplyr::collect(query, n = 50000L))
   expect_equal(nrow(result), 2000L)
 })
@@ -83,12 +83,22 @@ test_that("collect does not discover dynamic pivot columns during preflight", {
 
 test_that("the message band permits a collect and tiny results stay quiet", {
   query <- collect_prudence_fixture()
-  local_mocked_bindings(nis_collect_available = function() 16 * 1024^2)
+  local_mocked_bindings(nis_collect_available = function() 32 * 1024^2)
 
   expect_message(full <- dplyr::collect(query), "Collecting.*MiB")
   expect_equal(nrow(full), 2000L)
   expect_no_message(summary <- dplyr::collect(dplyr::summarise(query, n = dplyr::n())))
   expect_equal(as.numeric(summary$n), 2000)
+})
+
+test_that("a selective filter is counted before an estimated abort", {
+  query <- collect_prudence_fixture() |>
+    dplyr::filter(ID %% 999L == 0L) |>
+    dplyr::select(ID)
+  local_mocked_bindings(nis_collect_available = function() 1024)
+
+  expect_no_message(cohort <- dplyr::collect(query))
+  expect_equal(sort(cohort$ID), c(999L, 1998L))
 })
 
 test_that("preflight does not run an expensive lazy filter before collecting", {

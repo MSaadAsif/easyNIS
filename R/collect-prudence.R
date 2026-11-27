@@ -22,7 +22,15 @@ nis_collect_check <- function(con, sql, n = -1) {
     return(invisible(NULL))
   }
   estimate <- tryCatch(nis_collect_estimate(con, sql, n), error = function(error) NULL)
-  if (is.null(estimate) || estimate$bytes < available * 0.2) {
+  if (is.null(estimate)) {
+    return(invisible(NULL))
+  }
+  bytes <- estimate$rows * estimate$row_width
+  if (bytes >= available * 0.5) {
+    rows <- nis_collect_count(con, sql, n)
+    bytes <- rows * estimate$row_width
+  }
+  if (!is.finite(bytes) || bytes < available * 0.2) {
     return(invisible(NULL))
   }
 
@@ -30,9 +38,9 @@ nis_collect_check <- function(con, sql, n = -1) {
   # during conversion to R, and allocations made after collect(). At a fifth
   # of available RAM there is still room to proceed, but users should know the cost.
   gib <- 1024^3
-  size <- format(round(estimate$bytes / 1024^2, 1), nsmall = 1, trim = TRUE)
+  size <- format(round(bytes / 1024^2, 1), nsmall = 1, trim = TRUE)
   memory <- format(round(available / gib, 2), nsmall = 2, trim = TRUE)
-  if (estimate$bytes >= available * 0.5) {
+  if (bytes >= available * 0.5) {
     cli::cli_abort(
       c(
         "Collect would use an estimated {size} MiB for {estimate$columns} column{?s} with {memory} GiB of available RAM.",
@@ -56,8 +64,8 @@ nis_collect_estimate <- function(con, sql, n) {
   if (grepl("\\bpivot\\b", sql, ignore.case = TRUE, perl = TRUE)) {
     return(NULL)
   }
-  # An exact count could rerun a join, filter or aggregation over every row.
-  # EXPLAIN binds the query and reads planner statistics without executing it.
+  # Keep the usual path cheap. An exact count can rerun a join, filter or
+  # aggregation over every row, so only pay for it before a possible abort.
   plans <- DBI::dbGetQuery(con, paste("EXPLAIN (FORMAT JSON)", sql))
   physical <- plans$explain_value[plans$explain_key == "physical_plan"]
   plan <- jsonlite::fromJSON(physical, simplifyVector = FALSE)[[1L]]
@@ -70,7 +78,18 @@ nis_collect_estimate <- function(con, sql, n) {
   }
   schema <- DBI::dbGetQuery(con, paste("DESCRIBE", sql))
   widths <- nis_collect_widths(con, sql, plan, schema)
-  list(bytes = rows * sum(widths), columns = length(widths))
+  list(rows = rows, row_width = sum(widths), columns = length(widths))
+}
+
+nis_collect_count <- function(con, sql, n) {
+  tryCatch(
+    {
+      query <- paste0("SELECT COUNT(*) AS n FROM (", sql, ") AS collect_result")
+      rows <- as.numeric(DBI::dbGetQuery(con, query)$n)
+      if (n >= 0) min(rows, n) else rows
+    },
+    error = function(error) NA_real_
+  )
 }
 
 nis_collect_plan_rows <- function(plan) {
@@ -107,26 +126,44 @@ nis_collect_widths <- function(con, sql, plan, schema) {
     types
   ) |
     startsWith(types, "DECIMAL(")
-  # Budget for R vectors and unshared string headers, even for short ICD codes.
-  widths <- ifelse(fixed, 8, 128)
+  # Fresh Windows collects from invented Parquet files peaked at about 13
+  # bytes per numeric cell, 25 per repeated ICD-like cell and 102 per unique
+  # short string, including DuckDB's result. Use the repeated-string budget
+  # for known code slots when sampling a derived query would rerun its work.
+  code <- grepl("^(I10_)?(DX|PR|DXPOA)[0-9]+$", schema$column_name, ignore.case = TRUE)
+  widths <- ifelse(fixed, 16, ifelse(text & code, 32, 112))
   original <- inherits(con, "nis_duckdb_connection") &&
     identical(as.character(sql), con@collect_source)
   unfiltered_scan <- identical(plan$name, "READ_PARQUET") && is.null(plan$extra_info$Filters)
   if (any(text) && (original || unfiltered_scan)) {
-    # Only sample unfiltered source reads. Even a LIMIT can rerun the whole
-    # query if it contains selective filters, sorting, windows, or grouping.
-    columns <- DBI::dbQuoteIdentifier(con, schema$column_name[text])
-    sample <- DBI::dbGetQuery(
-      con,
-      paste0(
-        "SELECT ",
-        paste0("MAX(strlen(", columns, "))", collapse = ", "),
-        " FROM (SELECT * FROM (",
-        sql,
-        ") AS source LIMIT 32) AS sample"
-      )
-    )
-    widths[text] <- pmax(widths[text], vapply(sample, as.numeric, numeric(1)) + 64, na.rm = TRUE)
+    widths[text] <- nis_collect_text_widths(con, sql, schema$column_name[text])
   }
   widths
+}
+
+nis_collect_text_widths <- function(con, sql, names) {
+  # Even a LIMIT can rerun a whole filtered or grouped query. The caller
+  # restricts this sample to source reads.
+  columns <- DBI::dbQuoteIdentifier(con, names)
+  stats <- c(
+    paste0("COALESCE(MAX(strlen(", columns, ")), 0)"),
+    paste0("COUNT(DISTINCT ", columns, ") / NULLIF(COUNT(*), 0)")
+  )
+  sample <- DBI::dbGetQuery(
+    con,
+    paste0(
+      "SELECT ",
+      paste(stats, collapse = ", "),
+      " FROM (SELECT * FROM (",
+      sql,
+      ") AS source LIMIT 2048) AS sample"
+    )
+  )
+  values <- vapply(sample, as.numeric, numeric(1))
+  bytes <- values[seq_along(names)]
+  distinct <- values[length(names) + seq_along(names)]
+  # R interns distinct strings. DuckDB and R also allocate payload beyond
+  # DuckDB's inline string capacity. The long-text fixture peaked at 366
+  # bytes/cell with 129-byte unique strings, including conversion overhead.
+  32 + 80 * ifelse(is.na(distinct), 1, distinct) + 2.5 * pmax(bytes - 12, 0)
 }
