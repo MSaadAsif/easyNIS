@@ -50,3 +50,18 @@ test_that("input grouping does not change cohort evaluation or survey estimates"
     }
   }
 })
+
+test_that("lazy design preserves the order and scope of a limited input", {
+  data <- dplyr::tibble(
+    YEAR = 2020L,
+    HOSP_NIS = rep(1:2, each = 4),
+    NIS_STRATUM = 1L,
+    DISCWT = 2,
+    AGE = 41:48
+  )
+  query <- duckdb_query_fixture(data) |>
+    dplyr::arrange(dplyr::desc(AGE)) |>
+    head(6)
+  expect_no_warning(design <- nis_design(query, TRUE, keep = AGE))
+  expect_identical(as.integer(design$variables$AGE), 48:43)
+})

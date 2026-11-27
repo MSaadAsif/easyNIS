@@ -43,6 +43,7 @@ head(nis_label(demographics))
 \href{articles/opening-data.html}{Opening NIS data}.
 
 Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
 \code{\link[=nis_example]{nis_example()}},
 \code{\link[=nis_open]{nis_open()}}
 }
