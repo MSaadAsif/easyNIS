@@ -1,5 +1,8 @@
 # easyNIS (development version)
 
+- `nis_comorbidity()` now scores lazy DuckDB cohorts in bounded batches
+  and returns the scores joined to the original query by discharge key.
+
 - The survey design article demonstrates analytic domains with
   `dplyr::filter()` on a `nis_design()` result and explains how filtering the
   lazy input can affect variance estimation.
