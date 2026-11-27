@@ -4,27 +4,37 @@
 \alias{nis_ccsr_codes}
 \title{ICD-10 codes in HCUP CCSR categories}
 \usage{
-nis_ccsr_codes(file, categories, default_only = FALSE)
+nis_ccsr_codes(
+  file = NULL,
+  categories,
+  default_only = FALSE,
+  type = c("dx", "pr"),
+  version = NULL
+)
 }
 \arguments{
-\item{file}{Path to the HCUP CCSR reference file.}
+\item{file}{Optional path to an HCUP reference file for a custom or newer
+release. The file determines the coding system when supplied.}
 
 \item{categories}{Character vector of CCSR category codes, such as
 \code{"CIR019"}. Matching ignores case.}
 
 \item{default_only}{If \code{TRUE}, keep only codes whose default inpatient
 category is in \code{categories}. Diagnosis reference files only.}
+
+\item{type}{\code{"dx"} for diagnosis or \code{"pr"} for procedure lookups in the
+bundled data.}
+
+\item{version}{A bundled version, such as \code{"2025.1"}. The default is the
+latest bundled release of the requested \code{type}.}
 }
 \value{
 A sorted character vector of unique codes without periods.
 }
 \description{
-Reads the official HCUP DXCCSR or PRCCSR reference file that you download
-yourself and returns the full ICD-10-CM or ICD-10-PCS codes assigned to the
-requested categories. Pass the result to \code{\link[=nis_flag_dx]{nis_flag_dx()}} or \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-which treat each code as a prefix. easyNIS does not ship or download any
-CCSR content, and the code lists depend on the reference file version you
-supply.
+Returns the full ICD-10-CM or ICD-10-PCS codes assigned to the requested
+categories in a bundled AHRQ HCUP CCSR release. Use \code{\link[=nis_add_ccsr]{nis_add_ccsr()}} for
+exact, year-aware matching on a lazy NIS query.
 }
 \details{
 The reference file may be the HCUP Excel workbook (\code{.xlsx}, which needs
@@ -38,32 +48,9 @@ category is one of \code{categories} are returned. This matches the HCUP
 assignment of a single category to a principal diagnosis, so combine it
 with \code{position = "principal"} in \code{\link[=nis_flag_dx]{nis_flag_dx()}}. Procedure reference files
 have no default assignment.
-
-UNVERIFIED: the file layouts above are assumed from secondhand descriptions
-of HCUP downloads, not checked against a current release. Both CSV readers
-check record field counts; all supported formats check that codes
-look like ICD-10 codes (3 to 7 letters or digits). Check the returned codes
-against your reference file before you rely on them.
-
-This function is experimental.
 }
 \examples{
-# An invented reference file in the HCUP comma-separated layout. Download
-# the real DXCCSR file from HCUP and pass its path instead.
-reference <- tempfile(fileext = ".csv")
-writeLines(c(
-  "'ICD-10-CM CODE','CCSR CATEGORY 1','CCSR CATEGORY 2','DEFAULT CCSR CATEGORY IP'",
-  "'I5022','CIR019','','CIR019'",
-  "'I509','CIR019','','CIR019'",
-  "'E119','END002','','END002'"
-), reference)
-codes <- nis_ccsr_codes(reference, "CIR019")
-codes
-
-nis_open(nis_example(years = 2019)) |>
-  nis_flag_dx(heart_failure = codes) |>
-  dplyr::count(heart_failure) |>
-  dplyr::collect()
+head(nis_ccsr_codes(categories = "CIR019"))
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.

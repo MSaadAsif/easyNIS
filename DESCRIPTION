@@ -10,7 +10,7 @@ Authors@R: c(
                        project_role = "co-maintainer")))
 Description: Pipe-friendly tools for opening annual Healthcare Cost and
     Utilization Project National Inpatient Sample Parquet files, flagging
-    diagnosis and procedure codes, looking up user-supplied CCSR codes, adding
+    diagnosis and procedure codes, applying HCUP 'CCSR' mappings, adding
     experimental Elixhauser indicators, preparing designs and weights with the
     'survey' package, applying supported HCUP labels, adjusting charges and
     costs, and reviewing disclosure risks. The Agency for Healthcare Research

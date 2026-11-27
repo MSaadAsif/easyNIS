@@ -1,1 +1,14 @@
 Copyright (C) 2026 Muhammad Saad and Ali Salman.
+
+Bundled CCSR reference tables
+
+Source: Agency for Healthcare Research and Quality (AHRQ), Healthcare Cost
+and Utilization Project (HCUP), Clinical Classifications Software Refined
+(CCSR). The federal classification references are freely available with
+source attribution. These tables contain reference definitions only.
+
+DXCCSR for ICD-10-CM diagnoses, v2025.1, released 2024-11-13
+https://hcup-us.ahrq.gov/toolssoftware/ccsr/DXCCSR_v2025-1.zip
+
+PRCCSR for ICD-10-PCS procedures, v2025.1, released 2024-11-13
+https://hcup-us.ahrq.gov/toolssoftware/ccsr/PRCCSR_v2025-1.zip

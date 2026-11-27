@@ -56,6 +56,7 @@ reference:
       - nis_flag_pr
       - nis_flag_pr_timing
       - nis_prday_completeness
+      - nis_add_ccsr
       - nis_ccsr_codes
       - nis_attrition
       - nis_dx_sensitivity

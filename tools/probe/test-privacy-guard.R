@@ -44,5 +44,25 @@ local({
   unlink("missing.parquet")
   blocked <- inspect()
   stopifnot(identical(blocked$status, 1L), any(grepl("data extension: missing.parquet", blocked$output, fixed = TRUE)))
+  git("rm", "--cached", "--", "missing.parquet")
+
+  dir.create("inst/ccsr", recursive = TRUE)
+  reference <- c("inst/ccsr/map.parquet", "inst/ccsr/categories.parquet")
+  for (file in reference) {
+    writeLines("invented", file)
+  }
+  git("add", "--", reference)
+  stopifnot(is.null(inspect()$status))
+
+  other <- "inst/ccsr/other.parquet"
+  writeLines("invented", other)
+  git("add", "--", other)
+  blocked <- inspect()
+  stopifnot(identical(blocked$status, 1L), any(grepl(paste("data extension:", other), blocked$output, fixed = TRUE)))
+
+  writeLines(paste0("AHRQ_", "NIS"), reference[1L])
+  git("add", "--", reference[1L])
+  blocked <- inspect()
+  stopifnot(identical(blocked$status, 1L), any(grepl("private path or directory marker", blocked$output, fixed = TRUE)))
 })
 cat("Privacy-guard tests passed.\n")

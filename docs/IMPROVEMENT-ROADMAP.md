@@ -131,6 +131,8 @@ The in-database estimator prototype tracks this gap separately.
   existing package such as `comorbidity` or `medicalcoder`; easyNIS must not
   implement the algorithm or maintain code sets.
 - HOCM backlog item #3 (curated cardiac device code sets) remains deferred.
+- Bundle the official AHRQ HCUP CCSR diagnosis and procedure mappings and
+  refresh them with AHRQ's annual releases.
 - Keep easyNIS focused on a simple NIS analyst workflow built on established
   packages including `survey`, `srvyr`, `gtsummary`, `comorbidity` or
   `medicalcoder` and `duckdb`.
