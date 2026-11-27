@@ -13,7 +13,8 @@ nis_convert(path, dir, encoding = NULL)
 - path:
 
   Path to one annual NIS Stata (`.dta`), SAS (`.sas7bdat`), or SPSS
-  (`.sav`) file with a numeric `YEAR` column.
+  (`.sav`) file with a numeric `YEAR` column, or one HCUP fixed-width
+  `NIS_<year>_Core.ASC` file from 2012 through 2024.
 
 - dir:
 
@@ -43,6 +44,14 @@ procedure version column. Later SAS and SPSS batches can require
 rescanning the source from the beginning. This keeps memory bounded but
 increases conversion time as the file grows.
 
+Native Core files use HCUP's published SAS layouts, including the 2019
+and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
+Character fields lose their right padding and blank fields become nulls.
+Use a consistent LF or CRLF line ending throughout the file. The 2015
+native Core file contains no diagnosis or procedure slots. The Core
+converter does not join the separate 2015 diagnosis and procedure groups
+or other supplementary HCUP files.
+
 The annual directory is published after validation and is never
 overwritten.
 [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
@@ -68,7 +77,7 @@ if (requireNamespace("haven", quietly = TRUE)) {
   nis_open(dir, check_release = FALSE)
 }
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp2MgKtM/duckdb
+#> ℹ /tmp/Rtmpnbck9k/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -76,7 +85,7 @@ if (requireNamespace("haven", quietly = TRUE)) {
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp2MgKtM/duckdb
+#> ℹ /tmp/Rtmpnbck9k/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

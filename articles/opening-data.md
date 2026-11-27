@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -52,7 +52,7 @@ masks cells from fewer than two hospitals. Use
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
 to try the workflow without licensed data.
 
-## Convert a statistical data file
+## Convert source data to Parquet
 
 [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
 reads annual Stata (`.dta`), SAS (`.sas7bdat`), and SPSS (`.sav`) files
@@ -74,7 +74,7 @@ source <- file.path(converted, "NIS_2020.dta")
 haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
 nis_convert(source, converted)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +83,7 @@ nis_convert(source, converted)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis_open(converted, check_release = FALSE) |> dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -99,6 +99,54 @@ nis_open(converted, check_release = FALSE) |> dplyr::collect()
 The invented example skips the release comparison. Leave it enabled for
 files representing an HCUP release.
 
+For a native fixed-width HCUP Core file, unzip the download and pass the
+`NIS_<year>_Core.ASC` file to
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md).
+The converter uses HCUP’s 2012–2024 Core layouts, including the 2019 and
+2020 V2 specifications. The 2015 Core file has no diagnosis or procedure
+slots. To analyze those fields, prepare a joined annual statistical file
+from the Core and quarter-specific Diagnosis and Procedure Groups files
+before converting it. [HCUP Nationwide SAS load
+programs](https://hcup-us.ahrq.gov/db/nation/sasloadprog.jsp)
+
+``` r
+
+converted_core <- tempfile()
+dir.create(converted_core)
+core <- file.path(converted_core, "NIS_2015_Core.ASC")
+record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
+                 strrep(" ", 21), "2015", "  ")
+writeLines(record, core)
+nis_convert(core, converted_core)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpp0uswc/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis_open(converted_core, check_release = FALSE) |>
+  dplyr::select(YEAR, HOSP_NIS, NIS_STRATUM) |>
+  dplyr::collect()
+#> Experimental: years before 2016 store ICD-9-CM codes in DX1, PR1, ... slots.
+#> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
+#>   slots.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpp0uswc/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> This message is displayed once per session.
+#> # A tibble: 1 × 3
+#>    YEAR HOSP_NIS NIS_STRATUM
+#>   <int>    <int>       <int>
+#> 1  2015        1           1
+```
+
 ## Select years and columns
 
 `years` limits which annual files are opened. Use
@@ -113,7 +161,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -200,7 +248,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpK0Ra9o/duckdb
+#> ℹ /tmp/Rtmpp0uswc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

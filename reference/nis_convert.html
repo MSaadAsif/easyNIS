@@ -69,7 +69,8 @@
 
 <dl><dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
 <dd><p>Path to one annual NIS Stata (<code>.dta</code>), SAS (<code>.sas7bdat</code>),
-or SPSS (<code>.sav</code>) file with a numeric <code>YEAR</code> column.</p></dd>
+or SPSS (<code>.sav</code>) file with a numeric <code>YEAR</code> column, or one HCUP
+fixed-width <code>NIS_&lt;year&gt;_Core.ASC</code> file from 2012 through 2024.</p></dd>
 
 
 <dt id="arg-dir">dir<a class="anchor" aria-label="anchor" href="#arg-dir"></a></dt>
@@ -98,6 +99,13 @@ provide the discharge quarter or the corresponding diagnosis and procedure
 version column. Later SAS and SPSS batches can require rescanning the source
 from the beginning. This keeps memory bounded but increases conversion time
 as the file grows.</p>
+<p>Native Core files use HCUP's published SAS layouts, including the 2019
+and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
+Character fields lose their right padding and blank fields become nulls.
+Use a consistent LF or CRLF line ending throughout the file.
+The 2015 native Core file contains no diagnosis or procedure slots.
+The Core converter does not join the separate 2015 diagnosis and
+procedure groups or other supplementary HCUP files.</p>
 <p>The annual directory is published after validation and is never
 overwritten. <code><a href="nis_open.html">nis_open()</a></code> checks converted data against the HCUP annual
 release statistics by default.</p>
@@ -121,7 +129,7 @@ release statistics by default.</p>
 <span class="r-in"><span>  <span class="fu"><a href="nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">dir</span>, check_release <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2MgKtM/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpnbck9k/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -129,7 +137,7 @@ release statistics by default.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2MgKtM/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpnbck9k/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
