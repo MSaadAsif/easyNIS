@@ -13,7 +13,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
               position = "any") |>
   nis_flag_pr(ablation = "02L")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6SqMic/duckdb
+#> ℹ /tmp/RtmpnctviY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -21,7 +21,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6SqMic/duckdb
+#> ℹ /tmp/RtmpnctviY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +119,7 @@ to use the same eligibility criteria in
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6SqMic/duckdb
+#> ℹ /tmp/RtmpnctviY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -127,7 +127,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp6SqMic/duckdb
+#> ℹ /tmp/RtmpnctviY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -162,6 +162,80 @@ structure of hospital-years with zero eligible discharges. Leave
 every discharge in the input. For alternate diagnosis positions and
 changes over time, see [Code transitions and
 sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.md).
+
+## Save a cohort for another session
+
+Pass the full lazy sample and the eligibility rule to
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md).
+Keep the columns you expect to use in later analyses. The writer creates
+a new directory with yearly Parquet parts and saves the eligibility
+expression, source years, and easyNIS version in each part’s metadata.
+
+``` r
+
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpnctviY/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpnctviY/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
+                         keep = c(AGE, LOS))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpnctviY/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+
+# In a later session
+design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpnctviY/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> Cohort: 72 discharges; weighted N 41.6; 18 hospitals across 2 years.
+design |>
+  dplyr::filter(AGE >= 65) |>
+  dplyr::summarise(discharges = srvyr::survey_total())
+#> # A tibble: 1 × 2
+#>   discharges discharges_se
+#>        <dbl>         <dbl>
+#> 1       25.2          3.57
+```
+
+The saved cohort carries one placeholder per sampled hospital-year with
+no eligible discharge. This preserves the survey variance structure,
+including whole strata and years where the cohort is empty.
+Annualization still uses all years with valid design records. Keep the
+original design run if you need its invalid-design exclusion counts or
+full-sample quarter coverage.
+
+Apply additional patient filters to the survey design after reopening.
+When inspecting raw Parquet rows, use `dplyr::filter(.in_cohort)` before
+counting discharges. To re-save a cohort with fewer columns, pass its
+reopened query to
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
+and omit `cohort`. To change the eligibility rule, return to the source
+sample.
 
 ## Common pitfalls
 

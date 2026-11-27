@@ -115,7 +115,11 @@ one field.
 A lazy query is scanned twice. The sample scan summarises design fields,
 exclusion counts, and quarter coverage when annualizing. The cohort scan
 evaluates the cohort expression once over the full data and collects the
-retained analysis columns.
+retained analysis columns. For a dataset written with
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md),
+omit `cohort`. The saved membership flag excludes placeholders from the
+analysis. Original exclusion counts and full-sample quarter coverage are
+unavailable.
 
 ## See also
 
@@ -131,7 +135,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpvy8CIm/duckdb
+#> ℹ /tmp/RtmpJt7DBC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -139,7 +143,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpvy8CIm/duckdb
+#> ℹ /tmp/RtmpJt7DBC/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
