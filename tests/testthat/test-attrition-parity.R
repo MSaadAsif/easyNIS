@@ -1,3 +1,81 @@
+test_that("shared attrition rules define the survey domain on the valid sample", {
+  path <- nis_example(2019:2020)
+  withr::defer(unlink(path, recursive = TRUE))
+  sample <- nis_open(path)
+  withr::defer(DBI::dbDisconnect(dbplyr::remote_con(sample), shutdown = TRUE))
+  sample <- sample |>
+    nis_flag_dx(heart_failure = "I50", position = "principal") |>
+    dplyr::mutate(
+      AGE = dplyr::if_else(HOSP_NIS == 1L & DQTR == 1L, NA_real_, as.double(AGE)),
+      LOS = dplyr::if_else(HOSP_NIS == 2L & DQTR == 2L, 100, as.double(LOS)),
+      DISCWT = dplyr::if_else(LOS == 100, as.double(Inf), DISCWT),
+      YEAR = dplyr::if_else(HOSP_NIS == 2L & DQTR == 2L, NA_integer_, YEAR)
+    )
+
+  frame <- dplyr::collect(sample)
+  minimum_age <- 30
+  mean_los <- mean(frame$LOS)
+  valid <- !is.na(frame$YEAR) & is.finite(frame$DISCWT)
+  adult <- !is.na(frame$AGE) & frame$AGE >= minimum_age
+  eligible <- adult & frame$I10_DX1 == "I5022" & frame$LOS >= mean_los
+  stopifnot(anyNA(frame$AGE), any(eligible & !valid), any(eligible & valid))
+  stopifnot(length(unique(frame$HOSP_NIS[eligible & valid])) < length(unique(frame$HOSP_NIS)))
+
+  full <- survey::svydesign(
+    ids = ~HOSP_NIS,
+    strata = ~ interaction(YEAR, NIS_STRATUM),
+    weights = ~DISCWT,
+    data = frame[valid, ],
+    nest = TRUE
+  )
+  reference <- subset(full, eligible[valid])
+  total <- survey::svytotal(~ I(rep(1, length(LOS))), reference)
+  mean_stay <- survey::svymean(~LOS, reference)
+  expected <- c(
+    n = nrow(reference$variables),
+    total = unname(stats::coef(total)),
+    total_se = unname(survey::SE(total)),
+    mean_los = unname(stats::coef(mean_stay)),
+    mean_los_se = unname(survey::SE(mean_stay))
+  )
+
+  count_steps <- function(data) {
+    nis_attrition(
+      data,
+      adult = AGE >= minimum_age,
+      heart_failure = heart_failure,
+      longer_stay = LOS >= mean(LOS, na.rm = TRUE),
+      .design = TRUE
+    )
+  }
+  for (input in list(sample, frame)) {
+    flow <- count_steps(input)
+    expect_identical(flow$criterion, c("Valid design discharges", "adult", "heart_failure", "longer_stay"))
+    expect_identical(
+      flow$n_unweighted,
+      c(
+        sum(valid),
+        sum(valid & adult),
+        sum(valid & adult & frame$I10_DX1 == "I5022"),
+        sum(valid & eligible)
+      )
+    )
+    expect_equal(tail(flow$n_weighted, 1L), expected[["total"]], tolerance = 1e-8)
+    expect_warning(
+      design <- nis_design(input, cohort = !!nis_attrition_cohort(flow), keep = LOS),
+      "invalid design fields"
+    )
+    estimate <- srvyr::summarise(
+      design,
+      n = srvyr::unweighted(dplyr::n()),
+      total = srvyr::survey_total(),
+      mean_los = srvyr::survey_mean(LOS)
+    )
+    expect_equal(estimate$n, tail(flow$n_unweighted, 1L))
+    expect_lt(max(abs(unlist(estimate, use.names = FALSE) - expected)), 1e-8)
+  }
+})
+
 test_that("attrition ignores input groups for criteria and aggregate totals", {
   data <- dplyr::tibble(
     YEAR = rep(2020:2021, each = 3L),
