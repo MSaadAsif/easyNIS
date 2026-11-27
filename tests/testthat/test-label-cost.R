@@ -51,7 +51,7 @@ test_that("nis_label maps common codes and preserves existing labels", {
     )
   )
   # 2023-only fields have no audited labels, so they pass through untouched.
-  expect_identical(labelled$PL_NCHS2, data$PL_NCHS2)
+  expect_identical(as.character(labelled$PL_NCHS2), c("Metropolitan", "Nonmetropolitan", "Metropolitan"))
   expect_identical(labelled$TOTCHG_2023, data$TOTCHG_2023)
   expect_equal(as.numeric(labelled$AGE), c(40, -9, -8))
   expect_equal(as.numeric(labelled$LOS), c(2, -6, 5))
@@ -131,10 +131,21 @@ test_that("nis_label applies audited labels without guessing unsupported codes",
       "Injury, other than first-listed"
     )
   )
-  expect_equal(as.numeric(labelled$I10_BIRTH), c(0:3, 0))
+  expect_equal(
+    as.character(labelled$I10_BIRTH),
+    c(
+      "No birth diagnosis",
+      "Born in hospital",
+      "Born outside hospital",
+      "Place of birth unspecified",
+      "No birth diagnosis"
+    )
+  )
   expect_identical(attr(labelled$I10_BIRTH, "label"), "ICD-10-CM birth indicator")
-  expect_type(labelled$I10_SERVICELINE, "integer")
-  expect_equal(as.numeric(labelled$I10_SERVICELINE), 1:5)
+  expect_equal(
+    as.character(labelled$I10_SERVICELINE),
+    c("Maternal and neonatal", "Mental health or substance use", "Injury", "Surgical", "Medical")
+  )
   expect_identical(attr(labelled$I10_SERVICELINE, "label"), "ICD-10-CM/PCS service line indicator")
   expect_identical(levels(labelled$APRDRG_RISK_MORTALITY)[[1L]], "No class specified")
   expect_identical(levels(labelled$APRDRG_SEVERITY)[[1L]], "No class specified")

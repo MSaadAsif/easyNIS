@@ -55,6 +55,14 @@
   "PL_NCHS"               ,        4 , "Metro, population 50,000-249,999"                        , "Patient location, NCHS urban-rural code"                 ,
   "PL_NCHS"               ,        5 , "Micropolitan"                                            , "Patient location, NCHS urban-rural code"                 ,
   "PL_NCHS"               ,        6 , "Nonmetropolitan, nonmicropolitan"                        , "Patient location, NCHS urban-rural code"                 ,
+  "PL_NCHS2006"           ,        1 , "Central metro, population 1 million or more"             , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2006"           ,        2 , "Fringe metro, population 1 million or more"              , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2006"           ,        3 , "Metro, population 250,000-999,999"                       , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2006"           ,        4 , "Metro, population 50,000-249,999"                        , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2006"           ,        5 , "Micropolitan"                                            , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2006"           ,        6 , "Nonmetropolitan, nonmicropolitan"                        , "Patient location, 2006 NCHS urban-rural code"            ,
+  "PL_NCHS2"              ,       21 , "Metropolitan"                                            , "Patient location, collapsed NCHS urban-rural code"       ,
+  "PL_NCHS2"              ,       22 , "Nonmetropolitan"                                         , "Patient location, collapsed NCHS urban-rural code"       ,
   "ZIPINC_QRTL"           ,        1 , "Q1"                                                      , "Median household income national quartile (patient ZIP)" ,
   "ZIPINC_QRTL"           ,        2 , "Q2"                                                      , "Median household income national quartile (patient ZIP)" ,
   "ZIPINC_QRTL"           ,        3 , "Q3"                                                      , "Median household income national quartile (patient ZIP)" ,
@@ -103,7 +111,10 @@
   "APRDRG_SEVERITY"       ,        2 , "Moderate"                                                , "APR-DRG severity of illness"                             ,
   "APRDRG_SEVERITY"       ,        3 , "Major"                                                   , "APR-DRG severity of illness"                             ,
   "APRDRG_SEVERITY"       ,        4 , "Extreme"                                                 , "APR-DRG severity of illness"                             ,
-  "I10_BIRTH"             , NA_real_ , NA_character_                                             , "ICD-10-CM birth indicator"                               ,
+  "I10_BIRTH"             ,        0 , "No birth diagnosis"                                      , "ICD-10-CM birth indicator"                               ,
+  "I10_BIRTH"             ,        1 , "Born in hospital"                                        , "ICD-10-CM birth indicator"                               ,
+  "I10_BIRTH"             ,        2 , "Born outside hospital"                                   , "ICD-10-CM birth indicator"                               ,
+  "I10_BIRTH"             ,        3 , "Place of birth unspecified"                              , "ICD-10-CM birth indicator"                               ,
   "I10_DELIVERY"          ,        0 , "No"                                                      , "ICD-10-CM delivery indicator"                            ,
   "I10_DELIVERY"          ,        1 , "Yes"                                                     , "ICD-10-CM delivery indicator"                            ,
   "I10_INJURY"            ,        0 , "No injury"                                               , "Injury ICD-10-CM diagnosis indicator"                    ,
@@ -111,7 +122,11 @@
   "I10_INJURY"            ,        2 , "Injury, other than first-listed"                         , "Injury ICD-10-CM diagnosis indicator"                    ,
   "I10_MULTINJURY"        ,        0 , "No"                                                      , "Multiple injury indicator"                               ,
   "I10_MULTINJURY"        ,        1 , "Yes"                                                     , "Multiple injury indicator"                               ,
-  "I10_SERVICELINE"       , NA_real_ , NA_character_                                             , "ICD-10-CM/PCS service line indicator"                    ,
+  "I10_SERVICELINE"       ,        1 , "Maternal and neonatal"                                   , "ICD-10-CM/PCS service line indicator"                    ,
+  "I10_SERVICELINE"       ,        2 , "Mental health or substance use"                          , "ICD-10-CM/PCS service line indicator"                    ,
+  "I10_SERVICELINE"       ,        3 , "Injury"                                                  , "ICD-10-CM/PCS service line indicator"                    ,
+  "I10_SERVICELINE"       ,        4 , "Surgical"                                                , "ICD-10-CM/PCS service line indicator"                    ,
+  "I10_SERVICELINE"       ,        5 , "Medical"                                                 , "ICD-10-CM/PCS service line indicator"                    ,
   "PCLASS_ORPROC"         ,        0 , "No"                                                      , "ICD-10-PCS major operating room procedure indicator"     ,
   "PCLASS_ORPROC"         ,        1 , "Yes"                                                     , "ICD-10-PCS major operating room procedure indicator"     ,
   "AGE"                   , NA_real_ , NA_character_                                             , "Age, years"                                              ,
@@ -131,9 +146,8 @@
   "GRPCI"                 ,        2 , "Two or more comorbidities"                               , "Number of comorbidities"
 )
 attr(.hcup_labels, "source") <- paste(
-  "HCUP 2020 NIS Introduction, Appendix III, Data Elements;",
-  "local analyst recoding helper cross-check.",
-  "Elements introduced after 2020, such as PL_NCHS2 and TOTCHG_2023, are not labelled."
+  "HCUP NIS Introductions (2012, 2020, and 2023),",
+  "and HCUP NIS data element notes for I10_BIRTH and I10_SERVICELINE."
 )
 
 #' Apply HCUP labels
@@ -144,9 +158,12 @@ attr(.hcup_labels, "source") <- paste(
 #'   elements as factors, and variable labels in `attr(x, "label")`.
 #'   Unknown codes trigger one warning per variable. They become `NA` in
 #'   binary fields and `Code <value>` levels in multi-level fields. Existing
-#'   variable labels are preserved. Elements without a table entry, including the 2023
-#'   `PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The operation
-#'   is idempotent.
+#'   variable labels are preserved. Numeric fields without a table entry
+#'   are returned unchanged. The operation is idempotent.
+#'
+#' Residence fields `PL_NCHS2006`, `PL_NCHS`, and `PL_NCHS2` retain their own
+#' categories. The collapsed `PL_NCHS2` uses codes 21 and 22. Code-specific
+#' labels for `I10_BIRTH` and `I10_SERVICELINE` follow HCUP's definitions.
 #'
 #' Binary codes 0 and 1 become `FALSE` and `TRUE`, respectively. For example,
 #' `FEMALE` is true for female patients and `AWEEKEND` for weekend admissions.
@@ -164,7 +181,8 @@ attr(.hcup_labels, "source") <- paste(
 #' label is treated as raw text; without such levels it is preserved as an
 #' existing label because its origin cannot be recovered after dropping levels.
 #' @family data-access
-#' @seealso [Opening NIS data](articles/opening-data.html).
+#' @seealso [Opening NIS data](articles/opening-data.html),
+#'   [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 #' @export
 #' @examples
 #' demographics <- nis_open(nis_example(years = 2019)) |>
