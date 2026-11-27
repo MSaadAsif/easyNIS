@@ -54,6 +54,21 @@ nobs.nis_survey_glm <- function(object, ...) {
   object$n.complete
 }
 
+#' @exportS3Method stats::predict
+predict.nis_survey_glm <- function(object, ...) {
+  nis_survey_unsupported("Model prediction")
+}
+
+#' @exportS3Method stats::residuals
+residuals.nis_survey_glm <- function(object, ...) {
+  nis_survey_unsupported("Model residuals")
+}
+
+#' @exportS3Method stats::fitted
+fitted.nis_survey_glm <- function(object, ...) {
+  nis_survey_unsupported("Fitted values")
+}
+
 # A model schema carries terms and levels but has no observation rows.
 #' @exportS3Method broom.helpers::model_get_n
 model_get_n.nis_survey_glm <- function(model) {

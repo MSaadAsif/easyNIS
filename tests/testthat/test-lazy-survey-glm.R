@@ -44,6 +44,9 @@ test_that("lazy GLMs agree with independent survey fits on nested domains", {
   }
   fit <- survey::svyglm(formula, design, family = stats::quasibinomial())
   expect_output(print(fit), "Coefficients")
+  expect_error(stats::predict(fit), "nis_design")
+  expect_error(stats::residuals(fit), "nis_design")
+  expect_error(stats::fitted(fit), "nis_design")
   if (requireNamespace("broom", quietly = TRUE)) {
     expected <- broom::tidy(survey::svyglm(formula, ref, family = stats::quasibinomial()), conf.int = TRUE)
     expect_equal(broom::tidy(fit, conf.int = TRUE), expected, tolerance = 1e-8)
