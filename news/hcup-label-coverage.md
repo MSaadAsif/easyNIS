@@ -1,0 +1,1 @@
+- `nis_label()` labels the 2012 and collapsed urban-rural fields and the ICD-10 birth and service-line indicators using the documented codes.
