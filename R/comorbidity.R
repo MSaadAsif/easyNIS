@@ -64,7 +64,6 @@
 #' discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")
 #' nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
 nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_") {
-  rlang::check_installed("medicalcoder", version = "0.10.0", reason = "to look up comorbidity mappings.")
   spec <- nis_comorbidity_spec(method)
   if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
     cli::cli_abort("`prefix` must be a single string.")

@@ -120,24 +120,24 @@ commit. The calibration stopped the minimum-profile trial at 8004 MB after
 commit headroom check. The provisional wall and disk limits use the stopped
 trial with the same margin and rounding as the core limits.
 
-The whole-sample step now uses the
+The whole-sample step uses the
 [in-database estimator](adr/0001-in-database-survey-estimation.md).
 Run `Rscript --vanilla tools/probe/probe-performance.R --whole-sample` to
-measure this step on both profiles. Three repeats per profile completed
-on the shared Windows host in each fixture. Maximum observed commit
-and wall time were:
+measure this step on both profiles. On the 42-million-row invented fixture,
+grouping repeated model rows reduced the number of full Parquet scans
+during IRLS from seven to two, including the grouping pass. Each row below
+reports the maximum commit and wall time across three fresh processes per
+profile on the shared Windows host.
 
 | Data | Minimum (MB / s) | Reference (MB / s) |
 | --- | ---: | ---: |
-| Invented | 418.8 / 184.72 | 472.6 / 108.71 |
-| Licensed | 437.6 / 278.79 | 511.3 / 160.86 |
+| Invented, before grouping | 391.8 / 319.01 | 452.7 / 123.97 |
+| Invented, with grouping | 390.6 / 147.86 | 448.9 / 64.79 |
+| Licensed, historical pre-grouping run | 437.6 / 278.79 | 511.3 / 160.86 |
 
-All repeats used zero temporary disk and left zero temporary files.
-The reference profile met the provisional time limit, and its commit
-budget is the largest observed commit plus 25%, rounded up to the next
-50 MB. The minimum profile exceeded the provisional time limit and
-retains its existing limits. The full probe is needed to qualify
-all of criterion 9.
+All repeats used zero temporary disk and left zero temporary files. Both
+invented profiles with grouping met the existing limits for the whole-sample
+step. The full probe is needed to qualify all of criterion 9.
 
 ## Scope decisions
 

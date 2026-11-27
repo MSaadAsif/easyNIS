@@ -42,12 +42,12 @@ nis_decode_procedure_day <- function(column, data) {
     value <- paste0("TRY_CAST(", identifier, " AS DOUBLE)")
     return(list(
       value = dbplyr::sql(value),
-      missing = dbplyr::sql(paste0("(", value, " IS NULL OR isnan(", value, "))"))
+      missing = dbplyr::sql(paste0("(", value, " IS NULL OR NOT isfinite(", value, "))"))
     ))
   }
   if (is.data.frame(data) && is.factor(data[[column]])) {
     field <- rlang::expr(as.character(!!field))
   }
   value <- rlang::expr(as.double(!!field))
-  list(value = value, missing = rlang::expr(is.na(!!value)))
+  list(value = value, missing = rlang::expr(!is.finite(!!value)))
 }
