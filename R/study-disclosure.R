@@ -88,7 +88,12 @@ nis_study_report_support <- function(data, variables, exposure, threshold) {
       rep(isTRUE(supported[[variable]]), nrow(by_year))
     }
   }
-  list(variables = supported, by_year = by_year, pooled = pooled)
+  list(
+    variables = supported,
+    by_year = by_year,
+    pooled = pooled,
+    by_arm = !nzchar(pooled) && length(exposure) > 0L && isTRUE(supported[[exposure]])
+  )
 }
 
 nis_study_model_groupings <- function(frame, exposure) {

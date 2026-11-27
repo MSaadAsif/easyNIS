@@ -123,7 +123,7 @@ records <- analysis_design$variables
 cohort_n <- nrow(records)
 has_cohort <- cohort_n > 0L
 formulas <- lapply(outcomes$outcome, stats::reformulate, termlabels = c(exposure, covariates))
-report_variables <- unique(c("AGE", "FEMALE", "DIED", "LOS", "cost_adj", unlist(lapply(formulas, all.vars))))
+report_variables <- unique(c(exposure, "AGE", "FEMALE", "DIED", "LOS", "cost_adj", unlist(lapply(formulas, all.vars))))
 support <- easyNIS:::nis_study_report_support(
   records, report_variables, if (comparisons_safe) exposure, disclosure_limit
 )
@@ -167,7 +167,7 @@ cat(easyNIS:::nis_study_methods(report, is_example), "\n")
 The placeholder-row design and cost adjustment are experimental pending
 scientific approval.
 
-**Cells based on ≤`r disclosure_limit` unweighted discharges are masked. The report also masks cells with fewer than two contributing hospitals and may mask related figures. Review tables for other derivable cells before sharing under the HCUP Data Use Agreement.**
+**Cells based on ≤`r disclosure_limit` unweighted discharges are masked. The report also masks cells with fewer than two contributing hospitals and may mask related figures. Review tables for other derivable cells before sharing under the HCUP Data Use Agreement. Review cross-classified releases separately under the agreement, including combinations that can reveal cells when weights are constant within a year. Review coding-era presence reported in Methods or the checklist before sharing.**
 
 ## Cohort flow
 
@@ -191,11 +191,11 @@ if (!has_cohort) {
   knitr::asis_output(
     "Table 1 is unavailable because the cohort has no rows in the survey design."
   )
-} else if (nzchar(pooled_mask) || (has_exposure_comparison && !comparisons_safe)) {
+} else if (nzchar(pooled_mask) || (has_exposure_comparison && !support$by_arm)) {
   knitr::asis_output("Table 1 is withheld under the study disclosure policy.")
 } else {
   variables <- c("AGE", "FEMALE", names(outcome_ok)[outcome_ok])
-  table_one <- if (has_exposure_comparison) {
+  table_one <- if (support$by_arm) {
     gtsummary::tbl_svysummary(
       analysis_design,
       by = dplyr::all_of(exposure),
@@ -307,7 +307,7 @@ model_results <- purrr::map(seq_len(nrow(outcomes)), function(i) {
   formula <- formulas[[i]]
   model_variables <- intersect(all.vars(formula), names(support$variables))
   report_supported <- !nzchar(pooled_mask) &&
-    (!has_exposure_comparison || comparisons_safe) && all(support$variables[model_variables])
+    (!has_exposure_comparison || support$by_arm) && all(support$variables[model_variables])
   model_family <- switch(
     current$family[[1L]],
     quasibinomial = stats::quasibinomial(),
