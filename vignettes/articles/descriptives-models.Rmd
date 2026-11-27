@@ -84,6 +84,7 @@ gtsummary::tbl_svysummary(
   design,
   by = heart_failure,
   include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female",
   statistic = AGE ~ "{mean} ({mean.std.error})",
   missing_stat = "{N_miss_unweighted}"
 ) |>

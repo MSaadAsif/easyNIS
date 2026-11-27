@@ -148,6 +148,9 @@ attr(.hcup_labels, "source") <- paste(
 #'   `PL_NCHS2` and `TOTCHG_2023` fields, are returned unchanged. The operation
 #'   is idempotent.
 #'
+#' Binary codes 0 and 1 become `FALSE` and `TRUE`, respectively. For example,
+#' `FEMALE` is true for female patients and `AWEEKEND` for weekend admissions.
+#'
 #' Negative numeric sentinels are handled as unknown codes. The supplied
 #' HCUP documentation represents missing numeric values as system missing and
 #' does not document negative sentinels for any element handled here.

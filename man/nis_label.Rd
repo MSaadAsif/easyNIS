@@ -18,6 +18,9 @@ variable labels are preserved. Elements without a table entry, including the 202
 \code{PL_NCHS2} and \code{TOTCHG_2023} fields, are returned unchanged. The operation
 is idempotent.
 
+Binary codes 0 and 1 become \code{FALSE} and \code{TRUE}, respectively. For example,
+\code{FEMALE} is true for female patients and \code{AWEEKEND} for weekend admissions.
+
 Negative numeric sentinels are handled as unknown codes. The supplied
 HCUP documentation represents missing numeric values as system missing and
 does not document negative sentinels for any element handled here.

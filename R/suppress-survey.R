@@ -449,7 +449,7 @@ survey_hosp_dichotomous <- function(data, x, variable, error_call) {
   if (is.null(value) || length(value) != 1L || is.na(value)) {
     cli::cli_abort("Cannot map dichotomous summary to one summarized value.", call = error_call)
   }
-  !is.na(data[[variable]]) & as.character(data[[variable]]) == as.character(value)
+  data[[variable]] %in% value
 }
 
 survey_hospital_group_records <- function(data, x, cards, column, keep, error_call) {
