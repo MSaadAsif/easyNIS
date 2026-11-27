@@ -45,10 +45,9 @@ nis_study_variable_supported <- function(rows, values, threshold) {
 nis_study_report_support <- function(data, variables, exposure, threshold) {
   keys <- data[c("YEAR", "HOSP_NIS")]
   yearly <- split(seq_len(nrow(data)), data$YEAR)
-  by_year <- dplyr::tibble(
-    YEAR = as.integer(names(yearly)),
-    count_mask = vapply(yearly, function(i) nis_study_support(keys[i, ], threshold)$mask, character(1))
-  )
+  by_year <- nis_cell_counts(keys, by = YEAR)
+  yearly <- yearly[as.character(by_year$YEAR)]
+  by_year$count_mask <- nis_study_mask(by_year$n, by_year$hospitals, threshold)
   arms <- if (length(exposure)) nis_study_split(data[[exposure]]) else list()
   groups <- c(list(seq_len(nrow(data))), yearly)
   variables <- intersect(variables, names(data))
@@ -76,6 +75,11 @@ nis_study_report_support <- function(data, variables, exposure, threshold) {
   }
   # When pooled results are withheld, safe annual estimates stand on their own.
   for (variable in c("DIED", "LOS")) {
+    by_year[[paste0(variable, "_n")]] <- vapply(
+      yearly,
+      function(i) sum(!is.na(data[[variable]][i])),
+      integer(1)
+    )
     by_year[[variable]] <- if (nzchar(pooled)) {
       vapply(
         yearly,
@@ -234,30 +238,37 @@ nis_study_summary_table <- function(table, supported, threshold, header) {
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_trend_table <- function(trend) {
   display <- function(mask, value) ifelse(nzchar(mask), mask, value)
+  estimate_mask <- function(ok, count_mask) ifelse(!nzchar(count_mask) & !ok, "Masked", count_mask)
+  mortality_mask <- estimate_mask(trend$mortality_ok, trend$count_mask)
+  los_mask <- estimate_mask(trend$los_ok, trend$count_mask)
   dplyr::transmute(
     trend,
     `Discharge year` = as.character(!!rlang::sym("YEAR")),
-    discharges = display(.data$count_mask, format(.data$n_unweighted, big.mark = ",", trim = TRUE)),
+    discharges = display(.data$count_mask, format(.data$n, big.mark = ",", trim = TRUE)),
     weighted_N = display(.data$count_mask, formatC(.data$weighted_n, format = "f", digits = 1, big.mark = ",")),
     mortality = display(
-      ifelse(!nzchar(.data$count_mask) & !.data$mortality_ok, "Masked", .data$count_mask),
+      mortality_mask,
       paste0(formatC(.data$mortality * 100, format = "f", digits = 1), "%")
     ),
     mean_LOS = display(
-      ifelse(!nzchar(.data$count_mask) & !.data$los_ok, "Masked", .data$count_mask),
+      los_mask,
       formatC(.data$mean_los, format = "f", digits = 2)
-    )
+    ),
+    `Mortality n` = display(mortality_mask, format(.data$DIED_n, big.mark = ",", trim = TRUE)),
+    `Length of stay n` = display(los_mask, format(.data$LOS_n, big.mark = ",", trim = TRUE))
   )
 }
 
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_model_table <- function(fits, outcomes) {
-  models <- lapply(seq_len(nrow(outcomes)), function(i) {
-    gtsummary::tbl_regression(fits[[i]]$model, exponentiate = outcomes$exponentiate[[i]])
+  fitted <- lapply(fits, `[[`, "model")
+  n <- vapply(fitted, stats::nobs, numeric(1))
+  tables <- lapply(seq_len(nrow(outcomes)), function(i) {
+    gtsummary::tbl_regression(fitted[[i]], exponentiate = outcomes$exponentiate[[i]])
   })
   gtsummary::tbl_merge(
-    tbls = models,
-    tab_spanner = paste0("**", outcomes$outcome, "**")
+    tbls = tables,
+    tab_spanner = paste0("**", outcomes$outcome, "** (n = ", format(n, big.mark = ",", trim = TRUE), ")")
   )
 }
 

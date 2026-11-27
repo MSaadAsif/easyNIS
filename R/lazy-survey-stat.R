@@ -171,7 +171,6 @@ svyby.nis_survey <- function(
   ...,
   na.rm = FALSE,
   covmat = FALSE,
-  na.rm.by = FALSE,
   na.rm.all = FALSE,
   keep.names = TRUE,
   vartype = "se"

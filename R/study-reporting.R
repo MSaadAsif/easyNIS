@@ -32,7 +32,6 @@ nis_study_trend_estimates <- function(design) {
     dplyr::summarise(
       mortality = srvyr::survey_mean(.data$DIED, vartype = "ci", na.rm = TRUE),
       mean_los = srvyr::survey_mean(.data$LOS, vartype = "ci", na.rm = TRUE),
-      n_unweighted = dplyr::n(),
       weighted_n = srvyr::survey_total(.data$.one, vartype = NULL),
       .groups = "drop"
     ) |>
@@ -136,7 +135,7 @@ nis_study_checklist <- function(report, tables, models, trend, design) {
 
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_reporting <- function(opened, design, requested_years) {
-  input <- attr(design, "nis_design_input", exact = TRUE)
+  input <- nis_design_report(design)
   opened_n <- opened |> dplyr::summarise(rows = dplyr::n()) |> nis_collect()
   requested_years <- as.integer(unlist(requested_years, use.names = FALSE))
   records <- design$variables
@@ -146,7 +145,7 @@ nis_study_reporting <- function(opened, design, requested_years) {
     years = input$years,
     coding = nis_study_coding_eras(records$YEAR, quarter),
     cohort = input$cohort,
-    domain = identical(input$rows, as.numeric(opened_n$rows)),
+    domain = identical(input$input_n, as.numeric(opened_n$rows)),
     annualize = input$annualize,
     divisor = input$divisor,
     reweighted = input$reweighted,
@@ -164,7 +163,7 @@ nis_study_reporting <- function(opened, design, requested_years) {
 # jarl-ignore unused_function: Called by the bundled Quarto study.
 nis_study_methods <- function(report, is_example) {
   package_names <- c("easyNIS", "duckdb", "dplyr", "srvyr", "survey", "gtsummary")
-  versions <- nis_study_package_versions(package_names)
+  versions <- vapply(package_names, function(name) as.character(utils::packageVersion(name)), character(1))
   package_names[package_names == "duckdb"] <- "DuckDB"
   paste(
     if (is_example) {
@@ -192,8 +191,8 @@ nis_study_methods <- function(report, is_example) {
         "Any domain variance applies to the sample supplied to the design."
       )
     },
-    "Discharges with invalid design fields were excluded before defining the domain.",
-    "Summary table headers show unweighted N.",
+    "Discharges with missing, nonfinite, or nonpositive YEAR, HOSP_NIS, NIS_STRATUM, or DISCWT were excluded before defining the domain.",
+    "Summary table headers show cohort or group N. Estimate denominators and model sample sizes are unweighted.",
     if (report$design$weighted || isTRUE(report$reweighted)) {
       adjustment <- if (isTRUE(report$annualize)) {
         units <- ngettext(report$divisor, "year", "years")
