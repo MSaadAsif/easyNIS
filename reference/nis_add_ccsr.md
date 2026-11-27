@@ -1,9 +1,7 @@
 # Add CCSR categories to a NIS query
 
-Matches complete ICD-10 codes in DuckDB and preserves one row per input
-row. The `"any"` and `"principal"` positions produce a list column of
-distinct, sorted categories. For inpatient diagnoses, `"default"`
-produces the single HCUP default category for `I10_DX1`.
+Add Clinical Classifications Software Refined categories to a DuckDB
+query.
 
 ## Usage
 
@@ -54,22 +52,22 @@ A lazy DuckDB query with one additional column.
 
 ## Details
 
-AHRQ's CCSR mappings are cumulative from October 2015. For each
-discharge year, the default is the earliest bundled fiscal year covering
-that entire calendar year, using the latest bundled revision of that
-fiscal year. The bundled DXCCSR and PRCCSR v2025.1 cover Q4 2015 and
-2016–2024 by this rule. Pinning `"2025.1"` also covers Q1–Q3 2025 when
-`DQTR` is available. A fixed version can keep category definitions
-constant across years.
+Matches full ICD-10 codes. The any-position and principal modes return
+distinct categories as a list. The diagnosis default mode returns one
+inpatient principal diagnosis category.
 
-ICD-9 discharges and rows outside the selected release's coverage get
-missing results. Within coverage, a row without any matching codes gets
-an empty list, or `NA` for its inpatient default category. Match results
-use the release as published and do not establish whether an individual
-code was valid on a specific discharge date.
+The bundled 2025.1 mappings cover Q4 2015 and calendar years 2016
+through 2024. Pin a version to use the same categories across years.
+Out-of-coverage discharges receive missing results. Within coverage,
+unmatched discharges receive an empty list or a missing default
+category.
 
 ## See also
 
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
 [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
 [AHRQ HCUP
 CCSR](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp).
@@ -79,7 +77,7 @@ CCSR](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp).
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -87,7 +85,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -101,6 +99,6 @@ nis |>
 #> # A tibble: 2 × 2
 #>   ccsr       n
 #>   <chr>  <dbl>
-#> 1 CIR019   108
-#> 2 RSP002    84
+#> 1 RSP002    84
+#> 2 CIR019   108
 ```

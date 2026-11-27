@@ -1,14 +1,6 @@
 # Create a lazy whole-sample NIS survey design
 
-The nested, one-stage Taylor design uses hospital-year PSUs (YEAR ×
-HOSP_NIS) and year-specific strata (YEAR × NIS_STRATUM), without a
-finite population correction. It uses the valid-design discharges in the
-input query. Apply eligibility restrictions with
-[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
-on the design so hospitals outside the domain still contribute to
-variance. Use [`subset()`](https://rdrr.io/r/base/subset.html) as the
-survey-style alternative. A query filtered before construction defines a
-different sample.
+Estimate means, totals, and supported survey-weighted models in DuckDB.
 
 ## Usage
 
@@ -35,27 +27,31 @@ A lazy `nis_survey` design.
 ## Details
 
 Use
+[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html)
+on the design to define a domain while retaining the original sample for
+variance. Invalid design fields are excluded when defining the sample.
+
+Use
 [`survey::svymean()`](https://rdrr.io/pkg/survey/man/surveysummary.html),
 [`survey::svytotal()`](https://rdrr.io/pkg/survey/man/surveysummary.html),
-or [`survey::svyby()`](https://rdrr.io/pkg/survey/man/svyby.html) with
-one-sided formulas. Grouped estimates support means and totals. Use
-[`survey::svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html) for
-additive models with Gaussian identity, binomial or quasibinomial logit,
-and Poisson or quasipoisson log families. Wald inference uses the sample
-design degrees of freedom minus the fitted model rank plus one. DuckDB
-computes weighted sums by PSU without collecting discharge records. The
-analysis supports the `"fail"` and `"adjust"` values of
-`survey.lonely.psu` and honors `survey.adjust.domain.lonely`. Use
+and [`survey::svyby()`](https://rdrr.io/pkg/survey/man/svyby.html) for
+summaries.
+[`survey::svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html)
+supports additive Gaussian identity, binomial and quasibinomial logit,
+and Poisson and quasipoisson log models. Use
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-for row-level operations such as quantiles, chi-square tests, model
-diagnostics, and
+for interactions, offsets, survey quantiles, chi-square tests, or
 [`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
 
-Discharges with missing, non-finite, or nonpositive design fields
-(`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT`) are excluded. Custom
-analysis weights must be positive and finite within the domain.
+The design supports the `"fail"` and `"adjust"` settings of
+`survey.lonely.psu` and honors `survey.adjust.domain.lonely`.
 
 ## See also
+
+[Analyze the whole sample in
+DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html),
+[Analyze the whole sample in
+DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html)
 
 Other survey-design:
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
@@ -67,7 +63,7 @@ Other survey-design:
 ``` r
 nis <- nis_open(nis_example(2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -75,7 +71,7 @@ nis <- nis_open(nis_example(2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

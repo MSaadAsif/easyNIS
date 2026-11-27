@@ -131,6 +131,8 @@ before sharing them.
 
 ## See also
 
+[Years and coding
+eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
 [Code transitions and
 sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
 
@@ -146,49 +148,42 @@ Other cohort-definition:
 ## Examples
 
 ``` r
-toy_data <- dplyr::tibble(
-  YEAR = c(2018L, 2018L, 2019L, 2019L, 2020L, 2020L),
-  I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ", "02803ZZ", "02803ZZ", "02803ZZ"),
-  DISCWT = rep(5, 6)
-)
-nis_audit_code_transition(toy_data,
-  codes = c(myectomy = "02UG0JZ", ablation = "02803ZZ"))
-#> # A tibble: 6 × 7
-#>    YEAR code_group n_cohort_unweighted n_unweighted n_weighted pct_within_year
-#>   <int> <chr>                    <int>        <int>      <dbl>           <dbl>
-#> 1  2018 myectomy                     2            2         10             100
-#> 2  2019 myectomy                     2            1          5              50
-#> 3  2020 myectomy                     2            0          0               0
-#> 4  2018 ablation                     2            0          0               0
-#> 5  2019 ablation                     2            1          5              50
-#> 6  2020 ablation                     2            2         10             100
+nis <- nis_open(nis_example(2019:2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis_audit_code_transition(nis, codes = c(heart_failure = "I50"))
+#> # A tibble: 2 × 7
+#>    YEAR code_group   n_cohort_unweighted n_unweighted n_weighted pct_within_year
+#>   <int> <chr>                      <int>        <int>      <dbl>           <dbl>
+#> 1  2019 heart_failu…                  96            0          0               0
+#> 2  2020 heart_failu…                  96            0          0               0
 #> # ℹ 1 more variable: yoy_pct_change <dbl>
-
-# Observed full codes by period, with absent and sparse periods flagged
-nis_audit_code_transition(toy_data,
-  codes = c(myectomy = "02UG", ablation = "0280"), output = "inventory")
-#> # A tibble: 6 × 7
-#>    YEAR code_group code    n_cohort_unweighted n_unweighted n_weighted status
-#>   <int> <chr>      <chr>                 <int>        <int>      <dbl> <chr> 
-#> 1  2018 myectomy   02UG0JZ                   2            2         10 sparse
-#> 2  2019 myectomy   02UG0JZ                   2            1          5 sparse
-#> 3  2020 myectomy   02UG0JZ                   2            0          0 absent
-#> 4  2018 ablation   02803ZZ                   2            0          0 absent
-#> 5  2019 ablation   02803ZZ                   2            1          5 sparse
-#> 6  2020 ablation   02803ZZ                   2            2         10 sparse
-
-# Periods defined by several columns
-toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
-nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
-  by = c(YEAR, DQTR))
-#> # A tibble: 6 × 8
-#>    YEAR  DQTR code_group n_cohort_unweighted n_unweighted n_weighted
-#>   <int> <int> <chr>                    <int>        <int>      <dbl>
-#> 1  2018     1 myectomy                     1            1          5
-#> 2  2018     2 myectomy                     1            1          5
-#> 3  2019     1 myectomy                     1            1          5
-#> 4  2019     2 myectomy                     1            0          0
-#> 5  2020     1 myectomy                     1            0          0
-#> 6  2020     2 myectomy                     1            0          0
-#> # ℹ 2 more variables: pct_within_year <dbl>, yoy_pct_change <dbl>
+nis_audit_code_transition(nis, codes = c(heart_failure = "I50"),
+                          by = c(YEAR, DQTR), output = "inventory")
+#> # A tibble: 8 × 8
+#>    YEAR  DQTR code_group    code  n_cohort_unweighted n_unweighted n_weighted
+#>   <int> <int> <chr>         <chr>               <int>        <int>      <dbl>
+#> 1  2019     1 heart_failure NA                     24            0          0
+#> 2  2019     2 heart_failure NA                     24            0          0
+#> 3  2019     3 heart_failure NA                     24            0          0
+#> 4  2019     4 heart_failure NA                     24            0          0
+#> 5  2020     1 heart_failure NA                     24            0          0
+#> 6  2020     2 heart_failure NA                     24            0          0
+#> 7  2020     3 heart_failure NA                     24            0          0
+#> 8  2020     4 heart_failure NA                     24            0          0
+#> # ℹ 1 more variable: status <chr>
 ```

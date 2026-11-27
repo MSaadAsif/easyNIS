@@ -1,6 +1,6 @@
 # Open annual NIS Parquet files lazily
 
-Open annual NIS Parquet files lazily
+Open selected years as a DuckDB query.
 
 ## Usage
 
@@ -41,108 +41,38 @@ nis_open(
 
 ## Value
 
-A lazy DuckDB-backed dbplyr table with case-normalized source column
-names. Saved cohorts retain the column names used at export.
-Experimental 2023 layouts keep `TOTCHG_2023` as its own column and leave
-`TOTCHG` untouched, because the 2023 field is HCUP-adjusted for national
-estimates and is not comparable to earlier-year charges. Opening a query
-that contains `TOTCHG_2023` warns once per session. To use it, pass
-`charges = "TOTCHG_2023"` to
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-or
-[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
-or pool explicitly with
-`dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))`.
-
-The 2023 layout facts used here (`TOTCHG_2023`, removed `HOSP_REGION`
-and `HOSP_DIVISION`, sequential `NIS_STRATUM`) are UNVERIFIED against
-official HCUP 2023 documentation and real 2023 data; none were available
-for testing.
+A lazy DuckDB-backed dbplyr table. Annual source column names are
+case-normalized. Saved cohorts retain the column names used at export.
 
 ## Details
 
-`nis_open()` reads Parquet directly with DuckDB and returns a
-DuckDB-backed dbplyr table. It accepts annual `NIS_<year>.parquet` files
-or directories and Hive directories named `YEAR=YYYY` containing Parquet
-parts. A selected year must not appear in both annual and Hive layouts.
-If a part file has a physical `YEAR` column, its non-missing values must
-agree with the directory year; missing or absent physical values use the
-partition year. Schemas are combined by column name, including when
-annual files and Hive partitions are mixed. DuckDB combines source
-fields and promotes annual types. For names DuckDB folds as ASCII
-case-insensitive identifiers, the output uses uppercase spelling when
-any selected source uses uppercase ASCII letters. Other names retain the
-established name normalization, including coalescing Unicode
-case-normalization collisions. Source metadata may suggest an additional
-spelling-only rename; it is applied only when its target is unique and
-does not collide with an output name under DuckDB's identifier rules.
-When annual types differ, DuckDB may promote them; for example, an
-integer field combined with a character field is returned as character.
-When present, `YEAR` is validated and returned as integer; invalid
-values identify the offending file in an error. The connection remains
-open while the lazy table is in use and closes after it is released. Use
-[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
-to return data to R. Years before 2016 emit an experimental ICD-9 layout
-notice once per R session. The `engine` argument was removed entirely;
-omit it regardless of the value used in older code. The default reader
-fails when a scan encounters malformed UTF-8. A lazy query can open
-successfully and fail later when it reads the affected column. Reconvert
-the correctly encoded source with
-[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
-into a new directory to validate the text before analysis. Malformed
-bytes preserved by Arrow can still cause downstream string operations to
-fail.
+Use annual `NIS_<year>.parquet` files or directories, or Hive
+directories named `YEAR=YYYY`. Use one layout per year. The package
+matches columns by name and checks that recorded years agree with their
+partitions. The charge fields for 2023 and 2024 remain separate from
+`TOTCHG`.
 
 ## Annual release check
 
-DuckDB checks the discharge count, sum of `DISCWT`, and distinct
-`HOSP_NIS` count against the [HCUP summary
-statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp) for
-each opened year from 2012 through 2024. Counts must match exactly, and
-the weight sum can differ by half a discharge plus a small allowance for
-floating-point arithmetic because HCUP rounds the published weight sum
-to a whole discharge. Only finite, positive hospital IDs count, and
-optional totals are compared only when every checked part for a year has
-the corresponding column. Files created by
-[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-are excluded from these totals. They still undergo the integrity checks
-below. Parquet files with zero discharges across an entire opened year
-warn. When the fields are present, missing `YEAR`, `YEAR` outside the
-opened years, and `NIS_STRATUM` values of zero or less warn even for
-years without published reference totals. If the check cannot run, it
-warns. Discrepancy warnings identify the affected checks or fields. The
-lazy query remains available for use. Cohort extracts are expected to
-differ from the published totals. Use `check_release = FALSE` to skip
-the check for an intentional extract.
+For years with published reference totals, the check compares
+discharges, the sum of weights, and distinct hospitals when the relevant
+fields are available. Investigate warnings against the annual release
+documentation. Invented data and extracts created with
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
+are exempt from comparisons with published totals.
 
-## Large data
+## Reading into R
 
-The query stays in DuckDB until you collect it. Filter, project, and
-summarize before collecting. A memory check applies to
-[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html),
-including [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
-on these lazy tables, and to easyNIS helpers that collect DuckDB
-results. It estimates the size of the result from DuckDB's query plan
-and the projected column types. It uses a small sample to refine text
-widths for simple Parquet reads and counts the result rows before
-denying a collect. Estimates for filtered queries and variable-width
-columns can be inaccurate, and the check cannot predict DuckDB's working
-memory or memory used by subsequent R operations. Estimated results from
-20% of available physical memory emit a message; at 50% or more the
-check raises an `easyNIS_collect_too_large` error. If system memory is
-unavailable, collection proceeds with a one-time notice. Use
-`options(easyNIS.collect_prudence = FALSE)` to skip the check.
-
-Set the named list option `easyNIS.duckdb_config` before opening to tune
-`memory_limit`, `threads`, `temp_directory`, `max_temp_directory_size`,
-or `preserve_insertion_order`. The package assigns each query its own
-spill location under the supplied private directory, or under the R
-session's temporary directory by default.
+Select columns and summarize in DuckDB before calling
+[`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html).
+The default reader rejects malformed UTF-8 when it reads the affected
+column. Reconvert from a correctly encoded source with
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md).
 
 ## See also
 
-[Opening NIS
-data](https://msaadasif.github.io/easyNIS/articles/opening-data.html).
+[Prepare annual NIS
+files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html).
 
 Other data-access:
 [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
@@ -154,7 +84,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -163,7 +93,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -184,7 +114,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

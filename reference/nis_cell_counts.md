@@ -1,13 +1,8 @@
 # Count discharges and contributing hospitals by cell
 
-Produces the unweighted discharge and distinct hospital counts used by
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md).
-Hospital identity is the year-scoped pair `YEAR` and `HOSP_NIS`,
-matching
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-Rows with invalid hospital identity are rejected so counts cannot
-silently understate disclosure risk. For DuckDB queries, the database
-counts discharges and hospitals and returns only the grouped summary.
+Count sampled discharges and distinct hospital-years for each cell. Rows
+need valid hospital and year identifiers. A DuckDB input returns only
+grouped counts to R.
 
 ## Usage
 
@@ -36,8 +31,10 @@ A data frame with the columns in `by`, `n` (unweighted discharges), and
 
 ## See also
 
-[Disclosure and
-suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+[Check disclosure before sharing
+results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
+[Check disclosure before sharing
+results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
 [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
@@ -45,12 +42,29 @@ Other disclosure:
 ## Examples
 
 ``` r
-records <- data.frame(
-  YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
-)
-nis_cell_counts(records, by = group)
-#> # A tibble: 1 × 3
-#>   group     n hospitals
-#>   <chr> <int>     <int>
-#> 1 A         3         2
+nis <- nis_open(nis_example(2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis_cell_counts(nis, by = DQTR)
+#> # A tibble: 4 × 3
+#>    DQTR     n hospitals
+#>   <int> <dbl>     <dbl>
+#> 1     1    24        12
+#> 2     2    24        12
+#> 3     3    24        12
+#> 4     4    24        12
 ```

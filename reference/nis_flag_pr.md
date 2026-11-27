@@ -1,13 +1,6 @@
 # Add procedure code flags
 
-Each procedure slot is checked separately, with the same prefix, regular
-expression, exclusion, and `system` semantics as
-[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md).
-`"icd10"` reads `I10_PR1`, ...; `"icd9"` (experimental) reads `PR1`, ...
-Slot suffixes must be positive integers without leading zeros. Malformed
-slot names are ignored; an error is raised if no slots match the
-requested position. The principal slot has suffix `1`; sparse and
-reordered slots are supported.
+Flag discharges whose procedure codes match your clinical definition.
 
 ## Usage
 
@@ -45,10 +38,19 @@ nis_flag_pr(
 
 `.data` with one logical column per named definition.
 
+## Details
+
+Use the
+[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
+rules for prefixes, exact exclusions, regular expressions, and mixed
+coding eras. For ICD-10 the slots are `I10_PR1`, `I10_PR2`, and so on.
+For ICD-9 they are `PR1`, `PR2`, and so on. Use `position = "principal"`
+to check slot 1 only.
+
 ## See also
 
-[Defining
-cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
@@ -64,7 +66,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,7 +74,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

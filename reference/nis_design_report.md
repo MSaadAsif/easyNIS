@@ -1,11 +1,7 @@
 # Report the design and fitted sample for NIS analyses
 
-Reads the sampling metadata retained by
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-without querying the original data. Use it on the design after a domain
-filter, or on a
-[`survey::svyglm()`](https://rdrr.io/pkg/survey/man/svyglm.html) fit
-from that design to see the fitted sample size.
+Report the discharges and survey weights used in a design or fitted
+model.
 
 ## Usage
 
@@ -38,13 +34,16 @@ records the fit omitted for missing model data (`excluded_n`).
 
 ## Details
 
-Counts describe the input supplied to
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-Filtering that input before making the design can change the sampling
-roster. Use a cohort expression or filter the design to restrict a
-survey domain. Review the counts for disclosure before sharing them.
+Use the report to reconcile input, cohort, and analysis counts. After
+filtering a design, the current domain count changes while the original
+sample count is retained. Review disclosure before sharing the report.
 
 ## See also
+
+[Analyze your first NIS
+cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html),
+[Analyze your first NIS
+cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
 
 Other survey-design:
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
@@ -56,7 +55,7 @@ Other survey-design:
 ``` r
 data <- nis_open(nis_example(2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -64,7 +63,7 @@ data <- nis_open(nis_example(2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

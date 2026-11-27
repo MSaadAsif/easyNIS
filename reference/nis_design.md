@@ -1,20 +1,7 @@
 # Prepare a cohort survey design
 
-Collects cohort rows and one zero-domain placeholder per hospital-year
-with no cohort discharges, then builds a nested NIS survey design. The
-placeholder-row method is experimental and is gated against a full-data
-design. After this function returns,
-[`filter()`](https://dplyr.tidyverse.org/reference/filter.html) may only
-narrow the declared cohort; it cannot define a new cohort. Hospital
-geography columns are optional. Hospital and stratum identifiers are
-scoped by year (`YEAR` + `HOSP_NIS` and `YEAR` + `NIS_STRATUM`), because
-HCUP reassigns hospital numbers annually and 2023 stratum codes are
-sequential. Costs and charges use `TOTCHG` only, unless `charges` names
-another column such as `TOTCHG_2023`; nothing is coalesced silently,
-because the 2023 field is not comparable to earlier-year `TOTCHG`. The
-2023 layout facts (`TOTCHG_2023`, removed `HOSP_REGION` and
-`HOSP_DIVISION`, sequential strata) are UNVERIFIED against official HCUP
-2023 documentation and real 2023 data.
+Build a survey design from the annual sample and the declared cohort.
+Use the result with srvyr, survey, and gtsummary.
 
 ## Usage
 
@@ -57,30 +44,19 @@ nis_design(
 
 - annualize:
 
-  Divide discharge weights by the number of distinct `YEAR` values among
-  valid-design discharges. A year counts as one whole year however much
-  of it is present, so a partial-year era such as the ICD-10 fourth
-  quarter of 2015 counts the same as a full year, and a year with no
-  cohort discharges still counts. When `DQTR` is present, a warning
-  identifies years where the valid-design data has fewer than four
-  quarters. A separate warning identifies a cohort limited to the ICD-9
-  (Q1-Q3) or ICD-10 (Q4) part of 2015. Exclude partial years or use
-  `annualize = FALSE` and apply a suitable fractional-year factor with
-  [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
-  if you need a different convention.
+  Divide every discharge weight by the number of years with valid design
+  records. Each partial year counts as one year.
 
 - dollars:
 
-  Optional reference dollar year for adjusted costs and charges. When
-  supplied, keep `CCR_NIS` and the `charges` column.
+  Reference dollar year for adjusted charges and costs. To set it, keep
+  the charge field and `CCR_NIS`.
 
 - charges:
 
-  Name of the total-charge column used for adjusted costs and charges.
-  Defaults to `"TOTCHG"`. Use `"TOTCHG_2023"` for 2023-only analyses, or
-  build a pooled column explicitly with
-  `dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))` before
-  calling; either choice mixes charge definitions across years.
+  Name of the charge field. Defaults to `"TOTCHG"`. Choose the field for
+  the years analyzed. See [Years and coding
+  eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html).
 
 ## Value
 
@@ -92,39 +68,34 @@ keeps binary indicators logical and converts known multi-level codes to
 factors. Use [`stats::weights()`](https://rdrr.io/r/stats/weights.html)
 for the survey weights.
 
+## Details
+
+Hospital and stratum identifiers include the year. Hospital-years
+without eligible discharges contribute zero to the domain calculation.
+Filter the returned design to estimate within a smaller domain. For a
+dataset saved with
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md),
+omit `cohort`.
+
 ## Invalid design fields
 
-Discharges whose `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT` is
-missing, non-finite, or not positive are excluded before the cohort is
-applied. HCUP specifies `DISCWT` as the discharge weight, `NIS_STRATUM`
-as the stratum, and `HOSP_NIS` as the hospital cluster ([variance
-guidance](https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp); [2017
-NIS
-introduction](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2017.jsp));
-HCUP also documents missing and invalid coding conventions ([coding
-conventions](https://hcup-us.ahrq.gov/db/coding.jsp)). Records with
-invalid values cannot be placed in the documented design as supplied.
-Exclusion is not a claim that these records have zero population weight
-or that estimates are unbiased. Report the excluded count and affected
-fields, and consider whether conclusions could depend on them. The
-returned design has a `nis_excluded` attribute containing aggregate
-`total`, `by_field`, and `by_year` counts; `by_year` includes years with
-exclusions when the year is itself valid. A discharge can fail more than
-one field.
+The design excludes discharges with missing, non-finite, or nonpositive
+`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT`. Inspect the excluded
+counts by field and year with
+[`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md).
 
-A lazy query is scanned twice. The sample scan summarises design fields,
-exclusion counts, and quarter coverage when annualizing. The cohort scan
-evaluates the cohort expression once over the full data and collects the
-retained analysis columns. For a dataset written with
-[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md),
-omit `cohort`. The saved membership flag excludes placeholders from the
-analysis. Original exclusion counts and full-sample quarter coverage are
-unavailable.
+## Adjusted charges and costs
+
+Keeping both the charge field and `CCR_NIS` adds `charges_adj` and
+`cost_adj`. The default dollar year is the latest included design year.
+Set `dollars` to use another reference year.
 
 ## See also
 
-[Survey design and
-weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html).
+[Make tables and fit survey
+models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
+[Make tables and fit survey
+models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 
 Other survey-design:
 [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md),
@@ -137,7 +108,7 @@ Other survey-design:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -145,7 +116,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

@@ -65,19 +65,38 @@ Other cohort-definition:
 ## Examples
 
 ``` r
-toy <- data.frame(
-  YEAR = c(2020L, 2020L, 2021L),
-  I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ"),
-  I10_PR2 = c("0JH604Z", "OTHER", "0JH604Z"),
-  PRDAY1 = c(0L, -99L, 1L), PRDAY2 = c(1L, NA_integer_, -88L)
-)
-nis_audit_prday(toy, c("02UG0", "0JH60"))
-#> # A tibble: 4 × 8
-#>    YEAR  slot matched_slots known_day missing_day sentinel_invalid_day
-#>   <int> <int>         <int>     <int>       <int>                <int>
-#> 1  2020     1             2         1           0                    1
-#> 2  2020     2             1         1           0                    0
-#> 3  2021     1             1         1           0                    0
-#> 4  2021     2             1         0           0                    1
+nis <- nis_open(nis_example(2020)) |>
+  dplyr::mutate(PRDAY1 = 0L, PRDAY2 = 1L)
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis_audit_prday(nis, pr = "0270")
+#> # A tibble: 25 × 8
+#>     YEAR  slot matched_slots known_day missing_day sentinel_invalid_day
+#>    <int> <int>         <int>     <int>       <int>                <int>
+#>  1  2020     1            48        48           0                    0
+#>  2  2020     2             0         0           0                    0
+#>  3  2020     3             0         0           0                    0
+#>  4  2020     4             0         0           0                    0
+#>  5  2020     5             0         0           0                    0
+#>  6  2020     6             0         0           0                    0
+#>  7  2020     7             0         0           0                    0
+#>  8  2020     8             0         0           0                    0
+#>  9  2020     9             0         0           0                    0
+#> 10  2020    10             0         0           0                    0
+#> # ℹ 15 more rows
 #> # ℹ 2 more variables: absent_prday_column <int>, pct_known <dbl>
 ```

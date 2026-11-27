@@ -1,10 +1,7 @@
 # Reweight a cohort survey design
 
-Multiplies cohort discharge survey weights by supplied propensity
-weights, retains the placeholder rows for hospital-years without cohort
-discharges, and rebuilds the nested survey design. This experimental
-method is intended for analysts who have validated their weighting
-specification against a full-data reference design.
+Multiply the cohort's discharge weights by prespecified analysis
+factors.
 
 ## Usage
 
@@ -35,21 +32,17 @@ nis_reweight(design, weights)
 A filtered [`srvyr::tbl_svy`](http://gdfe.co/srvyr/reference/tbl_svy.md)
 survey design.
 
-## Weighted totals
+## Details
 
-The result multiplies the discharge weights by `weights`, so
-[`survey_total()`](http://gdfe.co/srvyr/reference/survey_total.md) and
-similar totals no longer estimate national discharge counts. Use the
-result for ratios, means and model estimates, and report national counts
-from the design before reweighting. Each call multiplies the weights
-again, so call `nis_reweight()` once on the result of
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md);
-calling it on an already reweighted design compounds the weights.
+The design retains the original hospital and stratum structure.
+Uncertainty estimates treat the supplied factors as fixed.
 
 ## See also
 
-[Survey design and
-weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html).
+[Make tables and fit survey
+models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
+[Make tables and fit survey
+models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 
 Other survey-design:
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
@@ -59,10 +52,9 @@ Other survey-design:
 ## Examples
 
 ``` r
-nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
+nis <- nis_open(nis_example(2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -70,21 +62,19 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE))
+design <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS))
 #> Preparing the cohort survey design.
-
-# Illustrative weights only; use weights from your own validated model
 reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
-srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
+srvyr::summarise(reweighted, mean_los = srvyr::survey_mean(LOS))
 #> # A tibble: 1 × 2
-#>   weighted_total weighted_total_se
-#>            <dbl>             <dbl>
-#> 1           127.              17.7
+#>   mean_los mean_los_se
+#>      <dbl>       <dbl>
+#> 1     5.41       0.151
 ```

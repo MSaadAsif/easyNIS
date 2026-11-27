@@ -1,9 +1,6 @@
 # Add standard discharge outcomes
 
-Derive in-hospital mortality, length of stay, and discharge disposition
-from the numeric NIS Core fields. Each outcome uses its own source
-field. Missing or unrecognized codes become `NA`, including negative
-HCUP sentinels and non-integer values.
+Derive in-hospital death, length of stay, and discharge disposition.
 
 ## Usage
 
@@ -42,10 +39,19 @@ The input with three columns added or replaced:
 
 For a lazy DuckDB input, the result is a lazy query.
 
+## Details
+
+In-hospital death uses `DIED`. Discharge disposition uses `DISPUNIFORM`.
+Length of stay uses `LOS`, including zero for same-day stays. Missing
+values, HCUP sentinel values, and invalid codes produce missing
+outcomes.
+
 ## See also
 
-[Hospitalization
-outcomes](https://msaadasif.github.io/easyNIS/articles/outcomes.html),
+[Derive outcomes, comorbidities, and
+costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
+[Derive outcomes, comorbidities, and
+costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
 [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
 
 ## Examples
@@ -57,7 +63,7 @@ nis_open(nis_example(years = 2024)) |>
   dplyr::collect() |>
   nis_label()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -65,7 +71,7 @@ nis_open(nis_example(years = 2024)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

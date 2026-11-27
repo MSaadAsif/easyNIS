@@ -1,13 +1,7 @@
 # Summarize diagnosis-position sensitivity
 
-Summarizes unweighted and weighted presentation counts and outcome rates
-for principal, secondary-only, and any-position diagnosis flags. These
-are descriptive point estimates, not design-based survey estimates; use
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-when standard errors are needed. Small cells must go through
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-before reporting under the HCUP Data Use Agreement, which prohibits
-reporting cells of 1–10.
+Compare principal, secondary-only, and any-position diagnosis
+definitions.
 
 ## Usage
 
@@ -60,10 +54,20 @@ inputs return zero counts and missing shares and rates. Missing weights
 are omitted from weighted sums; missing outcomes are excluded from that
 outcome's denominator. Rates with zero denominators are missing.
 
+## Details
+
+The result describes how the diagnosis position changes counts and
+selected outcome rates. Use
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+to estimate standard errors. Review disclosure before sharing the
+results.
+
 ## See also
 
-[Code transitions and
-sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
+[Years and coding
+eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
+[Years and coding
+eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
@@ -79,7 +83,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -87,7 +91,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

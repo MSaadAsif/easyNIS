@@ -1,16 +1,6 @@
 # Add diagnosis code flags
 
-Each diagnosis slot is checked separately. Supplied prefixes are
-case-insensitive, and periods and spaces in them are ignored. Slot
-values are compared as stored, case sensitively, because NIS stores
-upper-case codes without periods. Matching stays lazy in DuckDB and
-avoids per-row text normalization. A flag definition can also be a list
-with `prefix`, `regex`, and `exclude` character vectors. Prefixes and
-full-code regular expressions are combined as alternatives; exclusions
-remove exact codes within each slot, so a matching code in another slot
-can still set the flag. Regexes use RE2-compatible syntax, are
-case-sensitive by default, and must match the whole stored code.
-Character-vector definitions retain the original prefix behavior.
+Flag discharges whose diagnosis codes match your clinical definition.
 
 ## Usage
 
@@ -38,7 +28,7 @@ nis_flag_dx(
   `regex`, and `exclude` can each be character vectors. Prefix and regex
   matches are combined; exclusions are exact and apply within each slot.
   With `system = "both"`, nest those definitions under `icd9` and
-  `icd10`, for example `flag = list(icd9 = "12345", icd10 = "I50")`.
+  `icd10`, for example `flag = list(icd9 = "428", icd10 = "I50")`.
 
 - position:
 
@@ -56,36 +46,16 @@ nis_flag_dx(
 
 ## Details
 
-`system` picks which slots are tested. `"icd10"` reads `I10_DX1`,
-`I10_DX2`, ...; `"icd9"` (experimental) reads `DX1`, `DX2`, ... as
-stored in NIS 2012 through Q3 2015. A prefix is only ever compared with
-slots of the chosen system, so an ICD-10 flag never matches an ICD-9
-slot and the reverse. Slot suffixes must be positive integers without
-leading zeros. Malformed slot names are ignored; an error is raised if
-no slots match the requested position. The principal slot has suffix
-`1`; sparse and reordered slots are supported.
-
-In 2015 the Q1-Q3 discharges carry ICD-9 codes and the Q4 discharges
-carry ICD-10 codes. HCUP is understood to recommend `DXVER` (9 or 10) to
-distinguish them, because `DQTR` can be missing (UNVERIFIED:
-secondhand); `PRVER` describes the procedure system. Non-missing version
-indicators must agree with `system`; non-missing `YEAR` and, in 2015,
-`DQTR` must also agree. Conflicting or invalid indicators yield `FALSE`.
-Missing indicators rely on the slot namespace: callers must preserve the
-official names and leave inapplicable slots missing. Shared slots
-containing both systems are not supported. `FALSE` means "not flagged
-under the requested code system or systems". For a study spanning
-October 2015, use `system = "both"` and supply one named `icd9` and one
-named `icd10` definition per flag. Each definition applies to its own
-eligible records and slots. A match in either system sets the flag. Both
-sets of slot columns must be present for the requested position. Use a
-single-system call on files containing only that system. The analyst
-supplies both definitions and reviews comparability at the transition.
+Supply prefixes or a list of `prefix`, `regex`, and `exclude`. Regular
+expressions match the whole stored code. An exclusion removes an exact
+code from the match in that slot. Another diagnosis slot can still set
+the flag. Specify `position = "principal"` to search slot 1 only. Use
+separate definitions and `system = "both"` for mixed coding eras.
 
 ## See also
 
-[Defining
-cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
@@ -101,7 +71,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -109,7 +79,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -152,7 +122,7 @@ nis |>
   dplyr::count(hf_full) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

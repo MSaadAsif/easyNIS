@@ -1,27 +1,6 @@
 # Suppress small unweighted cells in a survey summary
 
-For a
-[`gtsummary::tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-result, replaces displayed statistics when their corresponding
-unweighted count is at or below `threshold`. The count is the smaller of
-the summary card count and the number of matching records in the
-supplied survey design. A dichotomous row whose displayed level passes
-both rules is marked `Masked` if its non-missing complement fails the
-count or hospital rule. Continuous2 statistic rows use the non-missing
-count for their corresponding output column. If that count is absent,
-ambiguous, or non-finite for a displayed statistic, the function errors;
-blank statistic cells do not require a count. When a by-group cell is
-masked, the overall cell (`stat_0`) in the same row is marked `Masked`,
-unless it already has a primary mask. If exactly one categorical level
-is masked within a column, the smallest remaining positive level is also
-marked `Masked`. Other derivable cells still need analyst review before
-sharing. For survey summaries, hospital support is counted from retained
-records using year-scoped `YEAR` and `HOSP_NIS` identities, within the
-cohort, non-missing/category, and by-group cells represented by the
-table. The rule is applied only when the survey records and summary
-cards provide an unambiguous mapping; otherwise the function errors.
-Data-frame behavior uses the supplied `count_col` and optional
-`hospital_col` as described below.
+Mask a summary using unweighted counts and contributing hospitals.
 
 ## Usage
 
@@ -98,10 +77,28 @@ For data frames, the same table with masked columns converted to
 character. For `gtsummary` results, the table with primary and secondary
 masks and a footnote describing them.
 
+## Details
+
+In a survey table, each statistic is checked against its supporting
+discharges and hospital-years. The function stops when it cannot
+identify the records behind a statistic. It also checks the non-missing
+complement of a displayed two-level indicator and can mask related
+overall statistics. If one categorical level in a column is masked, the
+function also masks the smallest remaining positive level. Review other
+deductions from related outputs before release.
+
+In a data frame, supply unweighted counts and, when available, distinct
+hospital counts. Grouped complementary suppression can mask an
+additional positive cell when there is one primary mask in a group.
+Review totals and any other cells that someone could recover by
+subtraction.
+
 ## See also
 
-[Disclosure and
-suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+[Check disclosure before sharing
+results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
+[Check disclosure before sharing
+results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
 [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
@@ -112,7 +109,7 @@ Other disclosure:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -120,7 +117,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

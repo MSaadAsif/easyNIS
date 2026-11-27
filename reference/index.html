@@ -16,15 +16,9 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Analyze your first NIS cohort</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/prepare-data.html">Prepare annual NIS files</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-guides"><li><a class="dropdown-item" href="../articles/prepare-data.html">Prepare annual NIS files</a></li>
     <li><a class="dropdown-item" href="../articles/cohorts.html">Define and save a cohort</a></li>
     <li><a class="dropdown-item" href="../articles/outcomes-and-costs.html">Derive outcomes, comorbidities, and costs</a></li>
     <li><a class="dropdown-item" href="../articles/tables-and-models.html">Make tables and fit survey models</a></li>
@@ -33,13 +27,15 @@
     <li><a class="dropdown-item" href="../articles/disclosure.html">Check disclosure before sharing results</a></li>
     <li><a class="dropdown-item" href="../articles/study-template.html">Start a Quarto study</a></li>
     <li><a class="dropdown-item" href="../articles/porting.html">Port a discharge analysis to easyNIS</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header" data-toc-skip>Articles</h6></li>
-    <li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
+  </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-concepts" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Concepts</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-concepts"><li><a class="dropdown-item" href="../articles/how-easynis-works.html">How easyNIS works</a></li>
     <li><a class="dropdown-item" href="../articles/nis-design.html">How the NIS survey design works</a></li>
     <li><a class="dropdown-item" href="../articles/years-and-eras.html">Years and coding eras</a></li>
     <li><a class="dropdown-item" href="../articles/glossary.html">Glossary</a></li>
   </ul></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
       </ul></div>
@@ -54,10 +50,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="-open-and-inspect-data"></h2><li>Open and inspect data</li>
+      <h2 id="convert-open-and-join">Convert, open, and join<a class="anchor" aria-label="anchor" href="#convert-open-and-join"></a></h2>
 
-
-      <div class="section-desc"><p>Open annual NIS files and inspect data structure and labels.</p></div>
+      <div class="section-desc"><p>Column selectors: <code><a href="../reference/nis_vars_design.html">nis_vars_design()</a></code>, <code><a href="../reference/nis_vars_design.html">nis_vars_demographics()</a></code>, <code><a href="../reference/nis_vars_design.html">nis_vars_dx()</a></code>, <code><a href="../reference/nis_vars_design.html">nis_vars_pr()</a></code>, and <code><a href="../reference/nis_vars_design.html">nis_vars_hospital()</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -65,20 +60,6 @@
 
 
       <dl><dt>
-
-          <code><a href="nis_example.html">nis_example()</a></code>
-
-        </dt>
-        <dd>Write an invented NIS-shaped Parquet dataset</dd>
-
-        <dt>
-
-          <code><a href="nis_write_cohort.html">nis_write_cohort()</a></code>
-
-        </dt>
-        <dd>Save a reusable NIS cohort</dd>
-
-        <dt>
 
           <code><a href="nis_convert.html">nis_convert()</a></code>
 
@@ -101,6 +82,13 @@
 
         <dt>
 
+          <code><a href="nis_example.html">nis_example()</a></code>
+
+        </dt>
+        <dd>Write an invented NIS-shaped Parquet dataset</dd>
+
+        <dt>
+
           <code><a href="nis_label.html">nis_label()</a></code>
 
         </dt>
@@ -113,10 +101,9 @@
         </dt>
         <dd>Select NIS column groups</dd>
       </dl></div><div class="section level2">
-      <h2 id="-define-cohorts"></h2><li>Define cohorts</li>
+      <h2 id="define-and-save-cohorts">Define and save cohorts<a class="anchor" aria-label="anchor" href="#define-and-save-cohorts"></a></h2>
 
-
-      <div class="section-desc"><p>Flag codes, timing, and eligibility; audit cohort definitions.</p></div>
+      <div class="section-desc"><p>Reuse eligibility criteria with <code><a href="../reference/nis_attrition.html">nis_attrition_cohort()</a></code>.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -146,13 +133,6 @@
 
         <dt>
 
-          <code><a href="nis_audit_prday.html">nis_audit_prday()</a></code>
-
-        </dt>
-        <dd>Summarize procedure-day completeness by year and procedure slot</dd>
-
-        <dt>
-
           <code><a href="nis_add_ccsr.html">nis_add_ccsr()</a></code>
 
         </dt>
@@ -174,22 +154,14 @@
 
         <dt>
 
-          <code><a href="nis_audit_dx_position.html">nis_audit_dx_position()</a></code>
+          <code><a href="nis_write_cohort.html">nis_write_cohort()</a></code>
 
         </dt>
-        <dd>Summarize diagnosis-position sensitivity</dd>
-
-        <dt>
-
-          <code><a href="nis_audit_code_transition.html">nis_audit_code_transition()</a></code>
-
-        </dt>
-        <dd>Audit code-group frequencies across periods</dd>
+        <dd>Save a reusable NIS cohort</dd>
       </dl></div><div class="section level2">
-      <h2 id="-design-and-estimate"></h2><li>Design and estimate</li>
+      <h2 id="audit-coding-and-completeness">Audit coding and completeness<a class="anchor" aria-label="anchor" href="#audit-coding-and-completeness"></a></h2>
 
 
-      <div class="section-desc"><p>Build survey designs and apply optional reweighting.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -198,43 +170,28 @@
 
       <dl><dt>
 
-          <code><a href="nis_design.html">nis_design()</a></code>
+          <code><a href="nis_audit_code_transition.html">nis_audit_code_transition()</a></code>
 
         </dt>
-        <dd>Prepare a cohort survey design</dd>
+        <dd>Audit code-group frequencies across periods</dd>
 
         <dt>
 
-          <code><a href="nis_design_report.html">nis_design_report()</a></code>
+          <code><a href="nis_audit_dx_position.html">nis_audit_dx_position()</a></code>
 
         </dt>
-        <dd>Report the design and fitted sample for NIS analyses</dd>
+        <dd>Summarize diagnosis-position sensitivity</dd>
 
         <dt>
 
-          <code><a href="nis_survey.html">nis_survey()</a></code>
+          <code><a href="nis_audit_prday.html">nis_audit_prday()</a></code>
 
         </dt>
-        <dd>Create a lazy whole-sample NIS survey design</dd>
-
-        <dt>
-
-          <code><a href="nis_reweight.html">nis_reweight()</a></code>
-
-        </dt>
-        <dd>Reweight a cohort survey design</dd>
-
-        <dt>
-
-          <code><a href="nis_annual_totals.html">nis_annual_totals()</a></code>
-
-        </dt>
-        <dd>Estimate annual national discharge totals</dd>
+        <dd>Summarize procedure-day completeness by year and procedure slot</dd>
       </dl></div><div class="section level2">
-      <h2 id="-add-analysis-variables"></h2><li>Add analysis variables</li>
+      <h2 id="derive-outcomes-comorbidities-and-costs">Derive outcomes, comorbidities, and costs<a class="anchor" aria-label="anchor" href="#derive-outcomes-comorbidities-and-costs"></a></h2>
 
 
-      <div class="section-desc"><p>Derive discharge outcomes, comorbidity indicators, and inflation-adjusted costs.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -269,10 +226,53 @@
         </dt>
         <dd>Read cost adjustment provenance</dd>
       </dl></div><div class="section level2">
-      <h2 id="-review-outputs"></h2><li>Review outputs</li>
+      <h2 id="survey-designs-and-estimation">Survey designs and estimation<a class="anchor" aria-label="anchor" href="#survey-designs-and-estimation"></a></h2>
 
 
-      <div class="section-desc"><p>Count supporting hospitals and suppress disclosure-prone cells.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="nis_design.html">nis_design()</a></code>
+
+        </dt>
+        <dd>Prepare a cohort survey design</dd>
+
+        <dt>
+
+          <code><a href="nis_survey.html">nis_survey()</a></code>
+
+        </dt>
+        <dd>Create a lazy whole-sample NIS survey design</dd>
+
+        <dt>
+
+          <code><a href="nis_annual_totals.html">nis_annual_totals()</a></code>
+
+        </dt>
+        <dd>Estimate annual national discharge totals</dd>
+
+        <dt>
+
+          <code><a href="nis_reweight.html">nis_reweight()</a></code>
+
+        </dt>
+        <dd>Reweight a cohort survey design</dd>
+
+        <dt>
+
+          <code><a href="nis_design_report.html">nis_design_report()</a></code>
+
+        </dt>
+        <dd>Report the design and fitted sample for NIS analyses</dd>
+      </dl></div><div class="section level2">
+      <h2 id="disclosure-and-study-setup">Disclosure and study setup<a class="anchor" aria-label="anchor" href="#disclosure-and-study-setup"></a></h2>
+
+
 
       <dl></dl></div><div class="section level2">
 
@@ -292,18 +292,8 @@
 
         </dt>
         <dd>Suppress small unweighted cells in a survey summary</dd>
-      </dl></div><div class="section level2">
-      <h2 id="-create-a-study-skeleton"></h2><li>Create a study skeleton</li>
 
-
-      <div class="section-desc"><p>Create a Quarto project with a starter analysis file. Add your data and study-specific definitions and analysis.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
+        <dt>
 
           <code><a href="nis_new_study.html">nis_new_study()</a></code>
 

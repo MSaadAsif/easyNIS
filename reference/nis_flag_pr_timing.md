@@ -1,21 +1,7 @@
 # Flag procedure timing relative to an index procedure
 
-Compares procedure slots with the correspondingly numbered PRDAY values.
-The earliest valid index day is used when the index procedure occurs in
-multiple slots. A slot matching both definitions counts as both
-procedures. Definitions follow the prefix, regular expression, and exact
-exclusion rules of
-[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md);
-timing compares slots within the same code system. Factor and
-ordered-factor PRDAY columns are interpreted by their labels, not their
-internal level numbers. Values that decode to missing numeric days are
-handled as missing. Input columns are preserved. Negative days
-(including HCUP sentinel values), non-finite values, and missing days
-are unknown. If either procedure is absent, the result is FALSE.
-Otherwise, any outcome with a known day satisfying the relation returns
-TRUE. If none does and a matching procedure has an unknown day, exclude
-returns FALSE, assume_same_day treats that day as 0, and indeterminate
-returns NA.
+Flag an outcome procedure that falls within a specified time relation to
+an index procedure.
 
 ## Usage
 
@@ -78,15 +64,20 @@ nis_flag_pr_timing(
 
 ## Details
 
-on_or_after tests outcome day \>= earliest index day; after tests \>;
-before tests \<; same_day tests equality. within_days tests whether the
-outcome is from 0 through window days after the earliest index day,
-inclusive.
+Each procedure uses the day from its corresponding PRDAY slot. Use the
+prefix, full-code regular expression, and exact exclusion rules of
+[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md).
+Timing compares slots within the same code system. The earliest known
+index day is the reference. When either procedure is absent, the flag is
+false. When both occur and a match cannot be determined because a day is
+missing, non-finite, or negative, `missing_day` sets the handling. The
+`within_days` window starts on the index day and includes both
+endpoints.
 
 ## See also
 
-[Defining
-cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md),
@@ -100,9 +91,29 @@ Other cohort-definition:
 ## Examples
 
 ``` r
-toy <- data.frame(I10_PR1 = c("02UG0JZ", "0JH604Z"), PRDAY1 = c(0L, 1L))
-nis_flag_pr_timing(toy, "02UG0", "0JH60")
-#>   I10_PR1 PRDAY1 outcome_post_index
-#> 1 02UG0JZ      0              FALSE
-#> 2 0JH604Z      1              FALSE
+nis <- nis_open(nis_example(2020)) |>
+  dplyr::mutate(PRDAY1 = 0L, PRDAY2 = 1L) |>
+  nis_flag_pr_timing("0270", "02L73", relation = "after")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis |> dplyr::count(outcome_post_index) |> dplyr::collect()
+#> # A tibble: 2 × 2
+#>   outcome_post_index     n
+#>   <lgl>              <dbl>
+#> 1 FALSE                 84
+#> 2 TRUE                  12
 ```

@@ -1,15 +1,6 @@
 # Summarize sequential cohort attrition
 
-Applies logical criteria cumulatively and reports remaining and dropped
-discharge counts at each step. The initial row has no preceding step, so
-its dropped counts are `NA`. Criteria are evaluated in order; `NA`
-values are treated as excluded, matching
-[`dplyr::filter()`](https://dplyr.tidyverse.org/reference/filter.html).
-The summary is aggregated lazily for DuckDB queries and returned as a
-collected tibble. Missing weights (including `NaN`) contribute zero to
-weighted totals. Existing input groups are ignored, including when
-evaluating criteria. Criteria are evaluated over the full input before
-annual aggregation.
+Count the discharges that remain after each eligibility criterion.
 
 ## Usage
 
@@ -85,10 +76,19 @@ fields are missing for ordinary logical criteria. Pass the flow to
 [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
 to summarize its code criteria by period.
 
+## Details
+
+Evaluate criteria in order over the ungrouped input. Missing criteria
+exclude a discharge. Missing weights contribute zero to weighted counts.
+Use `.design = TRUE` when the same criteria will define a survey cohort.
+Use `nis_attrition_cohort()` to reuse the combined expression.
+
 ## See also
 
-[Defining
-cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
+[Define and save a
+cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
 [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md),
@@ -102,25 +102,37 @@ Other cohort-definition:
 ## Examples
 
 ``` r
-toy_nis <- dplyr::tibble(
-  AGE = c(16, 45, 60, 72, 55),
-  ELECTIVE = c(1, 1, 0, 1, 1),
-  DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
-  HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
-  NIS_STRATUM = rep(1L, 5),
-  YEAR = rep(2020L, 5)
-)
-nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
+nis <- nis_open(nis_example(2020))
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+flow <- nis_attrition(nis, adult = AGE >= 18, older = AGE >= 65, .design = TRUE)
+flow
 #> # A tibble: 3 × 7
-#>    step criterion      n_unweighted n_dropped_unweighted n_weighted
-#>   <int> <chr>                 <int>                <int>      <dbl>
-#> 1     0 All discharges            5                   NA       25.1
-#> 2     1 adult                     4                    1       20.1
-#> 3     2 elective                  3                    1       15.3
+#>    step criterion               n_unweighted n_dropped_unweighted n_weighted
+#>   <int> <chr>                          <int>                <int>      <dbl>
+#> 1     0 Valid design discharges           96                   NA      114. 
+#> 2     1 adult                             96                    0      114. 
+#> 3     2 older                             44                   52       52.5
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
-flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
-nis_attrition_cohort(flow)
-#> <quosure>
-#> expr: ^AGE >= 18
-#> env:  0x5aaa00d2cb30
+nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
+#> Preparing the cohort survey design.
+#> Stratified 1 - level Cluster Sampling design (with replacement)
+#> With (12) clusters.
+#> Called via srvyr
+#> Data variables: 
+#>   - YEAR (int), HOSP_NIS (int), NIS_STRATUM (int), DISCWT (dbl), LOS (dbl)
 ```

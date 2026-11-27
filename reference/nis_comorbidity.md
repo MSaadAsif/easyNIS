@@ -1,10 +1,6 @@
 # Add comorbidity indicators and scores (experimental)
 
-DuckDB unpivots diagnosis slots, maps codes to conditions, and applies
-present-on-admission and hierarchy rules within each discharge. Lazy
-queries stay in DuckDB. The function runs a key and
-diagnosis-availability check before returning the score query. Collected
-data frames keep their row order.
+Add Elixhauser or Charlson comorbidity flags and scores.
 
 ## Usage
 
@@ -33,8 +29,8 @@ nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
   `"elixhauser_quan2005"` uses Quan ICD-9-CM or ICD-10 coding and legacy
   AHRQ weights. `"elixhauser_ahrq_web"` and
   `"elixhauser_elixhauser1998"` replicate medicalcoder's legacy ICD-9
-  code-based algorithms. All methods except FY2027 require the optional
-  medicalcoder package.
+  code-based algorithms. All methods except `"elixhauser_ahrq2027"`
+  require the medicalcoder package.
 
 - prefix:
 
@@ -51,60 +47,62 @@ an age adjustment.
 
 ## Coding and present on admission
 
-- Use ICD-10-CM `I10_DX*` or ICD-9-CM `DX*` slots as supported by the
-  method. The first slot identifies the principal diagnosis and is
-  excluded from flags. When supplied, `YEAR`, `DQTR` and `DXVER`
-  identify eligible diagnosis slots. Deyo also reads eligible ICD-9-CM
-  `PR*` slots when available and mapped. Keep ICD-9 codes as strings to
-  retain leading zeros.
+Keep the applicable diagnosis slots and use character codes to retain
+ICD-9 leading zeros. Scoring excludes the principal diagnosis. Deyo can
+also use mapped ICD-9 procedure codes. A discharge with usable codes and
+no matches receives zero scores. A discharge without usable codes
+receives missing scores.
 
-- Codes use uppercase with periods and ASCII whitespace removed. Rows
-  with usable codes that map to no conditions receive zeros. Rows
-  without usable codes for the method receive missing scores and trigger
-  a warning.
+The NIS has no diagnosis-level present-on-admission (POA) fields. When a
+matching field is absent, the POA-aware methods assume that diagnosis
+was present on admission. AHRQ Refined Elixhauser leaves the
+POA-dependent measures unset when POA is unavailable.
 
-- Refined AHRQ and Charlson align `DXPOAn` to the diagnosis suffix `n`.
-  `Y` and `W` mean present, `N` and `U` mean absent, and other values
-  including `1` mean unknown. Refined AHRQ also uses code-specific
-  exemptions. For methods sourced from medicalcoder, repeated diagnoses
-  that map to the same category and exemption state follow its
-  data.frame precedence (unknown, then present, then absent).
-
-- If a matching POA field is absent, easyNIS warns and assumes those
-  diagnoses were present. NIS releases generally lack POA indicators, so
-  this assumption can count conditions acquired during a hospital stay.
-  AHRQ's software leaves 18 of 38 measures unset when POA is
-  unavailable.
-
-- `elixhauser_ahrq2027` selects its exemption list using the discharge
-  fiscal year (calendar `YEAR` plus one for `DQTR == 4`). When the
-  quarter is missing it uses the calendar year. When the year is missing
-  or after the release, it uses the latest fiscal year in the release.
-  The other refined methods use medicalcoder's fixed exemptions.
-
-## Use with [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
-
-Retain diagnosis slots and available POA fields using `keep`, then pass
-the design to `nis_comorbidity()`. For a `tbl_svy`, only the design's
-variables are enriched. The clusters, strata and weights are preserved.
+Score before
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+to keep the work in DuckDB, or retain the diagnosis and available POA
+columns in an existing design.
 
 ## See also
 
-[Comorbidity
-indicators](https://msaadasif.github.io/easyNIS/articles/comorbidity.html).
+[Derive outcomes, comorbidities, and
+costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
+[Derive outcomes, comorbidities, and
+costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 
 ## Examples
 
 ``` r
-discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")
-nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
+nis <- nis_open(nis_example(2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpEkIRZU/duckdb
+#> ℹ /tmp/RtmpcFxJEW/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-#> [1] 14
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/RtmpcFxJEW/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+nis_comorbidity(nis, method = "elixhauser_ahrq2027") |>
+  dplyr::count(cmrb_mortality_index) |>
+  dplyr::collect()
+#> Warning: No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,
+#> I10_DX12, I10_DX13, I10_DX14, I10_DX15, I10_DX16, I10_DX17, I10_DX18, I10_DX19,
+#> I10_DX2, I10_DX20, I10_DX21, I10_DX22, I10_DX23, I10_DX24, I10_DX25, I10_DX26,
+#> I10_DX27, I10_DX28, I10_DX29, I10_DX3, I10_DX30, I10_DX31, I10_DX32, I10_DX33,
+#> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,
+#> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.
+#> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
+#> # A tibble: 2 × 2
+#>   cmrb_mortality_index     n
+#>                  <int> <dbl>
+#> 1                   14    23
+#> 2                    0    73
 ```

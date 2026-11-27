@@ -24,7 +24,7 @@ same. This example converts a Stata file made from invented data.
 
 source <- nis_open(nis_example(years = 2019)) |> collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbq24On/duckdb
+#> ℹ /tmp/Rtmpu7i2IG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -32,7 +32,7 @@ source <- nis_open(nis_example(years = 2019)) |> collect()
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbq24On/duckdb
+#> ℹ /tmp/Rtmpu7i2IG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -45,7 +45,7 @@ annual <- tempfile("nis-annual-")
 dir.create(annual)
 nis_convert(stata, annual)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbq24On/duckdb
+#> ℹ /tmp/Rtmpu7i2IG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -65,7 +65,7 @@ encoding override cannot repair damaged bytes.
 
 nis <- nis_open(annual, years = 2019, check_release = FALSE)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpbq24On/duckdb
+#> ℹ /tmp/Rtmpu7i2IG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
