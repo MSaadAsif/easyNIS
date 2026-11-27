@@ -103,16 +103,20 @@ eligible <- study_design$variables
 exposure_values <- if (exposure %in% names(eligible)) eligible[[exposure]] else logical()
 missing_exposure <- is.na(exposure_values)
 has_exposure_comparison <- length(unique(exposure_values[!missing_exposure])) >= 2L
+exposure_support <- function(rows) {
+  counts <- nis_cell_counts(rows)
+  display <- nis_suppress(counts, threshold = disclosure_limit, count_col = n,
+    hospital_col = hospitals, secondary = FALSE)
+  list(n = counts$n, safe = identical(display$n, as.character(counts$n)))
+}
 arm_support <- if (has_exposure_comparison) {
-  lapply(split(eligible, exposure_values), easyNIS:::nis_study_support,
-    threshold = disclosure_limit)
+  lapply(split(eligible, exposure_values), exposure_support)
 } else {
   list()
 }
 comparisons_safe <- has_exposure_comparison &&
-  all(vapply(arm_support, function(arm) arm$n > 0L && !nzchar(arm$mask), logical(1))) &&
-  (!any(missing_exposure) || easyNIS:::nis_study_supported(
-    eligible[missing_exposure, , drop = FALSE], disclosure_limit))
+  all(vapply(arm_support, function(arm) arm$n > 0L && arm$safe, logical(1))) &&
+  (!any(missing_exposure) || exposure_support(eligible[missing_exposure, , drop = FALSE])$safe)
 
 # All report estimates and disclosure checks use this analysis domain.
 exposure_restricted <- comparisons_safe && any(missing_exposure)

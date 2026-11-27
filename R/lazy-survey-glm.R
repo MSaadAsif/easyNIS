@@ -188,24 +188,7 @@ nis_survey_model_scale <- function(design, rows, x, model, family, intercept, re
   gaussian <- family == "gaussian"
   logistic <- family %in% c("binomial", "quasibinomial")
   z <- c("y", x)
-  bounds <- paste(sprintf("min(%1$s) AS lo_%1$s, max(%1$s) AS hi_%1$s", z), collapse = ", ")
-  response_bad <- if (gaussian) {
-    "false"
-  } else if (logistic) {
-    "y < 0 OR y > 1"
-  } else {
-    "y < 0"
-  }
-  invalid <- paste(c(response_bad, sprintf("NOT isfinite(%s)", z)), collapse = " OR ")
-  stats <- c("count(*) AS n", sprintf("bool_or(%s) AS bad", invalid), bounds)
-  if (!gaussian && rescale) {
-    integral <- paste(sprintf("%1$s = trunc(%1$s)", z), collapse = " AND ")
-    stats <- c(stats, sprintf("bool_and(%s) AS integral", integral))
-  }
-  info <- nis_survey_get(design, sprintf("SELECT %s FROM %s", paste(stats, collapse = ", "), rows))
-  if (info$n == 0L || isTRUE(info$bad)) {
-    cli::cli_abort("Invalid or empty complete model rows.")
-  }
+  info <- nis_survey_model_bounds(design, rows, z, gaussian, logistic, rescale)
   low <- as.numeric(info[paste0("lo_", z)])
   high <- as.numeric(info[paste0("hi_", z)])
   transform <- c(gaussian, seq_along(x) != if (intercept) 1L else 0L)
@@ -239,6 +222,28 @@ nis_survey_model_scale <- function(design, rows, x, model, family, intercept, re
     model$n >= 16 * patterns
   )
   model
+}
+
+nis_survey_model_bounds <- function(design, rows, z, gaussian, logistic, rescale) {
+  bounds <- paste(sprintf("min(%1$s) AS lo_%1$s, max(%1$s) AS hi_%1$s", z), collapse = ", ")
+  response_bad <- if (gaussian) {
+    "false"
+  } else if (logistic) {
+    "y < 0 OR y > 1"
+  } else {
+    "y < 0"
+  }
+  invalid <- paste(c(response_bad, sprintf("NOT isfinite(%s)", z)), collapse = " OR ")
+  stats <- c("count(*) AS n", sprintf("bool_or(%s) AS bad", invalid), bounds)
+  if (!gaussian && rescale) {
+    integral <- paste(sprintf("%1$s = trunc(%1$s)", z), collapse = " AND ")
+    stats <- c(stats, sprintf("bool_and(%s) AS integral", integral))
+  }
+  info <- nis_survey_get(design, sprintf("SELECT %s FROM %s", paste(stats, collapse = ", "), rows))
+  if (info$n == 0L || isTRUE(info$bad)) {
+    cli::cli_abort("Invalid or empty complete model rows.")
+  }
+  info
 }
 
 nis_survey_cross_terms <- function(columns, weight) {

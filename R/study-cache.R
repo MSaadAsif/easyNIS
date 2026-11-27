@@ -32,15 +32,6 @@ nis_study_cache_key <- function(
     )
   }
 
-  namespace <- asNamespace("easyNIS")
-  function_names <- sort(Filter(
-    function(name) is.function(get(name, envir = namespace, inherits = FALSE)),
-    ls(envir = namespace, all.names = TRUE)
-  ))
-  package_code <- lapply(function_names, function(name) {
-    paste(deparse(get(name, envir = namespace, inherits = FALSE)), collapse = "\n")
-  })
-  names(package_code) <- function_names
   dependency_names <- c("DBI", "dbplyr", "dplyr", "duckdb", "rlang", "srvyr", "survey", "tidyselect")
   dependency_versions <- vapply(
     dependency_names,
@@ -57,10 +48,23 @@ nis_study_cache_key <- function(
     annualize = annualize,
     data = data_key,
     source_chunks = source_code,
-    package_code = package_code,
+    package_code = nis_study_cache_package_code(),
     data_policy = list(cpi = .cpi_u, labels = .hcup_labels),
     workload_settings = getOption("easyNIS.duckdb_config"),
     dependency_versions = dependency_versions,
     survey_options = survey_options
   )
+}
+
+nis_study_cache_package_code <- function() {
+  namespace <- asNamespace("easyNIS")
+  function_names <- sort(Filter(
+    function(name) is.function(get(name, envir = namespace, inherits = FALSE)),
+    ls(envir = namespace, all.names = TRUE)
+  ))
+  package_code <- lapply(function_names, function(name) {
+    paste(deparse(get(name, envir = namespace, inherits = FALSE)), collapse = "\n")
+  })
+  names(package_code) <- function_names
+  package_code
 }

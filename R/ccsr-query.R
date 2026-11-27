@@ -193,11 +193,8 @@ ccsr_release_sql <- function(con, columns, type, releases, pinned) {
   paste("CASE WHEN", eligible, "THEN CASE", paste(clauses, collapse = " "), "END END")
 }
 
-ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, version, categories, name) {
-  rule <- ccsr_release_sql(con, columns, type, releases, pinned = !is.null(version))
-  filter <- ccsr_mapping_filter(con, type, releases$version, categories)
-  aliases <- paste0("m", seq_along(slots))
-  joins <- paste0(
+ccsr_mapping_joins <- function(con, slots, aliases, rule) {
+  paste0(
     "LEFT JOIN mapping ",
     aliases,
     " ON ",
@@ -210,6 +207,13 @@ ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, 
     DBI::dbQuoteIdentifier(con, slots),
     " AS VARCHAR)"
   )
+}
+
+ccsr_query_sql <- function(data, con, columns, slots, type, position, releases, version, categories, name) {
+  rule <- ccsr_release_sql(con, columns, type, releases, pinned = !is.null(version))
+  filter <- ccsr_mapping_filter(con, type, releases$version, categories)
+  aliases <- paste0("m", seq_along(slots))
+  joins <- ccsr_mapping_joins(con, slots, aliases, rule)
   values <- paste0(aliases, ".categories")
   if (position == "default") {
     aggregate <- "min(category)"

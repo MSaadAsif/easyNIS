@@ -7,20 +7,7 @@ nis_cmrb_inputs <- function(records, slots, keys, fiscal_exemptions) {
     dplyr::select(dplyr::all_of(unique(c(keys, slots$name, intersect(slots$poa, fields), controls))))
   source <- dbplyr::sql_render(input)
   quoted_keys <- DBI::dbQuoteIdentifier(con, keys)
-  groups <- unique(slots[c("version", "kind")])
-  eligible <- vapply(
-    seq_len(nrow(groups)),
-    function(i) {
-      system <- paste0("icd", groups$version[[i]])
-      condition <- code_system_filter(input, fields, groups$kind[[i]], system)
-      if (is.null(condition)) {
-        return("TRUE")
-      }
-      as.character(dbplyr::translate_sql(!!condition, con = con))
-    },
-    character(1)
-  )
-  group <- match(paste(slots$version, slots$kind), paste(groups$version, groups$kind))
+  eligible <- nis_cmrb_slot_eligibility(con, input, fields, slots)
   dx <- DBI::dbQuoteIdentifier(con, slots$name)
   # Remove ASCII whitespace and decimal separators, as with compact ICD codes.
   code <- paste0(
@@ -28,7 +15,7 @@ nis_cmrb_inputs <- function(records, slots, keys, fiscal_exemptions) {
     dx,
     "::VARCHAR, '. ' || CHR(9) || CHR(10) || CHR(11) || CHR(12) || CHR(13), '')), '')"
   )
-  code <- ifelse(eligible[group] == "TRUE", code, paste0("CASE WHEN ", eligible[group], " THEN ", code, " END"))
+  code <- ifelse(eligible == "TRUE", code, paste0("CASE WHEN ", eligible, " THEN ", code, " END"))
   poa <- rep("'Y'", nrow(slots))
   has_poa <- which(slots$poa %in% fields)
   quoted_poa <- DBI::dbQuoteIdentifier(con, slots$poa[has_poa])
@@ -49,6 +36,24 @@ nis_cmrb_inputs <- function(records, slots, keys, fiscal_exemptions) {
     pairs = paste0("(", code_names, ", ", poa_names, ") AS s", i),
     slot = transform(slots, sql = paste0("'s", i, "'"))
   )
+}
+
+nis_cmrb_slot_eligibility <- function(con, input, fields, slots) {
+  groups <- unique(slots[c("version", "kind")])
+  eligible <- vapply(
+    seq_len(nrow(groups)),
+    function(i) {
+      system <- paste0("icd", groups$version[[i]])
+      condition <- code_system_filter(input, fields, groups$kind[[i]], system)
+      if (is.null(condition)) {
+        return("TRUE")
+      }
+      as.character(dbplyr::translate_sql(!!condition, con = con))
+    },
+    character(1)
+  )
+  group <- match(paste(slots$version, slots$kind), paste(groups$version, groups$kind))
+  eligible[group]
 }
 
 nis_cmrb_validate_keys <- function(con, input, quoted_keys, keys) {
@@ -81,6 +86,31 @@ nis_cmrb_validate_keys <- function(con, input, quoted_keys, keys) {
 nis_cmrb_score_sql <- function(con, input, keys, spec, added) {
   key_list <- paste(keys, collapse = ", ")
   select_keys <- paste0("long.", keys, collapse = ", ")
+  aggregate <- nis_cmrb_join_sql(con, input, select_keys, spec)
+  base <- nis_cmrb_decode_sql(con, spec)
+  decoded <- paste0("SELECT ", paste(c(key_list, base), collapse = ", "), " FROM (", aggregate, ") AS combined")
+  conditions <- spec$conditions
+  flags <- vapply(
+    conditions,
+    function(condition) {
+      expr <- spec$derived[[condition]]
+      if (is.null(expr)) {
+        expr <- DBI::dbQuoteIdentifier(con, condition)
+      }
+      exclude <- unname(spec$exclude[condition])
+      if (!is.na(exclude)) {
+        expr <- paste0("(", expr, ") AND NOT (", exclude, ")")
+      }
+      paste0(expr, " AS ", DBI::dbQuoteIdentifier(con, condition))
+    },
+    character(1)
+  )
+  hier <- paste0("SELECT ", paste(c(key_list, flags), collapse = ", "), " FROM (", decoded, ") AS decoded")
+  output <- nis_cmrb_output_sql(con, spec, added)
+  paste0("SELECT ", paste(c(key_list, output), collapse = ", "), " FROM (", hier, ") AS conditions")
+}
+
+nis_cmrb_join_sql <- function(con, input, select_keys, spec) {
   lookup <- nis_cmrb_lookup_sql(con, spec$map$values)
   slot <- input$slot
   slot_test <- function(rows) {
@@ -107,7 +137,7 @@ nis_cmrb_score_sql <- function(con, input, keys, spec, added) {
     paste(input$pairs, collapse = ", "),
     "))"
   )
-  aggregate <- paste0(
+  paste0(
     "SELECT ",
     select_keys,
     ", ",
@@ -121,27 +151,6 @@ nis_cmrb_score_sql <- function(con, input, keys, spec, added) {
     " GROUP BY ",
     select_keys
   )
-  base <- nis_cmrb_decode_sql(con, spec)
-  decoded <- paste0("SELECT ", paste(c(key_list, base), collapse = ", "), " FROM (", aggregate, ") AS combined")
-  conditions <- spec$conditions
-  flags <- vapply(
-    conditions,
-    function(condition) {
-      expr <- spec$derived[[condition]]
-      if (is.null(expr)) {
-        expr <- DBI::dbQuoteIdentifier(con, condition)
-      }
-      exclude <- unname(spec$exclude[condition])
-      if (!is.na(exclude)) {
-        expr <- paste0("(", expr, ") AND NOT (", exclude, ")")
-      }
-      paste0(expr, " AS ", DBI::dbQuoteIdentifier(con, condition))
-    },
-    character(1)
-  )
-  hier <- paste0("SELECT ", paste(c(key_list, flags), collapse = ", "), " FROM (", decoded, ") AS decoded")
-  output <- nis_cmrb_output_sql(con, spec, added)
-  paste0("SELECT ", paste(c(key_list, output), collapse = ", "), " FROM (", hier, ") AS conditions")
 }
 
 nis_cmrb_aggregate_sql <- function(spec) {

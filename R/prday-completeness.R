@@ -39,6 +39,15 @@ nis_audit_prday <- function(.data, pr, system = c("icd10", "icd9")) {
   }
 
   layout <- nis_procedure_slots(columns, system, rlang::current_call())
+  counts <- nis_prday_count_expressions(.data, layout, columns, pr, system)
+  wide <- .data |>
+    dplyr::group_by(YEAR) |>
+    dplyr::summarise(!!!counts, .groups = "drop") |>
+    nis_collect()
+  nis_prday_summary(wide, layout$slot)
+}
+
+nis_prday_count_expressions <- function(.data, layout, columns, pr, system) {
   slots <- layout$slot
   matches <- lapply(layout$procedure, function(column) {
     nis_code_match(nis_prefix_rule(pr), .data, column)
@@ -73,10 +82,10 @@ nis_audit_prday <- function(.data, pr, system = c("icd10", "icd9")) {
       counts[[paste0("absent_prday_column", suffix)]] <- rlang::expr(0L)
     }
   }
-  wide <- .data |>
-    dplyr::group_by(YEAR) |>
-    dplyr::summarise(!!!counts, .groups = "drop") |>
-    nis_collect()
+  counts
+}
+
+nis_prday_summary <- function(wide, slots) {
   metrics <- c("matched_slots", "known_day", "missing_day", "sentinel_invalid_day", "absent_prday_column")
   summaries <- lapply(seq_along(slots), function(i) {
     suffix <- paste0("__", i)
@@ -86,7 +95,7 @@ nis_audit_prday <- function(.data, pr, system = c("icd10", "icd9")) {
     }
     dplyr::as_tibble(summary)
   })
-  output <- dplyr::bind_rows(summaries) |>
+  dplyr::bind_rows(summaries) |>
     dplyr::mutate(
       pct_known = dplyr::if_else(
         matched_slots == 0L,
@@ -105,5 +114,4 @@ nis_audit_prday <- function(.data, pr, system = c("icd10", "icd9")) {
       pct_known
     ) |>
     dplyr::arrange(YEAR, slot)
-  output
 }
