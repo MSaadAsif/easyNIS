@@ -14,6 +14,12 @@
 #' malformed ICD slot values stop conversion. Blank codes and HCUP's
 #' `invl` and `incn` codes are accepted.
 #'
+#' Populated code slots must match the release's coding era. For 2015,
+#' provide the discharge quarter or the corresponding diagnosis and procedure
+#' version column. Later SAS and SPSS batches can require rescanning the source
+#' from the beginning. This keeps memory bounded but increases conversion time
+#' as the file grows.
+#'
 #' The annual directory is published after validation and is never
 #' overwritten. [nis_open()] checks converted data against the HCUP annual
 #' release statistics by default.
@@ -42,6 +48,7 @@ nis_convert <- function(path, dir, encoding = NULL) {
   DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
   rows <- nis_convert_write_batches(read, first, year, stage$temp, db$con)
   nis_convert_check_count(db$con, stage$temp, rows)
+  db$release()
   nis_convert_publish(stage)
 }
 
@@ -72,24 +79,31 @@ nis_convert_haven_reader <- function(path, encoding) {
   function(offset, size = 100000L) {
     tryCatch(
       read(offset, size),
-      error = function(error) nis_convert_read_error(error, read, encoding, offset, size)
+      error = function(error) nis_convert_read_error(error, read, path, encoding, offset, size)
     )
   }
 }
 
-nis_convert_read_error <- function(error, read, encoding, offset, size) {
+nis_convert_read_error <- function(error, read, path, encoding, offset, size) {
   if (!nis_convert_decode_error(error)) {
     cli::cli_abort("Could not read source batch starting at row {offset + 1L}.", parent = error)
   }
   probe <- function(offset, size, ...) tryCatch(read(offset, size, ...), error = identity)
+  bytes <- probe(offset, size, "latin1")
+  if (!is.data.frame(bytes) || !nrow(bytes)) {
+    cli::cli_abort("Could not decode source batch starting at row {offset + 1L}.", parent = error)
+  }
   begin <- 1L
-  end <- size
+  end <- nrow(bytes)
   while (begin < end) {
     middle <- (begin + end) %/% 2L
     if (nis_convert_decode_error(probe(offset, middle))) end <- middle else begin <- middle + 1L
   }
   row <- offset + begin
-  columns <- nis_convert_undecodable_columns(probe(row - 1L, 1L, "latin1"), encoding)
+  if (is.null(encoding)) {
+    encoding <- tryCatch(nis_convert_declared_encoding(path), error = function(error) NULL)
+  }
+  columns <- nis_convert_undecodable_columns(bytes[begin, , drop = FALSE], encoding)
   if (length(columns)) {
     label <- if (length(columns) == 1L) "column" else "columns"
     cli::cli_abort("Malformed source encoding in {label} {.field {columns}} at source row {row}.", parent = error)
@@ -98,15 +112,12 @@ nis_convert_read_error <- function(error, read, encoding, offset, size) {
 }
 
 nis_convert_decode_error <- function(error) {
-  inherits(error, "error") && grepl("invalid byte sequence", conditionMessage(error), fixed = TRUE)
+  inherits(error, "error") && grepl("(invalid|incomplete) byte sequence", conditionMessage(error))
 }
 
 nis_convert_undecodable_columns <- function(data, encoding) {
-  if (!is.data.frame(data)) {
-    return(character())
-  }
   if (is.null(encoding)) {
-    encoding <- "UTF-8"
+    return(character())
   }
   text <- data[vapply(data, is.character, logical(1))]
   invalid <- vapply(
@@ -115,7 +126,7 @@ nis_convert_undecodable_columns <- function(data, encoding) {
       # Latin-1 maps each input byte to one character. Reverse that diagnostic
       # read so iconv can check the original bytes in the intended encoding.
       bytes <- iconv(value, from = "UTF-8", to = "latin1")
-      decoded <- iconv(bytes, from = encoding, to = "UTF-8")
+      decoded <- tryCatch(iconv(bytes, from = encoding, to = "UTF-8"), error = function(error) bytes)
       any(!is.na(bytes) & is.na(decoded))
     },
     logical(1)
@@ -219,23 +230,71 @@ nis_convert_validate_batch <- function(data, year, offset) {
     nis_convert_invalid(paste("Expected", year, "in"), "YEAR", offset + wrong[[1L]])
   }
 
+  eras <- nis_convert_eras(data, columns, year)
   for (i in seq_along(columns)) {
-    column <- names(data)[[i]]
-    values <- data[[i]]
-    pattern <- nis_convert_code_pattern(toupper(columns[[i]]))
-    if (is.character(values)) {
-      invalid <- which(!validUTF8(values) & !is.na(values))
-      if (length(invalid)) nis_convert_invalid("Malformed UTF-8 in", column, offset + invalid[[1L]])
-    }
-    if (is.null(pattern)) {
-      next
-    }
-    if (!is.character(values)) {
-      nis_convert_invalid("Expected text in", column, offset + 1L)
-    }
-    wrong <- which(!is.na(values) & !grepl(pattern, values, perl = TRUE, useBytes = TRUE))
-    if (length(wrong)) nis_convert_invalid("Malformed ICD code in", column, offset + wrong[[1L]])
+    nis_convert_validate_text(data[[i]], names(data)[[i]], eras, offset)
   }
+}
+
+nis_convert_eras <- function(data, columns, year) {
+  get <- function(key) {
+    i <- match(key, columns)
+    if (is.na(i)) NA_integer_ else data[[i]]
+  }
+  if (year != 2015L) {
+    era <- year < 2015L
+    return(list(dx9 = era, pr9 = era, dx10 = !era, pr10 = !era))
+  }
+  quarter <- get("dqtr")
+  dx <- get("dxver")
+  pr <- get("prver")
+  list(
+    dx9 = nis_convert_2015_era(quarter, dx, 1:3, 9L),
+    pr9 = nis_convert_2015_era(quarter, pr, 1:3, 9L),
+    dx10 = nis_convert_2015_era(quarter, dx, 4L, 10L),
+    pr10 = nis_convert_2015_era(quarter, pr, 4L, 10L)
+  )
+}
+
+nis_convert_2015_era <- function(quarter, version, quarters, system) {
+  valid_quarter <- quarter %in% quarters
+  valid_version <- version %in% system
+  (valid_quarter | valid_version) &
+    (is.na(quarter) | valid_quarter) &
+    (is.na(version) | valid_version)
+}
+
+nis_convert_validate_text <- function(values, column, eras, offset) {
+  if (is.character(values)) {
+    invalid <- which(!validUTF8(values) & !is.na(values))
+    if (length(invalid)) nis_convert_invalid("Malformed UTF-8 in", column, offset + invalid[[1L]])
+  }
+  slot <- toupper(nis_sql_identifier_key(column))
+  pattern <- nis_convert_code_pattern(slot)
+  if (is.null(pattern)) {
+    return(invisible(NULL))
+  }
+  if (!is.character(values)) {
+    nis_convert_invalid("Expected text in", column, offset + 1L)
+  }
+  wrong <- which(!is.na(values) & !grepl(pattern, values, perl = TRUE, useBytes = TRUE))
+  if (length(wrong)) {
+    nis_convert_invalid("Malformed ICD code in", column, offset + wrong[[1L]])
+  }
+  wrong <- which(!nis_convert_slot_era(slot, eras) & !is.na(values) & grepl("[^ ]", values, useBytes = TRUE))
+  if (length(wrong)) nis_convert_invalid("Wrong coding era in", column, offset + wrong[[1L]])
+}
+
+nis_convert_slot_era <- function(slot, eras) {
+  switch(
+    sub("[0-9]+$", "", slot),
+    DX = eras$dx9,
+    ECODE = eras$dx9,
+    PR = eras$pr9,
+    I10_DX = eras$dx10,
+    I10_ECAUSE = eras$dx10,
+    I10_PR = eras$pr10
+  )
 }
 
 nis_convert_code_pattern <- function(column) {
@@ -246,8 +305,10 @@ nis_convert_code_pattern <- function(column) {
   code <- switch(
     stem,
     DX = "[0-9]{3,5}|V[0-9]{2,4}|E[0-9]{3,4}",
+    ECODE = "E[0-9]{3,4}",
     PR = "[0-9]{2,4}",
     I10_DX = "[A-Z][0-9][A-Z0-9]{1,5}",
+    I10_ECAUSE = "[A-Z][0-9][A-Z0-9]{1,5}",
     I10_PR = "[A-HJ-NP-Z0-9]{7}"
   )
   if (!is.null(code)) paste0("^(?:", code, "|invl|incn)? *\\z")

@@ -44,6 +44,10 @@ an existing output directory. The converter reads bounded batches, checks
 encoding, code syntax and row counts, and publishes the annual Parquet
 directory only after all checks pass. For a legacy Stata file known to use
 Latin-1, pass `encoding = "latin1"`.
+For 2015 files with populated ICD slots, keep `DQTR` or the applicable
+`DXVER` and `PRVER` indicators so the converter can check the coding era.
+Later SAS and SPSS batches can rescan earlier records. This keeps memory
+bounded and can make wide, compressed files slow to convert.
 
 ```{r convert, eval=requireNamespace("haven", quietly=TRUE)}
 converted <- tempfile()

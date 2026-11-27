@@ -29,6 +29,12 @@ with the year in filenames starting with \verb{NIS_<year>}. Invalid UTF-8 or
 malformed ICD slot values stop conversion. Blank codes and HCUP's
 \code{invl} and \code{incn} codes are accepted.
 
+Populated code slots must match the release's coding era. For 2015,
+provide the discharge quarter or the corresponding diagnosis and procedure
+version column. Later SAS and SPSS batches can require rescanning the source
+from the beginning. This keeps memory bounded but increases conversion time
+as the file grows.
+
 The annual directory is published after validation and is never
 overwritten. \code{\link[=nis_open]{nis_open()}} checks converted data against the HCUP annual
 release statistics by default.

@@ -114,6 +114,67 @@ test_that("conversion preserves an existing annual directory", {
   expect_length(list.files(root, all.files = TRUE, no.. = TRUE), 2L)
 })
 
+test_that("conversion validates the coding era of populated slots", {
+  skip_if_not_installed("haven")
+  root <- withr::local_tempdir()
+  check <- function(year, fields, pattern = NULL) {
+    dest <- withr::local_tempdir()
+    source <- file.path(root, paste0("NIS_", year, ".dta"))
+    haven::write_dta(as.data.frame(c(list(YEAR = year), fields)), source)
+    if (is.null(pattern)) {
+      expect_true(dir.exists(nis_convert(source, dest)))
+    } else {
+      expect_error(nis_convert(source, dest), pattern)
+    }
+  }
+  check(2014L, list(DX1 = "V300", ECODE1 = "E916", I10_DX1 = " "))
+  check(2014L, list(I10_DX1 = "I509"), "era.*I10_DX1.*row 1")
+  check(2014L, list(ECODE1 = "I509"), "ICD.*ECODE1.*row 1")
+  check(2020L, list(ECODE1 = "E916"), "era.*ECODE1.*row 1")
+  check(2020L, list(I10_ECAUSE1 = "W19XXXA"))
+  check(2020L, list(I10_ECAUSE1 = "W19*"), "ICD.*I10_ECAUSE1.*row 1")
+  check(2015L, list(DQTR = 1:4, DX1 = c("V300", NA, NA, NA), I10_DX1 = c(NA, NA, NA, "I509")))
+  check(2015L, list(DQTR = 2L, I10_ECAUSE1 = "W19XXXA"), "era.*I10_ECAUSE1.*row 1")
+  check(2015L, list(DQTR = 4L, DXVER = 9L, DX1 = "V300"), "era.*DX1.*row 1")
+  check(2015L, list(DQTR = NA_integer_, DXVER = 9L, PRVER = 10L, DX1 = "V300", I10_PR1 = "02703ZZ"))
+  check(2015L, list(DQTR = 4L, PRVER = 9L, I10_PR1 = "02703ZZ"), "era.*I10_PR1.*row 1")
+})
+
+test_that("SPSS labels and user-defined missing values preserve stored values", {
+  skip_if_not_installed("haven")
+  root <- withr::local_tempdir()
+  source <- file.path(root, "NIS_2020.sav")
+  haven::write_sav(
+    data.frame(
+      YEAR = haven::labelled(rep(2020, 3), c(release = 2020)),
+      PAY1 = haven::labelled_spss(c(1, 9, -88), c(first = 1, unknown = 9), na_values = 9),
+      I10_DX1 = haven::labelled(c("I509", "J189", "E119"), c(cardio = "I509"))
+    ),
+    source
+  )
+  nis_convert(source, root)
+  result <- dplyr::collect(nis_open(root, check_release = FALSE))
+  expect_identical(result$YEAR, rep(2020L, 3))
+  expect_identical(result$PAY1, c(1, 9, -88))
+  expect_identical(result$I10_DX1, c("I509", "J189", "E119"))
+})
+
+test_that("exact and partial batch boundaries preserve every source record", {
+  skip_if_not_installed("haven")
+  skip_if_not(tolower(Sys.getenv("EASYNIS_FULL_TESTS")) %in% c("1", "true"))
+  withr::local_options(easyNIS.duckdb_config = list(threads = 1L))
+  for (n in c(100000L, 100001L)) {
+    root <- withr::local_tempdir()
+    source <- file.path(root, "NIS_2020.sav")
+    haven::write_sav(data.frame(YEAR = rep(2020L, n), KEY_NIS = seq_len(n)), source)
+    output <- nis_convert(source, root)
+    expect_length(list.files(output), ceiling(n / 100000))
+    records <- nis_open(root, check_release = FALSE)
+    result <- dplyr::collect(dplyr::arrange(records, KEY_NIS))
+    expect_equal(result$KEY_NIS, seq_len(n))
+  }
+})
+
 test_that("conversion locates text decoding errors raised inside haven", {
   skip_if_not_installed("haven")
   root <- withr::local_tempdir()
@@ -126,6 +187,21 @@ test_that("conversion locates text decoding errors raised inside haven", {
     expect_error(nis_convert(source, root), paste0("encoding.*ARBITRARY.*row ", row))
     expect_identical(list.files(root, all.files = TRUE, no.. = TRUE), basename(source))
   }
+
+  convert_binary_fixture(
+    source,
+    HOSP_NIS = haven::labelled(c(2, 1), c(second = 2)),
+    NOTE = c("wordprobe", "wordprobe"),
+    ARBITRARY = c("plain", "byteprobe")
+  )
+  bytes <- readBin(source, "raw", n = file.size(source))
+  header <- writeBin(c(7L, 3L, 4L, 8L), raw(), size = 4L, endian = "little")
+  code_page <- grepRaw(header, bytes, fixed = TRUE) + 44L
+  bytes[seq.int(code_page, length.out = 4L)] <- writeBin(932L, raw(), size = 4L, endian = "little")
+  writeBin(bytes, source)
+  convert_patch_bytes(source, "wordprobe", as.raw(c(0x82, 0xa0)))
+  convert_patch_bytes(source, "byteprobe", as.raw(c(0x82, 0x20)))
+  expect_error(nis_convert(source, root), "encoding in column \`?ARBITRARY\`? at source row 2")
 })
 
 test_that("truncated Stata sources cannot publish Parquet", {
