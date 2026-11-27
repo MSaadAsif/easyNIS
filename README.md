@@ -1,6 +1,9 @@
 # easyNIS
 
 [![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml) [![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml)
+[![Test coverage workflow](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml)
+[![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Lifecycle: experimental](https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
 **A tidy workflow for opening, defining cohorts in, and analyzing HCUP National Inpatient Sample (NIS) data.** easyNIS opens annual Parquet files, flags codes, prepares survey designs, and helps review outputs. Methods and some year-specific support are experimental; consult the articles and official HCUP documentation before analysis.
 
@@ -47,7 +50,7 @@ Try with invented `nis_example()` data before using licensed files.
 - [Get started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
 - [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html)
 - [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html)
-- [Survey design and weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html)
+- [Survey design and weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.html) · [Survey design validation](https://msaadasif.github.io/easyNIS/articles/design-validation.html)
 - [Descriptives and regression](https://msaadasif.github.io/easyNIS/articles/descriptives-models.html)
 - [Disclosure and suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html)
 - [Costs](https://msaadasif.github.io/easyNIS/articles/costs.html)
