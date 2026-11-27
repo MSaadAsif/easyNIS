@@ -134,7 +134,8 @@ test_that("Arrow scans push down projections and filters across batches", {
   con <- dbplyr::remote_con(query)
   plan <- DBI::dbGetQuery(con, paste("EXPLAIN", dbplyr::sql_render(query)))$explain_value
   expect_match(plan, "Projections: id", fixed = TRUE)
-  expect_match(plan, "Filters: LOS=2", fixed = TRUE)
+  # DuckDB versions differ in spacing around the operator.
+  expect_match(plan, "Filters: LOS ?= ?2")
   expect_identical(sort(dplyr::collect(query)$id), ids[ids %% 2L == 1L])
 })
 
