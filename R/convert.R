@@ -1,7 +1,8 @@
 #' Convert a NIS file to annual Parquet
 #'
 #' @param path Path to one annual NIS Stata (`.dta`), SAS (`.sas7bdat`),
-#'   or SPSS (`.sav`) file with a numeric `YEAR` column.
+#'   or SPSS (`.sav`) file with a numeric `YEAR` column, or one HCUP
+#'   fixed-width `NIS_<year>_Core.ASC` file from 2012 through 2024.
 #' @param dir Existing directory in which to create `NIS_<year>.parquet/`.
 #' @param encoding Source encoding override passed to haven. The default uses
 #'   the reader's format-specific encoding. Use `"latin1"` for a legacy
@@ -19,6 +20,12 @@
 #' version column. Later SAS and SPSS batches can require rescanning the source
 #' from the beginning. This keeps memory bounded but increases conversion time
 #' as the file grows.
+#'
+#' Native Core files use HCUP's published SAS layouts, including the 2019
+#' and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
+#' The 2015 native Core file contains no diagnosis or procedure slots.
+#' The Core converter does not join the separate 2015 diagnosis and
+#' procedure groups or other supplementary HCUP files.
 #'
 #' The annual directory is published after validation and is never
 #' overwritten. [nis_open()] checks converted data against the HCUP annual
@@ -38,15 +45,24 @@
 #' }
 nis_convert <- function(path, dir, encoding = NULL) {
   nis_convert_check_paths(path, dir)
+  if (tolower(tools::file_ext(path)) == "asc") {
+    return(nis_convert_ascii(path, dir, encoding))
+  }
   read <- nis_convert_haven_reader(path, encoding)
   first <- read(0L)
   year <- nis_convert_source_year(first, basename(path))
+  nis_convert_with_stage(dir, year, function(temp, con) {
+    nis_convert_write_batches(read, first, year, temp, con)
+  })
+}
+
+nis_convert_with_stage <- function(dir, year, write) {
   stage <- nis_convert_stage(dir, year)
   on.exit(nis_remove_owned_directory(stage$temp), add = TRUE)
   db <- nis_duckdb_open_data()
   on.exit(db$release(), add = TRUE, after = FALSE)
   DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
-  rows <- nis_convert_write_batches(read, first, year, stage$temp, db$con)
+  rows <- write(stage$temp, db$con)
   nis_convert_check_count(db$con, stage$temp, rows)
   db$release()
   nis_convert_publish(stage)
@@ -64,7 +80,7 @@ nis_convert_check_paths <- function(path, dir) {
 nis_convert_haven_reader <- function(path, encoding) {
   format <- tolower(tools::file_ext(path))
   if (!format %in% c("dta", "sas7bdat", "sav")) {
-    cli::cli_abort("Supported source extensions are `.dta`, `.sas7bdat`, and `.sav`.")
+    cli::cli_abort("Supported source extensions are `.dta`, `.sas7bdat`, `.sav`, and `.asc`.")
   }
   rlang::check_installed("haven", reason = "to convert statistical data files.")
   reader <- switch(

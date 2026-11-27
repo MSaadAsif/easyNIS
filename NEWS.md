@@ -16,6 +16,11 @@
 - The survey design article demonstrates analytic domains with
   `dplyr::filter()` on a `nis_design()` result and explains how filtering the
   lazy input can affect variance estimation.
+- `nis_convert()` writes annual Stata, SAS, and SPSS files to zstd Parquet
+  in bounded batches, checking the year, text encoding, code syntax, and
+  row counts before publishing the annual directory.
+- `nis_convert()` also accepts native fixed-width HCUP Core files for
+  2012–2024 using positions from the published SAS load programs.
 
 - `nis_outcomes()` adds in-hospital mortality, length of stay, and labeled
   discharge disposition to an analysis, including on lazy DuckDB tables.
