@@ -62,7 +62,7 @@ Select the charge field for the year you analyze and check comparability
 before combining fields. The package layouts for these years have been
 checked against the load programs. Conversion on licensed annual files for
 these layouts has yet to be verified.
-[HCUP NIS load programs](https://hcup-us.ahrq.gov/db/nation/nis/nisloadprog.jsp)
+[HCUP NIS load programs](https://hcup-us.ahrq.gov/db/nation/sasloadprog.jsp)
 
 ## Annual links for companions and cost-to-charge ratios
 
