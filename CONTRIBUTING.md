@@ -17,6 +17,8 @@ dependencies with `pak::pak(".", dependencies = TRUE)` in R. Install
   under 10 minutes.
 - If roxygen comments change, run `devtools::document()` and commit the generated
   changes. Use the roxygen2 version in `DESCRIPTION`.
+- Put changelog bullets in one unique `news/<topic-slug>.md` fragment. Leave `NEWS.md` for collection.
+  An optional first `##` heading must match a development section in `NEWS.md`.
 - Before committing, run `Rscript --vanilla tools/check-package.R --lint` for
   Air formatting, Jarl lint, and installed-package cyclomatic complexity of 15
   or less.
