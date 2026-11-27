@@ -137,7 +137,7 @@ This invented row has an in-hospital death flag and a disposition label of
 “Home health care.” Check inconsistent pairs against the source-year coding
 and keep a documented rule for handling them. Use `in_hospital_death` for
 mortality and `discharge_disposition` for destination. See
-[Hospitalization outcomes](articles/outcomes.html).
+[Hospitalization outcomes](outcomes.html).
 
 ## Declare the cohort with `nis_design()`
 

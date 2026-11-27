@@ -150,5 +150,5 @@ nis_flag_pr_timing(procedures, "02UG0", "0JH60", relation = "after")
 > - Suppression reduces disclosure risk but does not rule out every deduction;
 >   review derived totals and follow the applicable DUA process.
 
-See [Get started](../getting-started.html), [Survey design and
+See [Get started](getting-started.html), [Survey design and
 weighting](survey-design.html), and [Disclosure and suppression](disclosure.html).
