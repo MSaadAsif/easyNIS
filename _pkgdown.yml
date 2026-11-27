@@ -120,6 +120,7 @@ reference:
     contents:
       - nis_cell_counts
       - nis_suppress
+      - nis_scan_outputs
       - nis_new_study
 
 redirects:
