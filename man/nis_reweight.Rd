@@ -53,6 +53,7 @@ srvyr::summarise(reweighted, weighted_total = srvyr::survey_total())
 
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},
+\code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_survey]{nis_survey()}}
 }
 \concept{survey-design}
