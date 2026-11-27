@@ -5,19 +5,19 @@
 \title{ICD-10 codes in HCUP CCSR categories}
 \usage{
 nis_ccsr_codes(
-  file = NULL,
   categories,
+  file = NULL,
   default_only = FALSE,
   type = c("dx", "pr"),
   version = NULL
 )
 }
 \arguments{
-\item{file}{Optional path to an HCUP reference file for a custom or newer
-release. The file determines the coding system when supplied.}
-
 \item{categories}{Character vector of CCSR category codes, such as
 \code{"CIR019"}. Matching ignores case.}
+
+\item{file}{Optional path to an HCUP reference file for a custom or newer
+release. The file determines whether the mapping is for diagnoses or procedures.}
 
 \item{default_only}{If \code{TRUE}, keep only codes whose default inpatient
 category is in \code{categories}. Diagnosis reference files only.}
@@ -46,11 +46,11 @@ on. A code mapped to a category in any of those columns is returned.
 With \code{default_only = TRUE}, only codes whose default inpatient CCSR
 category is one of \code{categories} are returned. This matches the HCUP
 assignment of a single category to a principal diagnosis, so combine it
-with \code{position = "principal"} in \code{\link[=nis_flag_dx]{nis_flag_dx()}}. Procedure reference files
+with an exact match on the principal diagnosis code. Procedure reference files
 have no default assignment.
 }
 \examples{
-head(nis_ccsr_codes(categories = "CIR019"))
+head(nis_ccsr_codes("CIR019"))
 }
 \seealso{
 \href{articles/cohorts.html}{Defining cohorts}.
@@ -58,11 +58,10 @@ head(nis_ccsr_codes(categories = "CIR019"))
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},
 \code{\link[=nis_audit_code_transition]{nis_audit_code_transition()}},
-\code{\link[=nis_dx_sensitivity]{nis_dx_sensitivity()}},
+\code{\link[=nis_audit_dx_position]{nis_audit_dx_position()}},
+\code{\link[=nis_audit_prday]{nis_audit_prday()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
-\code{\link[=nis_flag_dx_position]{nis_flag_dx_position()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
-\code{\link[=nis_prday_completeness]{nis_prday_completeness()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
 }
 \concept{cohort-definition}

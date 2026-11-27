@@ -4,13 +4,13 @@
 \alias{nis_cell_counts}
 \title{Count discharges and contributing hospitals by cell}
 \usage{
-nis_cell_counts(.data, by)
+nis_cell_counts(.data, by = NULL)
 }
 \arguments{
 \item{.data}{Record-level data frame, lazy DuckDB query, or result of \code{\link[=nis_design]{nis_design()}}.}
 
-\item{by}{Character vector of cell-defining columns. The summary names \code{n}
-and \code{hospitals} are reserved and cannot be used as cell-defining columns.}
+\item{by}{<\link[dplyr:dplyr_tidy_select]{tidy-select}> Cell-defining columns.
+Omit for overall counts. The summary names \code{n} and \code{hospitals} are reserved.}
 }
 \value{
 A data frame with the columns in \code{by}, \code{n} (unweighted discharges),
@@ -28,7 +28,7 @@ only the grouped summary.
 records <- data.frame(
   YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
 )
-nis_cell_counts(records, by = "group")
+nis_cell_counts(records, by = group)
 }
 \seealso{
 \href{articles/disclosure.html}{Disclosure and suppression}.

@@ -55,14 +55,13 @@ reference:
     desc: Flag codes, timing, and eligibility; audit cohort definitions.
     contents:
       - nis_flag_dx
-      - nis_flag_dx_position
       - nis_flag_pr
       - nis_flag_pr_timing
-      - nis_prday_completeness
+      - nis_audit_prday
       - nis_add_ccsr
       - nis_ccsr_codes
       - nis_attrition
-      - nis_dx_sensitivity
+      - nis_audit_dx_position
       - nis_audit_code_transition
   - title: 3. Design and estimate
     desc: Build survey designs and apply optional reweighting.

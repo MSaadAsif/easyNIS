@@ -13,13 +13,13 @@
 #' With `default_only = TRUE`, only codes whose default inpatient CCSR
 #' category is one of `categories` are returned. This matches the HCUP
 #' assignment of a single category to a principal diagnosis, so combine it
-#' with `position = "principal"` in [nis_flag_dx()]. Procedure reference files
+#' with an exact match on the principal diagnosis code. Procedure reference files
 #' have no default assignment.
 #'
-#' @param file Optional path to an HCUP reference file for a custom or newer
-#'   release. The file determines the coding system when supplied.
 #' @param categories Character vector of CCSR category codes, such as
 #'   `"CIR019"`. Matching ignores case.
+#' @param file Optional path to an HCUP reference file for a custom or newer
+#'   release. The file determines whether the mapping is for diagnoses or procedures.
 #' @param default_only If `TRUE`, keep only codes whose default inpatient
 #'   category is in `categories`. Diagnosis reference files only.
 #' @param type `"dx"` for diagnosis or `"pr"` for procedure lookups in the
@@ -29,11 +29,11 @@
 #'
 #' @return A sorted character vector of unique codes without periods.
 #' @examples
-#' head(nis_ccsr_codes(categories = "CIR019"))
+#' head(nis_ccsr_codes("CIR019"))
 #' @family cohort-definition
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
-nis_ccsr_codes <- function(file = NULL, categories, default_only = FALSE, type = c("dx", "pr"), version = NULL) {
+nis_ccsr_codes <- function(categories, file = NULL, default_only = FALSE, type = c("dx", "pr"), version = NULL) {
   call <- rlang::current_call()
   categories <- validate_ccsr_categories(categories, call)
   validate_ccsr_default_only(default_only, call)

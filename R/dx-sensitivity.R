@@ -1,36 +1,3 @@
-#' Add diagnosis position flags
-#'
-#' Adds flags for a diagnosis prefix in the principal position, secondary
-#' positions only, and any position. Prefix matching and code-system eligibility
-#' follow [nis_flag_dx()].
-#'
-#' @template dot-data
-#' @param code Non-missing character vector of diagnosis prefixes.
-#' @param name Base name for the added columns. The function adds
-#'   `<name>_principal`, `<name>_secondary_only`, and `<name>_any`.
-#' @param system Code system of the diagnosis slots: `"icd10"` (default) or
-#'   `"icd9"` (experimental, NIS 2012 to Q3 2015).
-#'
-#' @return `.data` with three logical diagnosis-position columns.
-#' @family cohort-definition
-#' @seealso [Defining cohorts](articles/cohorts.html).
-#' @export
-#' @examples
-#' nis <- nis_open(nis_example(years = 2019))
-#' nis_flag_dx_position(nis, "I50", name = "heart_failure")
-nis_flag_dx_position <- function(.data, code, name = "dx", system = c("icd10", "icd9")) {
-  system <- match.arg(system)
-  if (!is.character(name) || length(name) != 1L || is.na(name) || !grepl("^\\.?[A-Za-z][A-Za-z0-9._]*$", name)) {
-    cli::cli_abort("`name` must be one syntactic column-name prefix.")
-  }
-  output_names <- dx_position_names(name)
-  columns <- nis_names(.data)
-  if (!identical(unname(output_names), nis_internal_names(.data, columns, unname(output_names)))) {
-    cli::cli_abort("The diagnosis-position output columns must not replace existing columns.")
-  }
-  dx_add_position_flags(.data, columns, code, system, output_names)
-}
-
 dx_position_names <- function(prefix) {
   positions <- c("principal", "secondary_only", "any")
   stats::setNames(paste(prefix, positions, sep = "_"), positions)
@@ -83,8 +50,8 @@ dx_add_position_flags <- function(data, columns, code, system, output_names) {
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))
-#' nis_dx_sensitivity(nis, "I50")
-nis_dx_sensitivity <- function(
+#' nis_audit_dx_position(nis, "I50")
+nis_audit_dx_position <- function(
   .data,
   code,
   system = c("icd10", "icd9"),

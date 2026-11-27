@@ -20,10 +20,10 @@ punctuation, spaces, and case in the supplied prefixes are normalized.
 
 ```{r flags}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50", principal_hf = "I50",
-              position = "any") |>
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(ablation = "02L")
-nis |> dplyr::count(heart_failure, ablation) |> dplyr::collect()
+nis |> dplyr::count(heart_failure, principal_hf, ablation) |> dplyr::collect()
 ```
 
 The table shows synthetic discharge counts for each flag combination. To make
@@ -74,7 +74,7 @@ nis_flag_pr_timing(toy, "02UG0", "0JH60", relation = "after")
 
 The flag is true when an outcome procedure is documented after the earliest
 index procedure. Missing or sentinel days need an explicit `missing_day`
-policy. `nis_prday_completeness()` summarizes how often matching slots have a
+policy. `nis_audit_prday()` summarizes how often matching slots have a
 known day.
 
 ## Count cohort steps
@@ -151,4 +151,4 @@ Reference pages: [`nis_flag_dx()`](../reference/nis_flag_dx.html),
 [`nis_flag_pr()`](../reference/nis_flag_pr.html),
 [`nis_flag_pr_timing()`](../reference/nis_flag_pr_timing.html),
 [`nis_attrition()`](../reference/nis_attrition.html),
-[`nis_prday_completeness()`](../reference/nis_prday_completeness.html).
+[`nis_audit_prday()`](../reference/nis_audit_prday.html).

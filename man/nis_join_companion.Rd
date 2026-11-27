@@ -4,10 +4,10 @@
 \alias{nis_join_companion}
 \title{Attach an annual NIS companion to Core discharges}
 \usage{
-nis_join_companion(x, path, component, columns)
+nis_join_companion(.data, path, component, columns)
 }
 \arguments{
-\item{x}{A lazy Core query from \code{\link[=nis_open]{nis_open()}}, including its linkage fields.}
+\item{.data}{A lazy Core query from \code{\link[=nis_open]{nis_open()}}, including its linkage fields.}
 
 \item{path}{Directory containing Parquet for one companion component, using
 the annual or Hive layout accepted by \code{\link[=nis_open]{nis_open()}}. Keep Core and each
@@ -17,7 +17,7 @@ companion in separate directories, with parts from the same release.}
 
 \item{columns}{Character vector of companion fields to add. Names are
 matched case-insensitively using DuckDB's identifier rules. Choose fields
-with names distinct from fields in \code{x}.}
+with names distinct from fields in \code{.data}.}
 }
 \value{
 A lazy DuckDB-backed Core query with the requested columns added.
@@ -28,7 +28,7 @@ Attach an annual NIS companion to Core discharges
 \details{
 Hospital uses \code{YEAR} and \code{HOSP_NIS}. Severity and Diagnosis and
 Procedure Groups use \code{YEAR} and \code{KEY_NIS}. Include companion parts for
-every year opened in \code{x}. A field supplied only in some of those years
+every year opened in \code{.data}. A field supplied only in some of those years
 is missing in the others. A discharge without a matching companion row
 is retained with missing companion values.
 

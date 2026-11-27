@@ -4,13 +4,13 @@
 \alias{nis_label}
 \title{Apply HCUP labels}
 \usage{
-nis_label(data)
+nis_label(.data)
 }
 \arguments{
-\item{data}{A collected data frame.}
+\item{.data}{A collected data frame.}
 }
 \value{
-\code{data} with binary indicators as logical, multi-level coded
+\code{.data} with binary indicators as logical, multi-level coded
 elements as factors, and variable labels in \code{attr(x, "label")}.
 Unknown codes trigger one warning per variable. They become \code{NA} in
 binary fields and \verb{Code <value>} levels in multi-level fields. Existing

@@ -33,8 +33,8 @@
 #'   I10_PR2 = c("0JH604Z", "OTHER", "0JH604Z"),
 #'   PRDAY1 = c(0L, -99L, 1L), PRDAY2 = c(1L, NA_integer_, -88L)
 #' )
-#' nis_prday_completeness(toy, c("02UG0", "0JH60"))
-nis_prday_completeness <- function(.data, pr, system = c("icd10", "icd9")) {
+#' nis_audit_prday(toy, c("02UG0", "0JH60"))
+nis_audit_prday <- function(.data, pr, system = c("icd10", "icd9")) {
   system <- match.arg(system)
   pr <- normalize_prefixes(pr, "pr")
   columns <- nis_names(.data)
