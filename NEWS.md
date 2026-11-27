@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- The survey design article demonstrates analytic domains with
+  `dplyr::filter()` on a `nis_design()` result and explains how filtering the
+  lazy input can affect variance estimation.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
