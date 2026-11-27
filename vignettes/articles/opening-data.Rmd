@@ -187,6 +187,18 @@ a private Parquet file. `nis_design()` still needs enough R memory for the
 selected cohort, retained variables, and survey design. Use a narrow `keep`
 to limit that cost. [DuckDB COPY statement](https://duckdb.org/docs/stable/sql/statements/copy)
 
+When a collect is estimated to need 20% of available physical memory, easyNIS
+reports the estimated result size. At 50% or more, easyNIS counts the result
+rows and stops the collect if the estimate still crosses that threshold.
+This also applies to `as.data.frame()` on
+`nis_open()` tables and to easyNIS helpers that collect DuckDB results.
+Filter rows, select fewer fields, or use a narrower cohort and `keep` in
+`nis_design()`. Use `options(easyNIS.collect_prudence = FALSE)` to skip the
+check. Cardinality and text widths are approximate. The check can also be
+skipped automatically when DuckDB cannot estimate the result size.
+Queries with SQL `PIVOT` skip the check because DuckDB may scan rows while
+determining their output columns.
+
 Set DuckDB options before calling `nis_open()`. This example uses a low thread
 count and places spill files on a private disk. Choose the memory and spill
 budgets for your machine and available disk space.
