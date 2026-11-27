@@ -1,5 +1,9 @@
 # easyNIS (development version)
 
+- Select design, demographic, diagnosis, procedure, and hospital fields with
+  `nis_vars_design()`, `nis_vars_demographics()`, `nis_vars_dx()`,
+  `nis_vars_pr()`, and `nis_vars_hospital()` on data frames and lazy tables.
+
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in
   2012–2024. Discrepancies warn and the lazy query stays available. Files from
