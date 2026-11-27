@@ -49,7 +49,9 @@ quality_checks <- list(
       # goodpractice parses R files outside the package namespace.
       library(DBI)
       loadNamespace("duckdb")
-      pkgcheck::pkgcheck(root, goodpractice = FALSE, use_cache = FALSE)
+      result <- pkgcheck::pkgcheck(root, goodpractice = FALSE, use_cache = FALSE)
+      result$hcup_proxy <- hcup_proxy_checks(result$goodpractice$checks$urlchecker_ok)
+      result
     },
     function(value) pkgcheck_pass(value)
   ),
