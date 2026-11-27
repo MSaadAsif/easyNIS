@@ -92,33 +92,43 @@ nis_saved_cohort <- function(query, call) {
   if (!inherits(query, "tbl_sql")) {
     return(NULL)
   }
+  definitions <- query$src$.easyNIS_cohort_definitions
+  if (!length(definitions)) {
+    return(NULL)
+  }
   paths <- nis_open_source_paths(query)
-  if (!length(paths)) {
-    return(NULL)
-  }
-  con <- dbplyr::remote_con(query)
-  metadata <- DBI::dbGetQuery(
-    con,
-    paste0(
-      "SELECT file_name, value::VARCHAR AS definition FROM parquet_kv_metadata(",
-      nis_parquet_paths(con, paths),
-      ") WHERE key = 'easyNIS_cohort'::BLOB"
-    )
-  )
-  if (!nrow(metadata)) {
-    return(NULL)
-  }
-  if (nrow(metadata) != length(paths) || length(unique(metadata$definition)) != 1L) {
+  if (length(definitions) != length(paths) || anyNA(definitions) || length(unique(definitions)) != 1L) {
     cli::cli_abort("Open a saved cohort separately from other datasets.", call = call)
   }
   if (!".in_cohort" %in% nis_names(query)) {
     cli::cli_abort("Keep the `.in_cohort` membership column in a saved cohort query.", call = call)
   }
-  metadata$definition[[1L]]
+  definitions[[1L]]
+}
+
+nis_cohort_definitions <- function(con, paths) {
+  # Group by path so duplicate footer entries cannot mask an unmarked part.
+  DBI::dbGetQuery(
+    con,
+    paste0(
+      "SELECT CASE WHEN count(*) = 1 THEN first(value::VARCHAR) END AS definition FROM parquet_kv_metadata(",
+      nis_parquet_paths(con, paths),
+      ") WHERE key = 'easyNIS_cohort'::BLOB GROUP BY file_name"
+    )
+  )$definition
 }
 
 nis_cohort_copy <- function(query, membership, selected, temp, metadata, call) {
   con <- dbplyr::remote_con(query)
+  flush <- DBI::dbGetQuery(
+    con,
+    "SELECT current_setting('partitioned_write_flush_threshold') AS threshold"
+  )$threshold
+  if (flush > 16384) {
+    # Partitioned COPY buffers input on each worker before writing row groups.
+    DBI::dbExecute(con, "SET partitioned_write_flush_threshold = 16384")
+    on.exit(DBI::dbExecute(con, paste("SET partitioned_write_flush_threshold =", flush)), add = TRUE)
+  }
   prepared <- nis_sample_fields(nis_design_input(query), membership)
   patients <- prepared |>
     nis_design_cohort_type(call) |>
@@ -128,33 +138,57 @@ nis_cohort_copy <- function(query, membership, selected, temp, metadata, call) {
     dplyr::filter(.nis_valid) |>
     nis_sample_group_rows(setdiff(.nis_design_fields, "DISCWT")) |>
     dplyr::select(dplyr::all_of(.nis_design_fields))
+
+  # Use the staged patient files to identify represented hospitals. Only
+  # those keys need to be read back, and membership is evaluated once.
+  patient_sql <- paste0("SELECT *, true AS \".in_cohort\" FROM (", dbplyr::sql_render(patients), ")")
+  count <- nis_cohort_copy_parquet(con, patient_sql, temp, metadata)
+  files <- list.files(temp, pattern = "\\.parquet$", all.files = TRUE, recursive = TRUE, full.names = TRUE)
+  staged <- if (length(files)) nis_parquet_scan(con, files)
+  placeholders <- nis_cohort_placeholders(patient_sql, dbplyr::sql_render(hospitals), staged)
+  count + nis_cohort_copy_parquet(con, placeholders, temp, metadata)
+}
+
+nis_cohort_placeholders <- function(patients, hospitals, staged) {
   keys <- paste(c("YEAR", "HOSP_NIS"), collapse = ", ")
-  destination <- DBI::dbQuoteString(con, temp)
-  kv <- paste(DBI::dbQuoteIdentifier(con, names(metadata)), DBI::dbQuoteString(con, unname(metadata)), sep = ": ")
-  # UNION BY NAME fills the non-design fields of placeholders with typed NULLs.
-  statement <- paste0(
-    "COPY (WITH patients AS MATERIALIZED (",
-    dbplyr::sql_render(patients),
-    "), ",
-    "hospitals AS MATERIALIZED (",
-    dbplyr::sql_render(hospitals),
+  if (is.null(staged)) {
+    schema <- paste0("(", patients, ")")
+    anti_join <- ""
+  } else {
+    schema <- staged
+    anti_join <- paste0(" ANTI JOIN (SELECT DISTINCT ", keys, " FROM ", staged, ") USING (", keys, ")")
+  }
+  # The empty branch gives non-design fields the same types as patient rows.
+  paste0(
+    "WITH hospitals AS MATERIALIZED (",
+    hospitals,
     ") ",
-    "SELECT *, YEAR AS \".nis_cohort_year\" FROM (SELECT *, true AS \".in_cohort\" FROM patients UNION ALL BY NAME ",
-    "SELECT h.*, false AS \".in_cohort\" FROM hospitals h ANTI JOIN patients p USING (",
-    keys,
-    ")) ",
+    "SELECT * FROM ",
+    schema,
+    " WHERE false UNION ALL BY NAME ",
+    "SELECT h.*, false AS \".in_cohort\" FROM hospitals h",
+    anti_join,
+    " ",
     "WHERE (SELECT CASE WHEN count(*) = count(DISTINCT (",
     keys,
     ")) THEN true ",
-    "ELSE error('Each hospital must map to one stratum within a year.') END FROM hospitals)) ",
+    "ELSE error('Each hospital must map to one stratum within a year.') END FROM hospitals)"
+  )
+}
+
+nis_cohort_copy_parquet <- function(con, sql, temp, metadata) {
+  destination <- DBI::dbQuoteString(con, temp)
+  kv <- paste(DBI::dbQuoteIdentifier(con, names(metadata)), DBI::dbQuoteString(con, unname(metadata)), sep = ": ")
+  statement <- paste0(
+    "COPY (SELECT *, YEAR AS \".nis_cohort_year\" FROM (",
+    sql,
+    ")) ",
     "TO ",
     destination,
-    ' (FORMAT PARQUET, COMPRESSION ZSTD, PARTITION_BY (".nis_cohort_year"), KV_METADATA {',
+    ' (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 32768, APPEND, PARTITION_BY (".nis_cohort_year"), KV_METADATA {',
     paste(kv, collapse = ", "),
     "})"
   )
-  # COPY uses the caller's query connection so session-local expressions and
-  # Arrow registrations remain available. The caller can keep using the query.
   nis_duckdb_translate_errors(DBI::dbExecute(con, statement))
 }
 

@@ -12,15 +12,15 @@ nis_flag_pr_timing(
   relation = c("on_or_after", "after", "before", "same_day", "within_days"),
   window = NULL,
   missing_day = c("exclude", "assume_same_day", "indeterminate"),
-  system = c("icd10", "icd9")
+  system = c("icd10", "icd9", "both")
 )
 }
 \arguments{
 \item{.data}{A data frame or lazy DuckDB query.}
 
-\item{index_pr}{Character vector of index procedure code prefixes.}
+\item{index_pr}{Code definition for the index procedure, as in \code{\link[=nis_flag_pr]{nis_flag_pr()}}.}
 
-\item{outcome_pr}{Character vector of outcome procedure code prefixes.}
+\item{outcome_pr}{Code definition for the outcome procedure, as in \code{\link[=nis_flag_pr]{nis_flag_pr()}}.}
 
 \item{name}{Single name for the new logical flag.}
 
@@ -34,7 +34,8 @@ assume_same_day uses day 0, and indeterminate returns NA unless a
 determinate match is TRUE.}
 
 \item{system}{Code system: icd10 uses I10_PR followed by a slot number;
-icd9 uses PR followed by a slot number.}
+icd9 uses PR followed by a slot number. With \code{system = "both"}, supply
+named \code{icd9} and \code{icd10} definitions for each procedure.}
 }
 \value{
 .data with the logical column named by name.
@@ -42,8 +43,9 @@ icd9 uses PR followed by a slot number.}
 \description{
 Compares procedure slots with the correspondingly numbered PRDAY values.
 The earliest valid index day is used when the index procedure occurs in
-multiple slots. A slot matching both prefix sets counts as both procedures.
-Prefixes follow the normalization and matching rules of \code{\link[=nis_flag_pr]{nis_flag_pr()}}.
+multiple slots. A slot matching both definitions counts as both procedures.
+Definitions follow the prefix, regular expression, and exact exclusion rules
+of \code{\link[=nis_flag_pr]{nis_flag_pr()}}; timing compares slots within the same code system.
 Factor and ordered-factor PRDAY columns are interpreted by their labels,
 not their internal level numbers. Values that decode to missing numeric days
 are handled as missing. Input columns are preserved.

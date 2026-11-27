@@ -542,3 +542,36 @@ test_that("procedure timing and completeness preserve numeric slot pairing", {
     expect_error(nis_flag_pr(copier(frame), matched = "IX", position = "principal"), "No ICD-10")
   }
 })
+
+test_that("mixed-year procedure timing keeps code rules and days within each system", {
+  root <- withr::local_tempdir()
+  data <- dplyr::tibble(
+    ID = 1:6,
+    YEAR = 2015L,
+    DQTR = c(3L, 4L, 4L, 3L, 4L, NA_integer_),
+    PRVER = c(9L, 10L, 10L, 10L, 10L, NA_integer_),
+    PR1 = c("371", NA, NA, "371", NA, "371"),
+    PR2 = c("330", NA, NA, "330", NA, NA),
+    I10_PR1 = c(NA, "IXBAD", "IXBAD", "IXBAD", "IX", NA),
+    I10_PR2 = c(NA, "IX", "IX", "IX", "OUT7", "OUT7"),
+    I10_PR3 = c(NA, "OUT7", "OUT70", "OUT7", NA, NA),
+    PRDAY1 = c(0L, 0L, 0L, 0L, 0L, 0L),
+    PRDAY2 = c(1L, 3L, 3L, 3L, -99L, 1L),
+    PRDAY3 = c(1L, 1L, 4L, 4L, 1L, 1L)
+  )
+  write_duckdb_parquet(data, file.path(root, "NIS_2015.parquet"))
+  query <- suppressMessages(nis_open(root, check_release = FALSE))
+  for (input in list(data, query)) {
+    result <- input |>
+      nis_flag_pr_timing(
+        index_pr = list(icd9 = "37", icd10 = list(prefix = "IX", exclude = "IXBAD")),
+        outcome_pr = list(icd9 = "33", icd10 = list(regex = "OUT[0-9]")),
+        relation = "after",
+        missing_day = "indeterminate",
+        system = "both"
+      ) |>
+      dplyr::arrange(ID) |>
+      dplyr::collect()
+    expect_identical(result$outcome_post_index, c(TRUE, FALSE, FALSE, FALSE, NA, FALSE))
+  }
+})
