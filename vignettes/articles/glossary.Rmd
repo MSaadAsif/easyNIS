@@ -26,6 +26,10 @@ vignette: >
 - **Analytic domain:** A subpopulation for which a survey estimate is
   calculated while accounting for the original sample design. It is not an
   independently sampled subgroup.
+- **Hospital placeholder:** A zero-domain record added for each hospital-year
+  with no cohort discharges, so a cohort-sized analysis keeps every sampled
+  hospital and its standard errors follow the full NIS design. HCUP documents
+  this as the alternative to analyzing the entire NIS.
 - **Discharge weight (`DISCWT`):** The NIS weight used to estimate national
   discharge totals and other weighted quantities.
 - **Trend weight:** An HCUP weight supplied for specified historical NIS years
