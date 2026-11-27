@@ -1,0 +1,1 @@
+- `nis_comorbidity()` applies `easyNIS.duckdb_config` when scoring data frames and survey designs. DuckDB can use a hash join for the code lookup.
