@@ -52,11 +52,11 @@ Suggests:
     knitr,
     medicalcoder (>= 0.10.0),
     purrr,
-    quarto,
     readxl,
     rmarkdown,
     survey,
     testthat (>= 3.1.7),
+    tibble,
     withr,
     zip
 VignetteBuilder: knitr

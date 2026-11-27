@@ -175,7 +175,7 @@ nis_cohort_check_count <- function(temp, expected, call) {
   }
   dataset <- nis_open_discover(temp, NULL, call)
   con <- nis_duckdb_connect(config = list(threads = "1"))
-  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
   count <- DBI::dbGetQuery(
     con,
     paste0(
