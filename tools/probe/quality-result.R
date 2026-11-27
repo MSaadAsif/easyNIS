@@ -54,7 +54,13 @@ pkgcheck_pass <- function(value) {
   failures <- goodpractice::failed_checks(gp)
   allowed <- vapply(
     failures,
-    function(check) pkgcheck_positions_allowed(check, gp$checks[[check]]$positions),
+    function(check) {
+      positions <- gp$checks[[check]]$positions
+      if (check == "urlchecker_ok") {
+        return(hcup_proxy_resolved(positions, value$hcup_proxy))
+      }
+      pkgcheck_positions_allowed(check, positions)
+    },
     logical(1)
   )
   if (!all(allowed)) {
@@ -134,5 +140,9 @@ quality_record <- function(x, evidence) {
   definition <- quality_definition(x$name)
   passed <- quality_step_pass(x, definition, counts)
   detail <- redact_paths(quality_step_detail(x, definition, counts, passed))
-  quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
+  record <- quality_receipt_record(x, evidence, quality_step_status(value, passed), passed, detail)
+  if (inherits(value, "pkgcheck") && is.data.frame(value$hcup_proxy) && nrow(value$hcup_proxy) > 0L) {
+    record$hcup_proxy <- value$hcup_proxy
+  }
+  record
 }

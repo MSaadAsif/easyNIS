@@ -37,8 +37,14 @@ real NIS results.
 The readiness probe runs pkgcheck with `goodpractice = FALSE`. The package
 check, coverage, Jarl and Air lint, and namespace complexity have separate
 checks. Use a version of urlchecker with the `fail` argument to
-`url_check()`, as required by goodpractice 1.2.0. The packaging probe
-allows only the following findings by file and function.
+`url_check()`, as required by goodpractice 1.2.0.
+
+The probe retries failed links at `hcup-us.ahrq.gov` through Jina Reader.
+Each retry and its verdict are saved in the pkgcheck receipt. An HTTP 200
+from the proxy can contain HCUP's not-found page. The probe also checks
+the reported source URL, reader warnings, and the returned page content.
+
+The packaging probe allows only the following findings by file and function.
 
 - **Function length.** `nis_convert_sas_encoding()` keeps the ReadStat code
   page lookup together. `.nis_example_base_records()` keeps the full invented
