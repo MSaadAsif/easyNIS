@@ -1,0 +1,50 @@
+---
+title: "Analyze the whole sample in DuckDB"
+output: rmarkdown::html_vignette
+---
+
+```{r setup, message=FALSE}
+library(easyNIS)
+library(dplyr)
+library(srvyr)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+The examples use invented data.
+
+```{r means}
+nis <- nis_open(nis_example(years = 2019:2020))
+sample <- nis_survey(nis)
+older <- filter(sample, AGE >= 65)
+
+survey::svymean(~LOS, older)
+survey::svyby(~LOS, ~YEAR, older, survey::svymean)
+```
+
+Use `nis_survey()` when your analysis spans a large share of the discharges.
+`filter()` on the design defines a domain and keeps sampled hospitals in
+the variance calculation. Means and totals, including grouped means and
+totals, aggregate in DuckDB.
+
+```{r model}
+fit <- survey::svyglm(LOS ~ AGE + factor(YEAR), design = older)
+summary(fit)$coefficients
+```
+
+Use additive `svyglm()` models with Gaussian identity, binomial or
+quasibinomial logit, or Poisson or quasipoisson log families. Use
+`nis_design()` for interactions, offsets, survey quantiles, chi-square
+tests, srvyr summary verbs, and `tbl_svysummary()`.
+
+## Estimate an average annual total
+
+```{r annualize}
+years <- nis |> distinct(YEAR) |> collect()
+k <- nrow(years)
+annual <- nis_survey(nis, weights = DISCWT / k)
+survey::svytotal(~I(AGE >= 65), annual)
+```
+
+Use `k` equal to the number of years with valid design records. The example
+has complete coverage. Keep `DISCWT` unscaled for separate annual totals.
+[Years and coding eras](years-and-eras.html)

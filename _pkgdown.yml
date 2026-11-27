@@ -17,34 +17,31 @@ navbar:
       aria-label: GitHub
 
 articles:
-  - title: Learn the workflow
+  - title: Get started
     navbar: Articles
     contents:
-      - '"getting-started"'
-      - '"articles/opening-data"'
-      - '"articles/cohorts"'
-      - '"articles/survey-design"'
-      - '"articles/descriptives-models"'
-      - '"articles/outcomes"'
-      - '"articles/trends"'
-      - '"articles/disclosure"'
-      - '"articles/costs"'
-      - '"articles/comorbidity"'
-      - '"articles/code-transitions"'
-      - '"articles/year-notes"'
-      - '"articles/glossary"'
+      - getting-started
+  - title: Guides
+    desc: '<span id="guides"></span>'
+    navbar: Articles
+    contents:
+      - articles/prepare-data
+      - articles/cohorts
+      - articles/outcomes-and-costs
+      - articles/tables-and-models
+      - articles/whole-sample
+      - articles/trends
+      - articles/disclosure
+      - articles/study-template
+      - porting
   - title: Concepts
+    desc: '<span id="concepts"></span>'
     navbar: Articles
     contents:
-      - '"articles/how-easynis-works"'
-      - '"articles/nis-design"'
-      - '"articles/years-and-eras"'
-  - title: More about easyNIS
-    navbar: Articles
-    contents:
-      - 'articles/why-easynis'
-      - 'articles/design-validation'
-      - '"porting"'
+      - articles/how-easynis-works
+      - articles/nis-design
+      - articles/years-and-eras
+      - articles/glossary
 
 reference:
   - title: 1. Open and inspect data
@@ -93,3 +90,15 @@ reference:
     desc: Create a Quarto project with a starter analysis file. Add your data and study-specific definitions and analysis.
     contents:
       - nis_new_study
+
+redirects:
+  - [articles/opening-data.html, articles/prepare-data.html]
+  - [articles/outcomes.html, articles/outcomes-and-costs.html]
+  - [articles/comorbidity.html, articles/outcomes-and-costs.html]
+  - [articles/costs.html, articles/outcomes-and-costs.html]
+  - [articles/survey-design.html, articles/nis-design.html]
+  - [articles/design-validation.html, articles/nis-design.html]
+  - [articles/descriptives-models.html, articles/tables-and-models.html]
+  - [articles/year-notes.html, articles/years-and-eras.html]
+  - [articles/code-transitions.html, articles/years-and-eras.html]
+  - [articles/why-easynis.html, articles/how-easynis-works.html]

@@ -1,192 +1,95 @@
 ---
-title: "Defining cohorts"
-description: "Build and audit diagnosis, procedure, and timing definitions."
+title: "Define and save a cohort"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Defining cohorts}
+  %\VignetteIndexEntry{Define and save a cohort}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```{r setup, message=FALSE}
 library(easyNIS)
+library(dplyr)
+library(srvyr)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-## Flag diagnoses and procedures
 
-The analyst supplies literal code prefixes. Each slot is tested separately;
-punctuation, spaces, and case in the supplied prefixes are normalized.
+## Match diagnosis and procedure codes
 
 ```{r flags}
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50") |>
+  nis_flag_dx(
+    heart_failure = list(prefix = "I50", regex = "^I50[0-9]+$", exclude = "I509")
+  ) |>
   nis_flag_dx(principal_hf = "I50", position = "principal") |>
-  nis_flag_pr(ablation = "02L")
-nis |> dplyr::count(heart_failure, principal_hf, ablation) |> dplyr::collect()
+  nis_flag_pr(pci = "0270")
+
+nis |> count(heart_failure, principal_hf, pci) |> collect()
 ```
 
-The table shows synthetic discharge counts for each flag combination. To make
-a principal-only diagnosis flag, call `nis_flag_dx()` with
-`position = "principal"`; use `"secondary"` for slots after the principal one.
-`nis_flag_pr()` supports `"any"` and `"principal"`.
+The default position checks all slots. Use `position = "principal"` for
+slot 1. A prefix or full-code regular expression can set a flag. Exclusions
+apply to individual matching codes, so another slot can still set the flag.
 
-Supply several named definitions in one call when they share the same
-`position` and `system`. For example, use
-`nis_flag_dx(nis, heart_failure = "I50", hypertension = "I10")` to add both
-flags to the same DuckDB projection.
+```{r mixed}
+nis_open(nis_example(years = 2015)) |>
+  nis_flag_dx(hf = list(icd9 = "428", icd10 = "I50"), system = "both") |>
+  count(DQTR, hf) |>
+  collect()
+```
 
-## Classify diagnoses and procedures with CCSR
+Supply separate definitions for each system when the source contains both
+slot sets. Check how the code sets behave around the transition.
+[Years and coding eras](years-and-eras.html)
 
-`nis_add_ccsr()` matches complete ICD-10 codes to the bundled AHRQ mappings
-in DuckDB. An any-slot search returns a list of distinct categories for
-each discharge. Supply `categories` to keep only the categories relevant to
-the study. For a mutually exclusive grouping by principal diagnosis, use
-`position = "default"` to return the inpatient default category.
+## Use CCSR categories or procedure days
 
-```{r ccsr}
+```{r categories-timing}
 nis |>
-  nis_add_ccsr(categories = "CIR019", name = "hf_categories") |>
-  nis_add_ccsr(position = "default", name = "principal_ccsr") |>
-  dplyr::filter(length(hf_categories) > 0L) |>
-  dplyr::count(principal_ccsr) |>
-  dplyr::collect()
+  nis_add_ccsr(position = "default", version = "2025.1") |>
+  count(ccsr) |>
+  collect()
+
+timing <- nis |> mutate(PRDAY1 = 0L, PRDAY2 = 1L)
+nis_audit_prday(timing, pr = "0270")
+timing |>
+  nis_flag_pr_timing(
+    index_pr = list(prefix = "0270", exclude = "02703DZ"),
+    outcome_pr = list(regex = "02L73.*"),
+    relation = "after", missing_day = "indeterminate"
+  ) |>
+  count(outcome_post_index) |>
+  collect()
 ```
 
-Use `type = "pr"` for procedures. The default release selection covers Q4
-2015 and calendar years 2016–2024 with the bundled v2025.1. ICD-9 and years
-outside the bundled coverage yield missing results. Pin `version = "2025.1"`
-to use the same definitions across years and to include Q1–Q3 2025 if `DQTR`
-is present. Report the CCSR version in the study methods. [Agency for
-Healthcare Research and Quality, Healthcare Cost and Utilization Project.
-Clinical Classifications Software Refined (CCSR), v2025.1, November
-2024.](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccsr_archive.jsp)
+CCSR groups ICD-10 codes. The bundled v2025.1 mappings can keep the same
+definitions across study years. `position = "default"` returns one
+inpatient category for the principal diagnosis. The example supplies
+invented procedure days. Timing uses the earliest known index day and
+accepts the same prefixes, full-code regular expressions, and exact
+exclusions as `nis_flag_pr()`. For `system = "both"`, supply named
+`icd9` and `icd10` definitions for each procedure. Timing compares
+slots within the same code system. Audit procedure-day availability
+before interpreting an order.
 
-## Add procedure timing
+## Count eligibility steps and save the cohort
 
-Procedure timing compares matching procedure slots with the corresponding
-`PRDAY` fields. This small invented data frame makes the slot relationship
-visible.
-
-```{r timing}
-toy <- data.frame(
-  I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ"),
-  I10_PR2 = c("0JH604Z", "0JH604Z", "0JH604Z"),
-  PRDAY1 = c(0L, 2L, 0L), PRDAY2 = c(1L, 1L, NA_integer_)
-)
-nis_flag_pr_timing(toy, "02UG0", "0JH60", relation = "after")
-```
-
-The flag is true when an outcome procedure is documented after the earliest
-index procedure. Missing or sentinel days need an explicit `missing_day`
-policy. `nis_audit_prday()` summarizes how often matching slots have a
-known day.
-
-## Count cohort steps
-
-Define the eligibility rules once in `nis_attrition()`. With `.design = TRUE`,
-the baseline includes discharges with valid survey design fields. Missing
-criterion values exclude discharges at that step. Inject the combined rule
-with `!!nis_attrition_cohort(flow)` to use the same eligibility criteria in
-`nis_design()`.
-
-```{r attrition}
-nis <- nis_open(nis_example(years = 2019)) |>
-  nis_flag_dx(heart_failure = "I50")
+```{r flow}
 flow <- nis_attrition(
-  nis, adults = AGE >= 18, heart_failure = heart_failure, .design = TRUE
+  nis, adult = AGE >= 18, hf = heart_failure, by_year = TRUE, .design = TRUE
 )
 flow
 
-design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
-dplyr::summarise(design, discharges = srvyr::unweighted(dplyr::n()))
+eligible <- nis_attrition_cohort(flow)
+export <- nis |> mutate(stayDays = LOS)
+path <- nis_write_cohort(export, !!eligible, tempfile(), keep = c(AGE, stayDays))
+design <- nis_design(nis_open(path), keep = stayDays)
+summarise(design, total = survey_total(), mean_stay = survey_mean(stayDays))
 ```
 
-Pass the same input to both calls so the last unweighted attrition count is
-the survey domain denominator. The design retains the sampling structure of
-hospital-years with zero eligible discharges. Leave `.design` at its default
-when the attrition table should start with every discharge in the input.
-For alternate diagnosis positions and changes over time, see [Code transitions
-and sensitivity](code-transitions.html).
-
-## Record eligibility across the 2015 transition
-
-Supply named code criteria in `.codes` to use the same definitions for
-eligibility and the transition audit. The code criteria run in list order
-after the logical criteria in `...`. Here the first code step finds a match
-in any diagnosis slot and the second requires a principal match. These
-definitions illustrate the workflow on invented data.
-
-```{r era-eligibility}
-nis <- nis_open(nis_example(years = 2015))
-prefixes <- list(icd9 = c("123", "12345", "V0001"), icd10 = c("I50", "Z515"))
-flow <- nis_attrition(
-  nis,
-  adults = AGE >= 18,
-  .codes = list(
-    matching_dx = list(type = "dx", system = "both", position = "any", codes = prefixes),
-    principal_dx = list(type = "dx", system = "both", position = "principal", codes = prefixes)
-  ),
-  .design = TRUE
-)
-flow
-attr(flow, "nis_criteria")
-
-design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = c(AGE, LOS))
-fit <- survey::svyglm(LOS ~ AGE, design = design)
-stats::nobs(fit)
-```
-
-The criteria table records the system and slot rule for Methods. Here the
-last attrition count equals the number of observations in the model because
-`AGE` and `LOS` are complete among eligible discharges. See the
-[quarterly audit of these criteria](code-transitions.html#reuse-cohort-criteria).
-
-## Save a cohort for another session
-
-Pass the full lazy sample and the eligibility rule to `nis_write_cohort()`.
-Keep the columns you expect to use in later analyses. The writer creates a
-new directory with yearly Parquet parts and saves the eligibility expression,
-source years, and easyNIS version in each part's metadata.
-
-```{r save-cohort}
-nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
-path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
-                         keep = c(AGE, LOS))
-
-# In a later session
-design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
-design |>
-  dplyr::filter(AGE >= 65) |>
-  dplyr::summarise(discharges = srvyr::survey_total())
-```
-
-The saved cohort carries one placeholder per sampled hospital-year with no
-eligible discharge. This preserves the survey variance structure, including
-whole strata and years where the cohort is empty. Annualization still uses
-all years with valid design records. Keep the original design run if you need
-its invalid-design exclusion counts or full-sample quarter coverage.
-
-Apply additional patient filters to the survey design after reopening.
-When inspecting raw Parquet rows, use `dplyr::filter(.in_cohort)` before
-counting discharges. To re-save a cohort with fewer columns, pass its reopened
-query to `nis_write_cohort()` and omit `cohort`. To change the eligibility rule,
-return to the source sample.
-
-## Common pitfalls
-
-> **Common pitfalls**
->
-> - A prefix is not a validated clinical code set. Define, document, and
->   review it for the study question.
-> - A cross-year definition may span different code systems. Do not assume
->   code counts are comparable across the 2015 transition.
-> - Unknown procedure days are not equivalent to day zero; choose and report a
->   missing-day policy.
-
-Reference pages: [`nis_flag_dx()`](../reference/nis_flag_dx.html),
-[`nis_flag_pr()`](../reference/nis_flag_pr.html),
-[`nis_flag_pr_timing()`](../reference/nis_flag_pr_timing.html),
-[`nis_attrition()`](../reference/nis_attrition.html),
-[`nis_audit_prday()`](../reference/nis_audit_prday.html).
+The flow counts remaining discharges after each criterion. The saved Parquet
+cohort retains the hospital structure used for variance. Open it without
+supplying a new `cohort` to `nis_design()`. Derived names such as
+`stayDays` keep their spelling when you reopen the saved cohort. Keep
+the code that defined your flags with the study.
