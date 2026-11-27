@@ -1,0 +1,1 @@
+- `nis_comorbidity()` can score the bundled AHRQ FY2027 method without installing medicalcoder.
