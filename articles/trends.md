@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCjJjfD/duckdb
+#> ℹ /tmp/RtmpZQVIbm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2021)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpCjJjfD/duckdb
+#> ℹ /tmp/RtmpZQVIbm/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -160,9 +160,9 @@ pooled discharge count by the number of included years.
 
 fit <- survey::svyglm(LOS ~ I(YEAR - 2019), design = pooled)
 summary(fit)$coefficients
-#>                    Estimate Std. Error      t value     Pr(>|t|)
-#> (Intercept)    5.663462e+00  0.2956263 1.915750e+01 6.039735e-13
-#> I(YEAR - 2019) 3.111381e-16  0.2289912 1.358734e-15 1.000000e+00
+#>                    Estimate Std. Error     t value     Pr(>|t|)
+#> (Intercept)    5.663462e+00  0.2956263 1.91575e+01 6.039735e-13
+#> I(YEAR - 2019) 2.646794e-16  0.2289912 1.15585e-15 1.000000e+00
 ```
 
 The slope estimates the mean change in length of stay per calendar year
