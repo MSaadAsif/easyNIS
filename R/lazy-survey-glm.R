@@ -347,8 +347,8 @@ nis_survey_irls <- function(design, input, control) {
     table <- paste0("temp.main.", DBI::dbQuoteIdentifier(con, basename(tempfile("nis_survey_"))))
     columns <- paste(c("y", input$x), collapse = ", ")
     sql <- sprintf("CREATE TEMP TABLE %s AS SELECT %s, fsum(w) AS w FROM %s GROUP BY ALL", table, columns, input$rows)
+    on.exit(DBI::dbExecute(con, paste("DROP TABLE IF EXISTS", table)), add = TRUE)
     DBI::dbExecute(con, sql)
-    on.exit(DBI::dbExecute(con, paste("DROP TABLE", table)), add = TRUE)
     input$rows <- table
   }
   for (iteration in seq_len(control$maxit)) {

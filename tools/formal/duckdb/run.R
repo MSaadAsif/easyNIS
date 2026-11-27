@@ -44,6 +44,7 @@ mutations <- function(lake, evidence) {
   run("slots-era", "Slots", "xs.filter code", "xs.filter Slot.matched")
   run("slots-day", "Slots", "(longRows xs).filterMap Slot.day", "xs.filterMap Slot.day")
   run("slots-principal", "Slots", "((longRows xs).filter fun x => !x.principal).any", "(longRows xs).any")
+  run("ccsr-category", "Slots", "pair.2 == category", "pair.2 != category")
   run("lifetime-owner-198", "Lifetime", "def keepComputeRoot : Bool := true", "def keepComputeRoot : Bool := false")
   run("lifetime-drop-table", "Lifetime", "def keepLiveTable : Bool := true", "def keepLiveTable : Bool := false")
   run("lifetime-scoped-exit", "Lifetime", "def registerHandler : Bool := true", "def registerHandler : Bool := false")
@@ -54,6 +55,12 @@ mutations <- function(lake, evidence) {
     "Lifetime",
     "def registerStageHandler : Bool := true",
     "def registerStageHandler : Bool := false"
+  )
+  run(
+    "writer-db-exit",
+    "Lifetime",
+    "def registerDbHandler : Bool := true",
+    "def registerDbHandler : Bool := false"
   )
   run(
     "writer-cleanup-order",

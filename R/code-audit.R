@@ -265,8 +265,7 @@
   slots <- paste0("CAST(", DBI::dbQuoteIdentifier(con, slot_names), " AS VARCHAR)", collapse = ", ")
   literals <- DBI::dbQuoteString(con, prefixes)
   eligible <- paste0("starts_with(code_value, ", literals, ")", collapse = " OR ")
-  lambda <- if (utils::packageVersion("duckdb") < "1.3.0") "code_value -> " else "lambda code_value : "
-  codes <- dbplyr::sql(paste0("UNNEST(list_filter(list_distinct([", slots, "]), ", lambda, eligible, "))"))
+  codes <- dbplyr::sql(paste0("UNNEST(list_filter(list_distinct([", slots, "]), lambda code_value: ", eligible, "))"))
   data |>
     dplyr::mutate(!!temp$weight := !!rlang::sym(weight_var)) |>
     dplyr::mutate(!!temp$code := !!codes) |>

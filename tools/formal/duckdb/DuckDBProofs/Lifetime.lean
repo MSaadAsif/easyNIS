@@ -101,47 +101,42 @@ namespace Scoped
 -- R/convert.R:nis_convert_copy_batch (registration),
 -- R/comorbidity.R:nis_comorbidity_frame, R/ccsr-query.R:ccsr_bundled_codes
 -- (private connection), R/duckdb.R:nis_duckdb_open_data (spill).
--- The acquisition and on.exit registration are separate cut points.
+-- The handler is armed before acquisition. Connection assignments defer
+-- interrupts until the handler can see the acquired connection.
 inductive Phase where
-  | start | acquired | guarded | used
+  | start | armed | acquired | used
   | unwinding (resource handler : Bool)
   | returned (resource : Bool)
   deriving DecidableEq
 
 def registerHandler : Bool := true
 
-inductive Step (allowGap : Bool) : Phase → Phase → Prop
-  | acquire : Step allowGap .start .acquired
-  | arm : Step allowGap .acquired .guarded
-  | run : Step allowGap .guarded .used
-  | openError : Step allowGap .start (.unwinding false false)
-  | unguardedError : allowGap = true → Step allowGap .acquired (.unwinding true false)
-  | guardedError : Step allowGap .guarded (.unwinding true registerHandler)
-  | successOrError : Step allowGap .used (.unwinding true registerHandler)
+inductive Step : Phase → Phase → Prop
+  | arm : Step .start .armed
+  | acquire : Step .armed .acquired
+  | run : Step .acquired .used
+  | earlyError : Step .start (.unwinding false false)
+  | openError : Step .armed (.unwinding false registerHandler)
+  | acquiredError : Step .acquired (.unwinding true registerHandler)
+  | successOrError : Step .used (.unwinding true registerHandler)
   | exit (present handler : Bool) :
-      Step allowGap (.unwinding present handler) (.returned (present && !handler))
+      Step (.unwinding present handler) (.returned (present && !handler))
 
 def Safe : Phase → Prop
   | .unwinding present handler => present = true → handler = true
   | .returned present => present = false
   | _ => True
 
-theorem registeredCleanup {s : Phase} (trace : Reachable (Step false) .start s) : Safe s := by
+theorem registeredCleanup {s : Phase} (trace : Reachable Step .start s) : Safe s := by
   apply invariant (P := Safe) (by simp [Safe]) _ trace
   intro a b transition safe
   cases transition <;> simp_all [Safe, registerHandler]
-
--- Finding in the current source if unwinding is allowed immediately after
--- acquisition. A finalizer may later release a connection, which is
--- distinct from proving cleanup on function exit.
-theorem acquisitionGap : Reachable (Step true) .start (.returned true) :=
-  .next (.next (.next .start .acquire) (.unguardedError rfl)) (.exit true false)
 
 end Scoped
 
 namespace Writer
 
--- R/convert.R:nis_convert_with_stage, nis_convert_stage,
+-- R/convert.R:nis_convert_with_stage,
 -- nis_convert_copy_batch, nis_convert_check_count, nis_convert_publish.
 -- R/write-cohort.R:nis_write_cohort, nis_cohort_copy_parquet,
 -- nis_cohort_check_count. R/duckdb.R:nis_remove_owned_directory.
@@ -152,9 +147,8 @@ inductive Target where
   deriving DecidableEq
 
 inductive Phase where
-  | start | checked | stageCreated | stageNormalized | staged
-  | openingConvert | writing (parts : Nat) | named (parts : Nat)
-  | openingValidation (parts : Nat) | reading (parts : Nat)
+  | start | checked | staged
+  | writing (parts : Nat) | named (parts : Nat) | reading (parts : Nat)
   | readCount (parts : Nat) | validated (parts : Nat) | closed (parts : Nat)
   | done (stage db : Bool)
   deriving DecidableEq
@@ -178,15 +172,14 @@ structure Cleanup where
   readHandle : Bool
 
 def registerStageHandler : Bool := true
+def registerDbHandler : Bool := true
 def closeBeforeUnlink : Bool := true
 
 def resources (cohort : Bool) : Phase → Cleanup
   | .start | .checked => ⟨false, false, false, false, false⟩
-  | .stageCreated | .stageNormalized => ⟨true, false, false, false, false⟩
-  | .openingConvert | .openingValidation _ => ⟨true, registerStageHandler, true, false, false⟩
-  | .writing _ => ⟨true, registerStageHandler, !cohort, !cohort, false⟩
-  | .reading _ => ⟨true, registerStageHandler, true, true, false⟩
-  | .readCount _ | .validated _ => ⟨true, registerStageHandler, true, true, true⟩
+  | .writing _ => ⟨true, registerStageHandler, !cohort, !cohort && registerDbHandler, false⟩
+  | .reading _ => ⟨true, registerStageHandler, true, registerDbHandler, false⟩
+  | .readCount _ | .validated _ => ⟨true, registerStageHandler, true, registerDbHandler, true⟩
   | .staged | .named _ | .closed _ => ⟨true, registerStageHandler, false, false, false⟩
   | .done stage db => ⟨stage, false, db, false, false⟩
 
@@ -207,35 +200,28 @@ def hasReadHandle : Phase → Bool
 
 inductive Advance (cohort : Bool) (expected : Nat) : Phase → Phase → Prop
   | check : Advance cohort expected .start .checked
-  | mkdir : Advance cohort expected .checked .stageCreated
-  | normalize : Advance cohort expected .stageCreated .stageNormalized
-  | stageExit : Advance cohort expected .stageNormalized .staged
-  | openConvert : cohort = false → Advance cohort expected .staged .openingConvert
-  | dbExitConvert : Advance cohort expected .openingConvert (.writing 0)
+  -- Cleanup is armed before each acquisition. An interrupted connection
+  -- acquisition can unwind once the assignment completes.
+  | mkdir : Advance cohort expected .checked .staged
+  | openConvert : cohort = false → Advance cohort expected .staged (.writing 0)
   | borrow : cohort = true → Advance cohort expected .staged (.writing 0)
   | copy (n : Nat) : n < expected → Advance cohort expected (.writing n) (.writing (n + 1))
   | nameCohort (n : Nat) : cohort = true → Advance cohort expected (.writing n) (.named n)
-  | openValidation (n : Nat) : Advance cohort expected (.named n) (.openingValidation n)
-  | dbExitValidation (n : Nat) : Advance cohort expected (.openingValidation n) (.reading n)
+  | openValidation (n : Nat) : Advance cohort expected (.named n) (.reading n)
   | readConversion (n : Nat) : cohort = false → Advance cohort expected (.writing n) (.readCount n)
   | readValidation (n : Nat) : Advance cohort expected (.reading n) (.readCount n)
   | validate (n : Nat) : (verifyAllParts = true → n = expected) →
       Advance cohort expected (.readCount n) (.validated n)
   | close (n : Nat) : Advance cohort expected (.validated n) (.closed n)
 
-def easyCleanup : Phase → Prop
-  | .stageCreated | .stageNormalized | .openingConvert | .openingValidation _ => False
-  | _ => True
-
-inductive Step (cohort : Bool) (expected : Nat) (allowGap : Bool) : State → State → Prop
+inductive Step (cohort : Bool) (expected : Nat) : State → State → Prop
   | advance (s : State) (to : Phase) : s.target = .absent → Advance cohort expected s.phase to →
-      Step cohort expected allowGap s {s with phase := to}
+      Step cohort expected s {s with phase := to}
   | unwind (s : State) :
-      (allowGap = false → easyCleanup s.phase) →
-      Step cohort expected allowGap s {s with phase := Writer.unwind cohort s.phase}
+      Step cohort expected s {s with phase := Writer.unwind cohort s.phase}
   | publish (s : State) (n : Nat) : s.target = .absent →
       s.phase = (if closeBeforePublish then .closed n else .validated n) →
-      Step cohort expected allowGap s
+      Step cohort expected s
         ⟨.done false false, .published n, hasReadHandle s.phase⟩
 
 def Whole (expected : Nat) (s : State) : Prop :=
@@ -249,9 +235,9 @@ theorem advanceComplete {p q : Phase} (advance : Advance cohort expected p q)
     (ready : CompleteIfReady expected p) : CompleteIfReady expected q := by
   cases advance <;> simp_all [CompleteIfReady, verifyAllParts]
 
-theorem publicationSafe {s : State} (cohort : Bool) (expected : Nat) (allowGap : Bool)
+theorem publicationSafe {s : State} (cohort : Bool) (expected : Nat)
     (target : Target) (absentOrPrevious : target = .absent ∨ target = .previous)
-    (trace : Reachable (Step cohort expected allowGap) (initial target) s) :
+    (trace : Reachable (Step cohort expected) (initial target) s) :
     Whole expected s := by
   have both := invariant
     (P := fun s => Whole expected s ∧ CompleteIfReady expected s.phase)
@@ -262,15 +248,15 @@ theorem publicationSafe {s : State} (cohort : Bool) (expected : Nat) (allowGap :
       cases action with
       | advance to absent advance =>
         exact ⟨whole, advanceComplete advance ready⟩
-      | unwind guard =>
+      | unwind =>
         exact ⟨whole, by simp [CompleteIfReady, Writer.unwind]⟩
       | publish n absent closed =>
         simp [closeBeforePublish] at closed
         simp_all [Whole, CompleteIfReady, hasReadHandle]) trace
   exact both.1
 
-theorem previousTargetPreserved {s : State} (cohort : Bool) (expected : Nat) (allowGap : Bool)
-    (trace : Reachable (Step cohort expected allowGap) (initial .previous) s) :
+theorem previousTargetPreserved {s : State} (cohort : Bool) (expected : Nat)
+    (trace : Reachable (Step cohort expected) (initial .previous) s) :
     s.target = .previous := by
   apply invariant (P := fun a => a.target = .previous) rfl _ trace
   intro a b action old
@@ -284,36 +270,15 @@ theorem advanceClean {p q : Phase} (advance : Advance cohort expected p q) : Exi
   cases advance <;> trivial
 
 theorem registeredWriterCleanup {s : State} (cohort : Bool) (expected : Nat) (target : Target)
-    (trace : Reachable (Step cohort expected false) (initial target) s) : ExitClean s.phase := by
+    (trace : Reachable (Step cohort expected) (initial target) s) : ExitClean s.phase := by
   apply invariant (P := fun s => ExitClean s.phase) (by simp [initial, ExitClean]) _ trace
   intro a b action safe
   cases action with
   | advance to _ advance => exact advanceClean advance
-  | unwind guard =>
-    cases cohort <;> cases h : a.phase <;> simp_all [easyCleanup, Writer.unwind, resources, releaseDb, unlinkStage,
-      closeBeforeUnlink, registerStageHandler, ExitClean]
+  | unwind =>
+    cases cohort <;> cases h : a.phase <;> simp_all [Writer.unwind, resources, releaseDb, unlinkStage,
+      closeBeforeUnlink, registerStageHandler, registerDbHandler, ExitClean]
   | publish => simp [ExitClean]
-
-abbrev FromAbsent (cohort : Bool) (expected : Nat) (p : Phase) :=
-  Reachable (Step cohort expected true) (initial .absent) ⟨p, .absent, false⟩
-
-theorem created (cohort : Bool) (expected : Nat) : FromAbsent cohort expected .stageCreated := by
-  have checked : FromAbsent cohort expected .checked := .next .start (.advance _ _ rfl .check)
-  exact .next checked (.advance _ _ rfl .mkdir)
-
-theorem stageRegistrationGap (cohort : Bool) (expected : Nat) :
-    FromAbsent cohort expected (.done true false) := by
-  exact .next (created cohort expected) (.unwind _ (by simp))
-
-theorem connectionRegistrationGap (expected : Nat) :
-    FromAbsent false expected (.done false true) := by
-  have normalized : FromAbsent false expected .stageNormalized :=
-    .next (created false expected) (.advance _ _ rfl .normalize)
-  have staged : FromAbsent false expected .staged :=
-    .next normalized (.advance _ _ rfl .stageExit)
-  have opened : FromAbsent false expected .openingConvert :=
-    .next staged (.advance _ _ rfl (.openConvert rfl))
-  exact .next opened (.unwind _ (by simp))
 
 end Writer
 

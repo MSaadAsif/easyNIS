@@ -15,12 +15,15 @@ ident <- function(x) as.character(dbQuoteIdentifier(con, x))
 now <- function() as.numeric(Sys.time())
 connect <- function() dbConnect(duckdb(config = list(threads = threads, memory_limit = memory)))
 
-if (task == "fixture") {
+if (task %in% c("fixture", "ccsr-fixture")) {
+  rows <- if (task == "fixture") 500000L else 50000L
   dir.create(fixture, showWarnings = FALSE)
   con <- connect()
+  heart_failure <- if (task == "fixture") "'I509'" else "CASE WHEN i % 4 <> 0 THEN 'I509' ELSE 'ZZZZZZZ' END"
   dx <- sprintf(
-    "CASE WHEN (i + %1$d) %% 13 < 3 OR %1$d = 1 THEN CASE (i + %1$d) %% 5 WHEN 0 THEN 'I509' WHEN 1 THEN 'I2510' WHEN 2 THEN 'E119' WHEN 3 THEN 'J449' ELSE 'Z3800' END END AS I10_DX%1$d",
-    1:40
+    "CASE WHEN (i + %1$d) %% 13 < 3 OR %1$d = 1 THEN CASE (i + %1$d) %% 5 WHEN 0 THEN %2$s WHEN 1 THEN 'I2510' WHEN 2 THEN 'E119' WHEN 3 THEN 'J449' ELSE 'Z3800' END END AS I10_DX%1$d",
+    1:40,
+    heart_failure
   )
   pr <- sprintf(
     "CASE WHEN (i + %1$d) %% 19 < 3 OR %1$d = 1 THEN CASE WHEN (i + %1$d) %% 2 = 0 THEN '02703ZZ' ELSE '02L73DK' END END AS I10_PR%1$d",
@@ -58,11 +61,15 @@ if (task == "fixture") {
       paste(
         "COPY (SELECT",
         paste(cols, collapse = ","),
-        "FROM range(500000) AS input(i)) TO",
+        sprintf("FROM range(%d) AS input(i)) TO", rows),
         path,
         "(FORMAT PARQUET, COMPRESSION ZSTD)"
       )
     )
+  }
+  if (task == "ccsr-fixture") {
+    dbDisconnect(con, shutdown = TRUE)
+    quit()
   }
   # Conversion consumes one annual source. Write the invented input outside timing.
   input <- dbGetQuery(con, paste("FROM read_parquet(", q(file.path(fixture, "NIS_2020.parquet")), ")"))
