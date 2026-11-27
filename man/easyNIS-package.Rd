@@ -6,7 +6,7 @@
 \alias{easyNIS}
 \title{easyNIS: Tidy Workflows for the National Inpatient Sample}
 \description{
-Pipe-friendly tools for opening annual Healthcare Cost and Utilization Project National Inpatient Sample Parquet files, flagging diagnosis and procedure codes, applying HCUP 'CCSR' mappings, adding experimental Elixhauser indicators, preparing designs and weights with the 'survey' package, applying supported HCUP labels, adjusting charges and costs, and reviewing disclosure risks. The Agency for Healthcare Research and Quality provides information on the NIS and how to obtain it at \url{https://hcup-us.ahrq.gov/nisoverview.jsp}. Experimental methods and annual-layout assumptions are not independently verified or scientifically approved.
+Pipe-friendly tools for opening annual Healthcare Cost and Utilization Project National Inpatient Sample Parquet files, flagging diagnosis and procedure codes, applying HCUP 'CCSR' mappings, adding experimental comorbidity indicators and indices, preparing designs and weights with the 'survey' package, applying supported HCUP labels, adjusting charges and costs, and reviewing disclosure risks. The Agency for Healthcare Research and Quality provides information on the NIS and how to obtain it at \url{https://hcup-us.ahrq.gov/nisoverview.jsp}. Experimental methods and annual-layout assumptions are not independently verified or scientifically approved.
 }
 \details{
 Use \code{\link[=nis_open]{nis_open()}} to open annual National Inpatient Sample (NIS) data as a

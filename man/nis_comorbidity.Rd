@@ -2,125 +2,82 @@
 % Please edit documentation in R/comorbidity.R
 \name{nis_comorbidity}
 \alias{nis_comorbidity}
-\title{Add AHRQ Elixhauser comorbidity columns (experimental)}
+\title{Add comorbidity indicators and scores (experimental)}
 \usage{
 nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
 }
 \arguments{
 \item{.data}{A data frame, a \code{tbl_svy} from \code{\link[=nis_design]{nis_design()}}, or a lazy DuckDB
-query with \code{I10_DX1}, \code{I10_DX2}, ... columns. Lazy input requires non-missing,
-unique discharge keys (\code{YEAR} and \code{KEY_NIS} when \code{YEAR} is present, otherwise
-\code{KEY_NIS} alone). Keep \code{YEAR} when pooling years.}
+query. Lazy input requires non-missing, unique \code{KEY_NIS}, or unique pairs
+of \code{YEAR} and \code{KEY_NIS} when \code{YEAR} is present. Keep \code{YEAR} when
+pooling years.}
 
-\item{method}{A \code{medicalcoder} Elixhauser method name. The default,
-\code{"elixhauser_ahrq_icd10"}, is the union of every ICD-10 code AHRQ has
-listed since FY2022, which suits NIS years pooled across code-set updates.
-Use \code{"elixhauser_ahrq2022"} through \code{"elixhauser_ahrq2026"} to pin one
-AHRQ release.}
+\item{method}{Comorbidity definition. The default \code{"elixhauser_ahrq_icd10"}
+uses the medicalcoder ICD-10-CM union. \code{"elixhauser_ahrq2022"} through
+\code{"elixhauser_ahrq2027"} select a specific release. Use
+\code{"charlson_quan2005"} for Quan coding with original Charlson weights,
+\code{"charlson_quan2011"} for the same coding with Quan 2011 weights, and
+\code{"charlson_deyo1992"} for Deyo ICD-9-CM coding with original weights.
+\code{"elixhauser_quan2005"} uses Quan ICD-9-CM or ICD-10 coding and legacy
+AHRQ weights. \code{"elixhauser_ahrq_web"} and \code{"elixhauser_elixhauser1998"}
+replicate medicalcoder's legacy ICD-9 code-based algorithms. All methods
+except FY2027 require the optional medicalcoder package.}
 
-\item{prefix}{Prefix for the added columns. Existing columns are never
-replaced.}
+\item{prefix}{Prefix for the added columns. Choose a prefix that does not
+collide with an existing name.}
 }
 \value{
-\code{.data} with one logical column per condition (\verb{<prefix>hf}, ...),
-\verb{<prefix>n} (conditions flagged), \verb{<prefix>any}, and the integer
-\verb{<prefix>mortality_index} and \verb{<prefix>readmission_index} scores, using the
-names and weights from \code{medicalcoder}. Rows with no usable \verb{I10_DX*} code
-are \code{NA} in all of them; see the Assumptions section.
+\code{.data} with logical condition flags and \verb{<prefix>any}, the
+integer count \verb{<prefix>n}, and either \verb{<prefix>mortality_index} and
+\verb{<prefix>readmission_index} (Elixhauser) or \verb{<prefix>cci} (Charlson).
+Charlson scores are based on diagnoses and any mapped procedures without
+an age adjustment.
 }
 \description{
-Reshapes the wide \code{I10_DX1}, \code{I10_DX2}, ... columns to one row per code
-and scores them with \code{\link[medicalcoder:comorbidities]{medicalcoder::comorbidities()}}. For a lazy DuckDB
-query, the function projects the discharge keys and diagnosis and POA
-fields, scores up to 25,000 discharges at a time in R, then joins the
-scores back in DuckDB. Scores are materialized when this function runs and
-live in a temporary table on the input connection. The returned query
-remains lazy. Use stable keys and filters, and arrange the result by key
-if you need a specific order. For a collected input, row order is preserved.
-All code-to-condition
-mapping and index weights come from the
-\href{https://CRAN.R-project.org/package=medicalcoder}{medicalcoder} package, which
-ships the AHRQ Elixhauser Comorbidity Software Refined for ICD-10-CM tables;
-easyNIS holds no clinical code lists. Install it with
-\code{install.packages("medicalcoder")}.
+DuckDB unpivots diagnosis slots, maps codes to conditions, and applies
+present-on-admission and hierarchy rules within each discharge. Lazy queries
+stay in DuckDB. The function runs a key and diagnosis-availability check
+before returning the score query. Collected data frames keep their row order.
 }
-\details{
-The function is experimental: the default method and the assumptions below
-remain pending scientific approval.
-}
-\section{Assumptions}{
+\section{Coding and present on admission}{
 
 \itemize{
-\item \strong{Present on admission uses available diagnosis indicators.} Matching
-\code{DXPOAn} columns are aligned with \code{I10_DXn}; \code{Y} and \code{W} map to present,
-while \code{N} and \code{U} map to not present. Other values, including \code{1} and
-invalid UTF-8 values, are treated as unknown. \code{medicalcoder} applies its
-POA-exempt code table, based
-on AHRQ fiscal-year 2022 through 2026 mappings; its exemption status is not
-adjusted for discharge date, so exempt-code results can differ slightly
-from AHRQ software across fiscal years. If a matching POA column is absent,
-easyNIS retains the existing assumption that diagnoses in that slot were
-present on admission and warns once per call. NIS release files lack POA
-indicators, so this assumption can count hospital-acquired conditions and
-affect both scores. AHRQ leaves 18 of 38 measures unset when POA inputs are
-unavailable and requires all 38 to calculate its indices. NIS Diagnosis
-and Procedure Groups files provide the
-available HCUP-derived measures beginning in 2019. See the
-\href{https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/CMR-User-Guide-v2024-1.pdf}{AHRQ User Guide}.
-\item \strong{Principal diagnosis} is \code{I10_DX1}. It is passed as the primary
-diagnosis, and \code{medicalcoder} applies the AHRQ rule for it (for example, a
-condition is not flagged from the principal diagnosis alone where AHRQ
-excludes it). Codes in \code{I10_DX2} onward are secondary.
-Only positive slot suffixes without leading zeros are recognized;
-malformed names such as \code{I10_DX0} and \code{I10_DX01} are ignored.
-\item \strong{ICD-10 only.} Only the \verb{I10_DX*} columns are read. A discharge with no
-usable \verb{I10_DX*} code (all blank, missing or invalid UTF-8), such as an ICD-9
-discharge from before October 2015, gets \code{NA} in every added column, and
-the function warns with the number of such rows. Do not treat those \code{NA}
-values as "no comorbidity".
-\item Codes are upper-cased with periods and spaces removed. Blank, missing or
-invalid UTF-8 codes are ignored, and an unmapped code adds no condition. A
-discharge with at least one usable but unmapped code gets zeros.
-\item Collected inputs are reshaped and scored in one pass. Use the DuckDB
-path to bound the size of the R batches for large cohorts.
+\item Use ICD-10-CM \verb{I10_DX*} or ICD-9-CM \verb{DX*} slots as supported by the
+method. The first slot identifies the principal diagnosis and is excluded
+from flags. When supplied, \code{YEAR}, \code{DQTR} and \code{DXVER} identify eligible
+diagnosis slots. Deyo also reads eligible ICD-9-CM \verb{PR*} slots when
+available and mapped. Keep ICD-9 codes as strings to retain leading zeros.
+\item Codes use uppercase with periods and ASCII whitespace removed. Rows with
+usable codes that map to no conditions receive zeros. Rows without usable
+codes for the method receive missing scores and trigger a warning.
+\item Refined AHRQ and Charlson align \code{DXPOAn} to the diagnosis suffix \code{n}.
+\code{Y} and \code{W} mean present, \code{N} and \code{U} mean absent, and other values
+including \code{1} mean unknown. Refined AHRQ also uses code-specific
+exemptions. For methods sourced from medicalcoder, repeated diagnoses
+that map to the same category and exemption state follow its data.frame
+precedence (unknown, then present, then absent).
+\item If a matching POA field is absent, easyNIS warns and assumes those
+diagnoses were present. NIS releases generally lack POA indicators, so
+this assumption can count conditions acquired during a hospital stay.
+AHRQ's software leaves 18 of 38 measures unset when POA is unavailable.
+\item \code{elixhauser_ahrq2027} selects its exemption list using the discharge
+fiscal year (calendar \code{YEAR} plus one for \code{DQTR == 4}). When the
+quarter is missing it uses the calendar year. When the year is missing
+or after the release, it uses the latest fiscal year in the release.
+The other refined methods use medicalcoder's fixed exemptions.
 }
-}
-
-\section{Differences from the Stata-derived columns}{
-
-NIS studies often already carry \verb{ynel*} indicators and \code{elixsum}, derived in
-Stata from an earlier Elixhauser release. They are not reproduced here and
-should not be expected to agree: the AHRQ Refined software uses different
-condition definitions and categories (for example, hypertension with and
-without heart failure or renal failure, and separate liver, neurological and
-cancer subtypes), POA-dependent flagging, and the principal-diagnosis rule
-above. Do not mix the two sets of indicators in one model.
 }
 
 \section{Use with \code{nis_design()}}{
 
-\code{nis_design()} needs the whole hospital-year frame to build placeholder rows,
-so do not collect and enrich the cohort before calling it. Keep the diagnosis
-columns in the design instead, then pass the design here:
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{design <- nis_design(nis, heart_failure, keep = c(AGE, starts_with("I10_DX"), starts_with("DXPOA")))
-design <- nis_comorbidity(design)
-}\if{html}{\out{</div>}}
-
-For a \code{tbl_svy} the function replaces \code{design$variables} and leaves the
-design (clusters, strata, weights) untouched.
+Retain diagnosis slots and available POA fields using \code{keep}, then pass
+the design to \code{nis_comorbidity()}. For a \code{tbl_svy}, only the design's
+variables are enriched. The clusters, strata and weights are preserved.
 }
 
 \examples{
-\dontshow{if (rlang::is_installed("medicalcoder", version = "0.10.0")) withAutoprint(\{ # examplesIf}
-# Assign stable keys to this invented fixture. NIS files supply KEY_NIS.
-discharges <- nis_open(nis_example(years = 2019)) |>
-  dplyr::filter(AGE >= 18) |>
-  dplyr::mutate(KEY_NIS = dplyr::row_number()) |>
-  dplyr::compute()
-comorbid <- nis_comorbidity(discharges)
-comorbid |> dplyr::select(AGE, cmrb_n, cmrb_any) |> head() |> dplyr::collect()
-\dontshow{\}) # examplesIf}
+discharges <- data.frame(I10_DX1 = "Z0000", I10_DX2 = "I509", DXPOA1 = "Y", DXPOA2 = "Y")
+nis_comorbidity(discharges, method = "elixhauser_ahrq2027")$cmrb_mortality_index
 }
 \seealso{
 \href{articles/comorbidity.html}{Comorbidity indicators}.
