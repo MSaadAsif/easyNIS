@@ -1,0 +1,1 @@
+- `nis_open(reader = "arrow")` uses smaller scan batches to reduce peak memory when a query reads many diagnosis or procedure columns across years.

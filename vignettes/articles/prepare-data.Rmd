@@ -74,7 +74,8 @@ with malformed UTF-8, reconvert from the correctly encoded source into
 a new directory and review the release check.
 
 Use `nis_open(reader = "arrow")` when you need to preserve the source bytes,
-including malformed UTF-8. During an Arrow-backed query, easyNIS caps Arrow's
+including malformed UTF-8. easyNIS limits the size of Arrow scan batches to
+reduce decoded read-ahead across annual files. During a query, it caps Arrow's
 CPU worker pool at the DuckDB thread count from when the source was opened.
 Set `options(easyNIS.duckdb_config = list(threads = 4L, memory_limit = "4 GiB"))`
 before opening the data to use a four-thread DuckDB profile. A smaller
