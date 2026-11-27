@@ -21,7 +21,7 @@ The examples use invented data.
 
 nis <- nis_open(nis_example(years = 2019:2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpsRcrgn/duckdb
+#> ℹ /tmp/RtmpZ5wf5p/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -29,7 +29,7 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpsRcrgn/duckdb
+#> ℹ /tmp/RtmpZ5wf5p/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -86,6 +86,50 @@ Score before
 while the diagnosis slots are available and DuckDB can still apply the
 mappings. Choose the method and code system for your study period. The
 bundled `"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
+
+Set `count_distinct = TRUE` to add the integer column `cmrb_n_distinct`.
+The distinct count counts each condition represented by the output flags
+once. For example, the refined Elixhauser flag for hypertension with
+heart failure and severe renal failure represents three conditions, even
+when separate flags for those conditions are also true. Diabetes and
+other severity variants of the same condition share an ID. `cmrb_n`
+still reports the method’s own category count.
+
+``` r
+
+method <- "elixhauser_ahrq2027"
+condition_map <- nis_comorbidity_condition_map(method)
+condition_map |> filter(condition == "diabetes")
+#>           output condition
+#> 1   cmrb_diab_cx  diabetes
+#> 2 cmrb_diab_uncx  diabetes
+
+outcomes |>
+  nis_comorbidity(method, count_distinct = TRUE, exclude_conditions = "diabetes") |>
+  select(cmrb_n, cmrb_n_distinct) |>
+  head(3) |>
+  collect()
+#> Warning: No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,
+#> I10_DX12, I10_DX13, I10_DX14, I10_DX15, I10_DX16, I10_DX17, I10_DX18, I10_DX19,
+#> I10_DX2, I10_DX20, I10_DX21, I10_DX22, I10_DX23, I10_DX24, I10_DX25, I10_DX26,
+#> I10_DX27, I10_DX28, I10_DX29, I10_DX3, I10_DX30, I10_DX31, I10_DX32, I10_DX33,
+#> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,
+#> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.
+#> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
+#> # A tibble: 3 × 2
+#>   cmrb_n cmrb_n_distinct
+#>    <int>           <int>
+#> 1      1               1
+#> 2      1               0
+#> 3      1               0
+```
+
+Use IDs from the map to exclude conditions that your analysis handles
+separately. The count uses the flags emitted by the chosen method and
+inherits their present-on-admission assumptions. Exclusions affect only
+the distinct count. A discharge without usable codes has a missing
+count, and a discharge with usable codes and no included conditions has
+a count of zero.
 
 ## Estimate costs in a common dollar year
 

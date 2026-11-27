@@ -140,6 +140,8 @@ Reuse eligibility criteria with
   : Add standard discharge outcomes
 - [`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
   : Add comorbidity indicators and scores (experimental)
+- [`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md)
+  : Map comorbidity output flags to distinct conditions
 - [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
   : Adjust NIS charges and costs to a reference dollar year
 - [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)

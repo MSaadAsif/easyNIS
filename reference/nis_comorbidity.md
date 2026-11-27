@@ -5,7 +5,13 @@ Add Elixhauser or Charlson comorbidity flags and scores.
 ## Usage
 
 ``` r
-nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
+nis_comorbidity(
+  .data,
+  method = "elixhauser_ahrq_icd10",
+  prefix = "cmrb_",
+  count_distinct = FALSE,
+  exclude_conditions = character()
+)
 ```
 
 ## Arguments
@@ -36,6 +42,20 @@ nis_comorbidity(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_")
 
   Prefix for the added columns. Choose a prefix that does not collide
   with an existing name.
+
+- count_distinct:
+
+  Set to `TRUE` to add the integer count `<prefix>n_distinct`. Each
+  condition represented by any true flag counts once, using
+  [`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md).
+  A discharge with usable codes and no included conditions receives
+  zero. A discharge without usable codes receives `NA`.
+
+- exclude_conditions:
+
+  Character vector of unprefixed condition IDs to omit from the distinct
+  count. Requires `count_distinct = TRUE` when nonempty. Exclusions
+  affect only the distinct count.
 
 ## Value
 
@@ -70,12 +90,15 @@ costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
 [Derive outcomes, comorbidities, and
 costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 
+Other comorbidity:
+[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md)
+
 ## Examples
 
 ``` r
 nis <- nis_open(nis_example(2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9MfXAY/duckdb
+#> ℹ /tmp/RtmpzylRu1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +106,7 @@ nis <- nis_open(nis_example(2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp9MfXAY/duckdb
+#> ℹ /tmp/RtmpzylRu1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
