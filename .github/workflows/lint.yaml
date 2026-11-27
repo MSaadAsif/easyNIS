@@ -49,6 +49,7 @@ jobs:
       - name: Check installed package complexity
         run: Rscript --vanilla tools/check-package.R --complexity
       - name: Gate restricted CCSR query performance
+        timeout-minutes: 2
         run: |
           evidence="$RUNNER_TEMP/ccsr-gate"
           mkdir -p "$evidence"
