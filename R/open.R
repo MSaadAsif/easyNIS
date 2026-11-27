@@ -63,6 +63,10 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   suspendInterrupts({
     connection <- nis_duckdb_open_data()
   })
+  if (reader == "arrow") {
+    settings <- DBI::dbGetQuery(connection$con, "SELECT current_setting('threads') AS threads")
+    attr(connection$con, "easyNIS_arrow_threads") <- as.integer(settings$threads)
+  }
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
   release <- if (check_release) nis_open_check_release(plan, dataset) else "skipped"
