@@ -10,8 +10,8 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Trends">
-<meta name="description" content="Estimate annual discharge totals and model change over calendar time.">
-<meta property="og:description" content="Estimate annual discharge totals and model change over calendar time.">
+<meta name="description" content="Estimate discharge totals, rates, and means by period, and model change over calendar time.">
+<meta property="og:description" content="Estimate discharge totals, rates, and means by period, and model change over calendar time.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -126,9 +126,10 @@ Missing estimates and zero support counts identify years with no valid
 cohort discharges in the design.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp0Ifcvu/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpz54IDP/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -136,7 +137,7 @@ cohort discharges in the design.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp0Ifcvu/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpz54IDP/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -164,6 +165,148 @@ rules</a> before sharing estimates, plots, or tests. The examples use
 invented discharges.</p>
 </div>
 <div class="section level2">
+<h2 id="estimate-a-rate-with-a-population-denominator">Estimate a rate with a population denominator<a class="anchor" aria-label="anchor" href="#estimate-a-rate-with-a-population-denominator"></a>
+</h2>
+<p>A population rate needs an external population aligned to the
+numerator’s calendar year, geography, and age range. The following
+denominators are invented national all-age populations. This rate counts
+hospitalizations involving heart failure per 100,000 residents. A
+resident can contribute multiple discharges.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">population</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>YEAR <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span>, residents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3e8</span>, <span class="fl">3.01e8</span>, <span class="fl">3.02e8</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
+<span>  <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">anyDuplicated</a></span><span class="op">(</span><span class="va">population</span><span class="op">$</span><span class="va">YEAR</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">population</span><span class="op">$</span><span class="va">YEAR</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq.int</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">annual</span><span class="op">$</span><span class="va">YEAR</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">annual</span><span class="op">$</span><span class="va">YEAR</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">annual</span><span class="op">$</span><span class="va">YEAR</span>, <span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">population</span><span class="op">$</span><span class="va">YEAR</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">population</span><span class="op">$</span><span class="va">residents</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">population</span><span class="op">$</span><span class="va">residents</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">rates</span> <span class="op">&lt;-</span> <span class="va">annual</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">population</span>, by <span class="op">=</span> <span class="st">"YEAR"</span>, relationship <span class="op">=</span> <span class="st">"one-to-one"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
+<span>    rate <span class="op">=</span> <span class="fl">1e5</span> <span class="op">*</span> <span class="va">discharges</span> <span class="op">/</span> <span class="va">residents</span>,</span>
+<span>    rate_se <span class="op">=</span> <span class="fl">1e5</span> <span class="op">*</span> <span class="va">discharges_se</span> <span class="op">/</span> <span class="va">residents</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="va">rates</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 8</span></span></span>
+<span><span class="co">#&gt;    YEAR discharges discharges_se     n hospitals residents   rate rate_se</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018       62.4          12.3    54         9 300<span style="text-decoration: underline;">000</span>000 0.020<span style="text-decoration: underline;">8</span> 0.004<span style="text-decoration: underline;">09</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019       62.4          12.3    54         9 301<span style="text-decoration: underline;">000</span>000 0.020<span style="text-decoration: underline;">7</span> 0.004<span style="text-decoration: underline;">08</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020       62.4          12.3    54         9 302<span style="text-decoration: underline;">000</span>000 0.020<span style="text-decoration: underline;">7</span> 0.004<span style="text-decoration: underline;">06</span></span></span></code></pre></div>
+<p>The rate and its standard error use the same scale factor. This
+calculation treats the external population as fixed. Validate coverage
+before joining so a missing year cannot silently produce a missing
+denominator. For release, apply suppression to the rate and its standard
+error using the numerator’s support counts. Review any other tables that
+share the numerator.</p>
+</div>
+<div class="section level2">
+<h2 id="estimate-a-discharge-proportion-and-a-mean-by-period">Estimate a discharge proportion and a mean by period<a class="anchor" aria-label="anchor" href="#estimate-a-discharge-proportion-and-a-mean-by-period"></a>
+</h2>
+<p>For the proportion of eligible discharges ending in in-hospital
+death, take the survey mean of the logical death indicator. The second
+mean estimates length of stay in days. Each measure uses its own
+nonmissing denominator. Build the design on the complete sample,
+restrict the domain, then group.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">period_design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
+<span>  <span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">DQTR</span>, <span class="va">in_hospital_death</span>, <span class="va">los_days</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Cohort: 162 discharges; weighted N 187.2; 27 hospitals across 3 years.</span></span>
+<span><span class="va">period_design</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
+<span>    proportion_died <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">in_hospital_death</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    mean_los <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">los_days</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    .groups <span class="op">=</span> <span class="st">"drop"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 5</span></span></span>
+<span><span class="co">#&gt;    YEAR proportion_died proportion_died_se mean_los mean_los_se</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>  <span style="text-decoration: underline;">2</span>018          0.017<span style="text-decoration: underline;">6</span>             0.017<span style="text-decoration: underline;">5</span>     5.66       0.324</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>  <span style="text-decoration: underline;">2</span>019          0.017<span style="text-decoration: underline;">6</span>             0.017<span style="text-decoration: underline;">5</span>     5.66       0.324</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>  <span style="text-decoration: underline;">2</span>020          0.017<span style="text-decoration: underline;">6</span>             0.017<span style="text-decoration: underline;">5</span>     5.66       0.324</span></span>
+<span><span class="va">period_design</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">DQTR</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
+<span>    proportion_died <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">in_hospital_death</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    mean_los <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">los_days</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    .groups <span class="op">=</span> <span class="st">"drop"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 12 × 6</span></span></span>
+<span><span class="co">#&gt;     YEAR DQTR  proportion_died proportion_died_se mean_los mean_los_se</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>  <span style="text-decoration: underline;">2</span>018 Q1             0                  0          5.62       0.692</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>  <span style="text-decoration: underline;">2</span>018 Q2             0                  0          5.55       1.25 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>  <span style="text-decoration: underline;">2</span>018 Q3             0                  0          5.12       0.711</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>  <span style="text-decoration: underline;">2</span>018 Q4             0.052<span style="text-decoration: underline;">9</span>             0.052<span style="text-decoration: underline;">4</span>     6.03       0.502</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>  <span style="text-decoration: underline;">2</span>019 Q1             0                  0          5.62       0.692</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>  <span style="text-decoration: underline;">2</span>019 Q2             0                  0          5.55       1.25 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>  <span style="text-decoration: underline;">2</span>019 Q3             0                  0          5.12       0.711</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>  <span style="text-decoration: underline;">2</span>019 Q4             0.052<span style="text-decoration: underline;">9</span>             0.052<span style="text-decoration: underline;">4</span>     6.03       0.502</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>  <span style="text-decoration: underline;">2</span>020 Q1             0                  0          5.62       0.692</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>  <span style="text-decoration: underline;">2</span>020 Q2             0                  0          5.55       1.25 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">11</span>  <span style="text-decoration: underline;">2</span>020 Q3             0                  0          5.12       0.711</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">12</span>  <span style="text-decoration: underline;">2</span>020 Q4             0.052<span style="text-decoration: underline;">9</span>             0.052<span style="text-decoration: underline;">4</span>     6.03       0.502</span></span></code></pre></div>
+<p>These are shares of discharges within each period. Check support for
+each reported measure, including its nonmissing denominator and the
+event and nonevent counts for the proportion. Empty domains may be
+absent from grouped results.</p>
+<div class="section level3">
+<h3 id="keep-the-two-2015-coding-periods-separate">Keep the two 2015 coding periods separate<a class="anchor" aria-label="anchor" href="#keep-the-two-2015-coding-periods-separate"></a>
+</h3>
+<p>For a code-defined cohort in 2015, define each quarter’s eligibility
+using its coding system. The example uses principal heart failure codes
+and keeps all four quarters in the sample used to build the design.
+Compute separate estimates for Q1–Q3 and Q4, with unscaled weights.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">transition</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span><span class="fl">2015</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="co"># Replace the fixture's placeholder code with an ICD-9-CM example.</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>DX1 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">DX1</span> <span class="op">==</span> <span class="st">"12345"</span>, <span class="st">"4280"</span>, <span class="va">DX1</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf9 <span class="op">=</span> <span class="st">"428"</span>, system <span class="op">=</span> <span class="st">"icd9"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>hf10 <span class="op">=</span> <span class="st">"I50"</span>, system <span class="op">=</span> <span class="st">"icd10"</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">DQTR</span> <span class="op">==</span> <span class="fl">4L</span>, <span class="st">"Q4"</span>, <span class="st">"Q1-Q3"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpz54IDP/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span><span class="co">#&gt; Experimental: years before 2016 store ICD-9-CM codes in <span style="color: #00BB00;">DX1</span>, <span style="color: #00BB00;">PR1</span>, ... slots.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)</span></span>
+<span><span class="co">#&gt;   slots.</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpz54IDP/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span></span>
+<span><span class="va">split</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
+<span>  <span class="va">transition</span>,</span>
+<span>  cohort <span class="op">=</span> <span class="op">(</span><span class="va">DQTR</span> <span class="op">&lt;=</span> <span class="fl">3L</span> <span class="op">&amp;</span> <span class="va">hf9</span><span class="op">)</span> <span class="op">|</span> <span class="op">(</span><span class="va">DQTR</span> <span class="op">==</span> <span class="fl">4L</span> <span class="op">&amp;</span> <span class="va">hf10</span><span class="op">)</span>,</span>
+<span>  keep <span class="op">=</span> <span class="va">period</span>,</span>
+<span>  annualize <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">period</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.</span></span>
+<span><span class="va">split</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
+<span><span class="co">#&gt;   period discharges discharges_se</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> Q1-Q3        41.6          8.18</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Q4           20.8          4.09</span></span></code></pre></div>
+<p>The totals describe periods of different lengths. Document each code
+set and its coverage before comparing estimates across the
+transition.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="estimate-an-average-annual-total">Estimate an average annual total<a class="anchor" aria-label="anchor" href="#estimate-an-average-annual-total"></a>
 </h2>
 <p>If the target is the <strong>average annual number</strong> of cohort
@@ -176,7 +319,7 @@ years. A pooled weighted mean or proportion describes the pooled
 discharge population. Dividing every weight by the same number leaves it
 unchanged. Report the denominator in proportions, for example all
 eligible discharges for a share of NIS discharges.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pooled</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="va">YEAR</span>, annualize <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Cohort: 162 discharges; weighted N 62.4; 27 hospitals across 3 years.</span></span>
 <span><span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">pooled</span>, annual_discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
@@ -193,7 +336,7 @@ example, use survey-weighted regression to estimate the change in mean
 length of stay per calendar year among heart failure discharges. Center
 calendar year to make the intercept the fitted mean for the first year.
 Calendar-time spacing is preserved when included years have gaps.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>elapsed <span class="op">=</span> <span class="va">YEAR</span> <span class="op">-</span> <span class="fl">2018L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Cohort: 162 discharges; weighted N 187.2; 27 hospitals across 3 years.</span></span>

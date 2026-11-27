@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -74,7 +74,7 @@ source <- file.path(converted, "NIS_2020.dta")
 haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
 nis_convert(source, converted)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +83,7 @@ nis_convert(source, converted)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis_open(converted, check_release = FALSE) |> dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +119,7 @@ record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
 writeLines(record, core)
 nis_convert(core, converted_core)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -133,7 +133,7 @@ nis_open(converted_core, check_release = FALSE) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -161,7 +161,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -248,7 +248,7 @@ the optional `arrow` package for reading Parquet files individually.
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppKyRR0/duckdb
+#> ℹ /tmp/RtmpvDPCbt/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

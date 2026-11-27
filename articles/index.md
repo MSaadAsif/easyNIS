@@ -35,7 +35,8 @@
 
 - [Trends](https://msaadasif.github.io/easyNIS/articles/trends.md):
 
-  Estimate annual discharge totals and model change over calendar time.
+  Estimate discharge totals, rates, and means by period, and model
+  change over calendar time.
 
 - [Disclosure and
   suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md):
