@@ -94,7 +94,7 @@ DuckDB. The example uses invented discharges.</p>
 <code class="sourceCode R"><span><span class="va">outcomes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp7AIH2p/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpx7hsgG/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -102,7 +102,7 @@ DuckDB. The example uses invented discharges.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp7AIH2p/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpx7hsgG/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -120,10 +120,11 @@ DuckDB. The example uses invented discharges.</p>
 <ul>
 <li>
 <strong>In-hospital mortality.</strong>
-<code>in_hospital_death</code> is the 0/1 indicator from
-<code>DIED</code>. A discharge alive contributes zero. Missing or
-invalid <code>DIED</code> stays missing even when a disposition is
-recorded. The event is death during the sampled hospitalization. <a href="https://hcup-us.ahrq.gov/db/vars/died/nisnote.jsp" class="external-link">HCUP DIED
+<code>in_hospital_death</code> is a logical indicator from
+<code>DIED</code>. A discharge alive has value <code>FALSE</code>.
+Missing or invalid <code>DIED</code> stays missing even when a
+disposition is recorded. The event is death during the sampled
+hospitalization. <a href="https://hcup-us.ahrq.gov/db/vars/died/nisnote.jsp" class="external-link">HCUP DIED
 notes</a>
 </li>
 <li>
@@ -135,12 +136,15 @@ notes</a>
 </li>
 <li>
 <strong>Discharge disposition.</strong>
-<code>discharge_disposition</code> labels <code>DISPUNIFORM</code>. Code
-2 denotes transfer to a short-term hospital. Code 5 covers several types
-of other facilities, including skilled nursing and intermediate care.
-Code 6 includes home health, home IV, and home hospice. Codes 21
-(court/law enforcement) and 99 (alive with destination unknown) are
-valid categories. An invalid or missing code yields a missing label. <a href="https://hcup-us.ahrq.gov/db/vars/dispuniform/nisnote.jsp" class="external-link">HCUP
+<code>discharge_disposition</code> holds the numeric
+<code>DISPUNIFORM</code> code. After collection,
+<code><a href="../reference/nis_label.html">nis_label()</a></code> or <code><a href="../reference/nis_design.html">nis_design()</a></code> applies the factor
+labels. Code 2 denotes transfer to a short-term hospital. Code 5 covers
+several types of other facilities, including skilled nursing and
+intermediate care. Code 6 includes home health, home IV, and home
+hospice. Codes 21 (court/law enforcement) and 99 (alive with destination
+unknown) are valid categories. An invalid or missing code yields a
+missing disposition. <a href="https://hcup-us.ahrq.gov/db/vars/dispuniform/nisnote.jsp" class="external-link">HCUP
 DISPUNIFORM notes</a>
 </li>
 </ul>
@@ -160,28 +164,30 @@ unknown-destination group. For skewed LOS, survey quantiles give the
 median and the 25th and 75th percentiles while retaining same-day
 stays.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="va">in_hospital_death</span>, <span class="va">design</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                       mean     SE</span></span>
-<span><span class="co">#&gt; in_hospital_death 0.020105 0.0117</span></span>
-<span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">discharge_disposition</span><span class="op">)</span>, <span class="va">design</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                                                                                       mean</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Alive, destination unknown                              0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Died in hospital                                        0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Discharged/transferred to court/law enforcement         0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Home health care                                        0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Left against medical advice                             0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Routine discharge to home/self-care                     0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Transfer to another short-term hospital                 0.125</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Transfer to SNF, intermediate care, or another facility 0.125</span></span>
-<span><span class="co">#&gt;                                                                                      SE</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Alive, destination unknown                               0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Died in hospital                                         0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Discharged/transferred to court/law enforcement          0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Home health care                                         0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Left against medical advice                              0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Routine discharge to home/self-care                      0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Transfer to another short-term hospital                  0</span></span>
-<span><span class="co">#&gt; factor(discharge_disposition)Transfer to SNF, intermediate care, or another facility  0</span></span>
+<code class="sourceCode R"><span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, mortality <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">in_hospital_death</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
+<span><span class="co">#&gt;   mortality mortality_se</span></span>
+<span><span class="co">#&gt;       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    0.020<span style="text-decoration: underline;">1</span>       0.011<span style="text-decoration: underline;">7</span></span></span>
+<span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="va">discharge_disposition</span>, <span class="va">design</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                                                                               mean</span></span>
+<span><span class="co">#&gt; discharge_dispositionRoutine discharge to home/self-care                     0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionTransfer to another short-term hospital                 0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionTransfer to SNF, intermediate care, or another facility 0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionHome health care                                        0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionLeft against medical advice                             0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionDied in hospital                                        0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionDischarged/transferred to court/law enforcement         0.125</span></span>
+<span><span class="co">#&gt; discharge_dispositionAlive, destination unknown                              0.125</span></span>
+<span><span class="co">#&gt;                                                                              SE</span></span>
+<span><span class="co">#&gt; discharge_dispositionRoutine discharge to home/self-care                      0</span></span>
+<span><span class="co">#&gt; discharge_dispositionTransfer to another short-term hospital                  0</span></span>
+<span><span class="co">#&gt; discharge_dispositionTransfer to SNF, intermediate care, or another facility  0</span></span>
+<span><span class="co">#&gt; discharge_dispositionHome health care                                         0</span></span>
+<span><span class="co">#&gt; discharge_dispositionLeft against medical advice                              0</span></span>
+<span><span class="co">#&gt; discharge_dispositionDied in hospital                                         0</span></span>
+<span><span class="co">#&gt; discharge_dispositionDischarged/transferred to court/law enforcement          0</span></span>
+<span><span class="co">#&gt; discharge_dispositionAlive, destination unknown                               0</span></span>
 <span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyquantile.html" class="external-link">svyquantile</a></span><span class="op">(</span><span class="op">~</span><span class="va">los_days</span>, <span class="va">design</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.25</span>, <span class="fl">0.5</span>, <span class="fl">0.75</span><span class="op">)</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $los_days</span></span>
 <span><span class="co">#&gt;      quantile ci.2.5 ci.97.5       se</span></span>

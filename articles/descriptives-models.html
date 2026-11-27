@@ -89,10 +89,9 @@
 needed by the summary and model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>death <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">DIED</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmppYtMma/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmptxgh3n/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -100,7 +99,7 @@ needed by the summary and model.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmppYtMma/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmptxgh3n/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -110,7 +109,7 @@ needed by the summary and model.</p>
 <span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
 <span>  <span class="va">nis</span>,</span>
 <span>  cohort <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>,</span>
-<span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">LOS</span>, <span class="va">DIED</span>, <span class="va">death</span>, <span class="va">heart_failure</span><span class="op">)</span>,</span>
+<span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">LOS</span>, <span class="va">DIED</span>, <span class="va">heart_failure</span><span class="op">)</span>,</span>
 <span>  annualize <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; Cohort: 192 discharges; weighted N 114.4; 24 hospitals across 2 years.</span></span></code></pre></div>
@@ -131,7 +130,7 @@ error use the survey design.</p>
 <span>  <span class="va">design</span>,</span>
 <span>  discharges <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  mean_age <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">AGE</span><span class="op">)</span>,</span>
-<span>  death_rate <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">death</span><span class="op">)</span></span>
+<span>  death_rate <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">DIED</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 6</span></span></span>
 <span><span class="co">#&gt;   discharges discharges_se mean_age mean_age_se death_rate death_rate_se</span></span>
@@ -147,26 +146,26 @@ only.</p>
 the design.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html" class="external-link">svyglm</a></span><span class="op">(</span></span>
-<span>  <span class="va">death</span> <span class="op">~</span> <span class="va">heart_failure</span> <span class="op">+</span> <span class="va">AGE</span> <span class="op">+</span> <span class="va">FEMALE</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span>,</span>
+<span>  <span class="va">DIED</span> <span class="op">~</span> <span class="va">heart_failure</span> <span class="op">+</span> <span class="va">AGE</span> <span class="op">+</span> <span class="va">FEMALE</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span>,</span>
 <span>  design <span class="op">=</span> <span class="va">design</span>,</span>
 <span>  family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">quasibinomial</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; svyglm(formula = death ~ heart_failure + AGE + FEMALE + factor(YEAR), </span></span>
+<span><span class="co">#&gt; svyglm(formula = DIED ~ heart_failure + AGE + FEMALE + factor(YEAR), </span></span>
 <span><span class="co">#&gt;     design = design, family = quasibinomial())</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Survey design:</span></span>
 <span><span class="co">#&gt; Called via srvyr</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;                    Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)       1.639e+00  1.906e+00   0.860  0.40442    </span></span>
-<span><span class="co">#&gt; heart_failureYes -8.726e-01  1.715e+00  -0.509  0.61872    </span></span>
-<span><span class="co">#&gt; AGE              -9.999e-02  2.814e-02  -3.553  0.00318 ** </span></span>
-<span><span class="co">#&gt; FEMALEFemale     -1.836e+01  7.455e-01 -24.626  6.3e-13 ***</span></span>
-<span><span class="co">#&gt; factor(YEAR)2020 -1.246e-16  8.742e-01   0.000  1.00000    </span></span>
+<span><span class="co">#&gt;                     Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept)        1.639e+00  1.906e+00   0.860  0.40442    </span></span>
+<span><span class="co">#&gt; heart_failureTRUE -8.726e-01  1.715e+00  -0.509  0.61872    </span></span>
+<span><span class="co">#&gt; AGE               -9.999e-02  2.814e-02  -3.553  0.00318 ** </span></span>
+<span><span class="co">#&gt; FEMALETRUE        -1.836e+01  7.455e-01 -24.626  6.3e-13 ***</span></span>
+<span><span class="co">#&gt; factor(YEAR)2020   2.569e-16  8.742e-01   0.000  1.00000    </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -193,6 +192,7 @@ alongside weighted summaries in the table body.</p>
 <span>  <span class="va">design</span>,</span>
 <span>  by <span class="op">=</span> <span class="va">heart_failure</span>,</span>
 <span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="va">FEMALE</span> <span class="op">~</span> <span class="st">"Female"</span>,</span>
 <span>  statistic <span class="op">=</span> <span class="va">AGE</span> <span class="op">~</span> <span class="st">"{mean} ({mean.std.error})"</span>,</span>
 <span>  missing_stat <span class="op">=</span> <span class="st">"{N_miss_unweighted}"</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -651,14 +651,14 @@ alongside weighted summaries in the table body.</p>
 <table class="table gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
 <thead><tr class="gt_col_headings">
 <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="label"><span class="gt_from_md"><strong>Characteristic</strong></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_2">
+<span class="gt_from_md"><strong>TRUE</strong> (unweighted N = 108)</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span>
+</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_0">
 <span class="gt_from_md"><strong>Overall</strong> (unweighted N = 192)</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span>
 </th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_1">
-<span class="gt_from_md"><strong>No</strong> (unweighted N = 84)</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span>
-</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="stat_2">
-<span class="gt_from_md"><strong>Yes</strong> (unweighted N = 108)</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span>
+<span class="gt_from_md"><strong>FALSE</strong> (unweighted N = 84)</span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>1</sup></span>
 </th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="p.value">
 <span class="gt_from_md"><strong>p-value</strong></span><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span>
@@ -667,31 +667,17 @@ alongside weighted summaries in the table body.</p>
 <tbody class="gt_table_body">
 <tr>
 <td headers="label" class="gt_row gt_left">Age, years</td>
+<td headers="stat_2" class="gt_row gt_center">58 (1)</td>
 <td headers="stat_0" class="gt_row gt_center">60 (1)</td>
 <td headers="stat_1" class="gt_row gt_center">62 (1)</td>
-<td headers="stat_2" class="gt_row gt_center">58 (1)</td>
 <td headers="p.value" class="gt_row gt_center">0.035</td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">Sex of patient</td>
-<td headers="stat_0" class="gt_row gt_center"><br></td>
-<td headers="stat_1" class="gt_row gt_center"><br></td>
-<td headers="stat_2" class="gt_row gt_center"><br></td>
+<td headers="label" class="gt_row gt_left">Female</td>
+<td headers="stat_2" class="gt_row gt_center">31 (50%)</td>
+<td headers="stat_0" class="gt_row gt_center">57 (50%)</td>
+<td headers="stat_1" class="gt_row gt_center">26 (50%)</td>
 <td headers="p.value" class="gt_row gt_center">&gt;0.9</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
-<td headers="stat_0" class="gt_row gt_center">57 (50%)</td>
-<td headers="stat_1" class="gt_row gt_center">26 (50%)</td>
-<td headers="stat_2" class="gt_row gt_center">31 (50%)</td>
-<td headers="p.value" class="gt_row gt_center"><br></td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
-<td headers="stat_0" class="gt_row gt_center">57 (50%)</td>
-<td headers="stat_1" class="gt_row gt_center">26 (50%)</td>
-<td headers="stat_2" class="gt_row gt_center">31 (50%)</td>
-<td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 </tbody>
 <tfoot>
@@ -1178,13 +1164,13 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    No</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Yes</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="estimate" class="gt_row gt_center">0.42</td>
 <td headers="conf.low" class="gt_row gt_center">0.01, 16.5</td>
 <td headers="p.value" class="gt_row gt_center">0.6</td>
@@ -1202,13 +1188,13 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="estimate" class="gt_row gt_center">0.00</td>
 <td headers="conf.low" class="gt_row gt_center">0.00, 0.00</td>
 <td headers="p.value" class="gt_row gt_center">&lt;0.001</td>
@@ -1705,13 +1691,13 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    No</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Yes</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="estimate" class="gt_row gt_center">0.18</td>
 <td headers="conf.low" class="gt_row gt_center">-0.71, 1.1</td>
 <td headers="p.value" class="gt_row gt_center">0.7</td>
@@ -1729,13 +1715,13 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="estimate" class="gt_row gt_center">-1.0</td>
 <td headers="conf.low" class="gt_row gt_center">-1.5, -0.53</td>
 <td headers="p.value" class="gt_row gt_center">&lt;0.001</td>
@@ -2220,14 +2206,14 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    No</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="stat_n" class="gt_row gt_center"><br></td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Yes</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="stat_n" class="gt_row gt_center"><br></td>
 <td headers="estimate" class="gt_row gt_center">0.28</td>
 <td headers="conf.low" class="gt_row gt_center">-0.59, 1.2</td>
@@ -2248,14 +2234,14 @@ linear tables report differences in mean length of stay.</p>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
+<td headers="label" class="gt_row gt_left">    FALSE</td>
 <td headers="stat_n" class="gt_row gt_center"><br></td>
 <td headers="estimate" class="gt_row gt_center">—</td>
 <td headers="conf.low" class="gt_row gt_center">—</td>
 <td headers="p.value" class="gt_row gt_center"><br></td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
+<td headers="label" class="gt_row gt_left">    TRUE</td>
 <td headers="stat_n" class="gt_row gt_center"><br></td>
 <td headers="estimate" class="gt_row gt_center">-1.0</td>
 <td headers="conf.low" class="gt_row gt_center">-1.5, -0.53</td>

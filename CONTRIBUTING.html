@@ -57,6 +57,10 @@
 
 <p>Work on a focused branch. From the repository root, install development dependencies with <code>pak::pak(".", dependencies = TRUE)</code> in R. Install <code>devtools</code>, <code>callr</code>, and <code>cyclocomp</code> for checks, and put <a href="https://posit-dev.github.io/air/cli.html" class="external-link">Air 0.13.0</a> and <a href="https://jarl.etiennebacher.com/#installation" class="external-link">Jarl 0.7.1</a> on your PATH.</p>
 <div class="section level2">
+<h2 id="data-types">Data types<a class="anchor" aria-label="anchor" href="#data-types"></a></h2>
+<p>Keep HCUP category codes numeric in DuckDB and derived binary indicators as BOOLEAN. Keep indicators logical in R, including after collection and in survey designs. Apply factor labels to multi-level codes at the R boundary with <code><a href="reference/nis_label.html">nis_label()</a></code>.</p>
+</div>
+<div class="section level2">
 <h2 id="verify-a-change">Verify a change<a class="anchor" aria-label="anchor" href="#verify-a-change"></a></h2>
 <ul><li>Before writing code, list what could fail. Prefer end-to-end tests of the public workflow with invented fixtures. Keep the inputs, exact command, platform, transcript, and observed results for each run. Follow <a href="AGENTS.html">AGENTS.md</a> when a test needs isolation.</li>
 <li>Run relevant tests with <code>devtools::test()</code>. Keep tests fast and safe to run in parallel. Put slow tests behind <code>EASYNIS_FULL_TESTS</code> and keep CI on each push under 10 minutes.</li>

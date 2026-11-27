@@ -16,7 +16,7 @@ in the derived outcomes.
 outcomes <- nis_open(nis_example(years = 2024)) |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp7AIH2p/duckdb
+#> ℹ /tmp/Rtmpx7hsgG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -24,7 +24,7 @@ outcomes <- nis_open(nis_example(years = 2024)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp7AIH2p/duckdb
+#> ℹ /tmp/Rtmpx7hsgG/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -41,8 +41,8 @@ design <- nis_design(
 #> Cohort: 96 discharges; weighted N 114.4; 12 hospitals across 1 years.
 ```
 
-- **In-hospital mortality.** `in_hospital_death` is the 0/1 indicator
-  from `DIED`. A discharge alive contributes zero. Missing or invalid
+- **In-hospital mortality.** `in_hospital_death` is a logical indicator
+  from `DIED`. A discharge alive has value `FALSE`. Missing or invalid
   `DIED` stays missing even when a disposition is recorded. The event is
   death during the sampled hospitalization. [HCUP DIED
   notes](https://hcup-us.ahrq.gov/db/vars/died/nisnote.jsp)
@@ -50,13 +50,17 @@ design <- nis_design(
   including zero for admission and discharge on the same date. Deaths
   and transfers can have recorded LOS for the sampled stay. [HCUP LOS
   notes](https://hcup-us.ahrq.gov/db/vars/los/nisnote.jsp)
-- **Discharge disposition.** `discharge_disposition` labels
-  `DISPUNIFORM`. Code 2 denotes transfer to a short-term hospital. Code
-  5 covers several types of other facilities, including skilled nursing
-  and intermediate care. Code 6 includes home health, home IV, and home
-  hospice. Codes 21 (court/law enforcement) and 99 (alive with
-  destination unknown) are valid categories. An invalid or missing code
-  yields a missing label. [HCUP DISPUNIFORM
+- **Discharge disposition.** `discharge_disposition` holds the numeric
+  `DISPUNIFORM` code. After collection,
+  [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
+  or
+  [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+  applies the factor labels. Code 2 denotes transfer to a short-term
+  hospital. Code 5 covers several types of other facilities, including
+  skilled nursing and intermediate care. Code 6 includes home health,
+  home IV, and home hospice. Codes 21 (court/law enforcement) and 99
+  (alive with destination unknown) are valid categories. An invalid or
+  missing code yields a missing disposition. [HCUP DISPUNIFORM
   notes](https://hcup-us.ahrq.gov/db/vars/dispuniform/nisnote.jsp)
 
 These are Core fields on both sides of the 2015 ICD transition. Review
@@ -74,28 +78,30 @@ median and the 25th and 75th percentiles while retaining same-day stays.
 
 ``` r
 
-survey::svymean(~in_hospital_death, design, na.rm = TRUE)
-#>                       mean     SE
-#> in_hospital_death 0.020105 0.0117
-survey::svymean(~factor(discharge_disposition), design, na.rm = TRUE)
-#>                                                                                       mean
-#> factor(discharge_disposition)Alive, destination unknown                              0.125
-#> factor(discharge_disposition)Died in hospital                                        0.125
-#> factor(discharge_disposition)Discharged/transferred to court/law enforcement         0.125
-#> factor(discharge_disposition)Home health care                                        0.125
-#> factor(discharge_disposition)Left against medical advice                             0.125
-#> factor(discharge_disposition)Routine discharge to home/self-care                     0.125
-#> factor(discharge_disposition)Transfer to another short-term hospital                 0.125
-#> factor(discharge_disposition)Transfer to SNF, intermediate care, or another facility 0.125
-#>                                                                                      SE
-#> factor(discharge_disposition)Alive, destination unknown                               0
-#> factor(discharge_disposition)Died in hospital                                         0
-#> factor(discharge_disposition)Discharged/transferred to court/law enforcement          0
-#> factor(discharge_disposition)Home health care                                         0
-#> factor(discharge_disposition)Left against medical advice                              0
-#> factor(discharge_disposition)Routine discharge to home/self-care                      0
-#> factor(discharge_disposition)Transfer to another short-term hospital                  0
-#> factor(discharge_disposition)Transfer to SNF, intermediate care, or another facility  0
+dplyr::summarise(design, mortality = srvyr::survey_mean(in_hospital_death, na.rm = TRUE))
+#> # A tibble: 1 × 2
+#>   mortality mortality_se
+#>       <dbl>        <dbl>
+#> 1    0.0201       0.0117
+survey::svymean(~discharge_disposition, design, na.rm = TRUE)
+#>                                                                               mean
+#> discharge_dispositionRoutine discharge to home/self-care                     0.125
+#> discharge_dispositionTransfer to another short-term hospital                 0.125
+#> discharge_dispositionTransfer to SNF, intermediate care, or another facility 0.125
+#> discharge_dispositionHome health care                                        0.125
+#> discharge_dispositionLeft against medical advice                             0.125
+#> discharge_dispositionDied in hospital                                        0.125
+#> discharge_dispositionDischarged/transferred to court/law enforcement         0.125
+#> discharge_dispositionAlive, destination unknown                              0.125
+#>                                                                              SE
+#> discharge_dispositionRoutine discharge to home/self-care                      0
+#> discharge_dispositionTransfer to another short-term hospital                  0
+#> discharge_dispositionTransfer to SNF, intermediate care, or another facility  0
+#> discharge_dispositionHome health care                                         0
+#> discharge_dispositionLeft against medical advice                              0
+#> discharge_dispositionDied in hospital                                         0
+#> discharge_dispositionDischarged/transferred to court/law enforcement          0
+#> discharge_dispositionAlive, destination unknown                               0
 survey::svyquantile(~los_days, design, c(0.25, 0.5, 0.75), na.rm = TRUE)
 #> $los_days
 #>      quantile ci.2.5 ci.97.5       se

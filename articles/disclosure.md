@@ -78,17 +78,19 @@ matching survey records. It uses the smaller count for masking and
 counts distinct year-scoped `YEAR` and `HOSP_NIS` identities from those
 records. Hospital support is checked within the cohort and the displayed
 non-missing, category, and by-group cell. Cells at or below the
-discharge threshold or supported by fewer than two hospitals are marked;
-overall cells follow the same complementary masking behavior described
-above. If the records or cards cannot unambiguously map a displayed
-cell, the function errors.
+discharge threshold or supported by fewer than two hospitals are marked.
+A dichotomous row is also masked when the non-missing complement is
+protected, even when the displayed event has sufficient support. Overall
+cells follow the same complementary masking behavior described above. If
+the records or cards cannot unambiguously map a displayed cell, the
+function errors.
 
 ``` r
 
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpHkacu8/duckdb
+#> ℹ /tmp/RtmpbAD65r/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -96,7 +98,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpHkacu8/duckdb
+#> ℹ /tmp/RtmpbAD65r/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -108,7 +110,8 @@ design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 table_one <- gtsummary::tbl_svysummary(
   design,
   by = RACE,
-  include = c(AGE, FEMALE)
+  include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female"
 )
 nis_suppress(table_one, threshold = 10)
 ```

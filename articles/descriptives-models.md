@@ -9,10 +9,9 @@ and keep the columns needed by the summary and model.
 ``` r
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50") |>
-  dplyr::mutate(death = as.integer(DIED))
+  nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppYtMma/duckdb
+#> ℹ /tmp/Rtmptxgh3n/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +19,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmppYtMma/duckdb
+#> ℹ /tmp/Rtmptxgh3n/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -30,7 +29,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 design <- nis_design(
   nis,
   cohort = AGE >= 18,
-  keep = c(AGE, FEMALE, LOS, DIED, death, heart_failure),
+  keep = c(AGE, FEMALE, LOS, DIED, heart_failure),
   annualize = TRUE
 )
 #> Cohort: 192 discharges; weighted N 114.4; 24 hospitals across 2 years.
@@ -55,7 +54,7 @@ srvyr::summarise(
   design,
   discharges = srvyr::survey_total(),
   mean_age = srvyr::survey_mean(AGE),
-  death_rate = srvyr::survey_mean(death)
+  death_rate = srvyr::survey_mean(DIED)
 )
 #> # A tibble: 1 × 6
 #>   discharges discharges_se mean_age mean_age_se death_rate death_rate_se
@@ -73,26 +72,26 @@ generalized linear models using the design.
 ``` r
 
 fit <- survey::svyglm(
-  death ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  DIED ~ heart_failure + AGE + FEMALE + factor(YEAR),
   design = design,
   family = quasibinomial()
 )
 summary(fit)
 #> 
 #> Call:
-#> svyglm(formula = death ~ heart_failure + AGE + FEMALE + factor(YEAR), 
+#> svyglm(formula = DIED ~ heart_failure + AGE + FEMALE + factor(YEAR), 
 #>     design = design, family = quasibinomial())
 #> 
 #> Survey design:
 #> Called via srvyr
 #> 
 #> Coefficients:
-#>                    Estimate Std. Error t value Pr(>|t|)    
-#> (Intercept)       1.639e+00  1.906e+00   0.860  0.40442    
-#> heart_failureYes -8.726e-01  1.715e+00  -0.509  0.61872    
-#> AGE              -9.999e-02  2.814e-02  -3.553  0.00318 ** 
-#> FEMALEFemale     -1.836e+01  7.455e-01 -24.626  6.3e-13 ***
-#> factor(YEAR)2020 -1.246e-16  8.742e-01   0.000  1.00000    
+#>                     Estimate Std. Error t value Pr(>|t|)    
+#> (Intercept)        1.639e+00  1.906e+00   0.860  0.40442    
+#> heart_failureTRUE -8.726e-01  1.715e+00  -0.509  0.61872    
+#> AGE               -9.999e-02  2.814e-02  -3.553  0.00318 ** 
+#> FEMALETRUE        -1.836e+01  7.455e-01 -24.626  6.3e-13 ***
+#> factor(YEAR)2020   2.569e-16  8.742e-01   0.000  1.00000    
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
@@ -125,6 +124,7 @@ gtsummary::tbl_svysummary(
   design,
   by = heart_failure,
   include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female",
   statistic = AGE ~ "{mean} ({mean.std.error})",
   missing_stat = "{N_miss_unweighted}"
 ) |>
@@ -133,7 +133,12 @@ gtsummary::tbl_svysummary(
   gtsummary::modify_header(gtsummary::all_stat_cols() ~ "**{level}** (unweighted N = {n_unweighted})")
 ```
 
-[TABLE]
+| **Characteristic** | **TRUE** (unweighted N = 108)¹ | **Overall** (unweighted N = 192)¹ | **FALSE** (unweighted N = 84)¹ | **p-value**² |
+|----|----|----|----|----|
+| Age, years | 58 (1) | 60 (1) | 62 (1) | 0.035 |
+| Female | 31 (50%) | 57 (50%) | 26 (50%) | \>0.9 |
+| ¹ Mean (SE); n (%) |  |  |  |  |
+| ² Design-based t-test; Pearson’s X^2: Rao & Scott adjustment |  |  |  |  |
 
 Use `tbl_regression()` to format your fitted models and
 `tbl_uvregression()` to fit and format a separate survey model for each

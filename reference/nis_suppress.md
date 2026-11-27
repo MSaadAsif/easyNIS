@@ -5,7 +5,9 @@ For a
 result, replaces displayed statistics when their corresponding
 unweighted count is at or below `threshold`. The count is the smaller of
 the summary card count and the number of matching records in the
-supplied survey design. Continuous2 statistic rows use the non-missing
+supplied survey design. A dichotomous row whose displayed level passes
+both rules is marked `Masked` if its non-missing complement fails the
+count or hospital rule. Continuous2 statistic rows use the non-missing
 count for their corresponding output column. If that count is absent,
 ambiguous, or non-finite for a displayed statistic, the function errors;
 blank statistic cells do not require a count. When a by-group cell is
@@ -103,7 +105,7 @@ Other disclosure:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpcCxYgA/duckdb
+#> ℹ /tmp/Rtmp3Fj7Fz/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -111,7 +113,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpcCxYgA/duckdb
+#> ℹ /tmp/Rtmp3Fj7Fz/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

@@ -106,7 +106,7 @@ codes, then creates diagnosis and procedure flags:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpuBTrAd/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpwB2nLp/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -124,7 +124,7 @@ codes, then creates diagnosis and procedure flags:</p>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>exposure <span class="op">=</span> <span class="st">"B34"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>example_procedure <span class="op">=</span> <span class="st">"0AB"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpuBTrAd/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpwB2nLp/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -155,10 +155,10 @@ the regex where the suffix matters.</p>
 <p>If a local cleaning helper used <code>case_when()</code> to turn
 known HCUP codes such as sex, payer, or discharge disposition into
 labels, remove those repeated recodes. <code><a href="../reference/nis_design.html">nis_design()</a></code> calls
-<code><a href="../reference/nis_label.html">nis_label()</a></code> on the collected analysis data. Known value
-codes become factors and receive variable labels; unknown values are not
-given guessed labels. You can call <code><a href="../reference/nis_label.html">nis_label()</a></code> directly on
-a collected data frame when you need the same recoding outside
+<code><a href="../reference/nis_label.html">nis_label()</a></code> on the collected analysis data. Known binary
+codes become logical, and multi-level codes become factors. Both receive
+variable labels. You can call <code><a href="../reference/nis_label.html">nis_label()</a></code> directly on a
+collected data frame when you need the same recoding outside
 <code><a href="../reference/nis_design.html">nis_design()</a></code>.</p>
 <p>Keep custom study-derived variables in <code>mutate()</code>. Set
 their factor order explicitly with <code><a href="https://forcats.tidyverse.org/reference/fct_relevel.html" class="external-link">forcats::fct_relevel()</a></code>,
@@ -174,13 +174,6 @@ and override the displayed label at the table where it is used:</p>
 <span>    dollars <span class="op">=</span> <span class="fl">2020</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    exposed <span class="op">=</span> <span class="fu">forcats</span><span class="fu">::</span><span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_relevel.html" class="external-link">fct_relevel</a></span><span class="op">(</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
-<span>        <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">exposure</span><span class="op">)</span> <span class="op">==</span> <span class="st">"Yes"</span>, <span class="st">"Yes"</span>, <span class="st">"No"</span><span class="op">)</span>,</span>
-<span>        levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"No"</span>, <span class="st">"Yes"</span><span class="op">)</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      <span class="st">"No"</span></span>
-<span>    <span class="op">)</span>,</span>
 <span>    age_band <span class="op">=</span> <span class="fu">forcats</span><span class="fu">::</span><span class="fu"><a href="https://forcats.tidyverse.org/reference/fct_relevel.html" class="external-link">fct_relevel</a></span><span class="op">(</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">65</span>, <span class="st">"65 or older"</span>, <span class="st">"Under 65"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>      <span class="st">"Under 65"</span></span>
@@ -192,9 +185,10 @@ HCUP labels already cover the common coded fields:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">table_one</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span>
 <span>  <span class="va">study_design</span>,</span>
-<span>  by <span class="op">=</span> <span class="va">exposed</span>,</span>
+<span>  by <span class="op">=</span> <span class="va">exposure</span>,</span>
 <span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">age_band</span>, <span class="va">DIED</span>, <span class="va">LOS</span>, <span class="va">cost_adj</span><span class="op">)</span>,</span>
 <span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="va">FEMALE</span> <span class="op">~</span> <span class="st">"Female"</span>,</span>
 <span>    <span class="va">age_band</span> <span class="op">~</span> <span class="st">"Illustrative age group"</span>,</span>
 <span>    <span class="va">cost_adj</span> <span class="op">~</span> <span class="st">"Hospital cost in 2020 USD"</span></span>
 <span>  <span class="op">)</span></span>
@@ -203,19 +197,17 @@ HCUP labels already cover the common coded fields:</p>
 <span><span class="va">table_one</span><span class="op">$</span><span class="va">table_body</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">variable</span>, <span class="va">label</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 10 × 2</span></span></span>
-<span><span class="co">#&gt;    variable label                      </span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> AGE      Age, years                 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> FEMALE   Sex of patient             </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> FEMALE   Male                       </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> FEMALE   Female                     </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> age_band Illustrative age group     </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> age_band Under 65                   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> age_band 65 or older                </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> DIED     Died during hospitalization</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> LOS      Length of stay, days       </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> cost_adj Hospital cost in 2020 USD</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 2</span></span></span>
+<span><span class="co">#&gt;   variable label                      </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> AGE      Age, years                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> FEMALE   Female                     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> age_band Illustrative age group     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> age_band Under 65                   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> age_band 65 or older                </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> DIED     Died during hospitalization</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> LOS      Length of stay, days       </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> cost_adj Hospital cost in 2020 USD</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="declare-the-cohort-with-nis_design">Declare the cohort with <code>nis_design()</code><a class="anchor" aria-label="anchor" href="#declare-the-cohort-with-nis_design"></a>

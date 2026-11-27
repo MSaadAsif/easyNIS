@@ -30,7 +30,7 @@ codes, then creates diagnosis and procedure flags:
 
 example_path <- nis_example(years = 2018:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpuBTrAd/duckdb
+#> ℹ /tmp/RtmpwB2nLp/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -48,7 +48,7 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpuBTrAd/duckdb
+#> ℹ /tmp/RtmpwB2nLp/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -87,9 +87,9 @@ repeated recodes.
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
 calls
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
-on the collected analysis data. Known value codes become factors and
-receive variable labels; unknown values are not given guessed labels.
-You can call
+on the collected analysis data. Known binary codes become logical, and
+multi-level codes become factors. Both receive variable labels. You can
+call
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
 directly on a collected data frame when you need the same recoding
 outside
@@ -112,13 +112,6 @@ study_design <- nis_flagged |>
     dollars = 2020
   ) |>
   dplyr::mutate(
-    exposed = forcats::fct_relevel(
-      factor(
-        dplyr::if_else(as.character(exposure) == "Yes", "Yes", "No"),
-        levels = c("No", "Yes")
-      ),
-      "No"
-    ),
     age_band = forcats::fct_relevel(
       factor(dplyr::if_else(AGE >= 65, "65 or older", "Under 65")),
       "Under 65"
@@ -134,9 +127,10 @@ already cover the common coded fields:
 
 table_one <- gtsummary::tbl_svysummary(
   study_design,
-  by = exposed,
+  by = exposure,
   include = c(AGE, FEMALE, age_band, DIED, LOS, cost_adj),
   label = list(
+    FEMALE ~ "Female",
     age_band ~ "Illustrative age group",
     cost_adj ~ "Hospital cost in 2020 USD"
   )
@@ -145,19 +139,17 @@ table_one <- gtsummary::tbl_svysummary(
 table_one$table_body |>
   dplyr::select(variable, label) |>
   dplyr::distinct()
-#> # A tibble: 10 × 2
-#>    variable label                      
-#>    <chr>    <chr>                      
-#>  1 AGE      Age, years                 
-#>  2 FEMALE   Sex of patient             
-#>  3 FEMALE   Male                       
-#>  4 FEMALE   Female                     
-#>  5 age_band Illustrative age group     
-#>  6 age_band Under 65                   
-#>  7 age_band 65 or older                
-#>  8 DIED     Died during hospitalization
-#>  9 LOS      Length of stay, days       
-#> 10 cost_adj Hospital cost in 2020 USD
+#> # A tibble: 8 × 2
+#>   variable label                      
+#>   <chr>    <chr>                      
+#> 1 AGE      Age, years                 
+#> 2 FEMALE   Female                     
+#> 3 age_band Illustrative age group     
+#> 4 age_band Under 65                   
+#> 5 age_band 65 or older                
+#> 6 DIED     Died during hospitalization
+#> 7 LOS      Length of stay, days       
+#> 8 cost_adj Hospital cost in 2020 USD
 ```
 
 ## Declare the cohort with `nis_design()`

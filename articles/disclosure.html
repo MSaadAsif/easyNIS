@@ -151,14 +151,16 @@ count for masking and counts distinct year-scoped <code>YEAR</code> and
 <code>HOSP_NIS</code> identities from those records. Hospital support is
 checked within the cohort and the displayed non-missing, category, and
 by-group cell. Cells at or below the discharge threshold or supported by
-fewer than two hospitals are marked; overall cells follow the same
+fewer than two hospitals are marked. A dichotomous row is also masked
+when the non-missing complement is protected, even when the displayed
+event has sufficient support. Overall cells follow the same
 complementary masking behavior described above. If the records or cards
 cannot unambiguously map a displayed cell, the function errors.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHkacu8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpbAD65r/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -166,7 +168,7 @@ cannot unambiguously map a displayed cell, the function errors.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpHkacu8/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpbAD65r/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -178,7 +180,8 @@ cannot unambiguously map a displayed cell, the function errors.</p>
 <span><span class="va">table_one</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span>
 <span>  <span class="va">design</span>,</span>
 <span>  by <span class="op">=</span> <span class="va">RACE</span>,</span>
-<span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span></span>
+<span>  include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">FEMALE</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="va">FEMALE</span> <span class="op">~</span> <span class="st">"Female"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="va">table_one</span>, threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
 <div id="eexombwkke" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
@@ -669,25 +672,7 @@ N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-styl
 <td headers="stat_6" class="gt_row gt_center">≤10</td>
 </tr>
 <tr>
-<td headers="label" class="gt_row gt_left">Sex of patient</td>
-<td headers="stat_1" class="gt_row gt_center"><br></td>
-<td headers="stat_2" class="gt_row gt_center"><br></td>
-<td headers="stat_3" class="gt_row gt_center"><br></td>
-<td headers="stat_4" class="gt_row gt_center"><br></td>
-<td headers="stat_5" class="gt_row gt_center"><br></td>
-<td headers="stat_6" class="gt_row gt_center"><br></td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Male</td>
-<td headers="stat_1" class="gt_row gt_center">≤10</td>
-<td headers="stat_2" class="gt_row gt_center">≤10</td>
-<td headers="stat_3" class="gt_row gt_center">≤10</td>
-<td headers="stat_4" class="gt_row gt_center">≤10</td>
-<td headers="stat_5" class="gt_row gt_center">≤10</td>
-<td headers="stat_6" class="gt_row gt_center">≤10</td>
-</tr>
-<tr>
-<td headers="label" class="gt_row gt_left">    Female</td>
+<td headers="label" class="gt_row gt_left">Female</td>
 <td headers="stat_1" class="gt_row gt_center">≤10</td>
 <td headers="stat_2" class="gt_row gt_center">≤10</td>
 <td headers="stat_3" class="gt_row gt_center">≤10</td>
@@ -704,7 +689,7 @@ N = 11</span><span class="gt_footnote_marks" style="white-space:nowrap;font-styl
     </tr>
 <tr class="gt_footnotes">
 <td class="gt_footnote" colspan="7">
-<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10; cells contributed by fewer than two distinct year-scoped hospitals are marked '&lt;2 hospitals', regardless of count. The discharge-count mask takes precedence when both rules apply. Other derivable cells are not masked; review tables for other derivable cells before sharing under the HCUP Data Use Agreement.</td>
+<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;line-height:0;"><sup>2</sup></span> Statistics based on unweighted n ≤10 are marked ≤10; cells contributed by fewer than two distinct year-scoped hospitals are marked '&lt;2 hospitals', regardless of count. The discharge-count mask takes precedence when both rules apply. Dichotomous rows with a protected complement are marked 'Masked' when the displayed event passes both rules. Other derivable cells are not masked; review tables for other derivable cells before sharing under the HCUP Data Use Agreement.</td>
     </tr>
 </tfoot>
 </table>
