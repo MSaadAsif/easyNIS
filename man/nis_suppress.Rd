@@ -89,6 +89,7 @@ nis_suppress(cells, count_col = n, hospital_col = hospitals, by = DQTR)
 \href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results}.
 
 Other disclosure:
-\code{\link[=nis_cell_counts]{nis_cell_counts()}}
+\code{\link[=nis_cell_counts]{nis_cell_counts()}},
+\code{\link[=nis_scan_outputs]{nis_scan_outputs()}}
 }
 \concept{disclosure}

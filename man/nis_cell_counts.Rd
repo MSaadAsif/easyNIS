@@ -31,6 +31,7 @@ nis_cell_counts(nis, by = DQTR)
 \href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results}.
 
 Other disclosure:
+\code{\link[=nis_scan_outputs]{nis_scan_outputs()}},
 \code{\link[=nis_suppress]{nis_suppress()}}
 }
 \concept{disclosure}
