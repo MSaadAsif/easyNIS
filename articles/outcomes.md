@@ -16,7 +16,7 @@ in the derived outcomes.
 outcomes <- nis_open(nis_example(years = 2024)) |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpLhokta/duckdb
+#> ℹ /tmp/RtmpQjS0Ob/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -24,7 +24,7 @@ outcomes <- nis_open(nis_example(years = 2024)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpLhokta/duckdb
+#> ℹ /tmp/RtmpQjS0Ob/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -38,7 +38,7 @@ design <- nis_design(
   keep = c(in_hospital_death, los_days, discharge_disposition, TOTCHG, CCR_NIS),
   dollars = 2024
 )
-#> Cohort: 96 discharges; weighted N 114.4; 12 hospitals across 1 years.
+#> Preparing the cohort survey design.
 ```
 
 - **In-hospital mortality.** `in_hospital_death` is a logical indicator
@@ -66,6 +66,26 @@ design <- nis_design(
 These are Core fields on both sides of the 2015 ICD transition. Review
 the source year’s coding before pooling releases. Historical `DISP` and
 detailed billing disposition fields use different codes.
+
+## Check legacy outcome recodes
+
+Examine the raw codes and the label before using a disposition category
+as an outcome proxy.
+
+``` r
+
+outcome <- nis_outcomes(data.frame(DIED = 1L, LOS = 2L, DISPUNIFORM = 6L))
+outcome[c("DIED", "DISPUNIFORM", "in_hospital_death", "discharge_disposition")]
+#>   DIED DISPUNIFORM in_hospital_death discharge_disposition
+#> 1    1           6              TRUE                     6
+as.character(nis_label(outcome)$discharge_disposition)
+#> [1] "Home health care"
+```
+
+The invented pair shows an in-hospital death alongside a home health
+care disposition. Keep these source measures separate and investigate
+inconsistent pairs against the source year’s coding before applying a
+study-specific rule.
 
 ## Choose an estimator
 

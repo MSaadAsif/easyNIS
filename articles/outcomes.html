@@ -95,7 +95,7 @@ DuckDB. The example uses invented discharges.</p>
 <code class="sourceCode R"><span><span class="va">outcomes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2024</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpLhokta/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQjS0Ob/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -103,7 +103,7 @@ DuckDB. The example uses invented discharges.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpLhokta/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQjS0Ob/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -117,7 +117,7 @@ DuckDB. The example uses invented discharges.</p>
 <span>  keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">in_hospital_death</span>, <span class="va">los_days</span>, <span class="va">discharge_disposition</span>, <span class="va">TOTCHG</span>, <span class="va">CCR_NIS</span><span class="op">)</span>,</span>
 <span>  dollars <span class="op">=</span> <span class="fl">2024</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Cohort: 96 discharges; weighted N 114.4; 12 hospitals across 1 years.</span></span></code></pre></div>
+<span><span class="co">#&gt; Preparing the cohort survey design.</span></span></code></pre></div>
 <ul>
 <li>
 <strong>In-hospital mortality.</strong>
@@ -155,6 +155,23 @@ Review the source year’s coding before pooling releases. Historical
 codes.</p>
 </div>
 <div class="section level2">
+<h2 id="check-legacy-outcome-recodes">Check legacy outcome recodes<a class="anchor" aria-label="anchor" href="#check-legacy-outcome-recodes"></a>
+</h2>
+<p>Examine the raw codes and the label before using a disposition
+category as an outcome proxy.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">outcome</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>DIED <span class="op">=</span> <span class="fl">1L</span>, LOS <span class="op">=</span> <span class="fl">2L</span>, DISPUNIFORM <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">outcome</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"DIED"</span>, <span class="st">"DISPUNIFORM"</span>, <span class="st">"in_hospital_death"</span>, <span class="st">"discharge_disposition"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   DIED DISPUNIFORM in_hospital_death discharge_disposition</span></span>
+<span><span class="co">#&gt; 1    1           6              TRUE                     6</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_label.html">nis_label</a></span><span class="op">(</span><span class="va">outcome</span><span class="op">)</span><span class="op">$</span><span class="va">discharge_disposition</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Home health care"</span></span></code></pre></div>
+<p>The invented pair shows an in-hospital death alongside a home health
+care disposition. Keep these source measures separate and investigate
+inconsistent pairs against the source year’s coding before applying a
+study-specific rule.</p>
+</div>
+<div class="section level2">
 <h2 id="choose-an-estimator">Choose an estimator<a class="anchor" aria-label="anchor" href="#choose-an-estimator"></a>
 </h2>
 <p>For mortality, the survey-weighted mean of the indicator is the
@@ -164,7 +181,7 @@ the denominator includes in-hospital deaths and the known-alive,
 unknown-destination group. For skewed LOS, survey quantiles give the
 median and the 25th and 75th percentiles while retaining same-day
 stays.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, mortality <span class="op">=</span> <span class="fu">srvyr</span><span class="fu">::</span><span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_mean.html" class="external-link">survey_mean</a></span><span class="op">(</span><span class="va">in_hospital_death</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
 <span><span class="co">#&gt;   mortality mortality_se</span></span>
@@ -219,7 +236,7 @@ procedure. For a procedure-based outcome, use the day recorded for its
 matched procedure slot. The example uses two timing rules on invented
 discharges. Both outcome procedures have the same recorded code, and
 only the first has a known day.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">timing_cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  YEAR <span class="op">=</span> <span class="fl">2020L</span>,</span>
 <span>  I10_DX1 <span class="op">=</span> <span class="st">"I509"</span>,</span>
@@ -269,7 +286,7 @@ charges and the hospital cost-to-charge ratio. Report the price index
 and reference dollar year. Use a survey-weighted arithmetic mean for
 cost per discharge or a survey-weighted median and quartiles for the
 distribution of costs.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">survey</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survey/man/surveysummary.html" class="external-link">svymean</a></span><span class="op">(</span><span class="op">~</span><span class="va">cost_adj</span>, <span class="va">design</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt;            mean     SE</span></span>
 <span><span class="co">#&gt; cost_adj 4368.3 54.991</span></span>

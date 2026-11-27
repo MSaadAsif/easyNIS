@@ -50,7 +50,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeuHVf9/duckdb
+#> ℹ /tmp/RtmpAG99G5/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -58,7 +58,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeuHVf9/duckdb
+#> ℹ /tmp/RtmpAG99G5/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -67,7 +67,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 #> ℹ See ?duckdb_storage for details and alternatives.
 
 annual <- nis_annual_totals(nis, heart_failure)
-#> Cohort: 162 discharges; weighted N 187.2; 27 hospitals across 3 years.
+#> Preparing the cohort survey design.
 nis_suppress(
   annual,
   count_col = "n",
@@ -140,7 +140,7 @@ domain, then group.
 period_design <- nis_design(
   nis, heart_failure, keep = c(DQTR, in_hospital_death, los_days)
 )
-#> Cohort: 162 discharges; weighted N 187.2; 27 hospitals across 3 years.
+#> Preparing the cohort survey design.
 period_design |>
   dplyr::group_by(YEAR) |>
   dplyr::summarise(
@@ -199,7 +199,7 @@ transition <- nis_open(nis_example(2015)) |>
   nis_flag_dx(hf10 = "I50", system = "icd10", position = "principal") |>
   dplyr::mutate(period = dplyr::if_else(DQTR == 4L, "Q4", "Q1-Q3"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeuHVf9/duckdb
+#> ℹ /tmp/RtmpAG99G5/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -210,7 +210,7 @@ transition <- nis_open(nis_example(2015)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeuHVf9/duckdb
+#> ℹ /tmp/RtmpAG99G5/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -226,7 +226,7 @@ split <- nis_design(
 ) |>
   dplyr::group_by(period) |>
   dplyr::summarise(discharges = srvyr::survey_total())
-#> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
+#> Preparing the cohort survey design.
 split
 #> # A tibble: 2 × 3
 #>   period discharges discharges_se
@@ -253,7 +253,7 @@ example all eligible discharges for a share of NIS discharges.
 ``` r
 
 pooled <- nis_design(nis, heart_failure, keep = YEAR, annualize = TRUE)
-#> Cohort: 162 discharges; weighted N 62.4; 27 hospitals across 3 years.
+#> Preparing the cohort survey design.
 srvyr::summarise(pooled, annual_discharges = srvyr::survey_total())
 #> # A tibble: 1 × 2
 #>   annual_discharges annual_discharges_se
@@ -273,7 +273,7 @@ Calendar-time spacing is preserved when included years have gaps.
 
 design <- nis_design(nis, heart_failure, keep = LOS) |>
   dplyr::mutate(elapsed = YEAR - 2018L)
-#> Cohort: 162 discharges; weighted N 187.2; 27 hospitals across 3 years.
+#> Preparing the cohort survey design.
 
 fit <- survey::svyglm(LOS ~ elapsed, design = design)
 summary(fit)$coefficients["elapsed", ]

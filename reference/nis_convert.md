@@ -77,7 +77,7 @@ if (requireNamespace("haven", quietly = TRUE)) {
   nis_open(dir, check_release = FALSE)
 }
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -85,7 +85,7 @@ if (requireNamespace("haven", quietly = TRUE)) {
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -93,7 +93,7 @@ if (requireNamespace("haven", quietly = TRUE)) {
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> # A query:  ?? x 2
-#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1020-azure:R 4.6.2/:memory:]
+#> # Database: DuckDB 2.0.1 [unknown@Linux 7.0.0-1018-aws:R 4.6.2/:memory:]
 #>   I10_DX1  YEAR
 #>   <chr>   <int>
 #> 1 I509     2020

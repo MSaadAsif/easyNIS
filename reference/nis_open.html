@@ -88,7 +88,7 @@ codes in <code>DX*</code>/<code>PR*</code> slots, and 2015 holds both systems (s
 <dt id="arg-reader">reader<a class="anchor" aria-label="anchor" href="#arg-reader"></a></dt>
 <dd><p>Parquet reader: <code>"duckdb"</code> (default) or <code>"arrow"</code>. Arrow is
 an optional dependency. Its reader preserves source bytes in strings,
-including malformed UTF-8; downstream string operations may still fail.</p></dd>
+including malformed UTF-8, and allocates memory outside DuckDB's buffer limit.</p></dd>
 
 
 <dt id="arg-check-release">check_release<a class="anchor" aria-label="anchor" href="#arg-check-release"></a></dt>
@@ -137,11 +137,12 @@ Use <code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="ex
 data to R. Years before 2016 emit an experimental ICD-9 layout notice once
 per R session. The <code>engine</code> argument was removed entirely; omit it regardless
 of the value used in older code.
-The default DuckDB reader may fail when scanning malformed UTF-8 in string
-columns. Set <code>reader = "arrow"</code> to opt in to scanning individual files
-through the optional <code>arrow</code> package. Arrow preserves the bytes; it does
-not detect or repair all invalid text, and downstream string operations
-may still fail on malformed values.</p>
+The default reader fails when a scan encounters malformed UTF-8.
+A lazy query can open successfully and fail later when it reads the
+affected column. Reconvert the correctly encoded source with
+<code><a href="nis_convert.html">nis_convert()</a></code> into a new directory to validate the text before analysis.
+Malformed bytes preserved by Arrow can still cause downstream string
+operations to fail.</p>
     </div>
     <div class="section level2">
     <h2 id="annual-release-check">Annual release check<a class="anchor" aria-label="anchor" href="#annual-release-check"></a></h2>
@@ -161,7 +162,8 @@ Parquet files with zero discharges across an entire opened year warn.
 When the fields are present, missing <code>YEAR</code>, <code>YEAR</code>
 outside the opened years, and <code>NIS_STRATUM</code> values of zero or less warn
 even for years without published reference totals. If the check cannot
-run, it warns with the reason. The lazy query remains available for use.
+run, it warns. Discrepancy warnings identify the affected checks or fields.
+The lazy query remains available for use.
 Cohort extracts are expected to differ from the published totals. Use
 <code>check_release = FALSE</code> to skip the check for an intentional extract.</p>
     </div>
@@ -201,7 +203,7 @@ directory, or under the R session's temporary directory by default.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpBUKjbF/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2QuqHF/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -210,7 +212,7 @@ directory, or under the R session's temporary directory by default.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span>
 <span class="r-in"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu">nis_open</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpBUKjbF/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2QuqHF/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>
@@ -231,7 +233,7 @@ directory, or under the R session's temporary directory by default.</p>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">YEAR</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> duckdb keeps downloaded extensions and secrets in a temporary directory:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/RtmpBUKjbF/duckdb</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2QuqHF/duckdb</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> This is removed when the R session ends.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Secrets are lost.</span>

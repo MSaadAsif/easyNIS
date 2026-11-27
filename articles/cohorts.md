@@ -13,7 +13,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(ablation = "02L")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -21,7 +21,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +119,7 @@ to use the same eligibility criteria in
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -127,7 +127,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -147,7 +147,7 @@ flow
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
 
 design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
-#> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
+#> Preparing the cohort survey design.
 dplyr::summarise(design, discharges = srvyr::unweighted(dplyr::n()))
 #> # A tibble: 1 × 1
 #>   discharges
@@ -175,7 +175,7 @@ match. These definitions illustrate the workflow on invented data.
 
 nis <- nis_open(nis_example(years = 2015))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -186,7 +186,7 @@ nis <- nis_open(nis_example(years = 2015))
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -221,7 +221,7 @@ attr(flow, "nis_criteria")
 #> 3 principal_dx dx    principal both   <named list [2]>
 
 design <- nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = c(AGE, LOS))
-#> Cohort: 54 discharges; weighted N 62.4; 9 hospitals across 1 years.
+#> Preparing the cohort survey design.
 fit <- survey::svyglm(LOS ~ AGE, design = design)
 stats::nobs(fit)
 #> [1] 54
@@ -246,7 +246,7 @@ expression, source years, and easyNIS version in each part’s metadata.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -254,7 +254,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -264,7 +264,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
                          keep = c(AGE, LOS))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -275,14 +275,14 @@ path <- nis_write_cohort(nis, heart_failure & AGE >= 50, tempfile(),
 # In a later session
 design <- nis_design(nis_open(path), keep = c(AGE, LOS), annualize = TRUE)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpAy2bVm/duckdb
+#> ℹ /tmp/RtmpeKMfAK/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-#> Cohort: 72 discharges; weighted N 41.6; 18 hospitals across 2 years.
+#> Preparing the cohort survey design.
 design |>
   dplyr::filter(AGE >= 65) |>
   dplyr::summarise(discharges = srvyr::survey_total())

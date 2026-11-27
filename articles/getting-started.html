@@ -101,7 +101,7 @@ checks every slot by default.</p>
 <span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>adult <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2JR7WX/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQ5Fhu1/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -109,7 +109,7 @@ checks every slot by default.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2JR7WX/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpQ5Fhu1/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -145,7 +145,7 @@ discharges with and without a matching diagnosis.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span>cohort <span class="op">=</span> <span class="va">adult</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">heart_failure</span>, <span class="va">AGE</span>, <span class="va">FEMALE</span>, <span class="va">los_days</span>, <span class="va">in_hospital_death</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Cohort: 192 discharges; weighted N 228.8; 24 hospitals across 2 years.</span></span>
+<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
 <span></span>
 <span><span class="va">estimates</span> <span class="op">&lt;-</span> <span class="va">design</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">heart_failure</span><span class="op">)</span> <span class="op">|&gt;</span></span>

@@ -12,7 +12,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpd032A2/duckdb
+#> ℹ /tmp/RtmpnrzL3i/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpd032A2/duckdb
+#> ℹ /tmp/RtmpnrzL3i/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -33,7 +33,7 @@ design <- nis_design(
   keep = c(AGE, FEMALE, LOS, in_hospital_death, heart_failure),
   annualize = TRUE
 )
-#> Cohort: 192 discharges; weighted N 114.4; 24 hospitals across 2 years.
+#> Preparing the cohort survey design.
 ```
 
 The design contains adult cohort rows. For hospital-years with no cohort

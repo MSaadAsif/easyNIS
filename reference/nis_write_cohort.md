@@ -64,7 +64,7 @@ cohorts](https://msaadasif.github.io/easyNIS/reference/articles/cohorts.md).
 ``` r
 query <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -72,7 +72,7 @@ query <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -81,7 +81,7 @@ query <- nis_open(nis_example(years = 2019))
 #> ℹ See ?duckdb_storage for details and alternatives.
 path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -90,14 +90,14 @@ path <- nis_write_cohort(query, AGE >= 65, tempfile(), keep = LOS)
 #> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis_open(path), keep = LOS)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-#> Cohort: 44 discharges; weighted N 52.5; 12 hospitals across 1 years.
+#> Preparing the cohort survey design.
 dplyr::summarise(design, discharges = srvyr::survey_total())
 #> # A tibble: 1 × 2
 #>   discharges discharges_se

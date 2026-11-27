@@ -82,32 +82,35 @@
     
     
 <p>This short guide maps common steps in an existing NIS analysis to
-easyNIS. The code below runs on <code><a href="../reference/nis_example.html">nis_example()</a></code> data only.
-Its diagnosis and procedure slots are replaced with invented codes so
-the example does not reproduce a real study definition.</p>
+easyNIS. The examples use invented discharges, including records from
+<code><a href="../reference/nis_example.html">nis_example()</a></code> with illustrative diagnosis and procedure
+codes.</p>
 <div class="section level2">
-<h2 id="replace-regular-expression-scans-with-prefix-flags">Replace regular-expression scans with prefix flags<a class="anchor" aria-label="anchor" href="#replace-regular-expression-scans-with-prefix-flags"></a>
+<h2 id="match-each-code-slot-separately">Match each code slot separately<a class="anchor" aria-label="anchor" href="#match-each-code-slot-separately"></a>
 </h2>
-<p>For a regex such as <code>^A12.*|^B34.*</code>, use the prefixes
+<p>A legacy scan that pastes slots together can match a code that never
+occurs in any slot. This invented record splits <code>A123</code> across
+two diagnoses.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">split_slots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>I10_DX1 <span class="op">=</span> <span class="st">"A1"</span>, I10_DX2 <span class="op">=</span> <span class="st">"234"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">split_slots</span>, <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"A123"</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">I10_DX1</span>, <span class="va">I10_DX2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span><span class="va">split_slots</span>, eligible <span class="op">=</span> <span class="st">"A123"</span><span class="op">)</span><span class="op">$</span><span class="va">eligible</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<p>For patterns such as <code>^A12.*|^B34.*</code>, use the prefixes
 <code>c("A12", "B34")</code>. <code><a href="../reference/nis_flag_dx.html">nis_flag_dx()</a></code> checks each
-diagnosis slot on its own, so codes in adjacent slots cannot join into a
-false match. It ignores case, periods, and spaces.
-<code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> does the same for procedure slots.
-<code>position = "principal"</code> checks slot 1;
-<code>"secondary"</code> checks diagnosis slots after slot 1; and
-<code>"any"</code> checks all available slots.</p>
-<p>Prefix lists express literal starts only. A regex that requires a
-particular suffix or code length, uses a character class, or allows
-optional characters cannot be represented exactly. Keep that condition
-in a regular expression with a plain
-<code>mutate()</code>/<code>if_any()</code> expression on the code
-columns.</p>
+diagnosis slot on its own. <code><a href="../reference/nis_flag_pr.html">nis_flag_pr()</a></code> does the same for
+procedure slots. Set <code>position = "principal"</code> to check slot
+1, <code>"secondary"</code> to check later diagnosis slots, or
+<code>"any"</code> to check all available slots. Prefix arguments are
+normalized by removing periods and spaces and converting to uppercase.
+Slot values are compared as stored.</p>
 <p>The example starts from generated data and substitutes illustrative
 codes, then creates diagnosis and procedure flags:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">example_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpsSellQ/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpgaiqj1/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -117,38 +120,52 @@ codes, then creates diagnosis and procedure flags:</p>
 <span></span>
 <span><span class="va">nis_flagged</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="va">example_path</span>, years <span class="op">=</span> <span class="fl">2018</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    I10_DX1 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">50</span>, <span class="st">"A1234"</span>, <span class="st">"C004"</span><span class="op">)</span>,</span>
-<span>    I10_DX2 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">FEMALE</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"B34.1"</span>, <span class="st">"C00.5"</span><span class="op">)</span>,</span>
+<span>    I10_DX1 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">50</span>, <span class="st">"A1234"</span>, <span class="st">"A12345"</span><span class="op">)</span>,</span>
+<span>    I10_DX2 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">FEMALE</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"B341"</span>, <span class="st">"C005"</span><span class="op">)</span>,</span>
 <span>    I10_PR1 <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">if_else</a></span><span class="op">(</span><span class="va">FEMALE</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"0AB12"</span>, <span class="st">"0XY34"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>cohort_dx <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A12"</span>, <span class="st">"B34"</span><span class="op">)</span>, position <span class="op">=</span> <span class="st">"principal"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>exposure <span class="op">=</span> <span class="st">"B34"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>example_procedure <span class="op">=</span> <span class="st">"0AB"</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpsSellQ/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpgaiqj1/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span></code></pre></div>
-<p>For a regex that needs a suffix test, keep the expression explicit.
-For example, this checks for an invented code with exactly two digits
-after <code>A12</code> in any diagnosis slot:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<p>Use a regex definition when the legacy rule constrains the rest of
+the code. This example requires exactly two digits after
+<code>A12</code> in a diagnosis slot. Both principal codes match the
+prefix, while only <code>A1234</code> matches the regex.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis_flagged</span> <span class="op">&lt;-</span> <span class="va">nis_flagged</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    exact_code <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/coalesce.html" class="external-link">coalesce</a></span><span class="op">(</span></span>
-<span>      <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/across.html" class="external-link">if_any</a></span><span class="op">(</span></span>
-<span>        <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"I10_DX"</span><span class="op">)</span>,</span>
-<span>        <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^A12[0-9]{2}$"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span><span class="op">)</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      <span class="cn">FALSE</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">)</span></span></code></pre></div>
-<p>The prefix and regex paths serve different definitions: use the
-simpler prefix flag where the condition is a literal prefix, and retain
-the regex where the suffix matters.</p>
+<span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>eligible <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>regex <span class="op">=</span> <span class="st">"A12[0-9]{2}"</span><span class="op">)</span>, position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpgaiqj1/duckdb</span></span>
+<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
+<span></span>
+<span><span class="va">nis_flagged</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">I10_DX1</span>, <span class="va">cohort_dx</span>, <span class="va">eligible</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
+<span><span class="co">#&gt;   I10_DX1 cohort_dx eligible</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> A12345  TRUE      FALSE   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> A1234   TRUE      TRUE</span></span></code></pre></div>
+<p>Regex definitions match the whole stored slot, so outer
+<code>^</code> and <code>$</code> anchors are optional. A legacy regex
+that intentionally matched only part of a code needs an explicit pattern
+for the rest of the slot, such as a trailing <code>.*</code> for an
+unconstrained suffix. Write case-sensitive patterns for the stored
+uppercase, undotted NIS codes. The package passes regex patterns through
+without the normalization applied to literal prefixes.</p>
 </div>
 <div class="section level2">
 <h2 id="replace-local-recode-helpers">Replace local recode helpers<a class="anchor" aria-label="anchor" href="#replace-local-recode-helpers"></a>
@@ -164,7 +181,7 @@ collected data frame when you need the same recoding outside
 <p>Keep custom study-derived variables in <code>mutate()</code>. Set
 their factor order explicitly with <code><a href="https://forcats.tidyverse.org/reference/fct_relevel.html" class="external-link">forcats::fct_relevel()</a></code>,
 and override the displayed label at the table where it is used:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">study_design</span> <span class="op">&lt;-</span> <span class="va">nis_flagged</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span></span>
 <span>    cohort <span class="op">=</span> <span class="va">cohort_dx</span> <span class="op">&amp;</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">50</span>,</span>
@@ -180,10 +197,10 @@ and override the displayed label at the table where it is used:</p>
 <span>      <span class="st">"Under 65"</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="co">#&gt; Cohort: 201 discharges; weighted N 239.7; 36 hospitals across 3 years.</span></span></code></pre></div>
+<span><span class="co">#&gt; Preparing the cohort survey design.</span></span></code></pre></div>
 <p>Use <code>gtsummary</code> label overrides for derived variables;
 HCUP labels already cover the common coded fields:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">table_one</span> <span class="op">&lt;-</span> <span class="fu">gtsummary</span><span class="fu">::</span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span></span>
 <span>  <span class="va">study_design</span>,</span>
 <span>  by <span class="op">=</span> <span class="va">exposure</span>,</span>
@@ -209,6 +226,24 @@ HCUP labels already cover the common coded fields:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> DIED     Died during hospitalization</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> LOS      Length of stay, days       </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> cost_adj Hospital cost in 2020 USD</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="keep-discharge-disposition-and-mortality-separate">Keep discharge disposition and mortality separate<a class="anchor" aria-label="anchor" href="#keep-discharge-disposition-and-mortality-separate"></a>
+</h2>
+<p>Check source values alongside the derived outcomes and the displayed
+disposition label before carrying over a legacy recode.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">outcomes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>DIED <span class="op">=</span> <span class="fl">1L</span>, LOS <span class="op">=</span> <span class="fl">2L</span>, DISPUNIFORM <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">outcomes</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"DIED"</span>, <span class="st">"DISPUNIFORM"</span>, <span class="st">"in_hospital_death"</span>, <span class="st">"discharge_disposition"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   DIED DISPUNIFORM in_hospital_death discharge_disposition</span></span>
+<span><span class="co">#&gt; 1    1           6              TRUE                     6</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_label.html">nis_label</a></span><span class="op">(</span><span class="va">outcomes</span><span class="op">)</span><span class="op">$</span><span class="va">discharge_disposition</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Home health care"</span></span></code></pre></div>
+<p>This invented row has an in-hospital death flag and a disposition
+label of “Home health care.” Check inconsistent pairs against the
+source-year coding and keep a documented rule for handling them. Use
+<code>in_hospital_death</code> for mortality and
+<code>discharge_disposition</code> for destination. See <a href="articles/outcomes.html">Hospitalization outcomes</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="declare-the-cohort-with-nis_design">Declare the cohort with <code>nis_design()</code><a class="anchor" aria-label="anchor" href="#declare-the-cohort-with-nis_design"></a>

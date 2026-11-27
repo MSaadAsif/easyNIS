@@ -17,7 +17,7 @@ design when you need grouped survey summaries.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpupmMT5/duckdb
+#> ℹ /tmp/RtmpzdB3Ke/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpupmMT5/duckdb
+#> ℹ /tmp/RtmpzdB3Ke/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -38,7 +38,7 @@ design <- nis_design(
   keep = c(AGE, LOS),
   annualize = TRUE
 )
-#> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
+#> Preparing the cohort survey design.
 srvyr::summarise(design, total = srvyr::survey_total(),
                  mean_los = srvyr::survey_mean(LOS))
 #> # A tibble: 1 × 4
@@ -125,7 +125,7 @@ The propensity model uses age as its only predictor.
 ``` r
 
 original <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS, heart_failure))
-#> Cohort: 192 discharges; weighted N 228.8; 24 hospitals across 2 years.
+#> Preparing the cohort survey design.
 propensity <- survey::svyglm(
   heart_failure ~ AGE, design = original, family = quasibinomial()
 )

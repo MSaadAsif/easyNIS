@@ -31,8 +31,8 @@ nis_open(
 
   Parquet reader: `"duckdb"` (default) or `"arrow"`. Arrow is an
   optional dependency. Its reader preserves source bytes in strings,
-  including malformed UTF-8; downstream string operations may still
-  fail.
+  including malformed UTF-8, and allocates memory outside DuckDB's
+  buffer limit.
 
 - check_release:
 
@@ -83,12 +83,14 @@ open while the lazy table is in use and closes after it is released. Use
 [`dplyr::collect()`](https://dplyr.tidyverse.org/reference/compute.html)
 to return data to R. Years before 2016 emit an experimental ICD-9 layout
 notice once per R session. The `engine` argument was removed entirely;
-omit it regardless of the value used in older code. The default DuckDB
-reader may fail when scanning malformed UTF-8 in string columns. Set
-`reader = "arrow"` to opt in to scanning individual files through the
-optional `arrow` package. Arrow preserves the bytes; it does not detect
-or repair all invalid text, and downstream string operations may still
-fail on malformed values.
+omit it regardless of the value used in older code. The default reader
+fails when a scan encounters malformed UTF-8. A lazy query can open
+successfully and fail later when it reads the affected column. Reconvert
+the correctly encoded source with
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
+into a new directory to validate the text before analysis. Malformed
+bytes preserved by Arrow can still cause downstream string operations to
+fail.
 
 ## Annual release check
 
@@ -107,9 +109,10 @@ below. Parquet files with zero discharges across an entire opened year
 warn. When the fields are present, missing `YEAR`, `YEAR` outside the
 opened years, and `NIS_STRATUM` values of zero or less warn even for
 years without published reference totals. If the check cannot run, it
-warns with the reason. The lazy query remains available for use. Cohort
-extracts are expected to differ from the published totals. Use
-`check_release = FALSE` to skip the check for an intentional extract.
+warns. Discrepancy warnings identify the affected checks or fields. The
+lazy query remains available for use. Cohort extracts are expected to
+differ from the published totals. Use `check_release = FALSE` to skip
+the check for an intentional extract.
 
 ## Large data
 
@@ -150,7 +153,7 @@ Other data-access:
 ``` r
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -159,7 +162,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -180,7 +183,7 @@ nis_open(path, years = 2020) |>
   dplyr::count(YEAR) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpBUKjbF/duckdb
+#> ℹ /tmp/Rtmp2QuqHF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

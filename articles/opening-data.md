@@ -11,7 +11,7 @@ quantities.
 
 path <- nis_example(years = 2019:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -20,7 +20,7 @@ path <- nis_example(years = 2019:2020)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(path)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -74,7 +74,7 @@ source <- file.path(converted, "NIS_2020.dta")
 haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
 nis_convert(source, converted)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +83,7 @@ nis_convert(source, converted)
 #> ℹ See ?duckdb_storage for details and alternatives.
 nis_open(converted, check_release = FALSE) |> dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +119,7 @@ record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
 writeLines(record, core)
 nis_convert(core, converted_core)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -133,7 +133,7 @@ nis_open(converted_core, check_release = FALSE) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -161,7 +161,7 @@ nis_open(path, years = 2020) |>
   dplyr::collect() |>
   head()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -193,8 +193,8 @@ HCUP’s Core Weighted and Hospital Weights summary statistics for
 statistics](https://hcup-us.ahrq.gov/db/nation/nis/nissummstats.jsp)
 
 When those fields are present, missing `YEAR`, `YEAR` outside the opened
-years, and nonpositive `NIS_STRATUM` values also warn. Warnings leave
-the lazy query available. Files from
+years, and nonpositive `NIS_STRATUM` values also warn. Warnings identify
+affected checks or fields and leave the lazy query available. Files from
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
 still undergo these integrity checks and are excluded from the published
 totals. If you open an intentional extract, set `check_release = FALSE`
@@ -241,14 +241,13 @@ estimates](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp#hosp
 uses DuckDB’s native Parquet reader by default and returns a lazy dbplyr
 table. `duckdb`, `dbplyr`, and `DBI` are required dependencies. Filter
 and select before collecting when later analysis needs an in-memory data
-frame. The default reader is unchanged; `reader = "arrow"` opts in to
-the optional `arrow` package for reading Parquet files individually.
+frame.
 
 ``` r
 
 duck <- nis_open(path, years = 2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpQiGBuj/duckdb
+#> ℹ /tmp/Rtmpghh4He/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -264,16 +263,26 @@ duck |> dplyr::count(YEAR) |> dplyr::collect()
 
 This count is the same synthetic year summary, evaluated through DuckDB.
 
-Arrow preserves source bytes in string columns, including malformed
-UTF-8 bytes. It does not repair or automatically detect every invalid
-string, and malformed values may still fail in downstream string
-operations. Validate or repair text before analysis when those
-operations are needed.
+## Malformed UTF-8
 
-When converting HCUP ASCII files to Parquet, declare the source encoding
-so string values are written as valid UTF-8. For example, convert
-Latin-1 text to UTF-8 rather than writing bytes under the wrong encoding
-label.
+The default reader raises an error when a scan encounters malformed
+UTF-8 in a string column. A lazy query can open successfully and fail
+later during flagging, collection, or survey preparation. A clean
+projection can still work because DuckDB need only read the requested
+columns.
+
+Reconvert the source with
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
+into a new directory. Conversion validates text and rejects malformed
+strings. For Stata, SAS, or SPSS input, supply the known original
+encoding when it differs from the format’s default.
+
+The optional `reader = "arrow"` preserves malformed bytes, which can
+still cause downstream string operations to fail. Arrow scan allocations
+are outside DuckDB’s `memory_limit`, which controls DuckDB-managed
+buffers. R allocations also contribute to process memory. A DuckDB
+buffer limit cannot bound process commit when scanning with Arrow.
+Reconvert the source before analysis.
 
 ## Common pitfalls
 

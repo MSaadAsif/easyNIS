@@ -1,27 +1,35 @@
 # Porting an existing NIS study to easyNIS
 
 This short guide maps common steps in an existing NIS analysis to
-easyNIS. The code below runs on
+easyNIS. The examples use invented discharges, including records from
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-data only. Its diagnosis and procedure slots are replaced with invented
-codes so the example does not reproduce a real study definition.
+with illustrative diagnosis and procedure codes.
 
-## Replace regular-expression scans with prefix flags
+## Match each code slot separately
 
-For a regex such as `^A12.*|^B34.*`, use the prefixes `c("A12", "B34")`.
+A legacy scan that pastes slots together can match a code that never
+occurs in any slot. This invented record splits `A123` across two
+diagnoses.
+
+``` r
+
+split_slots <- data.frame(I10_DX1 = "A1", I10_DX2 = "234")
+with(split_slots, grepl("A123", paste0(I10_DX1, I10_DX2)))
+#> [1] TRUE
+nis_flag_dx(split_slots, eligible = "A123")$eligible
+#> [1] FALSE
+```
+
+For patterns such as `^A12.*|^B34.*`, use the prefixes
+`c("A12", "B34")`.
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
-checks each diagnosis slot on its own, so codes in adjacent slots cannot
-join into a false match. It ignores case, periods, and spaces.
+checks each diagnosis slot on its own.
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
-does the same for procedure slots. `position = "principal"` checks slot
-1; `"secondary"` checks diagnosis slots after slot 1; and `"any"` checks
-all available slots.
-
-Prefix lists express literal starts only. A regex that requires a
-particular suffix or code length, uses a character class, or allows
-optional characters cannot be represented exactly. Keep that condition
-in a regular expression with a plain `mutate()`/`if_any()` expression on
-the code columns.
+does the same for procedure slots. Set `position = "principal"` to check
+slot 1, `"secondary"` to check later diagnosis slots, or `"any"` to
+check all available slots. Prefix arguments are normalized by removing
+periods and spaces and converting to uppercase. Slot values are compared
+as stored.
 
 The example starts from generated data and substitutes illustrative
 codes, then creates diagnosis and procedure flags:
@@ -30,7 +38,7 @@ codes, then creates diagnosis and procedure flags:
 
 example_path <- nis_example(years = 2018:2020)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpsSellQ/duckdb
+#> ℹ /tmp/Rtmpgaiqj1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -40,15 +48,15 @@ example_path <- nis_example(years = 2018:2020)
 
 nis_flagged <- nis_open(example_path, years = 2018:2020) |>
   dplyr::mutate(
-    I10_DX1 = dplyr::if_else(AGE >= 50, "A1234", "C004"),
-    I10_DX2 = dplyr::if_else(FEMALE == 1, "B34.1", "C00.5"),
+    I10_DX1 = dplyr::if_else(AGE >= 50, "A1234", "A12345"),
+    I10_DX2 = dplyr::if_else(FEMALE == 1, "B341", "C005"),
     I10_PR1 = dplyr::if_else(FEMALE == 1, "0AB12", "0XY34")
   ) |>
   nis_flag_dx(cohort_dx = c("A12", "B34"), position = "principal") |>
   nis_flag_dx(exposure = "B34", position = "any") |>
   nis_flag_pr(example_procedure = "0AB", position = "any")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpsSellQ/duckdb
+#> ℹ /tmp/Rtmpgaiqj1/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -57,27 +65,41 @@ nis_flagged <- nis_open(example_path, years = 2018:2020) |>
 #> ℹ See ?duckdb_storage for details and alternatives.
 ```
 
-For a regex that needs a suffix test, keep the expression explicit. For
-example, this checks for an invented code with exactly two digits after
-`A12` in any diagnosis slot:
+Use a regex definition when the legacy rule constrains the rest of the
+code. This example requires exactly two digits after `A12` in a
+diagnosis slot. Both principal codes match the prefix, while only
+`A1234` matches the regex.
 
 ``` r
 
 nis_flagged <- nis_flagged |>
-  dplyr::mutate(
-    exact_code = dplyr::coalesce(
-      dplyr::if_any(
-        dplyr::starts_with("I10_DX"),
-        ~ grepl("^A12[0-9]{2}$", as.character(.x))
-      ),
-      FALSE
-    )
-  )
+  nis_flag_dx(eligible = list(regex = "A12[0-9]{2}"), position = "any")
+#> duckdb keeps downloaded extensions and secrets in a temporary directory:
+#> ℹ /tmp/Rtmpgaiqj1/duckdb
+#> This is removed when the R session ends.
+#> • Extensions are re-downloaded each session.
+#> • Secrets are lost.
+#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
+#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
+#> ℹ See ?duckdb_storage for details and alternatives.
+
+nis_flagged |>
+  dplyr::distinct(I10_DX1, cohort_dx, eligible) |>
+  dplyr::collect()
+#> # A tibble: 2 × 3
+#>   I10_DX1 cohort_dx eligible
+#>   <chr>   <lgl>     <lgl>   
+#> 1 A12345  TRUE      FALSE   
+#> 2 A1234   TRUE      TRUE
 ```
 
-The prefix and regex paths serve different definitions: use the simpler
-prefix flag where the condition is a literal prefix, and retain the
-regex where the suffix matters.
+Regex definitions match the whole stored slot, so outer `^` and `$`
+anchors are optional. A legacy regex that intentionally matched only
+part of a code needs an explicit pattern for the rest of the slot, such
+as a trailing `.*` for an unconstrained suffix. Write case-sensitive
+patterns for the stored uppercase, undotted NIS codes. The package
+passes regex patterns through without the normalization applied to
+literal prefixes.
 
 ## Replace local recode helpers
 
@@ -117,7 +139,7 @@ study_design <- nis_flagged |>
       "Under 65"
     )
   )
-#> Cohort: 201 discharges; weighted N 239.7; 36 hospitals across 3 years.
+#> Preparing the cohort survey design.
 ```
 
 Use `gtsummary` label overrides for derived variables; HCUP labels
@@ -151,6 +173,28 @@ table_one$table_body |>
 #> 7 LOS      Length of stay, days       
 #> 8 cost_adj Hospital cost in 2020 USD
 ```
+
+## Keep discharge disposition and mortality separate
+
+Check source values alongside the derived outcomes and the displayed
+disposition label before carrying over a legacy recode.
+
+``` r
+
+outcomes <- nis_outcomes(data.frame(DIED = 1L, LOS = 2L, DISPUNIFORM = 6L))
+outcomes[c("DIED", "DISPUNIFORM", "in_hospital_death", "discharge_disposition")]
+#>   DIED DISPUNIFORM in_hospital_death discharge_disposition
+#> 1    1           6              TRUE                     6
+as.character(nis_label(outcomes)$discharge_disposition)
+#> [1] "Home health care"
+```
+
+This invented row has an in-hospital death flag and a disposition label
+of “Home health care.” Check inconsistent pairs against the source-year
+coding and keep a documented rule for handling them. Use
+`in_hospital_death` for mortality and `discharge_disposition` for
+destination. See [Hospitalization
+outcomes](https://msaadasif.github.io/easyNIS/articles/articles/outcomes.md).
 
 ## Declare the cohort with `nis_design()`
 
