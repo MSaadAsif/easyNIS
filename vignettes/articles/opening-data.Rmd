@@ -36,6 +36,31 @@ counts from `nis_cell_counts()`, masks cells from fewer than two hospitals. Use
 `nis_example()` to try the workflow without
 licensed data.
 
+## Convert a statistical data file
+
+`nis_convert()` reads annual Stata (`.dta`), SAS (`.sas7bdat`), and SPSS
+(`.sav`) files using haven. Supply a file with a numeric `YEAR` column and
+an existing output directory. The converter reads bounded batches, checks
+encoding, code syntax and row counts, and publishes the annual Parquet
+directory only after all checks pass. For a legacy Stata file known to use
+Latin-1, pass `encoding = "latin1"`.
+For 2015 files with populated ICD slots, keep `DQTR` or the applicable
+`DXVER` and `PRVER` indicators so the converter can check the coding era.
+Later SAS and SPSS batches can rescan earlier records. This keeps memory
+bounded and can make wide, compressed files slow to convert.
+
+```{r convert, eval=requireNamespace("haven", quietly=TRUE)}
+converted <- tempfile()
+dir.create(converted)
+source <- file.path(converted, "NIS_2020.dta")
+haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
+nis_convert(source, converted)
+nis_open(converted, check_release = FALSE) |> dplyr::collect()
+```
+
+The invented example skips the release comparison. Leave it enabled for
+files representing an HCUP release.
+
 ## Select years and columns
 
 `years` limits which annual files are opened. Use `dplyr::select()` to narrow
