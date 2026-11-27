@@ -17,7 +17,7 @@ The examples use invented data.
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp960Mca/duckdb
+#> ℹ /tmp/Rtmp2EvK3p/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -25,7 +25,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmp960Mca/duckdb
+#> ℹ /tmp/Rtmp2EvK3p/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -135,3 +135,37 @@ read.csv(file, check.names = FALSE)
 
 Review the CSV alongside any table headings, footnotes, totals, and
 related outputs you plan to share.
+
+## Scan the finished publication folder
+
+Place the files you intend to publish in a dedicated folder. After
+rendering reports and exporting tables, run the scan on that folder and
+its subfolders.
+
+``` r
+
+nis_scan_outputs("public-outputs")
+nis_scan_outputs("public-outputs", error = TRUE)
+```
+
+The result gives each finding’s relative file path, location, and issue
+type. Identifier findings give the recognized field name. The scan looks
+for names such as `KEY_NIS`, `HOSP_NIS`, legacy `KEY` and `HOSPID`, and
+HCUP linkage fields such as `VisitLink`. A methods description can
+trigger a finding simply by naming a field. [HCUP NIS data
+elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp)
+
+The scan flags visible integers from 1 to 10 under headers such as `n`,
+`unweighted n`, `Count`, and `n (%)`. It also looks for explicit
+statements such as “n = 5” or “5 discharges.” It accepts suppression
+markers such as `<=10` and `Masked`. Report readers handle UTF-8 CSV,
+TSV, HTML, Markdown and plain text, plus XLSX worksheets and DOCX text
+and tables. XLSX requires `readxl`, HTML and DOCX require `xml2`, and
+Markdown also requires `commonmark`. A supported file the scan cannot
+read yields a `scan_error` finding.
+
+Review PDFs, images, charts, renamed fields, workbook formulas, and
+unusual table layouts manually. Check for indirect identification, cells
+with too few contributing hospitals, and counts readers can infer from
+totals, percentages, or other releases. A clean scan covers only the
+patterns it recognizes.

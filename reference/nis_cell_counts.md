@@ -37,6 +37,7 @@ results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
 results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
+[`nis_scan_outputs()`](https://msaadasif.github.io/easyNIS/reference/nis_scan_outputs.md),
 [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
 
 ## Examples
@@ -44,7 +45,7 @@ Other disclosure:
 ``` r
 nis <- nis_open(nis_example(2020))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpwxUhgt/duckdb
+#> ℹ /tmp/Rtmp9MfXAY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -52,7 +53,7 @@ nis <- nis_open(nis_example(2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpwxUhgt/duckdb
+#> ℹ /tmp/Rtmp9MfXAY/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

@@ -21,7 +21,7 @@ library(srvyr)
 
 nis <- nis_open(nis_example(years = 2015))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNBOwrH/duckdb
+#> ℹ /tmp/RtmpgjUr8x/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -32,7 +32,7 @@ nis <- nis_open(nis_example(years = 2015))
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpNBOwrH/duckdb
+#> ℹ /tmp/RtmpgjUr8x/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

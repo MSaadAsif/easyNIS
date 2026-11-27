@@ -92,7 +92,7 @@
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp960Mca/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2EvK3p/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -100,7 +100,7 @@
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp960Mca/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp2EvK3p/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -713,6 +713,38 @@ non-UTF-8 locales.</p>
 <span><span class="co">#&gt; 1                           &lt;=10</span></span></code></pre></div>
 <p>Review the CSV alongside any table headings, footnotes, totals, and
 related outputs you plan to share.</p>
+</div>
+<div class="section level2">
+<h2 id="scan-the-finished-publication-folder">Scan the finished publication folder<a class="anchor" aria-label="anchor" href="#scan-the-finished-publication-folder"></a>
+</h2>
+<p>Place the files you intend to publish in a dedicated folder. After
+rendering reports and exporting tables, run the scan on that folder and
+its subfolders.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_scan_outputs.html">nis_scan_outputs</a></span><span class="op">(</span><span class="st">"public-outputs"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nis_scan_outputs.html">nis_scan_outputs</a></span><span class="op">(</span><span class="st">"public-outputs"</span>, error <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>The result gives each finding’s relative file path, location, and
+issue type. Identifier findings give the recognized field name. The scan
+looks for names such as <code>KEY_NIS</code>, <code>HOSP_NIS</code>,
+legacy <code>KEY</code> and <code>HOSPID</code>, and HCUP linkage fields
+such as <code>VisitLink</code>. A methods description can trigger a
+finding simply by naming a field. <a href="https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp" class="external-link">HCUP NIS data
+elements</a></p>
+<p>The scan flags visible integers from 1 to 10 under headers such as
+<code>n</code>, <code>unweighted n</code>, <code>Count</code>, and
+<code>n (%)</code>. It also looks for explicit statements such as “n =
+5” or “5 discharges.” It accepts suppression markers such as
+<code>&lt;=10</code> and <code>Masked</code>. Report readers handle
+UTF-8 CSV, TSV, HTML, Markdown and plain text, plus XLSX worksheets and
+DOCX text and tables. XLSX requires <code>readxl</code>, HTML and DOCX
+require <code>xml2</code>, and Markdown also requires
+<code>commonmark</code>. A supported file the scan cannot read yields a
+<code>scan_error</code> finding.</p>
+<p>Review PDFs, images, charts, renamed fields, workbook formulas, and
+unusual table layouts manually. Check for indirect identification, cells
+with too few contributing hospitals, and counts readers can infer from
+totals, percentages, or other releases. A clean scan covers only the
+patterns it recognizes.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -87,5 +87,7 @@ Reuse eligibility criteria with
   : Count discharges and contributing hospitals by cell
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
   : Suppress small unweighted cells in a survey summary
+- [`nis_scan_outputs()`](https://msaadasif.github.io/easyNIS/reference/nis_scan_outputs.md)
+  : Scan a publication folder for disclosure risks
 - [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
   : Create a new NIS study folder
