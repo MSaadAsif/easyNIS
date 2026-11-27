@@ -155,6 +155,8 @@ Flag codes, timing, and eligibility; audit cohort definitions.
   : Flag procedure timing relative to an index procedure
 - [`nis_prday_completeness()`](https://msaadasif.github.io/easyNIS/reference/nis_prday_completeness.md)
   : Summarize procedure-day completeness by year and procedure slot
+- [`nis_add_ccsr()`](https://msaadasif.github.io/easyNIS/reference/nis_add_ccsr.md)
+  : Add CCSR categories to a NIS query
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
   : ICD-10 codes in HCUP CCSR categories
 - [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)

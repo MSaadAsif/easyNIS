@@ -13,7 +13,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
               position = "any") |>
   nis_flag_pr(ablation = "02L")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgWJUPq/duckdb
+#> ℹ /tmp/Rtmp3Z2jTc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -21,7 +21,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgWJUPq/duckdb
+#> ℹ /tmp/Rtmp3Z2jTc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -45,30 +45,38 @@ principal one.
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)
 supports `"any"` and `"principal"`.
 
-## Use a CCSR reference file
+## Classify diagnoses and procedures with CCSR
 
-easyNIS does not ship clinical code lists.
-[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
-reads an analyst-supplied HCUP reference file; the example below writes
-a tiny invented CSV file and removes it after use.
+[`nis_add_ccsr()`](https://msaadasif.github.io/easyNIS/reference/nis_add_ccsr.md)
+matches complete ICD-10 codes to the bundled AHRQ mappings in DuckDB. An
+any-slot search returns a list of distinct categories for each
+discharge. Supply `categories` to keep only the categories relevant to
+the study. For a mutually exclusive grouping by principal diagnosis, use
+`position = "default"` to return the inpatient default category.
 
 ``` r
 
-reference <- tempfile(fileext = ".csv")
-writeLines(c(
-  "'ICD-10-CM CODE','CCSR CATEGORY 1','DEFAULT CCSR CATEGORY IP'",
-  "'I5022','CIR019','CIR019'",
-  "'I509','CIR019','CIR019'"
-), reference)
-codes <- nis_ccsr_codes(reference, "CIR019", default_only = TRUE)
-unlink(reference)
-codes
-#> [1] "I5022" "I509"
+nis |>
+  nis_add_ccsr(categories = "CIR019", name = "hf_categories") |>
+  nis_add_ccsr(position = "default", name = "principal_ccsr") |>
+  dplyr::filter(length(hf_categories) > 0L) |>
+  dplyr::count(principal_ccsr) |>
+  dplyr::collect()
+#> # A tibble: 1 × 2
+#>   principal_ccsr     n
+#>   <chr>          <dbl>
+#> 1 CIR019           108
 ```
 
-The returned values are codes from the invented mapping. Check supported
-layouts and version assumptions in
-[`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md).
+Use `type = "pr"` for procedures. The default release selection covers
+Q4 2015 and calendar years 2016–2024 with the bundled v2025.1. ICD-9 and
+years outside the bundled coverage yield missing results. Pin
+`version = "2025.1"` to use the same definitions across years and to
+include Q1–Q3 2025 if `DQTR` is present. Report the CCSR version in the
+study methods. [Agency for Healthcare Research and Quality, Healthcare
+Cost and Utilization Project. Clinical Classifications Software Refined
+(CCSR), v2025.1, November
+2024.](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccsr_archive.jsp)
 
 ## Add procedure timing
 
@@ -111,7 +119,7 @@ to use the same eligibility criteria in
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgWJUPq/duckdb
+#> ℹ /tmp/Rtmp3Z2jTc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -119,7 +127,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpgWJUPq/duckdb
+#> ℹ /tmp/Rtmp3Z2jTc/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

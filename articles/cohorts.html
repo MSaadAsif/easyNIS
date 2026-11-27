@@ -94,7 +94,7 @@ normalized.</p>
 <span>              position <span class="op">=</span> <span class="st">"any"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_pr.html">nis_flag_pr</a></span><span class="op">(</span>ablation <span class="op">=</span> <span class="st">"02L"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgWJUPq/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp3Z2jTc/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -102,7 +102,7 @@ normalized.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgWJUPq/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp3Z2jTc/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -123,25 +123,35 @@ for slots after the principal one. <code><a href="../reference/nis_flag_pr.html"
 <code>"any"</code> and <code>"principal"</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="use-a-ccsr-reference-file">Use a CCSR reference file<a class="anchor" aria-label="anchor" href="#use-a-ccsr-reference-file"></a>
+<h2 id="classify-diagnoses-and-procedures-with-ccsr">Classify diagnoses and procedures with CCSR<a class="anchor" aria-label="anchor" href="#classify-diagnoses-and-procedures-with-ccsr"></a>
 </h2>
-<p>easyNIS does not ship clinical code lists.
-<code><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes()</a></code> reads an analyst-supplied HCUP reference
-file; the example below writes a tiny invented CSV file and removes it
-after use.</p>
+<p><code><a href="../reference/nis_add_ccsr.html">nis_add_ccsr()</a></code> matches complete ICD-10 codes to the
+bundled AHRQ mappings in DuckDB. An any-slot search returns a list of
+distinct categories for each discharge. Supply <code>categories</code>
+to keep only the categories relevant to the study. For a mutually
+exclusive grouping by principal diagnosis, use
+<code>position = "default"</code> to return the inpatient default
+category.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">reference</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"'ICD-10-CM CODE','CCSR CATEGORY 1','DEFAULT CCSR CATEGORY IP'"</span>,</span>
-<span>  <span class="st">"'I5022','CIR019','CIR019'"</span>,</span>
-<span>  <span class="st">"'I509','CIR019','CIR019'"</span></span>
-<span><span class="op">)</span>, <span class="va">reference</span><span class="op">)</span></span>
-<span><span class="va">codes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_ccsr_codes.html">nis_ccsr_codes</a></span><span class="op">(</span><span class="va">reference</span>, <span class="st">"CIR019"</span>, default_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">reference</span><span class="op">)</span></span>
-<span><span class="va">codes</span></span>
-<span><span class="co">#&gt; [1] "I5022" "I509"</span></span></code></pre></div>
-<p>The returned values are codes from the invented mapping. Check
-supported layouts and version assumptions in <a href="../reference/nis_ccsr_codes.html"><code>nis_ccsr_codes()</code></a>.</p>
+<code class="sourceCode R"><span><span class="va">nis</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_add_ccsr.html">nis_add_ccsr</a></span><span class="op">(</span>categories <span class="op">=</span> <span class="st">"CIR019"</span>, name <span class="op">=</span> <span class="st">"hf_categories"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/nis_add_ccsr.html">nis_add_ccsr</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"default"</span>, name <span class="op">=</span> <span class="st">"principal_ccsr"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">hf_categories</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0L</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/count.html" class="external-link">count</a></span><span class="op">(</span><span class="va">principal_ccsr</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
+<span><span class="co">#&gt;   principal_ccsr     n</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CIR019           108</span></span></code></pre></div>
+<p>Use <code>type = "pr"</code> for procedures. The default release
+selection covers Q4 2015 and calendar years 2016–2024 with the bundled
+v2025.1. ICD-9 and years outside the bundled coverage yield missing
+results. Pin <code>version = "2025.1"</code> to use the same definitions
+across years and to include Q1–Q3 2025 if <code>DQTR</code> is present.
+Report the CCSR version in the study methods. <a href="https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccsr_archive.jsp" class="external-link">Agency
+for Healthcare Research and Quality, Healthcare Cost and Utilization
+Project. Clinical Classifications Software Refined (CCSR), v2025.1,
+November 2024.</a></p>
 </div>
 <div class="section level2">
 <h2 id="add-procedure-timing">Add procedure timing<a class="anchor" aria-label="anchor" href="#add-procedure-timing"></a>
@@ -178,7 +188,7 @@ criteria in <code><a href="../reference/nis_design.html">nis_design()</a></code>
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgWJUPq/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp3Z2jTc/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -186,7 +196,7 @@ criteria in <code><a href="../reference/nis_design.html">nis_design()</a></code>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpgWJUPq/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmp3Z2jTc/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>

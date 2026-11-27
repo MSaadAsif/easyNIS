@@ -92,6 +92,10 @@
 </tr></tbody></table><p>For scan planning or DuckDB workload changes, run the <a href=".agents/skills/duckdb-parquet-scans/SKILL.html">bounded scan check and spill benchmark</a>.</p>
 </div>
 <div class="section level2">
+<h2 id="update-ccsr-mappings">Update CCSR mappings<a class="anchor" aria-label="anchor" href="#update-ccsr-mappings"></a></h2>
+<p>Update the AHRQ CCSR mappings with <code>Rscript --vanilla tools/update-ccsr.R &lt;dx|pr&gt; &lt;version&gt; &lt;YYYY-MM-DD&gt; &lt;HCUP-URL&gt; [local-file] [expected-codes] [expected-categories] [expected-pairs]</code> for each release. The input can be the download URL, a local HCUP ZIP or workbook, or its mapping CSV. Use <code>-</code> for the local-file argument when downloading and checking published totals. Review the release index, verify the mapping diff and coverage, update the attribution, and open a pull request.</p>
+</div>
+<div class="section level2">
 <h2 id="privacy-and-licensing">Privacy and licensing<a class="anchor" aria-label="anchor" href="#privacy-and-licensing"></a></h2>
 <p>Keep licensed HCUP inputs, real records, private paths, and local validation receipts out of the repository and public material. Never publish output from real-data runs, including estimates, counts, or any record-derived values, in issues, PRs, commits, or docs. Keep those outputs in Git-ignored <code>local/loop/</code>. Review tables for primary and complementary disclosure risks. Follow the HCUP Data Use Agreement and institutional requirements, and contribute independently authored code compatible with AGPL-3.0-only.</p>
 <p>Before posting an issue or PR body, save the text locally and run <code>Rscript --vanilla tools/check-public-text.R path/to/body.md</code>. Check the text yourself for private material even when the scanner passes.</p>

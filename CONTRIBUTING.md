@@ -53,6 +53,16 @@ For scan planning or DuckDB workload changes, run the [bounded scan
 check and spill
 benchmark](https://msaadasif.github.io/easyNIS/.agents/skills/duckdb-parquet-scans/SKILL.md).
 
+## Update CCSR mappings
+
+Update the AHRQ CCSR mappings with
+`Rscript --vanilla tools/update-ccsr.R <dx|pr> <version> <YYYY-MM-DD> <HCUP-URL> [local-file] [expected-codes] [expected-categories] [expected-pairs]`
+for each release. The input can be the download URL, a local HCUP ZIP or
+workbook, or its mapping CSV. Use `-` for the local-file argument when
+downloading and checking published totals. Review the release index,
+verify the mapping diff and coverage, update the attribution, and open a
+pull request.
+
 ## Privacy and licensing
 
 Keep licensed HCUP inputs, real records, private paths, and local

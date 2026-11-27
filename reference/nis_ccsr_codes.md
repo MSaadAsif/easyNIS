@@ -1,26 +1,28 @@
 # ICD-10 codes in HCUP CCSR categories
 
-Reads the official HCUP DXCCSR or PRCCSR reference file that you
-download yourself and returns the full ICD-10-CM or ICD-10-PCS codes
-assigned to the requested categories. Pass the result to
-[`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
-or
-[`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-which treat each code as a prefix. easyNIS does not ship or download any
-CCSR content, and the code lists depend on the reference file version
-you supply.
+Returns the full ICD-10-CM or ICD-10-PCS codes assigned to the requested
+categories in a bundled AHRQ HCUP CCSR release. Use
+[`nis_add_ccsr()`](https://msaadasif.github.io/easyNIS/reference/nis_add_ccsr.md)
+for exact, year-aware matching on a lazy NIS query.
 
 ## Usage
 
 ``` r
-nis_ccsr_codes(file, categories, default_only = FALSE)
+nis_ccsr_codes(
+  file = NULL,
+  categories,
+  default_only = FALSE,
+  type = c("dx", "pr"),
+  version = NULL
+)
 ```
 
 ## Arguments
 
 - file:
 
-  Path to the HCUP CCSR reference file.
+  Optional path to an HCUP reference file for a custom or newer release.
+  The file determines the coding system when supplied.
 
 - categories:
 
@@ -31,6 +33,16 @@ nis_ccsr_codes(file, categories, default_only = FALSE)
 
   If `TRUE`, keep only codes whose default inpatient category is in
   `categories`. Diagnosis reference files only.
+
+- type:
+
+  `"dx"` for diagnosis or `"pr"` for procedure lookups in the bundled
+  data.
+
+- version:
+
+  A bundled version, such as `"2025.1"`. The default is the latest
+  bundled release of the requested `type`.
 
 ## Value
 
@@ -52,14 +64,6 @@ with `position = "principal"` in
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md).
 Procedure reference files have no default assignment.
 
-UNVERIFIED: the file layouts above are assumed from secondhand
-descriptions of HCUP downloads, not checked against a current release.
-Both CSV readers check record field counts; all supported formats check
-that codes look like ICD-10 codes (3 to 7 letters or digits). Check the
-returned codes against your reference file before you rely on them.
-
-This function is experimental.
-
 ## See also
 
 [Defining
@@ -78,42 +82,14 @@ Other cohort-definition:
 ## Examples
 
 ``` r
-# An invented reference file in the HCUP comma-separated layout. Download
-# the real DXCCSR file from HCUP and pass its path instead.
-reference <- tempfile(fileext = ".csv")
-writeLines(c(
-  "'ICD-10-CM CODE','CCSR CATEGORY 1','CCSR CATEGORY 2','DEFAULT CCSR CATEGORY IP'",
-  "'I5022','CIR019','','CIR019'",
-  "'I509','CIR019','','CIR019'",
-  "'E119','END002','','END002'"
-), reference)
-codes <- nis_ccsr_codes(reference, "CIR019")
-codes
-#> [1] "I5022" "I509" 
-
-nis_open(nis_example(years = 2019)) |>
-  nis_flag_dx(heart_failure = codes) |>
-  dplyr::count(heart_failure) |>
-  dplyr::collect()
+head(nis_ccsr_codes(categories = "CIR019"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpxkYr8M/duckdb
+#> ℹ /tmp/RtmpcCxYgA/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpxkYr8M/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> # A tibble: 2 × 2
-#>   heart_failure     n
-#>   <lgl>         <dbl>
-#> 1 FALSE            42
-#> 2 TRUE             54
+#> [1] "I0981" "I110"  "I130"  "I132"  "I501"  "I5020"
 ```
