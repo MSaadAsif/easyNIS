@@ -9,9 +9,9 @@ nis_convert_ascii <- function(path, dir, encoding) {
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   layout <- nis_convert_ascii_layout(year)
   nis_convert_with_stage(dir, year, function(temp, con) {
-    rows <- nis_convert_ascii_count(path, layout)
-    nis_convert_ascii_copy(con, path, layout, year, file.path(temp, "part-000001.parquet"))
-    rows
+    records <- nis_convert_ascii_count(path, layout)
+    nis_convert_ascii_copy(con, path, layout, year, file.path(temp, "part-000001.parquet"), records$newline)
+    records$rows
   })
 }
 
@@ -31,18 +31,25 @@ nis_convert_ascii_count <- function(path, layout) {
   on.exit(close(input))
   rows <- 0L
   carry <- raw()
+  crlf <- NULL
   repeat {
     chunk <- readBin(input, "raw", n = 8L * 1024L * 1024L)
     if (!length(carry) && !length(chunk)) {
       break
     }
-    bytes <- if (length(chunk)) c(carry, chunk) else c(carry, as.raw(10L))
+    eof <- !length(chunk)
+    if (eof && utils::tail(carry, 1L) == as.raw(13L)) {
+      cli::cli_abort("Invalid line ending at source row {rows + 1L}.")
+    }
+    bytes <- if (eof) c(carry, as.raw(10L)) else c(carry, chunk)
     ends <- which(bytes == as.raw(10L))
     last <- max(c(0L, ends))
     if (last > 0L) {
-      nis_convert_ascii_check_records(bytes[seq_len(last)], ends, width, layout, rows)
+      cr <- bytes[pmax(1L, ends - 1L)] == as.raw(13L)
+      crlf <- nis_convert_ascii_line_ending(crlf, cr, eof, rows)
+      nis_convert_ascii_check_records(bytes[seq_len(last)], ends, cr, width, layout, rows)
     }
-    carry <- if (last == length(bytes)) raw() else bytes[seq.int(last + 1L, length(bytes))]
+    carry <- utils::tail(bytes, length(bytes) - last)
     rows <- rows + length(ends)
     if (length(carry) > width + 1L) {
       cli::cli_abort("Invalid record width at source row {rows + 1L}. Expected {width} bytes.")
@@ -51,12 +58,25 @@ nis_convert_ascii_count <- function(path, layout) {
   if (!rows) {
     cli::cli_abort("Source file has no records.")
   }
-  rows
+  list(rows = rows, newline = if (isTRUE(crlf)) "\\r\\n" else "\\n")
 }
 
-nis_convert_ascii_check_records <- function(bytes, ends, width, layout, rows) {
+nis_convert_ascii_line_ending <- function(expected, cr, eof, rows) {
+  if (eof) {
+    return(expected)
+  }
+  if (is.null(expected)) {
+    expected <- cr[[1L]]
+  }
+  mismatch <- which(cr != expected)
+  if (length(mismatch)) {
+    cli::cli_abort("Inconsistent line ending at source row {rows + mismatch[[1L]]}.")
+  }
+  expected
+}
+
+nis_convert_ascii_check_records <- function(bytes, ends, cr, width, layout, rows) {
   starts <- c(0L, utils::head(ends, -1L))
-  cr <- bytes[pmax(1L, ends - 1L)] == as.raw(13L)
   wrong <- which(ends - starts - 1L - cr != width)
   if (length(wrong)) {
     cli::cli_abort("Invalid record width at source row {rows + wrong[[1L]]}. Expected {width} bytes.")
@@ -71,7 +91,7 @@ nis_convert_ascii_check_records <- function(bytes, ends, width, layout, rows) {
   }
 }
 
-nis_convert_ascii_copy <- function(con, path, layout, year, target) {
+nis_convert_ascii_copy <- function(con, path, layout, year, target, newline) {
   columns <- vapply(
     seq_len(nrow(layout)),
     function(i) {
@@ -83,7 +103,9 @@ nis_convert_ascii_copy <- function(con, path, layout, year, target) {
     "read_csv(",
     nis_parquet_paths(con, path),
     ", columns={'record':'VARCHAR'}, auto_detect=false, header=false, parallel=false,",
-    " delim=chr(31), quote='', escape='')"
+    " delim=chr(31), quote='', escape='', new_line=",
+    DBI::dbQuoteString(con, newline),
+    ")"
   )
   target <- DBI::dbQuoteString(con, target)
   DBI::dbExecute(
@@ -108,17 +130,18 @@ nis_convert_ascii_field <- function(con, field, year) {
     expr <- nis_convert_ascii_number(con, field, year, paste0("trim(", value, ")"))
     return(paste(expr, "AS", column))
   }
+  value <- paste0("NULLIF(rtrim(", value, "), '')")
   pattern <- nis_convert_code_pattern(field$column)
   if (!is.null(pattern)) {
     valid <- nis_convert_ascii_matches(con, value, pattern)
     error <- nis_convert_ascii_error(con, "Malformed ICD code", field$column)
-    value <- paste("CASE WHEN", valid, "THEN", value, "ELSE", error, "END")
+    value <- paste("CASE WHEN", value, "IS NULL OR", valid, "THEN", value, "ELSE", error, "END")
   }
   paste(value, "AS", column)
 }
 
 nis_convert_ascii_number <- function(con, field, year, value) {
-  pattern <- if (field$decimals > 0L) "[-+]?[0-9]+([.][0-9]+)?" else "[-+]?[0-9]+"
+  pattern <- if (field$decimals > 0L) "[-+]?(?:[0-9]+(?:[.][0-9]*)?|[.][0-9]+)" else "[-+]?[0-9]+"
   valid <- nis_convert_ascii_matches(con, value, pattern)
   error <- nis_convert_ascii_error(con, "Invalid numeric value", field$column)
   parsed <- nis_convert_ascii_cast(field, value)
@@ -139,8 +162,8 @@ nis_convert_ascii_number <- function(con, field, year, value) {
     ))
   }
   missing <- c("", strsplit(field$missing, ";", fixed = TRUE)[[1L]])
-  missing <- paste(DBI::dbQuoteString(con, missing), collapse = ", ")
-  paste("CASE WHEN", value, "IN (", missing, ") THEN NULL WHEN", valid, "THEN", parsed, "ELSE", error, "END")
+  missing <- paste(paste(value, "=", DBI::dbQuoteString(con, missing)), collapse = " OR ")
+  paste("CASE WHEN", missing, "THEN NULL WHEN", valid, "THEN", parsed, "ELSE", error, "END")
 }
 
 nis_convert_ascii_cast <- function(field, value) {

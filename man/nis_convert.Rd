@@ -38,6 +38,8 @@ as the file grows.
 
 Native Core files use HCUP's published SAS layouts, including the 2019
 and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
+Character fields lose their right padding and blank fields become nulls.
+Use a consistent LF or CRLF line ending throughout the file.
 The 2015 native Core file contains no diagnosis or procedure slots.
 The Core converter does not join the separate 2015 diagnosis and
 procedure groups or other supplementary HCUP files.

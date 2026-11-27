@@ -45,10 +45,52 @@ test_that("published ASCII Core layouts convert both ICD eras and 2015 Core", {
   expect_equal(records$DISCWT, c(5.1234567, NA_real_, 5.1234567, 5.1234567))
   expect_equal(records$AGE, rep(NA_integer_, 4L))
   expect_equal(records$KEY_NIS[3:4], rep(9876543210, 2L))
-  expect_identical(trimws(records$DX1), c("V300", NA, NA, NA))
-  expect_identical(trimws(records$PR1), c("0123", NA, NA, NA))
-  expect_identical(trimws(records$I10_DX1), c(NA, NA, "I509", "I509"))
+  expect_identical(records$DX1, c("V300", NA, NA, NA))
+  expect_identical(records$PR1, c("0123", NA, NA, NA))
+  expect_identical(records$I10_DX1, c(NA, NA, "I509", "I509"))
   expect_identical(records$I10_PR1, c(NA, NA, "02703ZZ", "02703ZZ"))
+})
+
+test_that("converted ASCII codes support exact regex and exclusion", {
+  root <- withr::local_tempdir()
+  source <- file.path(root, "NIS_2024_Core.ASC")
+  lines <- rep(convert_ascii_2024(), 3L)
+  substr(lines, 6L, 15L) <- sprintf("%010d", 1:3)
+  substr(lines[2L], 63L, 69L) <- "I508   "
+  substr(lines[3L], 63L, 69L) <- "       "
+  writeLines(lines, source)
+  nis_convert(source, root)
+  data <- nis_open(root, check_release = FALSE)
+  flags <- nis_flag_dx(data, case = list(regex = "I50[89]", exclude = "I508"))
+  records <- dplyr::collect(dplyr::arrange(flags, KEY_NIS))
+  expect_identical(records$I10_DX1, c("I509", "I508", NA))
+  expect_identical(records$case, c(TRUE, FALSE, FALSE))
+})
+
+test_that("ASCII conversion checks line endings across the read buffer", {
+  skip_if_not(tolower(Sys.getenv("EASYNIS_FULL_TESTS")) %in% c("1", "true"))
+  root <- withr::local_tempdir()
+  source <- file.path(root, "NIS_2024_Core.ASC")
+  line <- convert_ascii_2024()
+  n <- (8L * 1024L * 1024L) %/% 645L + 1L
+  writeBin(charToRaw(paste0(strrep(paste0(line, "\r\n"), n), line, "\n")), source)
+  expect_error(nis_convert(source, root), paste("line ending.*row", n + 1L))
+  writeBin(charToRaw(strrep(paste0(line, "\r\n"), n)), source)
+  nis_convert(source, root)
+  records <- nis_open(root, check_release = FALSE)
+  expect_equal(dplyr::collect(dplyr::summarise(records, n = dplyr::n()))$n, n)
+})
+
+test_that("ASCII conversion accepts decimal point at either end", {
+  root <- withr::local_tempdir()
+  source <- file.path(root, "NIS_2024_Core.ASC")
+  lines <- rep(convert_ascii_2024(), 2L)
+  substr(lines, 27L, 37L) <- c("   .5000000", "         5.")
+  writeLines(lines, source)
+  nis_convert(source, root)
+  expect_equal(dplyr::collect(nis_open(root, check_release = FALSE))$DISCWT, c(0.5, 5))
+  expect_error(nis_convert(source, root), "already exists")
+  expect_error(nis_convert(source, root, encoding = "UTF-8"), "encoding.*unset")
 })
 
 test_that("ASCII conversion rejects malformed records and cleans staging and spill paths", {
@@ -63,6 +105,9 @@ test_that("ASCII conversion rejects malformed records and cleans staging and spi
   }
 
   check(charToRaw(substr(good, 1L, 642L)), "width.*row 2")
+  check(charToRaw(paste0(good, "\r")), "line ending.*row 2")
+  writeBin(charToRaw(paste0(good, "\r")), source)
+  expect_error(nis_convert(source, root), "line ending.*row 1")
   bad <- charToRaw(good)
   bad[[63L]] <- as.raw(255)
   check(bad, "UTF-8.*I10_DX1.*row 2")
