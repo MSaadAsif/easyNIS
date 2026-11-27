@@ -7,13 +7,31 @@ methods::setClass("nis_duckdb_result", contains = "duckdb_result")
 
 # DuckDB executes in dbSendQuery() or, for deferred parameters, dbBind().
 methods::setMethod("dbSendQuery", c("nis_duckdb_connection", "character"), function(conn, statement, ...) {
-  result <- nis_duckdb_translate_errors(methods::callNextMethod())
-  methods::new("nis_duckdb_result", result)
+  threads <- attr(conn, "easyNIS_arrow_threads")
+  result <- nis_duckdb_arrow_threads(threads, nis_duckdb_translate_errors(methods::callNextMethod()))
+  result <- methods::new("nis_duckdb_result", result)
+  attr(result, "easyNIS_arrow_threads") <- threads
+  result
 })
 
 methods::setMethod("dbBind", "nis_duckdb_result", function(res, params, ...) {
-  nis_duckdb_translate_errors(methods::callNextMethod())
+  threads <- attr(res, "easyNIS_arrow_threads")
+  nis_duckdb_arrow_threads(threads, nis_duckdb_translate_errors(methods::callNextMethod()))
 })
+
+nis_duckdb_arrow_threads <- function(threads, query) {
+  if (is.null(threads)) {
+    return(query)
+  }
+  # The registered dataset creates its scanner during query execution.
+  # Arrow's CPU pool is process-wide, so restore its capacity after each call.
+  previous <- arrow::cpu_count()
+  if (previous > threads) {
+    on.exit(arrow::set_cpu_count(previous))
+    arrow::set_cpu_count(threads)
+  }
+  query
+}
 
 nis_duckdb_translate_errors <- function(query) {
   withCallingHandlers(query, error = function(error) {
