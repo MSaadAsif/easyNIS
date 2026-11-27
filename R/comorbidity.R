@@ -33,6 +33,14 @@
 #'   except `"elixhauser_ahrq2027"` require the medicalcoder package.
 #' @param prefix Prefix for the added columns. Choose a prefix that does not
 #'   collide with an existing name.
+#' @param count_distinct Set to `TRUE` to add the integer count
+#'   `<prefix>n_distinct`. Each condition represented by any true flag counts
+#'   once, using [nis_comorbidity_condition_map()]. A discharge with usable
+#'   codes and no included conditions receives zero. A discharge without
+#'   usable codes receives `NA`.
+#' @param exclude_conditions Character vector of unprefixed condition IDs
+#'   to omit from the distinct count. Requires `count_distinct = TRUE` when
+#'   nonempty. Exclusions affect only the distinct count.
 #'
 #' @return `.data` with logical condition flags and `<prefix>any`, the
 #'   integer count `<prefix>n`, and either `<prefix>mortality_index` and
@@ -48,15 +56,23 @@
 #' nis_comorbidity(nis, method = "elixhauser_ahrq2027") |>
 #'   dplyr::count(cmrb_mortality_index) |>
 #'   dplyr::collect()
-nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10", prefix = "cmrb_") {
+nis_comorbidity <- function(
+  .data,
+  method = "elixhauser_ahrq_icd10",
+  prefix = "cmrb_",
+  count_distinct = FALSE,
+  exclude_conditions = character()
+) {
   spec <- nis_comorbidity_spec(method)
-  if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
-    cli::cli_abort("`prefix` must be a single string.")
-  }
+  nis_comorbidity_check_prefix(prefix)
+  spec$distinct <- nis_cmrb_count_groups(spec, count_distinct, exclude_conditions)
   design <- inherits(.data, "tbl_svy")
   records <- if (design) .data$variables else .data
   slots <- nis_comorbidity_slots(records, spec)
   added <- paste0(prefix, c(tolower(spec$conditions), "n", "any", names(spec$weights)))
+  if (count_distinct) {
+    added <- c(added, paste0(prefix, "n_distinct"))
+  }
   lazy <- inherits(records, "tbl_sql")
   nis_comorbidity_check_clash(added, colnames(records), lazy)
   if (lazy) {
@@ -69,6 +85,12 @@ nis_comorbidity <- function(.data, method = "elixhauser_ahrq_icd10", prefix = "c
   }
   .data$variables <- records
   .data
+}
+
+nis_comorbidity_check_prefix <- function(prefix) {
+  if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
+    cli::cli_abort("`prefix` must be a single string.")
+  }
 }
 
 nis_comorbidity_slots <- function(records, spec) {

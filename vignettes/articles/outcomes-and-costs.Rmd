@@ -42,6 +42,32 @@ Score before `nis_design()` while the diagnosis slots are available and
 DuckDB can still apply the mappings. Choose the method and code system for
 your study period. The bundled `"elixhauser_ahrq2027"` method has no `medicalcoder` dependency.
 
+Set `count_distinct = TRUE` to add the integer column `cmrb_n_distinct`.
+The distinct count counts each condition represented by the output flags once.
+For example, the refined Elixhauser flag for hypertension with heart failure
+and severe renal failure represents three conditions, even when separate
+flags for those conditions are also true. Diabetes and other severity
+variants of the same condition share an ID. `cmrb_n` still reports the
+method's own category count.
+
+```{r distinct-comorbidities}
+method <- "elixhauser_ahrq2027"
+condition_map <- nis_comorbidity_condition_map(method)
+condition_map |> filter(condition == "diabetes")
+
+outcomes |>
+  nis_comorbidity(method, count_distinct = TRUE, exclude_conditions = "diabetes") |>
+  select(cmrb_n, cmrb_n_distinct) |>
+  head(3) |>
+  collect()
+```
+
+Use IDs from the map to exclude conditions that your analysis handles
+separately. The count uses the flags emitted by the chosen method and
+inherits their present-on-admission assumptions. Exclusions affect only the
+distinct count. A discharge without usable codes has a missing count, and a
+discharge with usable codes and no included conditions has a count of zero.
+
 ## Estimate costs in a common dollar year
 
 ```{r cost}
