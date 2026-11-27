@@ -16,30 +16,21 @@ weights. The default uses discharge weights without annualization.}
 A lazy \code{nis_survey} design.
 }
 \description{
-The nested, one-stage Taylor design uses hospital-year PSUs (YEAR × HOSP_NIS)
-and year-specific strata (YEAR × NIS_STRATUM), without a finite population
-correction. It uses the valid-design discharges in the input query.
-Apply eligibility restrictions with \code{\link[dplyr:filter]{dplyr::filter()}} on the design so
-hospitals outside the domain still contribute to variance. Use \code{subset()}
-as the survey-style alternative.
-A query filtered before construction defines a different sample.
+Estimate means, totals, and supported survey-weighted models in DuckDB.
 }
 \details{
-Use \code{\link[survey:svymean]{survey::svymean()}}, \code{\link[survey:svytotal]{survey::svytotal()}}, or \code{\link[survey:svyby]{survey::svyby()}} with
-one-sided formulas. Grouped estimates support means and totals.
-Use \code{\link[survey:svyglm]{survey::svyglm()}} for additive models with Gaussian identity,
-binomial or quasibinomial logit, and Poisson or quasipoisson log
-families. Wald inference uses the sample design degrees of freedom
-minus the fitted model rank plus one. DuckDB
-computes weighted sums by PSU without collecting discharge records.
-The analysis supports the \code{"fail"} and \code{"adjust"} values of
-\code{survey.lonely.psu} and honors \code{survey.adjust.domain.lonely}.
-Use \code{\link[=nis_design]{nis_design()}} for row-level operations such as quantiles, chi-square
-tests, model diagnostics, and \code{gtsummary::tbl_svysummary()}.
+Use \code{\link[dplyr:filter]{dplyr::filter()}} on the design to define a domain while
+retaining the original sample for variance. Invalid design fields are
+excluded when defining the sample.
 
-Discharges with missing, non-finite, or nonpositive design fields
-(\code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT}) are excluded.
-Custom analysis weights must be positive and finite within the domain.
+Use \code{\link[survey:svymean]{survey::svymean()}}, \code{\link[survey:svytotal]{survey::svytotal()}}, and \code{\link[survey:svyby]{survey::svyby()}} for
+summaries. \code{\link[survey:svyglm]{survey::svyglm()}} supports additive Gaussian identity,
+binomial and quasibinomial logit, and Poisson and quasipoisson log
+models. Use \code{\link[=nis_design]{nis_design()}} for interactions, offsets, survey quantiles,
+chi-square tests, or \code{gtsummary::tbl_svysummary()}.
+
+The design supports the \code{"fail"} and \code{"adjust"} settings of
+\code{survey.lonely.psu} and honors \code{survey.adjust.domain.lonely}.
 }
 \examples{
 nis <- nis_open(nis_example(2019:2020))
@@ -49,6 +40,9 @@ survey::svymean(~LOS, older)
 survey::svyby(~LOS, ~YEAR, older, survey::svymean)
 }
 \seealso{
+\href{https://msaadasif.github.io/easyNIS/articles/whole-sample.html}{Analyze the whole sample in DuckDB},
+\href{https://msaadasif.github.io/easyNIS/articles/whole-sample.html}{Analyze the whole sample in DuckDB}
+
 Other survey-design:
 \code{\link[=nis_design]{nis_design()}},
 \code{\link[=nis_design_report]{nis_design_report()}},

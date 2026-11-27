@@ -18,21 +18,17 @@ A data frame with the columns in \code{by}, \code{n} (unweighted discharges),
 and \code{hospitals} (distinct year-scoped hospitals).
 }
 \description{
-Produces the unweighted discharge and distinct hospital counts used by
-\code{\link[=nis_suppress]{nis_suppress()}}. Hospital identity is the year-scoped pair \code{YEAR} and
-\code{HOSP_NIS}, matching \code{\link[=nis_design]{nis_design()}}. Rows with invalid hospital identity
-are rejected so counts cannot silently understate disclosure risk. For
-DuckDB queries, the database counts discharges and hospitals and returns
-only the grouped summary.
+Count sampled discharges and distinct hospital-years for each cell.
+Rows need valid hospital and year identifiers. A DuckDB input returns
+only grouped counts to R.
 }
 \examples{
-records <- data.frame(
-  YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
-)
-nis_cell_counts(records, by = group)
+nis <- nis_open(nis_example(2020))
+nis_cell_counts(nis, by = DQTR)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Disclosure and suppression}.
+\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results},
+\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results}.
 
 Other disclosure:
 \code{\link[=nis_suppress]{nis_suppress()}}

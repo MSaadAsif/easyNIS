@@ -50,13 +50,22 @@ nis_study_copy_template <- function(path, call) {
 
 #' Create a new NIS study folder
 #'
-#' Copy the packaged Quarto study template to a new directory. The destination
-#' must not already exist.
+#' Create a Quarto study in a new local directory.
+#'
+#' @details Open `analysis.qmd` to edit the cohort, outcomes, and analysis.
+#' Render with `quarto render analysis.qmd` from the study directory. With
+#' `params.data_path` unset, the report uses [nis_example()]. Set that
+#' parameter to the private directory containing your annual Parquet files.
+#'
+#' Review the rendered methods paragraph and checklist receipt against the
+#' study protocol. Review disclosure across the finished report before
+#' sharing it.
 #'
 #' @param path A new local directory path for the study.
 #' @return The normalized path to the created study directory.
 #' @family study-setup
-#' @seealso [Get started with easyNIS](https://msaadasif.github.io/easyNIS/articles/getting-started.html).
+#' @seealso [Start a Quarto study](https://msaadasif.github.io/easyNIS/articles/study-template.html),
+#'   [Start a Quarto study](https://msaadasif.github.io/easyNIS/articles/study-template.html).
 #' @export
 #' @examples
 #' study_path <- tempfile("nis-study-example-")

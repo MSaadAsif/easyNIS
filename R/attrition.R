@@ -149,14 +149,12 @@ nis_attrition_metrics <- function(data, criteria_count) {
 
 #' Summarize sequential cohort attrition
 #'
-#' Applies logical criteria cumulatively and reports remaining and dropped
-#' discharge counts at each step. The initial row has no preceding step, so its
-#' dropped counts are `NA`. Criteria are evaluated in order; `NA` values
-#' are treated as excluded, matching [dplyr::filter()]. The summary is
-#' aggregated lazily for DuckDB queries and returned as a collected tibble.
-#' Missing weights (including `NaN`) contribute zero to weighted totals.
-#' Existing input groups are ignored, including when evaluating criteria.
-#' Criteria are evaluated over the full input before annual aggregation.
+#' Count the discharges that remain after each eligibility criterion.
+#'
+#' @details Evaluate criteria in order over the ungrouped input. Missing
+#' criteria exclude a discharge. Missing weights contribute zero to weighted
+#' counts. Use `.design = TRUE` when the same criteria will define a survey
+#' cohort. Use [nis_attrition_cohort()] to reuse the combined expression.
 #'
 #' @template dot-data
 #' @param ... Named logical expressions applied cumulatively. Unnamed
@@ -187,20 +185,14 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #'   are missing for ordinary logical criteria. Pass the flow to
 #'   [nis_audit_code_transition()] to summarize its code criteria by period.
 #' @family cohort-definition
-#' @seealso [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+#' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
+#'   [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @export
 #' @examples
-#' toy_nis <- dplyr::tibble(
-#'   AGE = c(16, 45, 60, 72, 55),
-#'   ELECTIVE = c(1, 1, 0, 1, 1),
-#'   DISCWT = c(5.0, 5.2, 4.8, 5.1, 5.0),
-#'   HOSP_NIS = c(1L, 1L, 2L, 2L, 2L),
-#'   NIS_STRATUM = rep(1L, 5),
-#'   YEAR = rep(2020L, 5)
-#' )
-#' nis_attrition(toy_nis, adult = AGE >= 18, elective = ELECTIVE == 1)
-#' flow <- nis_attrition(toy_nis, adult = AGE >= 18, .design = TRUE)
-#' nis_attrition_cohort(flow)
+#' nis <- nis_open(nis_example(2020))
+#' flow <- nis_attrition(nis, adult = AGE >= 18, older = AGE >= 65, .design = TRUE)
+#' flow
+#' nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
 nis_attrition <- function(.data, ..., by_year = FALSE, weight_var = "DISCWT", .design = FALSE, .codes = NULL) {
   criteria <- rlang::enquos(..., .named = TRUE)
   record <- NULL

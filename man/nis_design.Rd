@@ -32,25 +32,15 @@ computed cost columns. Type predicates inspect actual columns locally and
 a zero-row schema for lazy queries; predicates depending on row values
 are therefore not portable across backends.}
 
-\item{annualize}{Divide discharge weights by the number of distinct \code{YEAR}
-values among valid-design discharges. A year counts as one whole year
-however much of it is present, so a partial-year era such as the ICD-10
-fourth quarter of 2015 counts the same as a full year, and a year with no
-cohort discharges still counts. When \code{DQTR} is present, a warning identifies
-years where the valid-design data has fewer than four quarters. A separate
-warning identifies a cohort limited to the ICD-9 (Q1-Q3) or ICD-10 (Q4) part
-of 2015. Exclude partial years or use \code{annualize = FALSE} and apply a
-suitable fractional-year factor with \code{\link[=nis_reweight]{nis_reweight()}} if you need a
-different convention.}
+\item{annualize}{Divide every discharge weight by the number of years with
+valid design records. Each partial year counts as one year.}
 
-\item{dollars}{Optional reference dollar year for adjusted costs and charges.
-When supplied, keep \code{CCR_NIS} and the \code{charges} column.}
+\item{dollars}{Reference dollar year for adjusted charges and costs.
+To set it, keep the charge field and \code{CCR_NIS}.}
 
-\item{charges}{Name of the total-charge column used for adjusted costs and
-charges. Defaults to \code{"TOTCHG"}. Use \code{"TOTCHG_2023"} for 2023-only
-analyses, or build a pooled column explicitly with
-\code{dplyr::mutate(TOTCHG = dplyr::coalesce(TOTCHG_2023, TOTCHG))} before
-calling; either choice mixes charge definitions across years.}
+\item{charges}{Name of the charge field. Defaults to \code{"TOTCHG"}.
+Choose the field for the years analyzed. See
+\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras}.}
 }
 \value{
 A filtered \code{srvyr::tbl_svy} survey design. The analysis data contains
@@ -60,46 +50,27 @@ converts known multi-level codes to factors. Use \code{\link[stats:weights]{stat
 survey weights.
 }
 \description{
-Collects cohort rows and one zero-domain placeholder per hospital-year with
-no cohort discharges, then builds a nested NIS survey design. The
-placeholder-row method is experimental and is gated against a full-data
-design. After this function returns, \code{filter()} may only narrow the declared
-cohort; it cannot define a new cohort.
-Hospital geography columns are optional. Hospital and stratum identifiers
-are scoped by year (\code{YEAR} + \code{HOSP_NIS} and \code{YEAR} + \code{NIS_STRATUM}), because
-HCUP reassigns hospital numbers annually and 2023 stratum codes are
-sequential. Costs and charges use \code{TOTCHG} only, unless \code{charges} names
-another column such as \code{TOTCHG_2023}; nothing is coalesced silently, because
-the 2023 field is not comparable to earlier-year \code{TOTCHG}. The 2023 layout
-facts (\code{TOTCHG_2023}, removed \code{HOSP_REGION} and \code{HOSP_DIVISION}, sequential
-strata) are UNVERIFIED against official HCUP 2023 documentation and real 2023
-data.
+Build a survey design from the annual sample and the declared cohort.
+Use the result with srvyr, survey, and gtsummary.
+}
+\details{
+Hospital and stratum identifiers include the year. Hospital-years
+without eligible discharges contribute zero to the domain calculation.
+Filter the returned design to estimate within a smaller domain. For a
+dataset saved with \code{\link[=nis_write_cohort]{nis_write_cohort()}}, omit \code{cohort}.
 }
 \section{Invalid design fields}{
 
-Discharges whose \code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT} is missing,
-non-finite, or not positive are excluded before the cohort is applied.
-HCUP specifies \code{DISCWT} as the discharge weight, \code{NIS_STRATUM} as the
-stratum, and \code{HOSP_NIS} as the hospital cluster
-(\href{https://hcup-us.ahrq.gov/reports/methods/2015_09.jsp}{variance guidance};
-\href{https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2017.jsp}{2017 NIS introduction});
-HCUP also documents missing and invalid coding conventions
-(\href{https://hcup-us.ahrq.gov/db/coding.jsp}{coding conventions}). Records
-with invalid values cannot be placed in the documented design as supplied.
-Exclusion is not a claim that these records have zero population weight or
-that estimates are unbiased. Report the excluded count and affected fields,
-and consider whether conclusions could depend on them. The returned design
-has a \code{nis_excluded} attribute containing aggregate \code{total}, \code{by_field},
-and \code{by_year} counts; \code{by_year} includes years with exclusions when the
-year is itself valid. A discharge can fail more than one field.
+The design excludes discharges with missing, non-finite, or nonpositive
+\code{YEAR}, \code{HOSP_NIS}, \code{NIS_STRATUM}, or \code{DISCWT}. Inspect the excluded counts
+by field and year with \code{\link[=nis_design_report]{nis_design_report()}}.
+}
 
-A lazy query is scanned twice. The sample scan summarises design fields,
-exclusion counts, and quarter coverage when annualizing. The cohort scan
-evaluates the cohort expression once over the full data and collects the
-retained analysis columns.
-For a dataset written with \code{\link[=nis_write_cohort]{nis_write_cohort()}}, omit \code{cohort}. The saved
-membership flag excludes placeholders from the analysis. Original
-exclusion counts and full-sample quarter coverage are unavailable.
+\section{Adjusted charges and costs}{
+
+Keeping both the charge field and \code{CCR_NIS} adds \code{charges_adj} and
+\code{cost_adj}. The default dollar year is the latest included design year.
+Set \code{dollars} to use another reference year.
 }
 
 \examples{
@@ -118,7 +89,8 @@ srvyr::summarise(
 )
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/survey-design.html}{Survey design and weighting}.
+\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models},
+\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models}.
 
 Other survey-design:
 \code{\link[=nis_design_report]{nis_design_report()}},

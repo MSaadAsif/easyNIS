@@ -5,12 +5,47 @@ template:
 
 navbar:
   structure:
-    left: [get_started, reference, articles, news]
+    left: [get_started, guides, concepts, reference, news]
     right: [github]
   components:
     get_started:
       text: Get started
       href: articles/getting-started.html
+    guides:
+      text: Guides
+      menu:
+        - text: Prepare annual NIS files
+          href: articles/prepare-data.html
+        - text: Define and save a cohort
+          href: articles/cohorts.html
+        - text: Derive outcomes, comorbidities, and costs
+          href: articles/outcomes-and-costs.html
+        - text: Make tables and fit survey models
+          href: articles/tables-and-models.html
+        - text: Analyze the whole sample in DuckDB
+          href: articles/whole-sample.html
+        - text: Estimate trends across NIS years
+          href: articles/trends.html
+        - text: Check disclosure before sharing results
+          href: articles/disclosure.html
+        - text: Start a Quarto study
+          href: articles/study-template.html
+        - text: Port a discharge analysis to easyNIS
+          href: articles/porting.html
+    concepts:
+      text: Concepts
+      menu:
+        - text: How easyNIS works
+          href: articles/how-easynis-works.html
+        - text: How the NIS survey design works
+          href: articles/nis-design.html
+        - text: Years and coding eras
+          href: articles/years-and-eras.html
+        - text: Glossary
+          href: articles/glossary.html
+    news:
+      text: Changelog
+      href: news/index.html
     github:
       icon: fa-github
       href: https://github.com/MSaadAsif/easyNIS
@@ -18,12 +53,10 @@ navbar:
 
 articles:
   - title: Get started
-    navbar: Articles
     contents:
       - getting-started
   - title: Guides
     desc: '<span id="guides"></span>'
-    navbar: Articles
     contents:
       - articles/prepare-data
       - articles/cohorts
@@ -36,7 +69,6 @@ articles:
       - porting
   - title: Concepts
     desc: '<span id="concepts"></span>'
-    navbar: Articles
     contents:
       - articles/how-easynis-works
       - articles/nis-design
@@ -44,51 +76,49 @@ articles:
       - articles/glossary
 
 reference:
-  - title: 1. Open and inspect data
-    desc: Open annual NIS files and inspect data structure and labels.
+  - title: Convert, open, and join
+    desc: >
+      Column selectors: `nis_vars_design()`, `nis_vars_demographics()`,
+      `nis_vars_dx()`, `nis_vars_pr()`, and `nis_vars_hospital()`.
     contents:
-      - nis_example
-      - nis_write_cohort
       - nis_convert
       - nis_open
       - nis_join_companion
+      - nis_example
       - nis_label
       - nis_vars_design
-  - title: 2. Define cohorts
-    desc: Flag codes, timing, and eligibility; audit cohort definitions.
+  - title: Define and save cohorts
+    desc: Reuse eligibility criteria with `nis_attrition_cohort()`.
     contents:
       - nis_flag_dx
       - nis_flag_pr
       - nis_flag_pr_timing
-      - nis_audit_prday
       - nis_add_ccsr
       - nis_ccsr_codes
       - nis_attrition
-      - nis_audit_dx_position
-      - nis_audit_code_transition
-  - title: 3. Design and estimate
-    desc: Build survey designs and apply optional reweighting.
+      - nis_write_cohort
+  - title: Audit coding and completeness
     contents:
-      - nis_design
-      - nis_design_report
-      - nis_survey
-      - nis_reweight
-      - nis_annual_totals
-  - title: 4. Add analysis variables
-    desc: Derive discharge outcomes, comorbidity indicators, and inflation-adjusted costs.
+      - nis_audit_code_transition
+      - nis_audit_dx_position
+      - nis_audit_prday
+  - title: Derive outcomes, comorbidities, and costs
     contents:
       - nis_outcomes
       - nis_comorbidity
       - nis_cost
       - nis_cost_provenance
-  - title: 5. Review outputs
-    desc: Count supporting hospitals and suppress disclosure-prone cells.
+  - title: Survey designs and estimation
+    contents:
+      - nis_design
+      - nis_survey
+      - nis_annual_totals
+      - nis_reweight
+      - nis_design_report
+  - title: Disclosure and study setup
     contents:
       - nis_cell_counts
       - nis_suppress
-  - title: 6. Create a study skeleton
-    desc: Create a Quarto project with a starter analysis file. Add your data and study-specific definitions and analysis.
-    contents:
       - nis_new_study
 
 redirects:

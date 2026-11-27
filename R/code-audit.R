@@ -413,25 +413,14 @@
 #'   For `output = "inventory"`, the period columns, `code_group`, `code`,
 #'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, and `status`.
 #' @family cohort-definition
-#' @seealso [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
+#' @seealso [Years and coding eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
+#'   [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
 #' @export
 #' @examples
-#' toy_data <- dplyr::tibble(
-#'   YEAR = c(2018L, 2018L, 2019L, 2019L, 2020L, 2020L),
-#'   I10_PR1 = c("02UG0JZ", "02UG0JZ", "02UG0JZ", "02803ZZ", "02803ZZ", "02803ZZ"),
-#'   DISCWT = rep(5, 6)
-#' )
-#' nis_audit_code_transition(toy_data,
-#'   codes = c(myectomy = "02UG0JZ", ablation = "02803ZZ"))
-#'
-#' # Observed full codes by period, with absent and sparse periods flagged
-#' nis_audit_code_transition(toy_data,
-#'   codes = c(myectomy = "02UG", ablation = "0280"), output = "inventory")
-#'
-#' # Periods defined by several columns
-#' toy_data$DQTR <- c(1L, 2L, 1L, 2L, 1L, 2L)
-#' nis_audit_code_transition(toy_data, c(myectomy = "02UG0JZ"),
-#'   by = c(YEAR, DQTR))
+#' nis <- nis_open(nis_example(2019:2020))
+#' nis_audit_code_transition(nis, codes = c(heart_failure = "I50"))
+#' nis_audit_code_transition(nis, codes = c(heart_failure = "I50"),
+#'                           by = c(YEAR, DQTR), output = "inventory")
 nis_audit_code_transition <- function(
   .data,
   codes,

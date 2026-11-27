@@ -49,12 +49,9 @@ nis_hospital_count_query <- function(data, by) {
 
 #' Count discharges and contributing hospitals by cell
 #'
-#' Produces the unweighted discharge and distinct hospital counts used by
-#' [nis_suppress()]. Hospital identity is the year-scoped pair `YEAR` and
-#' `HOSP_NIS`, matching [nis_design()]. Rows with invalid hospital identity
-#' are rejected so counts cannot silently understate disclosure risk. For
-#' DuckDB queries, the database counts discharges and hospitals and returns
-#' only the grouped summary.
+#' Count sampled discharges and distinct hospital-years for each cell.
+#' Rows need valid hospital and year identifiers. A DuckDB input returns
+#' only grouped counts to R.
 #'
 #' @param .data Record-level data frame, lazy DuckDB query, or result of [nis_design()].
 #' @param by <[tidy-select][dplyr::dplyr_tidy_select]> Cell-defining columns.
@@ -64,13 +61,12 @@ nis_hospital_count_query <- function(data, by) {
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).
 #' @family disclosure
-#' @seealso [Disclosure and suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
+#'   [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 #' @export
 #' @examples
-#' records <- data.frame(
-#'   YEAR = c(2020, 2020, 2020), HOSP_NIS = c(1, 1, 2), group = c("A", "A", "A")
-#' )
-#' nis_cell_counts(records, by = group)
+#' nis <- nis_open(nis_example(2020))
+#' nis_cell_counts(nis, by = DQTR)
 nis_cell_counts <- function(.data, by = NULL) {
   .data <- .nis_cell_count_records(.data)
   by <- nis_select_columns(.data, rlang::enquo(by))

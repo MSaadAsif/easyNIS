@@ -38,12 +38,12 @@ weighted sums; missing outcomes are excluded from that outcome's denominator.
 Rates with zero denominators are missing.
 }
 \description{
-Summarizes unweighted and weighted presentation counts and outcome rates for
-principal, secondary-only, and any-position diagnosis flags. These are
-descriptive point estimates, not design-based survey estimates; use
-\code{\link[=nis_design]{nis_design()}} when standard errors are needed. Small cells must go through
-\code{\link[=nis_suppress]{nis_suppress()}} before reporting under the HCUP Data Use Agreement, which
-prohibits reporting cells of 1–10.
+Compare principal, secondary-only, and any-position diagnosis definitions.
+}
+\details{
+The result describes how the diagnosis position changes counts
+and selected outcome rates. Use \code{\link[=nis_design]{nis_design()}} to estimate standard
+errors. Review disclosure before sharing the results.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019))
@@ -52,7 +52,8 @@ outcome_names <- c("ELECTIVE", "DIED")
 nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/code-transitions.html}{Code transitions and sensitivity}.
+\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras},
+\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

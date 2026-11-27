@@ -1,5 +1,18 @@
 #' Convert a NIS file to annual Parquet
 #'
+#' Convert one annual Core file into Parquet.
+#'
+#' @details The converter accepts HCUP's fixed-width Core layout for
+#' 2012 through 2024 and annual Stata, SAS, or SPSS files. For those three
+#' formats, supply a numeric `YEAR` column. All rows must have the same
+#' year. Populated code slots must agree with the coding era. The 2015
+#' ASCII Core file has separate diagnosis and procedure files that this
+#' function does not join.
+#'
+#' Conversion stops on malformed text or invalid codes. Use an existing
+#' output directory. The converter creates one new annual directory and
+#' leaves any existing annual directory intact.
+#'
 #' @param path Path to one annual NIS Stata (`.dta`), SAS (`.sas7bdat`),
 #'   or SPSS (`.sav`) file with a numeric `YEAR` column, or one HCUP
 #'   fixed-width `NIS_<year>_Core.ASC` file from 2012 through 2024.
@@ -8,42 +21,24 @@
 #'   the reader's format-specific encoding. Use `"latin1"` for a legacy
 #'   Stata file known to use Latin-1.
 #'
-#' @details
-#' Conversion reads bounded batches and writes zstd-compressed Parquet parts
-#' in source order. All records must have the same year, which must agree
-#' with the year in filenames starting with `NIS_<year>`. Invalid UTF-8 or
-#' malformed ICD slot values stop conversion. Blank codes and HCUP's
-#' `invl` and `incn` codes are accepted.
-#'
-#' Populated code slots must match the release's coding era. For 2015,
-#' provide the discharge quarter or the corresponding diagnosis and procedure
-#' version column. Later SAS and SPSS batches can require rescanning the source
-#' from the beginning. This keeps memory bounded but increases conversion time
-#' as the file grows.
-#'
-#' Native Core files use HCUP's published SAS layouts, including the 2019
-#' and 2020 V2 layouts. HCUP numeric missing codes become Parquet nulls.
-#' Character fields lose their right padding and blank fields become nulls.
-#' Use a consistent LF or CRLF line ending throughout the file.
-#' The 2015 native Core file contains no diagnosis or procedure slots.
-#' The Core converter does not join the separate 2015 diagnosis and
-#' procedure groups or other supplementary HCUP files.
-#'
-#' The annual directory is published after validation and is never
-#' overwritten. [nis_open()] checks converted data against the HCUP annual
-#' release statistics by default.
-#'
 #' @return The path of the annual Parquet directory, invisibly.
 #' @family data-access
+#' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
+#'   [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html)
 #' @export
 #' @examples
 #' if (requireNamespace("haven", quietly = TRUE)) {
 #'   dir <- tempfile()
 #'   dir.create(dir)
 #'   path <- file.path(dir, "NIS_2020.dta")
-#'   haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), path)
+#'   nis <- nis_open(nis_example(2020)) |>
+#'     dplyr::select(YEAR, KEY_NIS, I10_DX1) |>
+#'     dplyr::collect()
+#'   haven::write_dta(nis, path)
 #'   nis_convert(path, dir)
-#'   nis_open(dir, check_release = FALSE)
+#'   nis_open(dir, check_release = FALSE) |>
+#'     dplyr::count(YEAR) |>
+#'     dplyr::collect()
 #' }
 nis_convert <- function(path, dir, encoding = NULL) {
   nis_convert_check_paths(path, dir)

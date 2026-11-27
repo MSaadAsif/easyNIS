@@ -22,7 +22,8 @@ path <- nis_example(years = 2019:2020)
 list.files(path)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/opening-data.html}{Opening NIS data}.
+\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort},
+\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},

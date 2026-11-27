@@ -35,24 +35,17 @@ across years.}
 A lazy DuckDB query with one additional column.
 }
 \description{
-Matches complete ICD-10 codes in DuckDB and preserves one row per input
-row. The \code{"any"} and \code{"principal"} positions produce a list column of
-distinct, sorted categories. For inpatient diagnoses, \code{"default"} produces
-the single HCUP default category for \code{I10_DX1}.
+Add Clinical Classifications Software Refined categories to a DuckDB query.
 }
 \details{
-AHRQ's CCSR mappings are cumulative from October 2015. For each discharge
-year, the default is the earliest bundled fiscal year covering that entire
-calendar year, using the latest bundled revision of that fiscal year.
-The bundled DXCCSR and PRCCSR v2025.1 cover Q4 2015 and 2016–2024 by this
-rule. Pinning \code{"2025.1"} also covers Q1–Q3 2025 when \code{DQTR} is available.
-A fixed version can keep category definitions constant across years.
+Matches full ICD-10 codes. The any-position and principal modes
+return distinct categories as a list. The diagnosis default mode returns
+one inpatient principal diagnosis category.
 
-ICD-9 discharges and rows outside the selected release's coverage get
-missing results. Within coverage, a row without any matching codes gets
-an empty list, or \code{NA} for its inpatient default category. Match results
-use the release as published and do not establish whether an individual
-code was valid on a specific discharge date.
+The bundled 2025.1 mappings cover Q4 2015 and calendar years 2016 through
+2024. Pin a version to use the same categories across years. Out-of-coverage
+discharges receive missing results. Within coverage, unmatched discharges
+receive an empty list or a missing default category.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019:2020))
@@ -62,5 +55,7 @@ nis |>
   dplyr::collect()
 }
 \seealso{
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}}, \href{https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp}{AHRQ HCUP CCSR}.
 }

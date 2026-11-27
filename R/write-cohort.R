@@ -10,7 +10,8 @@
 #' query, and the easyNIS version in its Parquet metadata. The expression is
 #' recorded as supplied, so also retain the code that defines any flags or
 #' variables it uses. The release check exempts the extract from comparison
-#' against HCUP release totals.
+#' against HCUP release totals. Saved cohorts retain the column names used at
+#' export, including mixed-case names.
 #'
 #' @param .data A lazy query from [nis_open()], with any cohort flags added.
 #'   Include the whole sample for the years you intend to analyze.

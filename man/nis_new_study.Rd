@@ -13,8 +13,17 @@ nis_new_study(path)
 The normalized path to the created study directory.
 }
 \description{
-Copy the packaged Quarto study template to a new directory. The destination
-must not already exist.
+Create a Quarto study in a new local directory.
+}
+\details{
+Open \code{analysis.qmd} to edit the cohort, outcomes, and analysis.
+Render with \verb{quarto render analysis.qmd} from the study directory. With
+\code{params.data_path} unset, the report uses \code{\link[=nis_example]{nis_example()}}. Set that
+parameter to the private directory containing your annual Parquet files.
+
+Review the rendered methods paragraph and checklist receipt against the
+study protocol. Review disclosure across the finished report before
+sharing it.
 }
 \examples{
 study_path <- tempfile("nis-study-example-")
@@ -22,6 +31,7 @@ nis_new_study(study_path)
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Get started with easyNIS}.
+\href{https://msaadasif.github.io/easyNIS/articles/study-template.html}{Start a Quarto study},
+\href{https://msaadasif.github.io/easyNIS/articles/study-template.html}{Start a Quarto study}.
 }
 \concept{study-setup}

@@ -41,32 +41,27 @@ named \code{icd9} and \code{icd10} definitions for each procedure.}
 .data with the logical column named by name.
 }
 \description{
-Compares procedure slots with the correspondingly numbered PRDAY values.
-The earliest valid index day is used when the index procedure occurs in
-multiple slots. A slot matching both definitions counts as both procedures.
-Definitions follow the prefix, regular expression, and exact exclusion rules
-of \code{\link[=nis_flag_pr]{nis_flag_pr()}}; timing compares slots within the same code system.
-Factor and ordered-factor PRDAY columns are interpreted by their labels,
-not their internal level numbers. Values that decode to missing numeric days
-are handled as missing. Input columns are preserved.
-Negative days (including HCUP sentinel values), non-finite values, and
-missing days are unknown.
-If either procedure is absent, the result is FALSE. Otherwise, any outcome
-with a known day satisfying the relation returns TRUE. If none does and a
-matching procedure has an unknown day, exclude returns FALSE,
-assume_same_day treats that day as 0, and indeterminate returns NA.
+Flag an outcome procedure that falls within a specified time relation
+to an index procedure.
 }
 \details{
-on_or_after tests outcome day >= earliest index day; after tests >; before
-tests <; same_day tests equality. within_days tests whether the outcome is
-from 0 through window days after the earliest index day, inclusive.
+Each procedure uses the day from its corresponding PRDAY slot.
+Use the prefix, full-code regular expression, and exact exclusion rules of
+\code{\link[=nis_flag_pr]{nis_flag_pr()}}. Timing compares slots within the same code system.
+The earliest known index day is the reference. When either procedure is
+absent, the flag is false. When both occur and a match cannot be
+determined because a day is missing, non-finite, or negative, \code{missing_day} sets the
+handling. The \code{within_days} window starts on the index day and includes
+both endpoints.
 }
 \examples{
-toy <- data.frame(I10_PR1 = c("02UG0JZ", "0JH604Z"), PRDAY1 = c(0L, 1L))
-nis_flag_pr_timing(toy, "02UG0", "0JH60")
+nis <- nis_open(nis_example(2020)) |>
+  dplyr::mutate(PRDAY1 = 0L, PRDAY2 = 1L) |>
+  nis_flag_pr_timing("0270", "02L73", relation = "after")
+nis |> dplyr::count(outcome_post_index) |> dplyr::collect()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Defining cohorts}.
+\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},

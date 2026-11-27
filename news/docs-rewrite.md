@@ -1,0 +1,1 @@
+- Rewrote the documentation for preparing annual NIS files, defining cohorts, estimating with the survey design, and reviewing disclosure before sharing results.

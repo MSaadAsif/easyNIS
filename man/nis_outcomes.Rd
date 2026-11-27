@@ -30,10 +30,13 @@ enforcement) and 99 (alive, destination unknown) are valid codes.
 For a lazy DuckDB input, the result is a lazy query.
 }
 \description{
-Derive in-hospital mortality, length of stay, and discharge disposition
-from the numeric NIS Core fields. Each outcome uses its own source field.
-Missing or unrecognized codes become \code{NA}, including negative HCUP
-sentinels and non-integer values.
+Derive in-hospital death, length of stay, and discharge disposition.
+}
+\details{
+In-hospital death uses \code{DIED}. Discharge disposition uses
+\code{DISPUNIFORM}. Length of stay uses \code{LOS}, including zero for same-day
+stays. Missing values, HCUP sentinel values, and invalid codes produce
+missing outcomes.
 }
 \examples{
 nis_open(nis_example(years = 2024)) |>
@@ -43,5 +46,6 @@ nis_open(nis_example(years = 2024)) |>
   nis_label()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/outcomes.html}{Hospitalization outcomes}, \code{\link[=nis_cost]{nis_cost()}}
+\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs},
+\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}, \code{\link[=nis_cost]{nis_cost()}}
 }

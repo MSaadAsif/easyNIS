@@ -1,34 +1,27 @@
 #' Create a lazy whole-sample NIS survey design
 #'
-#' The nested, one-stage Taylor design uses hospital-year PSUs (YEAR × HOSP_NIS)
-#' and year-specific strata (YEAR × NIS_STRATUM), without a finite population
-#' correction. It uses the valid-design discharges in the input query.
-#' Apply eligibility restrictions with [dplyr::filter()] on the design so
-#' hospitals outside the domain still contribute to variance. Use `subset()`
-#' as the survey-style alternative.
-#' A query filtered before construction defines a different sample.
+#' Estimate means, totals, and supported survey-weighted models in DuckDB.
 #'
-#' Use [survey::svymean()], [survey::svytotal()], or [survey::svyby()] with
-#' one-sided formulas. Grouped estimates support means and totals.
-#' Use [survey::svyglm()] for additive models with Gaussian identity,
-#' binomial or quasibinomial logit, and Poisson or quasipoisson log
-#' families. Wald inference uses the sample design degrees of freedom
-#' minus the fitted model rank plus one. DuckDB
-#' computes weighted sums by PSU without collecting discharge records.
-#' The analysis supports the `"fail"` and `"adjust"` values of
+#' @details Use [dplyr::filter()] on the design to define a domain while
+#' retaining the original sample for variance. Invalid design fields are
+#' excluded when defining the sample.
+#'
+#' Use [survey::svymean()], [survey::svytotal()], and [survey::svyby()] for
+#' summaries. [survey::svyglm()] supports additive Gaussian identity,
+#' binomial and quasibinomial logit, and Poisson and quasipoisson log
+#' models. Use [nis_design()] for interactions, offsets, survey quantiles,
+#' chi-square tests, or `gtsummary::tbl_svysummary()`.
+#'
+#' The design supports the `"fail"` and `"adjust"` settings of
 #' `survey.lonely.psu` and honors `survey.adjust.domain.lonely`.
-#' Use [nis_design()] for row-level operations such as quantiles, chi-square
-#' tests, model diagnostics, and `gtsummary::tbl_svysummary()`.
-#'
-#' Discharges with missing, non-finite, or nonpositive design fields
-#' (`YEAR`, `HOSP_NIS`, `NIS_STRATUM`, or `DISCWT`) are excluded.
-#' Custom analysis weights must be positive and finite within the domain.
 #'
 #' @param .data A lazy DuckDB query from [nis_open()].
 #' @param weights A data-masked SQL-translatable expression for the analysis
 #'   weights. The default uses discharge weights without annualization.
 #' @return A lazy `nis_survey` design.
 #' @family survey-design
+#' @seealso [Analyze the whole sample in DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html),
+#'   [Analyze the whole sample in DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html)
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2019:2020))
