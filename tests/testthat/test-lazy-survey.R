@@ -37,6 +37,8 @@ test_that("lazy Taylor summaries retain the sampled PSUs through domain and miss
   )
 
   expect_error(stats::weights(design), "nis_design")
+  expect_error(survey::svyvar(~LOS, design), "nis_design")
+  expect_error(survey::svyratio(~LOS, ~AGE, design), "nis_design")
   expect_error(survey::svyquantile(~LOS, design, 0.5), "nis_design")
   expect_error(survey::svychisq(~ RACE + PAY1, design), "nis_design")
   if (requireNamespace("gtsummary", quietly = TRUE)) {
@@ -55,7 +57,8 @@ test_that("lazy grouping preserves key types and grouped covariance", {
       female_flag = FEMALE == 1L,
       los_days = ifelse(HOSP_NIS == 2L, NA_real_, LOS)
     )
-  design <- nis_survey(query, weights = DISCWT / 2)
+  divisor <- 2
+  design <- nis_survey(.data = query, weights = DISCWT / divisor)
   reference <- lazy_reference(dplyr::mutate(query, DISCWT = DISCWT / 2))
   for (by in list(~YEAR, ~ factor(YEAR), ~grp, ~female_flag, ~ YEAR + grp)) {
     fit <- survey::svyby(~los_days, by, design, survey::svymean, na.rm = TRUE, covmat = TRUE)
