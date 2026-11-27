@@ -19,19 +19,15 @@ attr(.cpi_u, "source") <- paste(
   "not seasonally adjusted, series CUUR0000SA0; annual averages"
 )
 
-nis_cost_report <- function(provenance, cohort) {
+nis_cost_report <- function(provenance) {
   messages <- c(
-    rows_missing_or_invalid_ccr = "missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows.",
-    rows_missing_charges = "missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
+    rows_missing_or_invalid_ccr = "Missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows.",
+    rows_missing_charges = "Missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
   )
   for (field in names(messages)) {
-    count <- provenance[[field]]
-    if (count == 0L) {
-      next
+    if (provenance[[field]] > 0L) {
+      cli::cli_inform(messages[[field]])
     }
-    noun <- if (cohort) " cohort row" else " row"
-    verb <- if (count == 1L) " has " else "s have "
-    cli::cli_inform(paste0(count, noun, verb, messages[[field]]))
   }
 }
 
@@ -175,7 +171,7 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
     missing_charges_count
   )
   attr(data, "nis_cost_provenance") <- provenance
-  nis_cost_report(provenance, !is.null(cohort_years))
+  nis_cost_report(provenance)
   data
 }
 
