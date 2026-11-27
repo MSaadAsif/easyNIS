@@ -21,7 +21,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_outcomes() |>
   dplyr::mutate(adult = AGE >= 18)
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmVEH8s/duckdb
+#> ℹ /tmp/Rtmpi4HRrS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -29,7 +29,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpmVEH8s/duckdb
+#> ℹ /tmp/Rtmpi4HRrS/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -122,9 +122,9 @@ missing LOS, use counts for the records contributing to that mean.
 reviewed <- estimates |>
   dplyr::left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
   nis_suppress(
-    count_col = "n",
-    hospital_col = "hospitals",
-    weighted_cols = c("discharges", "discharges_se", "mean_los", "mean_los_se")
+    count_col = n,
+    hospital_col = hospitals,
+    weighted_cols = c(discharges, discharges_se, mean_los, mean_los_se)
   )
 reviewed
 #> # A tibble: 2 × 7

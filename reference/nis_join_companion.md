@@ -30,9 +30,12 @@ nis_join_companion(.data, path, component, columns)
 
 - columns:
 
-  Character vector of companion fields to add. Names are matched
-  case-insensitively using DuckDB's identifier rules. Choose fields with
-  names distinct from fields in `.data`.
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  Select one or more companion fields by name across the selected years.
+  Linkage keys are included automatically and are outside the selection.
+  Use the field's source spelling for bare names or `all_of()`. Selected
+  fields keep their source names and must have names distinct from
+  fields in `.data`.
 
 ## Value
 
@@ -70,7 +73,7 @@ Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 path <- tempfile()
 con <- DBI::dbConnect(duckdb::duckdb())
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -89,10 +92,10 @@ write_component("hospital", "7 AS HOSP_NIS, 2 AS HOSP_BEDSIZE")
 #> [1] 1
 DBI::dbDisconnect(con, shutdown = TRUE)
 nis_open(file.path(path, "core"), check_release = FALSE) |>
-  nis_join_companion(file.path(path, "hospital"), "hospital", "HOSP_BEDSIZE") |>
+  nis_join_companion(file.path(path, "hospital"), "hospital", nis_vars_hospital()) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

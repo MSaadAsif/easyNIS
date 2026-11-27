@@ -50,7 +50,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUkdBYJ/duckdb
+#> ℹ /tmp/RtmpmUMjcF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -58,7 +58,7 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUkdBYJ/duckdb
+#> ℹ /tmp/RtmpmUMjcF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -69,9 +69,9 @@ nis <- nis_open(nis_example(years = 2018:2020)) |>
 annual <- nis_annual_totals(nis, heart_failure)
 nis_suppress(
   annual,
-  count_col = "n",
-  hospital_col = "hospitals",
-  weighted_cols = c("discharges", "discharges_se")
+  count_col = n,
+  hospital_col = hospitals,
+  weighted_cols = c(discharges, discharges_se)
 )
 #> # A tibble: 3 × 5
 #>    YEAR discharges discharges_se    n     hospitals
@@ -198,7 +198,7 @@ transition <- nis_open(nis_example(2015)) |>
   nis_flag_dx(hf10 = "I50", system = "icd10", position = "principal") |>
   dplyr::mutate(period = dplyr::if_else(DQTR == 4L, "Q4", "Q1-Q3"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUkdBYJ/duckdb
+#> ℹ /tmp/RtmpmUMjcF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -209,7 +209,7 @@ transition <- nis_open(nis_example(2015)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpUkdBYJ/duckdb
+#> ℹ /tmp/RtmpmUMjcF/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

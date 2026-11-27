@@ -25,8 +25,9 @@ nis_cell_counts(.data, by = NULL)
 - by:
 
   \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
-  Cell-defining columns. Omit for overall counts. The summary names `n`
-  and `hospitals` are reserved.
+  Cell-defining columns. Omit or select no columns for overall counts.
+  Use name-based selectors on DuckDB queries. The summary names `n` and
+  `hospitals` are reserved.
 
 ## Value
 

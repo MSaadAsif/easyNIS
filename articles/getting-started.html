@@ -101,7 +101,7 @@ checks every slot by default.</p>
 <span>  <span class="fu"><a href="../reference/nis_outcomes.html">nis_outcomes</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>adult <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span><span class="op">)</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpmVEH8s/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpi4HRrS/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -109,7 +109,7 @@ checks every slot by default.</p>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
 <span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpmVEH8s/duckdb</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/Rtmpi4HRrS/duckdb</span></span>
 <span><span class="co">#&gt; This is removed when the R session ends.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
@@ -684,9 +684,9 @@ mean.</p>
 <code class="sourceCode R"><span><span class="va">reviewed</span> <span class="op">&lt;-</span> <span class="va">estimates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">design</span>, by <span class="op">=</span> <span class="va">heart_failure</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"heart_failure"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span></span>
-<span>    count_col <span class="op">=</span> <span class="st">"n"</span>,</span>
-<span>    hospital_col <span class="op">=</span> <span class="st">"hospitals"</span>,</span>
-<span>    weighted_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"discharges"</span>, <span class="st">"discharges_se"</span>, <span class="st">"mean_los"</span>, <span class="st">"mean_los_se"</span><span class="op">)</span></span>
+<span>    count_col <span class="op">=</span> <span class="va">n</span>,</span>
+<span>    hospital_col <span class="op">=</span> <span class="va">hospitals</span>,</span>
+<span>    weighted_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">discharges</span>, <span class="va">discharges_se</span>, <span class="va">mean_los</span>, <span class="va">mean_los_se</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="va">reviewed</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 7</span></span></span>

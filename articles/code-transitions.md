@@ -53,7 +53,7 @@ nis_audit_code_transition(
   toy,
   codes = c(heart_failure = "I50"),
   type = "dx",
-  by = c("YEAR", "DQTR")
+  by = c(YEAR, DQTR)
 )
 #> # A tibble: 6 × 8
 #>    YEAR  DQTR code_group    n_cohort_unweighted n_unweighted n_weighted
@@ -109,7 +109,7 @@ secondary-only, and any-position definitions.
 
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpr6OAe9/duckdb
+#> ℹ /tmp/RtmpUOSRlr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -117,7 +117,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpr6OAe9/duckdb
+#> ℹ /tmp/RtmpUOSRlr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -154,7 +154,7 @@ nis_open(nis_example(years = 2015)) |>
   dplyr::count(DQTR, flag) |>
   dplyr::collect()
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpr6OAe9/duckdb
+#> ℹ /tmp/RtmpUOSRlr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -165,7 +165,7 @@ nis_open(nis_example(years = 2015)) |>
 #> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
 #>   slots.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpr6OAe9/duckdb
+#> ℹ /tmp/RtmpUOSRlr/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -201,7 +201,7 @@ a different denominator, for example adults with a known age.
 ``` r
 
 attr(flow, "nis_criteria")
-nis_audit_code_transition(nis, codes = flow, by = c("YEAR", "DQTR"))
+nis_audit_code_transition(nis, codes = flow, by = c(YEAR, DQTR))
 ```
 
 For the invented example, any-slot counts in Q3 and Q4 are 24 and 19.

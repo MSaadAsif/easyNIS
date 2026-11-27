@@ -51,9 +51,9 @@ suppressed. Cells with fewer than two hospitals are marked as such.
 
 nis_suppress(
   cells,
-  count_col = "n",
-  weighted_cols = "estimate",
-  hospital_col = "hospitals"
+  count_col = n,
+  weighted_cols = estimate,
+  hospital_col = hospitals
 )
 #> # A tibble: 2 × 4
 #>   group n            hospitals    estimate    
@@ -90,7 +90,7 @@ function errors.
 nis <- nis_open(nis_example(years = 2019)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzTuEuV/duckdb
+#> ℹ /tmp/RtmpotWakT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -98,7 +98,7 @@ nis <- nis_open(nis_example(years = 2019)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpzTuEuV/duckdb
+#> ℹ /tmp/RtmpotWakT/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.

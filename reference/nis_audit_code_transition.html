@@ -89,7 +89,7 @@ change compares with the previous observed period in sorted order.</p>
 <span>  <span class="va">.data</span>,</span>
 <span>  <span class="va">codes</span>,</span>
 <span>  cohort <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  by <span class="op">=</span> <span class="st">"YEAR"</span>,</span>
+<span>  by <span class="op">=</span> <span class="va">YEAR</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pr"</span>, <span class="st">"dx"</span><span class="op">)</span>,</span>
 <span>  system <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"icd10"</span>, <span class="st">"icd9"</span><span class="op">)</span>,</span>
 <span>  weight_var <span class="op">=</span> <span class="st">"DISCWT"</span>,</span>
@@ -119,8 +119,9 @@ cohort. Rows where it evaluates to <code>NA</code> are excluded.</p></dd>
 
 
 <dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>
-<dd><p>Names of one or more existing columns defining periods, with no
-duplicates.</p></dd>
+<dd><p>&lt;<a href="https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html" class="external-link">tidy-select</a>&gt; One or more columns
+defining periods. Defaults to <code>YEAR</code>. Use name-based selectors on DuckDB
+queries.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
@@ -240,7 +241,7 @@ prefix matches. The counts are exact, so apply your disclosure rules (see
 <span class="r-in"><span><span class="co"># Periods defined by several columns</span></span></span>
 <span class="r-in"><span><span class="va">toy_data</span><span class="op">$</span><span class="va">DQTR</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">1L</span>, <span class="fl">2L</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">nis_audit_code_transition</span><span class="op">(</span><span class="va">toy_data</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>myectomy <span class="op">=</span> <span class="st">"02UG0JZ"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"YEAR"</span>, <span class="st">"DQTR"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">DQTR</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    YEAR  DQTR code_group n_cohort_unweighted n_unweighted n_weighted</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>

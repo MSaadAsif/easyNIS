@@ -17,7 +17,7 @@ nis_audit_dx_position(
   code,
   system = c("icd10", "icd9"),
   weight_var = "DISCWT",
-  outcomes = c("DIED", "ELECTIVE")
+  outcomes = tidyselect::any_of(c("DIED", "ELECTIVE"))
 )
 ```
 
@@ -42,8 +42,11 @@ nis_audit_dx_position(
 
 - outcomes:
 
-  Outcome columns to summarize. By default, `DIED` and `ELECTIVE` are
-  included when present and absent defaults are skipped.
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  Outcome columns to summarize. By default, selects `DIED` and
+  `ELECTIVE` when present. Use `NULL` to omit rates or `all_of()` to
+  select a character vector of names. Use name-based selectors on DuckDB
+  queries.
 
 ## Value
 
@@ -75,7 +78,7 @@ Other cohort-definition:
 ``` r
 nis <- nis_open(nis_example(years = 2019))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -83,7 +86,7 @@ nis <- nis_open(nis_example(years = 2019))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -99,4 +102,15 @@ nis_audit_dx_position(nis, "I50")
 #> 3 any                    54       62.4                   100                 100
 #> # ℹ 4 more variables: DIED_rate_unweighted <dbl>, DIED_rate_weighted <dbl>,
 #> #   ELECTIVE_rate_unweighted <dbl>, ELECTIVE_rate_weighted <dbl>
+outcome_names <- c("ELECTIVE", "DIED")
+nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
+#> # A tibble: 3 × 9
+#>   presentation n_unweighted n_weighted pct_of_any_unweighted pct_of_any_weighted
+#>   <chr>               <dbl>      <dbl>                 <dbl>               <dbl>
+#> 1 principal              54       62.4                   100                 100
+#> 2 secondary_o…            0        0                       0                   0
+#> 3 any                    54       62.4                   100                 100
+#> # ℹ 4 more variables: ELECTIVE_rate_unweighted <dbl>,
+#> #   ELECTIVE_rate_weighted <dbl>, DIED_rate_unweighted <dbl>,
+#> #   DIED_rate_weighted <dbl>
 ```

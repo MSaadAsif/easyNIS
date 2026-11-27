@@ -55,16 +55,19 @@ nis_suppress(
 
 - count_col:
 
-  For data frames, the unweighted-count column name (required).
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  For data frames, select exactly one unweighted-count column.
 
 - weighted_cols:
 
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
   For data frames, other columns to mask on primary and secondary rows.
 
 - by:
 
-  Optional data-frame grouping column names defining strata for
-  complementary suppression.
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  Optional data-frame grouping columns defining strata for complementary
+  suppression.
 
 - secondary:
 
@@ -76,10 +79,12 @@ nis_suppress(
 
 - hospital_col:
 
-  Optional data-frame column containing the number of distinct
-  contributing hospitals for each cell. Cells with fewer than two
-  hospitals are marked `<2 hospitals`. Missing or invalid hospital
-  counts are errors. Hospital identifiers must be counted by year;
+  \<[tidy-select](https://dplyr.tidyverse.org/reference/dplyr_tidy_select.html)\>
+  Optional selection of a single data-frame column containing the number
+  of distinct contributing hospitals for each cell. Cells with fewer
+  than two hospitals are marked `<2 hospitals`. Missing or invalid
+  hospital counts are errors. Hospital identifiers must be counted by
+  year;
   [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
   computes counts from record-level data or an
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
@@ -105,7 +110,7 @@ Other disclosure:
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -113,7 +118,7 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpeQiwPn/duckdb
+#> ℹ /tmp/Rtmphubzel/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
