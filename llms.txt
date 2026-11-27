@@ -140,6 +140,12 @@ Open annual NIS files and inspect data structure and labels.
   : Attach an annual NIS companion to Core discharges
 - [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
   : Apply HCUP labels
+- [`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  [`nis_vars_demographics()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  [`nis_vars_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  [`nis_vars_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  [`nis_vars_hospital()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  : Select NIS column groups
 
 ## 
 

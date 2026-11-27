@@ -2,6 +2,16 @@
 
 ## easyNIS (development version)
 
+- Select design, demographic, diagnosis, procedure, and hospital fields
+  with
+  [`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
+  [`nis_vars_demographics()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
+  [`nis_vars_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
+  [`nis_vars_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
+  and
+  [`nis_vars_hospital()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+  on data frames and lazy tables.
+
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   and
   [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md)

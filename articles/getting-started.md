@@ -1,22 +1,26 @@
 # Get started with easyNIS
 
-This guide opens invented discharges, defines a diagnosis cohort, builds
-a survey design, estimates weighted summaries, and checks disclosure.
-All input comes from
-[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md);
-it contains no real NIS records and results are for learning only.
+This workflow uses invented inpatient discharges from
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md).
+In a study, use the path to your converted annual Parquet files and
+supply your own diagnosis definitions and eligibility rules.
 
-## Open annual data
+## Open, project, and flag
 
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
-scans Parquet files lazily. Collect only a small summary when you need
-to inspect records.
+Choose the study years in
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
+Select the columns needed for the analysis, keeping the design fields
+and the diagnosis slots used by the flag. The query stays in DuckDB. The
+diagnosis flag checks every slot by default.
 
 ``` r
 
-nis <- nis_open(nis_example(years = 2019:2020))
+nis <- nis_open(nis_example(years = 2019:2020)) |>
+  dplyr::select(nis_vars_design(), nis_vars_dx(), AGE, FEMALE, LOS, DIED) |>
+  nis_flag_dx(heart_failure = "I50") |>
+  dplyr::mutate(adult = AGE >= 18, death = as.integer(DIED))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpp15OFL/duckdb
+#> ℹ /tmp/Rtmp1pLckd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
@@ -24,127 +28,138 @@ nis <- nis_open(nis_example(years = 2019:2020))
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpp15OFL/duckdb
+#> ℹ /tmp/Rtmp1pLckd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
 #> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
 #> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
 #> ℹ See ?duckdb_storage for details and alternatives.
-nis |> dplyr::count(YEAR) |> dplyr::collect()
-#> # A tibble: 2 × 2
-#>    YEAR     n
-#>   <int> <dbl>
-#> 1  2020    96
-#> 2  2019    96
+
+nis_attrition(nis, adult = adult, heart_failure = heart_failure, by_year = TRUE)
+#> # A tibble: 6 × 8
+#>    YEAR  step criterion      n_unweighted n_dropped_unweighted n_weighted
+#>   <int> <int> <chr>                 <int>                <int>      <dbl>
+#> 1  2020     0 All discharges           96                   NA      114. 
+#> 2  2020     1 adult                    96                    0      114. 
+#> 3  2020     2 heart_failure            54                   42       62.4
+#> 4  2019     0 All discharges           96                   NA      114. 
+#> 5  2019     1 adult                    96                    0      114. 
+#> 6  2019     2 heart_failure            54                   42       62.4
+#> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
 ```
 
-The counts here describe the synthetic fixture by year. See [Opening NIS
-data](https://msaadasif.github.io/easyNIS/articles/opening-data.md) for
-column selection and year coverage.
+[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
+keeps `YEAR`, `HOSP_NIS`, `NIS_STRATUM`, `DISCWT` and, when present,
+`DQTR`. If a prior selection removed one of the four required fields,
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+reports the missing field. See [Defining
+cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.md) for
+principal diagnoses, exclusions, procedure flags, and code-system
+choices.
 
-## Define a cohort
+## Estimate within the adult domain
 
-Flags check each diagnosis slot independently. Prefixes are analyst
-supplied; easyNIS does not choose a clinical definition.
+Pass the eligibility flag to `cohort` so the variance calculation can
+account for sampled hospital-years with no eligible discharges. `keep`
+limits what the design brings into R, and the design labels retained
+HCUP fields. The flag groups compare adult discharges with and without a
+matching diagnosis.
 
 ``` r
 
-nis <- nis |> nis_flag_dx(heart_failure = "I50")
-nis |> dplyr::count(heart_failure) |> dplyr::collect()
-#> # A tibble: 2 × 2
-#>   heart_failure     n
-#>   <lgl>         <dbl>
-#> 1 FALSE            84
-#> 2 TRUE            108
+design <- nis |>
+  nis_design(cohort = adult, keep = c(heart_failure, AGE, FEMALE, LOS, DIED, death))
+#> Cohort: 192 discharges; weighted N 228.8; 24 hospitals across 2 years.
+
+estimates <- design |>
+  dplyr::group_by(heart_failure) |>
+  dplyr::summarise(
+    discharges = srvyr::survey_total(),
+    mean_los = srvyr::survey_mean(LOS, na.rm = TRUE)
+  )
 ```
 
-The two rows show fixture records with and without a matching code.
-Review positions and code-system assumptions before using a flag; see
-[Defining
-cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.md).
-
-## Build a survey design
-
-The cohort is declared inside
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-This preserves sampled hospital-year information when no discharges meet
-the cohort.
-
-``` r
-
-design <- nis_design(
-  nis,
-  cohort = heart_failure & AGE >= 18,
-  keep = c(AGE, FEMALE, LOS),
-  annualize = TRUE
-)
-#> Cohort: 108 discharges; weighted N 62.4; 18 hospitals across 2 years.
-```
-
-For a pooled design, `annualize = TRUE` divides discharge weights by the
-number of valid years. The rule treats each included year as a whole
-year; read [Survey design and
+This estimates totals across both study years. Use `annualize = TRUE`
+for average annual totals when each included year represents a whole
+year. For annual estimates, keep the original weights and group by
+`YEAR`. See [Survey design and
 weighting](https://msaadasif.github.io/easyNIS/articles/survey-design.md)
-before choosing it for a real analysis.
+for pooling and coverage.
 
-## Estimate weighted summaries
+## Make a table and fit a model
 
-Use survey-aware summaries so standard errors account for strata and
-hospitals.
+Use the same design for the descriptive table and regression. The model
+adjusts for age, sex, and year in this invented example. Review the
+model sample and missingness when reporting a real analysis.
 
 ``` r
 
-srvyr::summarise(
-  design,
-  discharges = srvyr::survey_total(),
-  mean_los = srvyr::survey_mean(LOS)
+table_one <- design |>
+  gtsummary::tbl_svysummary(by = heart_failure, include = c(AGE, FEMALE, LOS, DIED))
+nis_suppress(table_one)
+```
+
+[TABLE]
+
+``` r
+
+fit <- survey::svyglm(
+  death ~ heart_failure + AGE + FEMALE + factor(YEAR),
+  design = design,
+  family = quasibinomial()
 )
-#> # A tibble: 1 × 4
-#>   discharges discharges_se mean_los mean_los_se
-#>        <dbl>         <dbl>    <dbl>       <dbl>
-#> 1       62.4          8.67     5.66       0.229
 ```
 
-The estimated total and mean describe the fixture under its design
-fields, not national estimates. The standard errors are design based;
-ordinary row-level summaries would not represent this sampling design.
+## Review disclosure before exporting
 
-## Review disclosure
-
-[`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
-reports unweighted discharges and distinct year-scoped hospitals for
-each output cell.
+The table above masks statistics using corresponding unweighted counts
+and hospital support. For a data-frame summary, attach those counts
+explicitly. This fixture has recorded LOS for every discharge. With
+missing LOS, use counts for the records contributing to that mean.
 
 ``` r
 
-cells <- nis_cell_counts(nis, by = "heart_failure")
-nis_suppress(cells, count_col = "n", hospital_col = "hospitals")
-#> # A tibble: 2 × 3
-#>   heart_failure n     hospitals
-#>   <lgl>         <chr> <chr>    
-#> 1 FALSE         84    24       
-#> 2 TRUE          108   18
+reviewed <- estimates |>
+  dplyr::left_join(nis_cell_counts(design, by = "heart_failure"), by = "heart_failure") |>
+  nis_suppress(
+    count_col = "n",
+    hospital_col = "hospitals",
+    weighted_cols = c("discharges", "discharges_se", "mean_los", "mean_los_se")
+  )
+reviewed
+#> # A tibble: 2 × 7
+#>   heart_failure discharges discharges_se    mean_los mean_los_se n     hospitals
+#>   <lgl>         <chr>      <chr>            <chr>    <chr>       <chr> <chr>    
+#> 1 FALSE         104        19.9077874210069 5.38076… 0.27278462… 84    24       
+#> 2 TRUE          124.8      17.3481987537612 5.66346… 0.22899117… 108   18
 ```
 
-Suppressed rows either meet the configured small-cell threshold or
-represent fewer than two hospitals. Review derived totals and follow the
-applicable HCUP Data Use Agreement. See [Disclosure and
+Review disclosure across tables, models, and related totals before
+sharing. Keep work in a private directory. See [Disclosure and
 suppression](https://msaadasif.github.io/easyNIS/articles/disclosure.md).
 
-## Common pitfalls
+``` r
 
-> **Common pitfalls**
->
-> - Filtering to the cohort before building the design drops sampled
->   hospital-years with no cohort records.
-> - Treating the invented fixture’s estimates as national results.
-> - Sharing a masked table without reviewing totals and other derivable
->   cells.
+utils::write.csv(reviewed, "discharges-reviewed.csv", row.names = FALSE)
+```
 
-The exported
-[`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
-helper creates a new folder with a Quarto project file and starter
-analysis. Add your data and revise the example code, cohort, and study
-design for your question; the helper does not choose those for you. See
-its function reference for details.
+## Project before collecting
+
+When a step needs a data frame, put `select()` before `collect()` so
+DuckDB can read the requested columns from Parquet. In a Windows
+benchmark, fresh R 4.6.1 processes with DuckDB 1.5.2 selected the same
+seven columns from 480,000 invented rows and 188 source columns. Peak
+process commit was 206 MiB with projection before collection and 1,379
+MiB with projection after collection. The difference measures one
+synthetic workload. Peak memory depends on the data, query, and system.
+
+To reproduce the measurement from the easyNIS source directory on
+Windows, install the package and run these commands with a new scratch
+directory.
+
+``` sh
+Rscript --vanilla tools/benchmark-column-projection.R prepare local/loop/wide-invented
+Rscript --vanilla tools/benchmark-column-projection.R early local/loop/wide-invented
+Rscript --vanilla tools/benchmark-column-projection.R late local/loop/wide-invented
+```
