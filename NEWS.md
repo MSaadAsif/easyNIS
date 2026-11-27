@@ -3,10 +3,26 @@
 - Select design, demographic, diagnosis, procedure, and hospital fields with
   `nis_vars_design()`, `nis_vars_demographics()`, `nis_vars_dx()`,
   `nis_vars_pr()`, and `nis_vars_hospital()` on data frames and lazy tables.
+- The descriptives and regression article shows how to use `nis_design()`
+  with gtsummary for survey summaries, group comparisons, and regression
+  tables. The workflow test checks cohort counts and full-sample survey results.
+- `nis_join_companion()` adds selected Hospital, Severity, or Diagnosis and
+  Procedure Groups fields to lazy Core queries using checked annual keys.
+
+- `nis_comorbidity()` now scores lazy DuckDB cohorts in bounded batches
+  and returns the scores joined to the original query by discharge key.
+
+- `nis_attrition(..., .design = TRUE)` counts discharges with valid survey
+  design fields. Reuse the same eligibility rules in `nis_design()` with
+  `cohort = !!nis_attrition_cohort(flow)`.
 
 - The survey design article demonstrates analytic domains with
   `dplyr::filter()` on a `nis_design()` result and explains how filtering the
   lazy input can affect variance estimation.
+
+- `nis_outcomes()` adds in-hospital mortality, length of stay, and labeled
+  discharge disposition to an analysis, including on lazy DuckDB tables.
+  The hospitalization outcomes article covers survey estimators and denominators.
 
 - `nis_open()` checks annual Core files by default against HCUP's published
   discharge counts, weight sums, and hospital counts for each opened year in

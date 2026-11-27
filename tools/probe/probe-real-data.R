@@ -104,9 +104,8 @@ record_step("trend_2016_to_latest", "nis_design + srvyr::survey_mean", transitio
   trend <- trend |> easyNIS::nis_flag_dx(sepsis = c("A40", "A41"))
   trend_design <- easyNIS::nis_design(trend, cohort = sepsis, keep = c(YEAR, DIED))
   trend_design |>
-    dplyr::mutate(.died = as.integer(DIED == "Yes")) |>
     dplyr::group_by(YEAR) |>
-    srvyr::summarise(mortality = srvyr::survey_mean(.died, na.rm = TRUE))
+    srvyr::summarise(mortality = srvyr::survey_mean(DIED, na.rm = TRUE))
 })
 failed_steps <- recorder$finish()
 if (length(failed_steps)) {

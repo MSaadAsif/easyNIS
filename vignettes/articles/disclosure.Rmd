@@ -73,8 +73,10 @@ It uses the smaller count for masking and counts distinct year-scoped `YEAR`
 and `HOSP_NIS` identities from those records. Hospital support is
 checked within the cohort and the displayed non-missing, category, and by-group
 cell. Cells at or below the discharge threshold or supported by fewer than two
-hospitals are marked; overall cells follow the same complementary masking
-behavior described above. If the records or cards cannot unambiguously map a
+hospitals are marked. A dichotomous row is also masked when the non-missing
+complement is protected, even when the displayed event has sufficient support.
+Overall cells follow the same complementary masking behavior described above.
+If the records or cards cannot unambiguously map a
 displayed cell, the function errors.
 
 ```{r gtsummary, eval=rlang::is_installed(c("gtsummary", "cardx", "survey", "gt"))}
@@ -84,13 +86,32 @@ design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
 table_one <- gtsummary::tbl_svysummary(
   design,
   by = RACE,
-  include = c(AGE, FEMALE)
+  include = c(AGE, FEMALE),
+  label = FEMALE ~ "Female"
 )
 nis_suppress(table_one, threshold = 10)
 ```
 
 The masked table is a starting point for review. Data-frame inputs continue to
 use the supplied count and optional hospital-count columns.
+
+## Generated studies
+
+Render an analysis created with `nis_new_study()` to generate a Methods paragraph
+and checklist receipt. Copy the paragraph into your manuscript or edit the
+generated section in `analysis.qmd`. The receipt compares the input to the
+survey design with the query returned by `nis_open()`. Use the design's cohort
+argument to restrict the analysis domain.
+
+The built-in report checks support for each variable across the displayed
+groups, including missing values and dichotomous complements. It masks
+related table cells and withholds linked estimates when they could reveal a
+protected cell. Models require complete data on the reporting cohort.
+Cohort flow checks the discharges excluded between steps and counts only
+valid-design records in weighted totals. The receipt describes
+the generated report and flags decisions that require manuscript or release
+review, including whether counts can be derived across tables or from prior
+releases. Apply disclosure protection to any tables you add to the study.
 
 ## Common pitfalls
 

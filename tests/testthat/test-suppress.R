@@ -114,7 +114,8 @@ test_that("suppression uses unweighted boundary and missing counts", {
   suppressed <- nis_suppress(table)
   labels <- suppressed$table_body$row_type == "label"
   expect_identical(enc2utf8(suppressed$table_body$stat_1[labels]), rep("\u226410", 2L))
-  expect_identical(suppressed$table_body$stat_2[labels], table$table_body$stat_2[labels])
+  expect_identical(suppressed$table_body$stat_2[labels][[1L]], table$table_body$stat_2[labels][[1L]])
+  expect_identical(suppressed$table_body$stat_2[labels][[2L]], "Masked")
   missing <- suppressed$table_body$row_type == "missing"
   expect_true(any(missing))
   expect_true(all(enc2utf8(suppressed$table_body$stat_1[missing]) == "\u226410"))
@@ -148,9 +149,9 @@ test_that("nis_suppress masks low unweighted counts and adds the DUA footnote", 
   expect_true(any(grepl("HCUP Data Use Agreement", footnote)))
   expect_false(any(grepl("overall cell", footnote)))
   female_rows <- suppressed$table_body |>
-    dplyr::filter(variable == "FEMALE", label == "Female")
+    dplyr::filter(variable == "FEMALE", row_type == "label")
   original_female_rows <- table$table_body |>
-    dplyr::filter(variable == "FEMALE", label == "Female")
+    dplyr::filter(variable == "FEMALE", row_type == "label")
   expect_equal(female_rows$stat_1, original_female_rows$stat_1)
   expect_equal(enc2utf8(female_rows$stat_2), enc2utf8(paste0("\u2264", "10")))
   expect_error(nis_suppress(table, threshold = -1), "non-negative whole number")
@@ -945,4 +946,22 @@ test_that("malformed survey count cards fail closed", {
   forged <- summary
   forged$cards$tbl_svysummary$stat[[count_row]] <- 12L
   expect_true("\u226410" %in% nis_suppress(forged)$table_body$stat_0)
+})
+
+test_that("logical survey rows hide small complements even with missing records", {
+  data <- data.frame(
+    group = rep(c("A", "B"), each = 40L),
+    flag = c(rep(TRUE, 20L), rep(FALSE, 2L), rep(NA, 18L), rep(c(FALSE, TRUE), each = 20L)),
+    YEAR = 2015L,
+    HOSP_NIS = rep(1:4, 20L),
+    weight = 5
+  )
+  design <- survey::svydesign(ids = ~HOSP_NIS, weights = ~weight, data = data)
+  table <- gtsummary::tbl_svysummary(design, by = group, include = flag) |>
+    gtsummary::add_overall()
+  suppressed <- nis_suppress(table)
+  label <- suppressed$table_body$row_type == "label"
+  expect_identical(suppressed$table_body$stat_1[label], "Masked")
+  expect_identical(suppressed$table_body$stat_2[label], table$table_body$stat_2[label])
+  expect_identical(suppressed$table_body$stat_0[label], "Masked")
 })

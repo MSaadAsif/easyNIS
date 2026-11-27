@@ -25,6 +25,8 @@ articles:
       - '"articles/cohorts"'
       - '"articles/survey-design"'
       - '"articles/descriptives-models"'
+      - '"articles/outcomes"'
+      - '"articles/trends"'
       - '"articles/disclosure"'
       - '"articles/costs"'
       - '"articles/comorbidity"'
@@ -43,7 +45,10 @@ reference:
     desc: Open annual NIS files and inspect data structure and labels.
     contents:
       - nis_example
+      - nis_write_cohort
+      - nis_convert
       - nis_open
+      - nis_join_companion
       - nis_label
       - nis_vars_design
   - title: 2. Define cohorts
@@ -54,6 +59,7 @@ reference:
       - nis_flag_pr
       - nis_flag_pr_timing
       - nis_prday_completeness
+      - nis_add_ccsr
       - nis_ccsr_codes
       - nis_attrition
       - nis_dx_sensitivity
@@ -63,9 +69,11 @@ reference:
     contents:
       - nis_design
       - nis_reweight
+      - nis_annual_totals
   - title: 4. Add analysis variables
-    desc: Compute comorbidity indicators and inflation-adjusted costs.
+    desc: Derive discharge outcomes, comorbidity indicators, and inflation-adjusted costs.
     contents:
+      - nis_outcomes
       - nis_comorbidity
       - nis_cost
       - nis_cost_provenance

@@ -1,11 +1,8 @@
 #' ICD-10 codes in HCUP CCSR categories
 #'
-#' Reads the official HCUP DXCCSR or PRCCSR reference file that you download
-#' yourself and returns the full ICD-10-CM or ICD-10-PCS codes assigned to the
-#' requested categories. Pass the result to [nis_flag_dx()] or [nis_flag_pr()],
-#' which treat each code as a prefix. easyNIS does not ship or download any
-#' CCSR content, and the code lists depend on the reference file version you
-#' supply.
+#' Returns the full ICD-10-CM or ICD-10-PCS codes assigned to the requested
+#' categories in a bundled AHRQ HCUP CCSR release. Use [nis_add_ccsr()] for
+#' exact, year-aware matching on a lazy NIS query.
 #'
 #' The reference file may be the HCUP Excel workbook (`.xlsx`, which needs
 #' the readxl package) or the HCUP comma-separated file. Excel files are read
@@ -19,48 +16,36 @@
 #' with `position = "principal"` in [nis_flag_dx()]. Procedure reference files
 #' have no default assignment.
 #'
-#' UNVERIFIED: the file layouts above are assumed from secondhand descriptions
-#' of HCUP downloads, not checked against a current release. Both CSV readers
-#' check record field counts; all supported formats check that codes
-#' look like ICD-10 codes (3 to 7 letters or digits). Check the returned codes
-#' against your reference file before you rely on them.
-#'
-#' This function is experimental.
-#'
-#' @param file Path to the HCUP CCSR reference file.
+#' @param file Optional path to an HCUP reference file for a custom or newer
+#'   release. The file determines the coding system when supplied.
 #' @param categories Character vector of CCSR category codes, such as
 #'   `"CIR019"`. Matching ignores case.
 #' @param default_only If `TRUE`, keep only codes whose default inpatient
 #'   category is in `categories`. Diagnosis reference files only.
+#' @param type `"dx"` for diagnosis or `"pr"` for procedure lookups in the
+#'   bundled data.
+#' @param version A bundled version, such as `"2025.1"`. The default is the
+#'   latest bundled release of the requested `type`.
 #'
 #' @return A sorted character vector of unique codes without periods.
 #' @examples
-#' # An invented reference file in the HCUP comma-separated layout. Download
-#' # the real DXCCSR file from HCUP and pass its path instead.
-#' reference <- tempfile(fileext = ".csv")
-#' writeLines(c(
-#'   "'ICD-10-CM CODE','CCSR CATEGORY 1','CCSR CATEGORY 2','DEFAULT CCSR CATEGORY IP'",
-#'   "'I5022','CIR019','','CIR019'",
-#'   "'I509','CIR019','','CIR019'",
-#'   "'E119','END002','','END002'"
-#' ), reference)
-#' codes <- nis_ccsr_codes(reference, "CIR019")
-#' codes
-#'
-#' nis_open(nis_example(years = 2019)) |>
-#'   nis_flag_dx(heart_failure = codes) |>
-#'   dplyr::count(heart_failure) |>
-#'   dplyr::collect()
+#' head(nis_ccsr_codes(categories = "CIR019"))
 #' @family cohort-definition
 #' @seealso [Defining cohorts](articles/cohorts.html).
 #' @export
-nis_ccsr_codes <- function(file, categories, default_only = FALSE) {
+nis_ccsr_codes <- function(file = NULL, categories, default_only = FALSE, type = c("dx", "pr"), version = NULL) {
   call <- rlang::current_call()
   categories <- validate_ccsr_categories(categories, call)
   validate_ccsr_default_only(default_only, call)
 
+  if (is.null(file)) {
+    return(ccsr_bundled_codes(categories, default_only, match.arg(type), version, call))
+  }
+  if (!is.null(version)) {
+    cli::cli_abort("Supply either `file` or `version`.", call = call)
+  }
   map <- read_ccsr_map(file, call)
-  validate_ccsr_category_names(categories, map$category, call)
+  validate_ccsr_category_names(categories, map$category, call, source = "reference file")
   map <- filter_ccsr_defaults(map, default_only, call)
 
   sort(unique(map$code[map$category %in% categories]))
@@ -79,10 +64,10 @@ validate_ccsr_default_only <- function(default_only, call) {
   }
 }
 
-validate_ccsr_category_names <- function(categories, available, call) {
+validate_ccsr_category_names <- function(categories, available, call, source) {
   unknown <- setdiff(categories, available)
   if (length(unknown) > 0L) {
-    cli::cli_abort("Categor{?y/ies} {.val {unknown}} not found in {.arg file}.", call = call)
+    cli::cli_abort("CCSR codes {.val {unknown}} not found in the {source}.", call = call)
   }
 }
 
@@ -261,5 +246,6 @@ read_ccsr_sheet <- function(file, call) {
   }
   body <- as.data.frame(cells[-seq_len(header), , drop = FALSE], stringsAsFactors = FALSE)
   names(body) <- unlist(cells[header, ], use.names = FALSE)
-  body
+  end <- which(body[[1L]] %in% "End of Content" & rowSums(!is.na(body[-1L])) == 0L)
+  if (identical(end, nrow(body))) body[-end, , drop = FALSE] else body
 }

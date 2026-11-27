@@ -36,6 +36,52 @@ counts from `nis_cell_counts()`, masks cells from fewer than two hospitals. Use
 `nis_example()` to try the workflow without
 licensed data.
 
+## Convert source data to Parquet
+
+`nis_convert()` reads annual Stata (`.dta`), SAS (`.sas7bdat`), and SPSS
+(`.sav`) files using haven. Supply a file with a numeric `YEAR` column and
+an existing output directory. The converter reads bounded batches, checks
+encoding, code syntax and row counts, and publishes the annual Parquet
+directory only after all checks pass. For a legacy Stata file known to use
+Latin-1, pass `encoding = "latin1"`.
+For 2015 files with populated ICD slots, keep `DQTR` or the applicable
+`DXVER` and `PRVER` indicators so the converter can check the coding era.
+Later SAS and SPSS batches can rescan earlier records. This keeps memory
+bounded and can make wide, compressed files slow to convert.
+
+```{r convert, eval=requireNamespace("haven", quietly=TRUE)}
+converted <- tempfile()
+dir.create(converted)
+source <- file.path(converted, "NIS_2020.dta")
+haven::write_dta(data.frame(YEAR = 2020L, I10_DX1 = "I509"), source)
+nis_convert(source, converted)
+nis_open(converted, check_release = FALSE) |> dplyr::collect()
+```
+
+The invented example skips the release comparison. Leave it enabled for
+files representing an HCUP release.
+
+For a native fixed-width HCUP Core file, unzip the download and pass the
+`NIS_<year>_Core.ASC` file to `nis_convert()`. The converter uses HCUP's
+2012–2024 Core layouts, including the 2019 and 2020 V2 specifications.
+The 2015 Core file has no diagnosis or procedure slots. To analyze those
+fields, prepare a joined annual statistical file from the Core and
+quarter-specific Diagnosis and Procedure Groups files before converting it.
+[HCUP Nationwide SAS load programs](https://hcup-us.ahrq.gov/db/nation/sasloadprog.jsp)
+
+```{r convert-ascii}
+converted_core <- tempfile()
+dir.create(converted_core)
+core <- file.path(converted_core, "NIS_2015_Core.ASC")
+record <- paste0(strrep(" ", 35), "00001", strrep(" ", 15), "0001",
+                 strrep(" ", 21), "2015", "  ")
+writeLines(record, core)
+nis_convert(core, converted_core)
+nis_open(converted_core, check_release = FALSE) |>
+  dplyr::select(YEAR, HOSP_NIS, NIS_STRATUM) |>
+  dplyr::collect()
+```
+
 ## Select years and columns
 
 `years` limits which annual files are opened. Use `dplyr::select()` to narrow
@@ -65,6 +111,35 @@ Warnings leave the lazy query available. Files from `nis_example()` still
 undergo these integrity checks and are excluded from the published totals.
 If you open an intentional extract, set `check_release = FALSE` to skip the
 check.
+
+## Attach companion files
+
+Keep Core, Hospital, Severity, and Diagnosis and Procedure Groups Parquet in
+separate directories. Use the same annual or Hive layout in each directory.
+Check the component availability and file splits for each year, and use
+matching release revisions. [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp)
+
+```{r companions, eval=FALSE}
+core <- nis_open(core_path, years = 2019:2020)
+discharges <- core |>
+  nis_join_companion(hospital_path, "hospital", "HOSP_BEDSIZE") |>
+  nis_join_companion(severity_path, "severity", "APRDRG_SEVERITY")
+```
+
+Hospital linkage uses `YEAR` and `HOSP_NIS` because hospital IDs are specific
+to each year. Severity and Diagnosis and Procedure Groups use `YEAR` and
+`KEY_NIS`. Supply companion parts for every year opened in Core, or open the
+years with the component you need. DuckDB checks the companion keys and
+returns a lazy left join with one row per input discharge. Unmatched
+discharges have missing companion values. [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp)
+
+Use linked hospital characteristics to describe **discharges**. For example,
+a discharge-weighted share by teaching status describes where stays occurred.
+It does not estimate the share of hospitals that teach. From 2012 onward,
+hospital sampling fractions are unavailable, so neither counting rows nor
+summing discharge weights yields individual hospital volume. `TOTAL_DISC`
+is itself a sampled discharge count and cannot be attached through this
+helper. [HCUP guidance on hospital volume estimates](https://hcup-us.ahrq.gov/db/nation/nis/NIS_Introduction_2021.jsp#hospital-volume-estimates)
 
 ## Filter and project before collecting
 
@@ -111,6 +186,18 @@ lazy query. Then collect a small summary, or write a large result directly to
 a private Parquet file. `nis_design()` still needs enough R memory for the
 selected cohort, retained variables, and survey design. Use a narrow `keep`
 to limit that cost. [DuckDB COPY statement](https://duckdb.org/docs/stable/sql/statements/copy)
+
+When a collect is estimated to need 20% of available physical memory, easyNIS
+reports the estimated result size. At 50% or more, easyNIS counts the result
+rows and stops the collect if the estimate still crosses that threshold.
+This also applies to `as.data.frame()` on
+`nis_open()` tables and to easyNIS helpers that collect DuckDB results.
+Filter rows, select fewer fields, or use a narrower cohort and `keep` in
+`nis_design()`. Use `options(easyNIS.collect_prudence = FALSE)` to skip the
+check. Cardinality and text widths are approximate. The check can also be
+skipped automatically when DuckDB cannot estimate the result size.
+Queries with SQL `PIVOT` skip the check because DuckDB may scan rows while
+determining their output columns.
 
 Set DuckDB options before calling `nis_open()`. This example uses a low thread
 count and places spill files on a private disk. Choose the memory and spill

@@ -63,25 +63,3 @@ test_that("study cache keys track selected Parquet parts only", {
   expect_true(Sys.setFileTime(selected_part, updated_time))
   expect_false(identical(make_key(), input_key))
 })
-
-test_that("report cache keys include model inputs, format, and dependency versions", {
-  make_key <- getFromNamespace("nis_study_report_cache_key", "easyNIS")
-  design <- list(cache_key = "design")
-  args <- list(
-    design_key = design,
-    exposure = "exposed",
-    covariates = c("AGE", "factor(YEAR)"),
-    outcomes = data.frame(outcome = "DIED", family = "quasibinomial"),
-    package_versions = c(gtsummary = "2.0.0", gt = "<not-installed>")
-  )
-  html <- do.call(make_key, c(args, list(output_format = "html")))
-  docx <- do.call(make_key, c(args, list(output_format = "docx")))
-  updated_args <- args
-  updated_args$package_versions <- c(
-    gtsummary = "2.1.0",
-    gt = "<not-installed>"
-  )
-  updated <- do.call(make_key, c(updated_args, list(output_format = "html")))
-  expect_false(identical(html, docx))
-  expect_false(identical(html, updated))
-})

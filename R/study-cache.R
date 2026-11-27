@@ -65,23 +65,6 @@ nis_study_cache_key <- function(
   )
 }
 
-# These packages implement the generated report's tables, models, plots, and
-# rendered outputs. Optional packages use an explicit sentinel so installing or
-# upgrading one changes the cache key instead of silently reusing old output.
-nis_study_report_packages <- function() {
-  c(
-    "broom.helpers",
-    "cardx",
-    "cards",
-    "flextable",
-    "ggplot2",
-    "gt",
-    "gtsummary",
-    "knitr",
-    "purrr"
-  )
-}
-
 nis_study_package_versions <- function(packages) {
   vapply(
     packages,
@@ -92,25 +75,5 @@ nis_study_package_versions <- function(packages) {
       as.character(utils::packageVersion(name))
     },
     character(1)
-  )
-}
-
-nis_study_report_cache_key <- function(
-  design_key,
-  exposure,
-  covariates,
-  outcomes,
-  output_format,
-  package_versions = nis_study_package_versions(nis_study_report_packages())
-) {
-  list(
-    design = design_key,
-    report_inputs = list(
-      exposure = exposure,
-      covariates = covariates,
-      outcomes = outcomes
-    ),
-    output_format = output_format,
-    package_versions = package_versions
   )
 }

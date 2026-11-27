@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "identifier": "easyNIS",
   "name": "easyNIS",
-  "description": "Pipe-friendly tools for opening annual Healthcare Cost and\nUtilization Project National Inpatient Sample Parquet files, flagging\ndiagnosis and procedure codes, looking up user-supplied CCSR codes, adding\nexperimental Elixhauser indicators, preparing designs and weights with the\n'survey' package, applying supported HCUP labels, adjusting charges and\ncosts, and reviewing disclosure risks. The Agency for Healthcare Research\nand Quality provides information on the NIS and how to obtain it at\n<https://hcup-us.ahrq.gov/nisoverview.jsp>. Experimental methods and\nannual-layout assumptions are not independently verified or scientifically\napproved.",
+  "description": "Pipe-friendly tools for opening annual Healthcare Cost and\nUtilization Project National Inpatient Sample Parquet files, flagging\ndiagnosis and procedure codes, applying HCUP 'CCSR' mappings, adding\nexperimental comorbidity indicators and indices, preparing designs and\nweights with the\n'survey' package, applying supported HCUP labels, adjusting charges and\ncosts, and reviewing disclosure risks. The Agency for Healthcare Research\nand Quality provides information on the NIS and how to obtain it at\n<https://hcup-us.ahrq.gov/nisoverview.jsp>. Experimental methods and\nannual-layout assumptions are not independently verified or scientifically\napproved.",
   "version": "0.2.0.9000",
   "license": "AGPL-3.0-only",
   "codeRepository": "https://github.com/MSaadAsif/easyNIS",
@@ -27,7 +27,7 @@
     "https://orcid.org/0000-0002-1792-2357",
     "https://orcid.org/0009-0001-1102-226X"
   ],
-  "softwareRequirements": ["R (>= 4.1.0)", "DBI", "cli", "dbplyr", "dplyr", "duckdb", "methods", "rlang", "srvyr", "tidyselect", "vctrs", "bit64", "broom.helpers", "arrow", "cardx", "flextable", "forcats", "ggplot2", "gt", "gtsummary", "haven", "knitr", "jsonlite", "medicalcoder (>= 0.10.0)", "purrr", "quarto", "readxl", "rmarkdown", "survey", "testthat (>= 3.1.7)", "withr", "zip"],
+  "softwareRequirements": ["R (>= 4.1.0)", "DBI", "cli", "dbplyr", "dplyr", "duckdb", "jsonlite", "methods", "ps", "rlang", "srvyr", "tidyselect", "vctrs", "bit64", "broom.helpers", "arrow", "cardx", "flextable", "forcats", "ggplot2", "gt", "gtsummary", "haven", "knitr", "medicalcoder (>= 0.10.0)", "purrr", "quarto", "readxl", "rmarkdown", "survey", "testthat (>= 3.1.7)", "withr", "zip"],
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R"

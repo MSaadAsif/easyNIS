@@ -55,7 +55,9 @@ calling; either choice mixes charge definitions across years.}
 \value{
 A filtered \code{srvyr::tbl_svy} survey design. The analysis data contains
 the required design fields, the columns selected by \code{keep}, and any
-computed cost columns. Use \code{\link[stats:weights]{stats::weights()}} for the survey weights.
+computed cost columns. \code{\link[=nis_label]{nis_label()}} keeps binary indicators logical and
+converts known multi-level codes to factors. Use \code{\link[stats:weights]{stats::weights()}} for the
+survey weights.
 }
 \description{
 Collects cohort rows and one zero-domain placeholder per hospital-year with
@@ -95,6 +97,9 @@ A lazy query is scanned twice. The sample scan summarises design fields,
 exclusion counts, and quarter coverage when annualizing. The cohort scan
 evaluates the cohort expression once over the full data and collects the
 retained analysis columns.
+For a dataset written with \code{\link[=nis_write_cohort]{nis_write_cohort()}}, omit \code{cohort}. The saved
+membership flag excludes placeholders from the analysis. Original
+exclusion counts and full-sample quarter coverage are unavailable.
 }
 
 \examples{

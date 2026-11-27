@@ -19,7 +19,22 @@ Keep Quarto on PATH and install the package's suggested dependencies and
 Rscript --vanilla .agents/skills/verify/drive.R study
 Rscript --vanilla .agents/skills/verify/drive.R study-ci
 Rscript --vanilla .agents/skills/verify/drive.R study-small
+Rscript --vanilla .agents/skills/verify/drive.R study-reporting
 ```
+
+The `study-reporting` journey renders the same annualized two-year example
+with and without a pre-design filter. It checks the rendered Methods and
+domain receipt, including on uppercase source data. It tests annualization
+and release-check evidence, complementary masking in cohort flow and
+dichotomous summaries, and a receipt that flags an unweighted regression.
+One-year and six-year fixtures check the shared analysis cohort across Table
+1, Outcomes, Trends, models, and cohort flow. The one-year fixture includes
+three deaths among discharges with missing exposure.
+
+The `study-support` journey renders rare annual exposure, missing-mortality
+and missing-length-of-stay cells, plus an invalid-design cohort with mixed
+weight validity. HTML and Word audits retain the invented input and check
+the rendered cells against independently counted discharge and hospital support.
 
 The `study` journey renders the default scaffold with built-in example
 data. The `study-ci` journey supplies a synthetic Parquet directory and

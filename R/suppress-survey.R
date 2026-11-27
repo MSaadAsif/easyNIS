@@ -75,12 +75,13 @@ survey_row_spec_by_type <- function(body, row, variable, row_type, var_type, car
 }
 
 survey_cell_mask_result <- function(body, column, row, masks, threshold) {
-  masked <- masks$count || masks$hospital
-  if (masks$count) {
+  masked <- any(masks$count | masks$hospital)
+  if (masks$count[[1L]]) {
     body[[column]][[row]] <- paste0("\u2264", threshold)
-  }
-  if (masks$hospital) {
+  } else if (masks$hospital[[1L]]) {
     body[[column]][[row]] <- "<2 hospitals"
+  } else if (masked) {
+    body[[column]][[row]] <- "Masked"
   }
   overall <- identical(column, "stat_0")
   list(body = body, group_masked = masked && !overall, overall_masked = masked && overall)
@@ -254,7 +255,8 @@ survey_cell_suppression <- function(x, records, body, cards, row, column, spec, 
   matches <- survey_card_matches(cards, spec, column)
   count <- survey_card_count(cards, matches, spec, column, error_call)
   evidence <- survey_cell_evidence(x, records, cards, matches, column, spec, error_call)
-  masks <- nis_disclosure_masks(min(count, evidence$n), evidence$hospitals, threshold)
+  evidence$n[[1L]] <- min(count, evidence$n[[1L]])
+  masks <- nis_disclosure_masks(evidence$n, evidence$hospitals, threshold)
   survey_cell_mask_result(body, column, row, masks, threshold)
 }
 
@@ -362,6 +364,8 @@ suppress_survey_table <- function(x, threshold, error_call) {
       "; cells contributed by fewer than two distinct year-scoped hospitals ",
       "are marked '<2 hospitals', regardless of count. The discharge-count ",
       "mask takes precedence when both rules apply.",
+      " Dichotomous rows with a protected complement are marked 'Masked' ",
+      "when the displayed event passes both rules.",
       if ("stat_0" %in% stat_columns) {
         paste0(
           " Overall cells in rows with a masked by-group cell are marked ",
@@ -445,7 +449,7 @@ survey_hosp_dichotomous <- function(data, x, variable, error_call) {
   if (is.null(value) || length(value) != 1L || is.na(value)) {
     cli::cli_abort("Cannot map dichotomous summary to one summarized value.", call = error_call)
   }
-  !is.na(data[[variable]]) & as.character(data[[variable]]) == as.character(value)
+  data[[variable]] %in% value
 }
 
 survey_hospital_group_records <- function(data, x, cards, column, keep, error_call) {
@@ -472,9 +476,18 @@ survey_cell_evidence <- function(x, data, cards, matches, column, spec, error_ca
   if (!nrow(data)) {
     return(list(n = 0L, hospitals = 0L))
   }
-  keep <- survey_hospital_var_records(data, x, cards, matches, spec, error_call)
-  keep <- survey_hospital_group_records(data, x, cards, column, keep, error_call)
-  selected <- data[keep, c("YEAR", "HOSP_NIS"), drop = FALSE]
+  selected <- survey_hospital_var_records(data, x, cards, matches, spec, error_call)
+  group <- survey_hospital_group_records(data, x, cards, column, rep(TRUE, nrow(data)), error_call)
+  evidence <- survey_record_counts(data[group & selected, c("YEAR", "HOSP_NIS"), drop = FALSE])
+  if (identical(spec$context, "dichotomous")) {
+    complement <- group & !selected & !is.na(data[[spec$variable]])
+    other <- survey_record_counts(data[complement, c("YEAR", "HOSP_NIS"), drop = FALSE])
+    evidence <- Map(c, evidence, other)
+  }
+  evidence
+}
+
+survey_record_counts <- function(selected) {
   nis_validate_hospital_ids(selected)
   list(n = nrow(selected), hospitals = dplyr::n_distinct(selected$YEAR, selected$HOSP_NIS))
 }
