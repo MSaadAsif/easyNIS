@@ -36,6 +36,7 @@ test_that("lazy Taylor summaries retain the sampled PSUs through domain and miss
     tolerance = 1e-8
   )
 
+  expect_error(stats::weights(design), "nis_design")
   expect_error(survey::svyquantile(~LOS, design, 0.5), "nis_design")
   expect_error(survey::svychisq(~ RACE + PAY1, design), "nis_design")
   if (requireNamespace("gtsummary", quietly = TRUE)) {

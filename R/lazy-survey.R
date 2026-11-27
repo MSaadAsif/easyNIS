@@ -74,8 +74,8 @@ filter.nis_survey <- function(.data, ..., .by = NULL, .preserve = FALSE) {
 # Row-level survey methods also reach this field via model.frame().
 #' @export
 `$.nis_survey` <- function(x, name) {
-  if (identical(name, "variables")) {
-    nis_survey_unsupported("Access to discharge records")
+  if (name %in% c("variables", "prob", "cluster", "strata", "fpc")) {
+    nis_survey_unsupported("Access to row-level survey data")
   }
   .subset2(x, name)
 }
