@@ -30,8 +30,11 @@ boundary with
   Leave `NEWS.md` for collection. An optional first `##` heading must
   match a development section in `NEWS.md`.
 - Before committing, run
-  `Rscript --vanilla tools/check-package.R --lint` for Air formatting,
-  Jarl lint, and installed-package cyclomatic complexity of 15 or less.
+  `Rscript --vanilla tools/check-package.R --lint` for CodeMeta
+  freshness, Air formatting, Jarl lint, and installed-package cyclomatic
+  complexity of 15 or less. Refresh CodeMeta with
+  `Rscript --vanilla tools/probe/update-codemeta.R` after editing
+  package metadata.
 - Before opening the PR, run
   `Rscript --vanilla tools/check-package.R --full`. It runs
   `devtools::check()` on the exact commit with `EASYNIS_FULL_TESTS`
