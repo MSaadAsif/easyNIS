@@ -3,12 +3,15 @@ title: "Estimate trends across NIS years"
 output: rmarkdown::html_document
 ---
 
-```{r setup, message=FALSE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r packages, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
 library(ggplot2)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented data.
@@ -114,7 +117,7 @@ pooled discharge count by the number of included years.
 
 ```{r slope}
 fit <- survey::svyglm(LOS ~ I(YEAR - 2019), design = pooled)
-summary(fit)$coefficients
+broom::tidy(fit, conf.int = TRUE)
 ```
 
 The slope estimates the mean change in length of stay per calendar year
