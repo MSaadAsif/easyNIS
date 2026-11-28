@@ -1,0 +1,1 @@
+- `nis_add_ccsr()` preserves grouping and window ordering for subsequent operations on the lazy query.

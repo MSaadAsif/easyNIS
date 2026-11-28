@@ -96,9 +96,9 @@ year-concatenation relation.
 
 The algebra is over exact rationals. Lean checks induction on lists whose
 lengths are arbitrary. Lifetime proofs use induction on arbitrary finite
-traces of the modeled operations. The scratch runner changes definitions
-while leaving their claims in place, checks for Lean proof errors, and
-rebuilds the original model.
+traces of the modeled operations. The mutation runner changes definitions
+while leaving their claims in place. It checks for Lean proof errors in
+isolated sources retained with the run.
 
 - Taylor means and covariance. The score identity removes the SQL mean
   anchor exactly. The fold base and step prove the centered cross-product

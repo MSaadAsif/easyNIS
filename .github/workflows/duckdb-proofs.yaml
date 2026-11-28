@@ -7,30 +7,8 @@ on:
       - tools/formal/duckdb/**
       - .agents/skills/duckdb-sql-equivalence/**
       - .claude/skills/duckdb-sql-equivalence/**
-      - R/attrition.R
-      - R/ccsr-query.R
-      - R/cell-counts.R
-      - R/code-audit.R
-      - R/code-flags.R
-      - R/code-layout.R
-      - R/collect-prudence.R
-      - R/comorbidity.R
-      - R/comorbidity-sql.R
-      - R/convert.R
-      - R/design-sample.R
-      - R/design-sql.R
-      - R/duckdb.R
-      - R/lazy-survey.R
-      - R/lazy-survey-glm.R
-      - R/lazy-survey-stat.R
-      - R/open.R
-      - R/pr-timing.R
-      - R/pr-timing-sql.R
-      - R/prday-completeness.R
-      - R/procedure-days.R
-      - R/query-expressions.R
-      - R/trends.R
-      - R/write-cohort.R
+      - DESCRIPTION
+      - R/**
   schedule:
     - cron: '37 4 * * 1'
 

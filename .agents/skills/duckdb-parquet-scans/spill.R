@@ -36,14 +36,20 @@ run_sort <- function(path, spill, rows, threads, output, profile = NULL, cap = "
     ") AS input ORDER BY tag, id) TO ", target, " (FORMAT PARQUET)")
 
   if (!is.null(profile)) {
+    profile_output <- tempfile("profile-", tmpdir = dirname(output), fileext = ".json")
+    on.exit(unlink(profile_output), add = TRUE)
     DBI::dbExecute(con, "PRAGMA enable_profiling = 'json'")
     DBI::dbExecute(con, "SET profiling_coverage = 'ALL'")
-    DBI::dbExecute(con, paste("SET profiling_output =", DBI::dbQuoteString(con, profile)))
+    DBI::dbExecute(con, paste("SET profiling_output =", DBI::dbQuoteString(con, profile_output)))
   }
   start <- proc.time()[["elapsed"]]
   failure <- tryCatch({ DBI::dbExecute(con, copy); NULL }, error = identity)
   seconds <- proc.time()[["elapsed"]] - start
-  if (!is.null(profile)) DBI::dbExecute(con, "PRAGMA disable_profiling")
+  if (!is.null(profile)) {
+    # DuckDB can profile the disabling statement and overwrite the COPY metrics.
+    if (is.null(failure)) stopifnot(file.copy(profile_output, profile))
+    DBI::dbExecute(con, "PRAGMA disable_profiling")
+  }
   bytes <- if (is.null(failure)) {
     check <- DBI::dbGetQuery(con, paste0(
       "SELECT count(*) AS n, sum(id) AS checksum, min(id) AS first_id, max(id) AS last_id ",
@@ -65,8 +71,16 @@ run_sort <- function(path, spill, rows, threads, output, profile = NULL, cap = "
 
 profile_numbers <- function(path) {
   profile <- jsonlite::read_json(path)
-  spill <- profile$system_peak_temp_dir_size
-  buffer <- profile$system_peak_buffer_memory
+  if (is.null(profile$system)) {
+    query <- profile$query_name
+    spill <- profile$system_peak_temp_dir_size
+    buffer <- profile$system_peak_buffer_memory
+  } else {
+    query <- profile$query$sql
+    spill <- profile$system$peak_temp_dir_size
+    buffer <- profile$system$peak_buffer_memory
+  }
+  stopifnot(length(query) == 1L, startsWith(query, "COPY "))
   stopifnot(is.numeric(spill), spill > 0, spill <= 768e6, is.numeric(buffer), buffer > 0)
   c(buffer_mib = buffer / 1024^2, spill_mib = spill / 1024^2)
 }

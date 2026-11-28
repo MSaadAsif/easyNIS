@@ -108,6 +108,17 @@ shared requirement and record the places where the existing structure obscures i
 - `.agents/skills/verify/runner.R:37–42` hashes R source but omits the
   scaffold files even for a render. Retain those hashes with the generated
   report, inputs, and command.
+- The spill benchmark reads a shared profile after disabling profiling.
+  DuckDB 2.0.1 records the disabling statement in that file and nests the
+  metrics under `system`. Capture the measured COPY's profile before
+  disabling and validate both supported layouts.
+- `tools/formal/duckdb/run.R:10–25` used a fixed `Mutation.lean` in the
+  proof project. An interrupted or overlapping run could block the next
+  qualification. Compile each mutant from its own evidence directory and
+  retain the exact source next to its diagnostic.
+- The Lean workflow tracked a hand-maintained subset of R files that
+  already missed Parquet scan construction. Trigger the existing proof
+  check on package source changes when the exact dependency list can drift.
 - Scheduled compatibility jobs, full-test and optional dependency guards,
   exact mutation anchors, and malformed receipt recovery represent
   verification requirements. The Windows process sampler's polling measures
