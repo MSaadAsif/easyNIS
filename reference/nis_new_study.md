@@ -47,7 +47,7 @@ to scan the files you plan to share.
 ``` r
 study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
-#> [1] "/tmp/Rtmpapd7qz/nis-study-example-1c7046d7cfd5"
+#> [1] "/tmp/RtmpxvrTzm/nis-study-example-19f468b2eb9a"
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 #> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"
 ```

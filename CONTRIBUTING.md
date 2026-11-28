@@ -54,8 +54,10 @@ Package code lives in `R/`, with related tests in `tests/testthat/`.
 | To change | Start here |
 |----|----|
 | Opening annual or Hive data | `R/open.R` for the entry point, `R/open-discovery.R` for part ownership, `R/open-parquet.R` for scans, `R/open-release.R` for annual release checks, and `R/duckdb.R` for connections and spill storage |
+| Adding columns with native SQL | `R/query-expressions.R` for result tables and preservation of source ownership, grouping, and window context |
 | Diagnosis or procedure selection | `R/code-layout.R` for slots and code systems, `R/code-flags.R` for matching, and `R/procedure-days.R` for PRDAY decoding |
-| Survey design or weights | `R/design.R` for input selection, `R/design-sample.R` for scans, `R/cohort-design.R` for survey objects, and `R/reweight.R` for reweighting |
+| Saved cohorts and conversion | `R/cohort-source.R` for persisted cohort membership, `R/write-cohort.R` for exports, `R/convert.R` for conversion, and `R/staged-directory.R` for publication and cleanup |
+| Survey design or weights | `R/design-sample.R` for sample preparation and scans, `R/design.R` for analyst field selection, `R/cohort-design.R` for survey objects, `R/survey-variance.R` for shared PSU identities and variance, and `R/reweight.R` for reweighting |
 | Disclosure | `R/disclosure-policy.R` for policy, `R/cell-counts.R` for summaries, and `R/suppress-survey.R` or `R/suppress-data-frame.R` for masking |
 | Generated studies | `R/study-scaffold.R` for files, `R/study-cache.R` for caching, `R/study-model.R` for fit diagnostics, and `inst/templates/nis-study/` for the report |
 | Improvement probes | `tools/probe/quality-checks.R` for checks, `tools/probe/quality-receipts.R` for evidence, and `tools/probe/readiness-criteria.R` for readiness |

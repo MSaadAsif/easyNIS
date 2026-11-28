@@ -74,8 +74,8 @@ nis |> count(I10_PR1, sort = TRUE) |> head(5) |> collect()
 #> # A tibble: 2 × 2
 #>   I10_PR1     n
 #>   <chr>   <dbl>
-#> 1 02703ZZ    48
-#> 2 0JH60DZ    48
+#> 1 0JH60DZ    48
+#> 2 02703ZZ    48
 ```
 
 A query can open before DuckDB reads text from the code fields. Check

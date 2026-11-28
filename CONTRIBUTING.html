@@ -83,12 +83,18 @@
 </tr></thead><tbody><tr><td>Opening annual or Hive data</td>
 <td>
 <code>R/open.R</code> for the entry point, <code>R/open-discovery.R</code> for part ownership, <code>R/open-parquet.R</code> for scans, <code>R/open-release.R</code> for annual release checks, and <code>R/duckdb.R</code> for connections and spill storage</td>
+</tr><tr><td>Adding columns with native SQL</td>
+<td>
+<code>R/query-expressions.R</code> for result tables and preservation of source ownership, grouping, and window context</td>
 </tr><tr><td>Diagnosis or procedure selection</td>
 <td>
 <code>R/code-layout.R</code> for slots and code systems, <code>R/code-flags.R</code> for matching, and <code>R/procedure-days.R</code> for PRDAY decoding</td>
+</tr><tr><td>Saved cohorts and conversion</td>
+<td>
+<code>R/cohort-source.R</code> for persisted cohort membership, <code>R/write-cohort.R</code> for exports, <code>R/convert.R</code> for conversion, and <code>R/staged-directory.R</code> for publication and cleanup</td>
 </tr><tr><td>Survey design or weights</td>
 <td>
-<code>R/design.R</code> for input selection, <code>R/design-sample.R</code> for scans, <code>R/cohort-design.R</code> for survey objects, and <code>R/reweight.R</code> for reweighting</td>
+<code>R/design-sample.R</code> for sample preparation and scans, <code>R/design.R</code> for analyst field selection, <code>R/cohort-design.R</code> for survey objects, <code>R/survey-variance.R</code> for shared PSU identities and variance, and <code>R/reweight.R</code> for reweighting</td>
 </tr><tr><td>Disclosure</td>
 <td>
 <code>R/disclosure-policy.R</code> for policy, <code>R/cell-counts.R</code> for summaries, and <code>R/suppress-survey.R</code> or <code>R/suppress-data-frame.R</code> for masking</td>

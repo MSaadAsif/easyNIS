@@ -81,6 +81,6 @@ nis |>
 #> # A tibble: 2 × 2
 #>   ccsr       n
 #>   <chr>  <dbl>
-#> 1 CIR019   108
-#> 2 RSP002    84
+#> 1 RSP002    84
+#> 2 CIR019   108
 ```
