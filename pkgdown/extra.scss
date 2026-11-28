@@ -9,7 +9,7 @@
   }
 
   // pkgdown preserves pillar's ANSI grays as inline styles in example output.
-  pre code .r-out :is([style*="color: #949494" i], [style*="color: #bcbcbc" i]) {
+  pre code .co :is([style*="color: #949494" i], [style*="color: #bcbcbc" i]) {
     color: #6a737d !important;
   }
 
