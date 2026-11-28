@@ -148,7 +148,8 @@ shared requirement and record the places where the existing structure obscures i
   exercises cleanup otherwise difficult to trigger deterministically.
 - The installed reporting check expected an obsolete literal in Methods.
   Check the current explanation of table headers and unweighted estimate
-  denominators and model sample sizes.
+  denominators and model sample sizes. Insert the prefiltered fixture at
+  the cache-key assignment so editing the preceding comment cannot break it.
 - Remove comments that repeat the next expression or constant name.
   Keep external format, backend, variance, and disclosure constraints.
 

@@ -333,7 +333,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
       }
     }
     if (reporting_variant == "prefiltered") {
-      line <- grep("^# Quarto can put chunk options", definition)
+      line <- grep("^design_key <- ", definition)
       stopifnot(length(line) == 1L)
       definition <- append(definition, "nis_data <- dplyr::filter(nis_data, AGE >= 30)", after = line - 1L)
     }
