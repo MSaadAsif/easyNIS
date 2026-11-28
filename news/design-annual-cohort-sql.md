@@ -1,0 +1,1 @@
+- DuckDB-backed `nis_design()`, `nis_annual_totals()`, and `nis_write_cohort()` spend less time translating internal queries, preserving sampled hospital-years with zero cohort contribution.

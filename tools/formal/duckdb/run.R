@@ -47,6 +47,7 @@ mutations <- function(lake, evidence) {
   run("timing-window", "Slots", "decide (0 ", "decide (1 ")
   run("timing-same-slot", "Slots", "x.outcome && start.any", "(x.outcome && !x.index) && start.any")
   run("ccsr-category", "Slots", "pair.2 == category", "pair.2 != category")
+  run("cohort-hospital-year", "Cohort", "patient row && row.year == year &&", "patient row &&")
   run("lifetime-owner-198", "Lifetime", "def keepComputeRoot : Bool := true", "def keepComputeRoot : Bool := false")
   run("lifetime-drop-table", "Lifetime", "def keepLiveTable : Bool := true", "def keepLiveTable : Bool := false")
   run("lifetime-scoped-exit", "Lifetime", "def registerHandler : Bool := true", "def registerHandler : Bool := false")

@@ -12,7 +12,7 @@ nis_design_sample <- function(
   saved = FALSE
 ) {
   cohort_quo <- nis_design_cohort_expr(cohort, call)
-  prepared <- nis_sample_fields(data, cohort_quo)
+  prepared <- nis_design_prepare_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
   quarters <- if (inspect_quarters) quarter_prototype
   summary <- nis_sample_summary(prepared, if (!saved) quarters, call)
   check_transition <- !is.null(quarters) && 2015L %in% summary$years
@@ -55,19 +55,15 @@ nis_design_invalid_exprs <- function(data) {
 }
 
 nis_sample_summary <- function(prepared, quarter_prototype, call, require_year = FALSE) {
-  invalid_year <- rlang::sym(.nis_design_invalid_fields[["YEAR"]])
   keys <- c(".nis_valid", unname(.nis_design_invalid_fields), setdiff(.nis_design_fields, "DISCWT"))
-  quarter_flags <- nis_sample_quarter_flags(quarter_prototype)
-  # Invalid discharges need only their defect flags and, when valid, their year.
-  # Keeping their raw hospital and stratum IDs can make the summary as large as the input.
-  design_groups <- prepared |>
-    dplyr::mutate(
-      YEAR = dplyr::if_else(!(!!invalid_year), YEAR, NA),
-      HOSP_NIS = dplyr::if_else(.nis_valid, HOSP_NIS, NA),
-      NIS_STRATUM = dplyr::if_else(.nis_valid, NIS_STRATUM, NA)
-    ) |>
-    nis_sample_group_rows(keys, quarter_flags) |>
-    nis_collect()
+  quarter_flags <- if (!is.null(quarter_prototype)) paste0(".nis_quarter_", 1:4)
+  grouped <- if (nis_design_duckdb(prepared)) {
+    sql <- nis_sample_roster_sql(prepared, quarter_prototype)
+    nis_design_sql_tbl(prepared, sql, c(keys, "DISCWT", "n", quarter_flags))
+  } else {
+    nis_sample_group_local(prepared, keys, quarter_prototype)
+  }
+  design_groups <- nis_collect(grouped)
   excluded <- nis_sample_exclusions(design_groups)
   if (require_year && excluded$by_field[["YEAR"]] > 0L) {
     cli::cli_abort("Annual totals require nonmissing, finite `YEAR` values.", call = call)
@@ -82,13 +78,20 @@ nis_sample_summary <- function(prepared, quarter_prototype, call, require_year =
     cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
   }
   years <- sort(unique(hospital_rows$YEAR))
-  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, names(quarter_flags))
+  coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, quarter_flags)
   input_rows <- sum(as.numeric(design_groups$n))
   list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage, input_rows = input_rows)
 }
 
-nis_sample_group_rows <- function(prepared, keys, quarter_flags = list()) {
+nis_sample_group_local <- function(prepared, keys, quarter_prototype) {
+  invalid_year <- rlang::sym(.nis_design_invalid_fields[["YEAR"]])
+  quarter_flags <- nis_sample_quarter_flags(quarter_prototype)
   prepared |>
+    dplyr::mutate(
+      YEAR = dplyr::if_else(!(!!invalid_year), YEAR, NA),
+      HOSP_NIS = dplyr::if_else(.nis_valid, HOSP_NIS, NA),
+      NIS_STRATUM = dplyr::if_else(.nis_valid, NIS_STRATUM, NA)
+    ) |>
     dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
     dplyr::summarise(
       DISCWT = min(dplyr::if_else(.nis_valid, as.double(DISCWT), Inf), na.rm = TRUE),
@@ -157,10 +160,7 @@ nis_design_cohort_expr <- function(cohort_quo, call) {
 }
 
 nis_design_cohort_type <- function(prepared, call) {
-  if (
-    inherits(prepared, "tbl_sql") &&
-      inherits(dbplyr::remote_con(prepared), "duckdb_connection")
-  ) {
+  if (nis_design_duckdb(prepared)) {
     # LIMIT 0 inspects the expression's bound SQL type without reading rows.
     # Collection alone loses the distinction between SQL NULL and typed NA.
     query <- paste0(
@@ -191,10 +191,15 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
   # the cohort expression runs once per discharge. Missing values are counted
   # here and dropped.
-  collected <- prepared |>
-    dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
-    dplyr::select(dplyr::all_of(collected_fields), .nis_cohort) |>
-    nis_collect()
+  cohort_rows <- if (nis_design_duckdb(prepared) && !length(dbplyr::op_sort(prepared))) {
+    columns <- c(collected_fields, ".nis_cohort")
+    nis_design_sql_tbl(prepared, nis_design_cohort_sql(prepared, columns, keep_missing = TRUE), columns)
+  } else {
+    prepared |>
+      dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
+      dplyr::select(dplyr::all_of(collected_fields), .nis_cohort)
+  }
+  collected <- nis_collect(cohort_rows)
   if (!is.logical(collected$.nis_cohort)) {
     cli::cli_abort("`cohort` must evaluate to a logical vector.", call = call)
   }

@@ -152,19 +152,47 @@ The bundled CCSR code lookup uses its own single-thread connection.
    when a non-NULL procedure had a NULL day. The PRDAY completeness audit also
    spends heavily in rendering and should exercise the shared day decoder in
    its own comparison.
-3. **Comorbidity lookup construction and score join.** Profile the score
-   specification and its SQL lookup independently. The full operation took
-   32–34 s. About 15–17 s fell outside measured rendering and DuckDB calls.
-   The validation step took 2.3–2.5 s and scanned the full key projection.
-   Test a compact reusable lookup and a key-preserving score plan. Keep
-   uniqueness, eligibility, POA, and join cardinality guarantees.
-4. **Design, annual totals and cohort export.** The three paths spent
-   about 3.6–7.6 s rendering dbplyr expressions. Test a single builder for
-   each internal projection and aggregate while translating caller criteria
-   at the API boundary. Keep the sample roster separate from the cohort
-   rows when both are needed. Keep the analogous second export pass that
-   restores hospitals with no selected discharge until a measured one-pass
-   plan proves equivalent with bounded memory.
+3. **Comorbidity lookup construction and score join (evaluated).** Retain the
+   existing score builder. At `cee1db00`, three fresh runs per method and
+   `count_distinct` setting used three invented annual Parquet files per
+   coding era, each with 500,000 discharges. The runs used DuckDB 1.5.2 on
+   Windows x64 with four threads and a 4 GB buffer limit. With all added
+   columns reduced to a scalar result, median wall times with distinct
+   counting off and on were 16.41 and 14.13 s for Refined Elixhauser,
+   21.85 and 22.68 s for mixed-era Quan Charlson, and 12.09 and 13.07 s
+   for ICD-9 Deyo. R scoring-spec setup took 5.30–7.39 s, mostly loading
+   medicalcoder on first use. Lookup SQL construction took 6–25 ms.
+   Translation, rendering and DuckDB preparation accounted for 7.3–9.2%
+   of wall time. Median peak process commit ranged from 926 to 1,216 MiB.
+   A replay with shorter slot tests reduced the median
+   scored query from 10.19 to 7.83 s for Quan and from 3.19 to 2.50 s for
+   Deyo, equivalent to about 11% and 6% of their full calls. The paired
+   replay profiles reported 574 and 576 MiB of peak DuckDB buffers for Quan
+   and 289 and 402 MiB for Deyo. These gains fall short of the 20% end-to-end
+   threshold used for this port.
+4. **Design, annual totals and cohort export (evaluated).** Port the
+   internal validity, roster, cohort projection and PSU aggregate queries.
+   Translate caller criteria with dbplyr and reuse the rendered input when
+   preparing the export schema and rows. Relative to `ebe6eeed`, three
+   alternating fresh runs per workload used five invented annual files of
+   500,000 rows each on Windows x64 with DuckDB 1.5.2, four threads and a
+   4 GB buffer limit. Baseline rendering and preparation accounted for
+   54–67% of wall time across the workloads, above the 20% threshold.
+
+   | Workload | Wall (s) | Render + prepare (s) | DuckDB execution (s) | R result transfer (ms) | Peak process commit (MiB) |
+   | --- | ---: | ---: | ---: | ---: | ---: |
+   | Design from annual sample | 4.06 → 2.53 | 2.61 → 1.22 | 0.530 → 0.559 | 16 → 17 | 403 → 405 |
+   | Design from saved cohort | 2.42 → 0.89 | 1.43 → 0.10 | 0.070 → 0.061 | 16 → 14 | 401 → 399 |
+   | Annual totals | 5.99 → 2.42 | 3.71 → 1.24 | 0.730 → 0.660 | 16 → 16 | 400 → 399 |
+   | Cohort export | 5.77 → 2.60 | 3.87 → 1.46 | 0.683 → 0.512 | 10 → 12 | 403 → 401 |
+
+   Values are medians. Execution uses DuckDB's JSON query latency bounded
+   by driver elapsed time. Result transfer estimates the extra driver time
+   for reads and includes DBI fetch. It excludes SQL rendering and
+   collection guard queries' engine time. Keep the separate roster scan and
+   the staged second export pass for one minimum-weight placeholder per
+   valid hospital-year with zero contributing discharges. Peak memory
+   varied little and the measurements support a translation improvement.
 5. **Opening, preflight and schema probes.** Merge the two
    `parquet_kv_metadata()` lookups for non-release and saved-cohort markers.
    Reuse physical schema information already acquired for native scans when
