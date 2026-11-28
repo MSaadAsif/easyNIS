@@ -51,6 +51,11 @@ check_complexity <- function() {
 }
 
 check_lint <- function() {
+  status <- system2(file.path(R.home("bin"), "Rscript"), c("--vanilla", "tools/probe/update-codemeta.R", "--check"))
+  if (status != 0L) {
+    return(status)
+  }
+
   commands <- list(air = c("format", ".", "--check"), jarl = c("check", "."))
   for (command in names(commands)) {
     executable <- Sys.which(command)
