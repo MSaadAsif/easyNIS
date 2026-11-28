@@ -201,10 +201,9 @@ nis_comorbidity_check_clash <- function(added, existing, lazy) {
 nis_comorbidity_warn_poa <- function(slots, existing) {
   missing <- slots$name[!is.na(slots$poa) & !slots$poa %in% existing]
   if (length(missing) > 0L) {
-    missing_slots <- paste(missing, collapse = ", ")
     cli::cli_warn(c(
-      "No matching POA column for {length(missing)} diagnosis slots: {missing_slots}. Assuming present.",
-      i = "POA-dependent comorbidities may include conditions acquired in hospital."
+      "No matching POA column for some diagnosis slots. Assuming present on admission.",
+      i = "POA-dependent scores may include conditions acquired in hospital."
     ))
   }
 }
@@ -212,6 +211,6 @@ nis_comorbidity_warn_poa <- function(slots, existing) {
 nis_comorbidity_warn_unusable <- function(count, systems) {
   if (count > 0L) {
     era <- paste(paste0("ICD-", systems), collapse = " or ")
-    cli::cli_warn("{count} row{?s} {?has/have} no usable {era} code; comorbidity columns are `NA` for {?it/them}.")
+    cli::cli_warn("Some discharges have no usable {era} codes. Their comorbidity columns are `NA`.")
   }
 }

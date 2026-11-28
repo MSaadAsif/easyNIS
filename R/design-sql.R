@@ -77,13 +77,11 @@ nis_sample_quarter_sql <- function(prototype) {
   sprintf('bool_or(".nis_valid" AND COALESCE(%s, FALSE)) AS ".nis_quarter_%d"', matches, quarter)
 }
 
-nis_design_cohort_sql <- function(data, selected, keep_missing) {
+nis_design_cohort_sql <- function(data, selected) {
   fields <- DBI::dbQuoteIdentifier(dbplyr::remote_con(data), selected)
-  predicate <- if (keep_missing) 'COALESCE(".nis_cohort", TRUE)' else '".nis_cohort"'
   sprintf(
-    'SELECT %s FROM (%s) AS prepared WHERE ".nis_valid" AND %s',
+    'SELECT %s FROM (%s) AS prepared WHERE ".nis_valid" AND ".nis_cohort"',
     paste(fields, collapse = ", "),
-    dbplyr::sql_render(data),
-    predicate
+    dbplyr::sql_render(data)
   )
 }

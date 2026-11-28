@@ -27,17 +27,15 @@
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2020))
-#' hospitals <- nis |>
-#'   dplyr::distinct(HOSP_NIS, beds = HOSP_BEDSIZE) |>
-#'   dplyr::collect()
+#' hospitals <- dplyr::distinct(nis, HOSP_NIS, beds = HOSP_BEDSIZE)
 #'
+#' # Write the invented Hospital part.
 #' path <- tempfile()
 #' dir.create(path)
-#' con <- DBI::dbConnect(duckdb::duckdb())
-#' DBI::dbWriteTable(con, "hospitals", hospitals)
+#' con <- dbplyr::remote_con(nis)
 #' file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
-#' DBI::dbExecute(con, paste("COPY hospitals TO", file, "(FORMAT PARQUET)"))
-#' DBI::dbDisconnect(con, shutdown = TRUE)
+#' sql <- dbplyr::sql_render(hospitals)
+#' invisible(DBI::dbExecute(con, paste0("COPY (", sql, ") TO ", file, " (FORMAT PARQUET)")))
 #'
 #' nis |>
 #'   nis_join_companion(path, "hospital", beds) |>

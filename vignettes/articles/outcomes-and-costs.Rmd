@@ -73,7 +73,7 @@ discharge with usable codes and no included conditions has a count of zero.
 ```{r cost}
 charges <- outcomes |> select(YEAR, TOTCHG, CCR_NIS) |> collect()
 costs <- nis_cost(charges, dollars = 2020)
-nis_cost_provenance(costs)
+nis_cost_provenance(costs)$multipliers
 costs |>
   summarise(mean_charge = mean(charges_adj), mean_cost = mean(cost_adj), .by = YEAR)
 ```

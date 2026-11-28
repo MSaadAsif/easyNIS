@@ -19,18 +19,6 @@ attr(.cpi_u, "source") <- paste(
   "not seasonally adjusted, series CUUR0000SA0; annual averages"
 )
 
-nis_cost_report <- function(provenance) {
-  messages <- c(
-    rows_missing_or_invalid_ccr = "Missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows.",
-    rows_missing_charges = "Missing or invalid charges; `charges_adj` and `cost_adj` are `NA` for these rows."
-  )
-  for (field in names(messages)) {
-    if (provenance[[field]] > 0L) {
-      cli::cli_inform(messages[[field]])
-    }
-  }
-}
-
 .nis_cost_validate_data <- function(data, call) {
   if (!is.data.frame(data)) {
     cli::cli_abort(
@@ -104,6 +92,11 @@ nis_cost_report <- function(provenance) {
 
 #' Adjust NIS charges and costs to a reference dollar year
 #'
+#' Express charges and estimated hospital costs in a common dollar year.
+#' Invalid charges produce missing adjusted charges and costs. Invalid
+#' cost-to-charge ratios produce missing costs. Use [nis_cost_provenance()]
+#' to inspect the annual multipliers and audit missing values.
+#'
 #' @param .data A collected data frame with `YEAR`, the `charges` column, and
 #'   `CCR_NIS`. Lazy DuckDB queries must be collected first.
 #' @param dollars Reference dollar year, from 2012 through 2024.
@@ -123,7 +116,8 @@ nis_cost_report <- function(provenance) {
 #' charges <- nis_open(nis_example(years = 2019:2020)) |>
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect()
-#' head(nis_cost(charges, dollars = 2024))
+#' nis_cost(charges, dollars = 2024) |>
+#'   dplyr::summarise(mean_cost = mean(cost_adj), .by = YEAR)
 nis_cost <- function(.data, dollars, charges = "TOTCHG") {
   nis_adjust_costs(.data, dollars, charges, call = rlang::current_call())
 }
@@ -171,7 +165,6 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
     missing_charges_count
   )
   attr(data, "nis_cost_provenance") <- provenance
-  nis_cost_report(provenance)
   data
 }
 
@@ -196,7 +189,7 @@ nis_adjust_costs <- function(data, dollars, charges, call, cohort_years = NULL) 
 #'   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
 #'   dplyr::collect() |>
 #'   nis_cost(dollars = 2024)
-#' nis_cost_provenance(charges)
+#' nis_cost_provenance(charges)$multipliers
 #' @export
 nis_cost_provenance <- function(.data) {
   if (!is.data.frame(.data) && !inherits(.data, "tbl_svy")) {

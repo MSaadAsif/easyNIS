@@ -53,9 +53,10 @@ fields such as CCS or CCSR.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019))
-dplyr::select(nis, nis_vars_design(), nis_vars_demographics(), LOS)
-dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
-dplyr::select(nis, -nis_vars_pr())
+analysis <- dplyr::select(nis, nis_vars_design(), AGE, LOS)
+names(analysis)
+code_columns <- dplyr::select(nis, nis_vars_dx(), nis_vars_pr())
+head(names(code_columns))
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},

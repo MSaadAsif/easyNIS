@@ -27,7 +27,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect() |>
   nis_cost(dollars = 2024)
-nis_cost_provenance(charges)
+nis_cost_provenance(charges)$multipliers
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.

@@ -24,13 +24,17 @@ in-memory data frame has \code{nis_cost_provenance} metadata; retrieve it with
 \code{\link[=nis_cost_provenance]{nis_cost_provenance()}}.
 }
 \description{
-Adjust NIS charges and costs to a reference dollar year
+Express charges and estimated hospital costs in a common dollar year.
+Invalid charges produce missing adjusted charges and costs. Invalid
+cost-to-charge ratios produce missing costs. Use \code{\link[=nis_cost_provenance]{nis_cost_provenance()}}
+to inspect the annual multipliers and audit missing values.
 }
 \examples{
 charges <- nis_open(nis_example(years = 2019:2020)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
-head(nis_cost(charges, dollars = 2024))
+nis_cost(charges, dollars = 2024) |>
+  dplyr::summarise(mean_cost = mean(cost_adj), .by = YEAR)
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.

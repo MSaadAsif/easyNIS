@@ -76,7 +76,12 @@ nis_duckdb_translate_errors <- function(query) {
 }
 
 nis_duckdb_connect <- function(config = list()) {
-  methods::new("nis_duckdb_connection", DBI::dbConnect(duckdb::duckdb(config = config)))
+  driver <- if ("shared_home" %in% names(formals(duckdb::duckdb))) {
+    duckdb::duckdb(config = config, shared_home = FALSE)
+  } else {
+    duckdb::duckdb(config = config)
+  }
+  methods::new("nis_duckdb_connection", DBI::dbConnect(driver))
 }
 
 nis_duckdb_open_data <- function() {

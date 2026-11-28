@@ -16,7 +16,8 @@ fields and \code{DQTR} (quarter numbers or \code{Q1}–\code{Q4} labels). All fo
 quarters must have valid design records in each year. This coverage check
 cannot verify that the sample is complete.}
 
-\item{cohort}{Logical expression defining the domain, passed to \code{\link[=nis_design]{nis_design()}}.}
+\item{cohort}{Logical expression defining the domain. Only discharges
+with \code{TRUE} membership contribute, as in \code{\link[=nis_design]{nis_design()}}.}
 
 \item{coding}{Use \code{"single_era"} to require years within 2012–2014 or
 2016 onward. Use \code{"verified_comparable"} to acknowledge the transition and

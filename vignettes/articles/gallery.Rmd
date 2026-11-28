@@ -108,7 +108,7 @@ small counts before sharing the table.
 ## Design report for a fitted model
 
 ```{r design-report}
-nis_design_report(fit)[c("years", "input_n", "cohort_n", "domain_n", "weight", "model")]
+nis_design_report(fit)
 ```
 
 The report distinguishes the input sample, the cohort, the model domain,

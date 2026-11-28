@@ -52,7 +52,8 @@ nis_check_2015_cohort <- function(quarters, call) {
 #'   fields and `DQTR` (quarter numbers or `Q1`–`Q4` labels). All four
 #'   quarters must have valid design records in each year. This coverage check
 #'   cannot verify that the sample is complete.
-#' @param cohort Logical expression defining the domain, passed to [nis_design()].
+#' @param cohort Logical expression defining the domain. Only discharges
+#'   with `TRUE` membership contribute, as in [nis_design()].
 #' @param coding Use `"single_era"` to require years within 2012–2014 or
 #'   2016 onward. Use `"verified_comparable"` to acknowledge the transition and
 #'   confirm that the definition is coding-independent or an audit found no
@@ -117,15 +118,11 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
 
 nis_annual_summary <- function(domain, hospital_rows, years) {
   grouped <- if (nis_design_duckdb(domain)) {
-    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n", "missing"))
+    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n"))
   } else {
     nis_annual_cells_local(domain)
   }
-  cells <- nis_collect(grouped)
-  if (any(cells$missing > 0L)) {
-    cli::cli_inform("Treated missing cohort values as outside the cohort.")
-  }
-  nis_annual_estimates(cells, hospital_rows, years)
+  nis_annual_estimates(nis_collect(grouped), hospital_rows, years)
 }
 
 nis_annual_cells_sql <- function(domain) {
@@ -133,8 +130,7 @@ nis_annual_cells_sql <- function(domain) {
     paste(
       'SELECT "YEAR", "NIS_STRATUM", "HOSP_NIS",',
       'sum(CASE WHEN ".nis_cohort" THEN CAST("DISCWT" AS DOUBLE) ELSE 0.0 END) AS "total",',
-      'count(*) FILTER (WHERE ".nis_cohort") AS "n",',
-      'count(*) FILTER (WHERE ".nis_cohort" IS NULL) AS "missing"',
+      'count(*) FILTER (WHERE ".nis_cohort") AS "n"',
       "FROM (%s) AS domain GROUP BY 1, 2, 3"
     ),
     dbplyr::sql_render(domain)
@@ -147,7 +143,6 @@ nis_annual_cells_local <- function(domain) {
     dplyr::summarise(
       total = sum(dplyr::if_else(dplyr::coalesce(.nis_cohort, FALSE), as.double(DISCWT), 0), na.rm = TRUE),
       n = sum(dplyr::coalesce(.nis_cohort, FALSE), na.rm = TRUE),
-      missing = sum(is.na(.nis_cohort), na.rm = TRUE),
       .groups = "drop"
     )
 }

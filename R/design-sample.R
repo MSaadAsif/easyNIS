@@ -188,15 +188,13 @@ nis_design_cohort_type <- function(prepared, call) {
 
 nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   prepared <- nis_design_cohort_type(prepared, call)
-  # Scan 2 keeps valid discharges whose cohort value is TRUE or missing, so
-  # the cohort expression runs once per discharge. Missing values are counted
-  # here and dropped.
+  # Scan 2 only collects valid discharges with true cohort membership.
   cohort_rows <- if (nis_design_duckdb(prepared) && !length(dbplyr::op_sort(prepared))) {
     columns <- c(collected_fields, ".nis_cohort")
-    nis_design_sql_tbl(prepared, nis_design_cohort_sql(prepared, columns, keep_missing = TRUE), columns)
+    nis_design_sql_tbl(prepared, nis_design_cohort_sql(prepared, columns), columns)
   } else {
     prepared |>
-      dplyr::filter(.nis_valid, dplyr::coalesce(.nis_cohort, TRUE)) |>
+      dplyr::filter(.nis_valid, .nis_cohort) |>
       dplyr::select(dplyr::all_of(collected_fields), .nis_cohort)
   }
   collected <- nis_collect(cohort_rows)
@@ -206,11 +204,6 @@ nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   if (inherits(collected$DISCWT, "integer64")) {
     collected$DISCWT <- as.double(collected$DISCWT)
   }
-  missing <- which(is.na(collected$.nis_cohort))
-  if (length(missing)) {
-    cli::cli_inform("Treated missing cohort values as outside the cohort.")
-    collected <- collected[-missing, , drop = FALSE]
-  }
   collected
 }
 
@@ -219,9 +212,9 @@ nis_sample_annual_warnings <- function(summary, collected) {
     nis_design_quarter_warning(summary$coverage)
     nis_design_2015_warning(summary$years, collected)
   } else if (2015L %in% summary$years) {
-    cli::cli_inform(paste0(
-      "Cannot check the 2015 ICD-9/ICD-10 split because `DQTR` is ",
-      "unavailable; 2015 counts as a whole year in annualization."
+    cli::cli_warn(c(
+      "Cannot check the 2015 ICD-9/ICD-10 split without `DQTR`.",
+      i = "Annualization counts 2015 as a whole year."
     ))
   }
 }

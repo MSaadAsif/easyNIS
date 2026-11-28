@@ -1,1 +1,2 @@
 - Add an output gallery, rendered examples, and searchable light and dark themes to the easyNIS documentation site.
+- Keep routine file opening, cohort design, and cost adjustment quiet. Print design reports as a compact summary with the full audit fields still available.

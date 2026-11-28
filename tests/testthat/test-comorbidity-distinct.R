@@ -96,8 +96,8 @@ test_that("refined Elixhauser counts the union of output components in DuckDB", 
   expected <- c(3L, 1L, 1L, rep(2L, 9L), 3L, 0L, NA_integer_)
   usable <- seq_len(nrow(fixture) - 1L)
   expect_identical(reference_distinct(method, flags, usable), expected[usable])
-  expect_warning(default <- nis_comorbidity(fixture, method), "1 row.*no usable")
-  expect_warning(frame <- nis_comorbidity(fixture, method, count_distinct = TRUE), "1 row.*no usable")
+  expect_warning(default <- nis_comorbidity(fixture, method), "no usable")
+  expect_warning(frame <- nis_comorbidity(fixture, method, count_distinct = TRUE), "no usable")
   expect_identical(frame$cmrb_n_distinct, expected)
   expect_identical(frame[names(default)], default)
 
@@ -109,11 +109,11 @@ test_that("refined Elixhauser counts the union of output components in DuckDB", 
   expect_identical(reference_distinct(method, flags, usable, exclude), filtered[usable])
   expect_warning(
     lazy <- nis_comorbidity(query, method, count_distinct = TRUE, exclude_conditions = exclude),
-    "1 row.*no usable"
+    "no usable"
   )
   expect_warning(
     excluded_frame <- nis_comorbidity(fixture, method, count_distinct = TRUE, exclude_conditions = exclude),
-    "1 row.*no usable"
+    "no usable"
   )
   expect_s3_class(lazy, "tbl_sql")
   types <- DBI::dbGetQuery(con, paste("DESCRIBE", dbplyr::sql_render(lazy)))
@@ -128,7 +128,7 @@ test_that("refined Elixhauser counts the union of output components in DuckDB", 
 
   expect_warning(
     all_excluded <- nis_comorbidity(query, method, count_distinct = TRUE, exclude_conditions = unique(map$condition)),
-    "1 row.*no usable"
+    "no usable"
   )
   empty <- all_excluded |> dplyr::arrange(KEY_NIS) |> dplyr::pull(cmrb_n_distinct)
   expect_identical(empty, c(rep(0L, length(usable)), NA_integer_))

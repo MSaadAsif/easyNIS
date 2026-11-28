@@ -268,18 +268,7 @@ test_that("NaN metadata is missing consistently for frames and DuckDB", {
 test_that("invented 2015 split stays lazy across pooled years", {
   path <- nis_example(2012:2016)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  rlang::reset_message_verbosity("easyNIS_icd9_layout")
-  withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
-  expect_message(query <- nis_open(path, check_release = FALSE), "Experimental")
-  repeated_messages <- character()
-  withCallingHandlers(
-    nis_open(path, years = 2012L, check_release = FALSE),
-    message = function(message) {
-      repeated_messages <<- c(repeated_messages, conditionMessage(message))
-      invokeRestart("muffleMessage")
-    }
-  )
-  expect_false(any(grepl("Experimental", repeated_messages)))
+  expect_no_message(query <- nis_open(path, check_release = FALSE))
   lazy <- query |>
     nis_flag_dx(old = "123", system = "icd9") |>
     nis_flag_pr(old_proc = "012", system = "icd9") |>

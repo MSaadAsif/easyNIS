@@ -11,15 +11,17 @@ nis_design_report(x)
 or a \code{\link[survey:svyglm]{survey::svyglm()}} fit made with that design.}
 }
 \value{
-A list with the valid-design input years, input and original cohort
-counts, design-field exclusions (a discharge can fail multiple fields),
+A \code{nis_design_report} list with the valid-design input years,
+input and original cohort counts, design-field exclusions,
 cohort criterion, and current domain count. Weighting fields describe the
 base weight column, annualization divisor, and whether supplied reweights
 were applied. The PSU and stratum fields name their year-scoped keys.
 For a fit, \code{domain_n} counts the records after any model subset and before
 the fit's missing-data action. The \code{model} entry gives the fitted
 unweighted count (\code{n}, from \code{\link[stats:nobs]{stats::nobs()}}) and the number of records
-the fit omitted for missing model data (\code{excluded_n}).
+the fit omitted for missing model data (\code{excluded_n}). The print method
+summarizes sample stages and weighting. Use \code{$} to access details
+such as \code{excluded}.
 }
 \description{
 Report the discharges and survey weights used in a design or fitted model.
@@ -33,7 +35,6 @@ the report.
 \examples{
 data <- nis_open(nis_example(2019:2020))
 design <- nis_design(data, AGE >= 18, keep = c(AGE, LOS), annualize = TRUE)
-nis_design_report(design)
 nis_design_report(survey::svyglm(LOS ~ AGE, design = design))
 }
 \seealso{
