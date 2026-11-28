@@ -43,7 +43,8 @@
 #'   dplyr::collect()
 nis_join_companion <- function(.data, path, component, columns) {
   component <- rlang::arg_match(component, c("hospital", "severity", "dx_pr_grps"))
-  if (!inherits(.data, "tbl_sql") || is.null(.data$src$.easyNIS_years)) {
+  source_info <- nis_open_source_info(.data)
+  if (is.null(source_info)) {
     cli::cli_abort("`.data` must be a lazy Core query from {.fn nis_open}.")
   }
   id <- if (component == "hospital") "HOSP_NIS" else "KEY_NIS"
@@ -54,9 +55,8 @@ nis_join_companion <- function(.data, path, component, columns) {
     cli::cli_abort("The Core query must include {.field {required[is.na(core_keys)]}}.")
   }
   con <- dbplyr::remote_con(.data)
-  dataset <- nis_open_discover(path, .data$src$.easyNIS_years, rlang::current_call())
-  sources <- nis_open_source_paths(.data)
-  if (any(dataset$parts$path %in% sources)) {
+  dataset <- nis_open_discover(path, source_info$years, rlang::current_call())
+  if (any(dataset$parts$path %in% source_info$paths)) {
     cli::cli_abort("Keep Core and each companion in separate Parquet files.")
   }
   keys <- c("YEAR", id)
@@ -69,7 +69,8 @@ nis_join_companion <- function(.data, path, component, columns) {
   names(keys) <- core_keys[match(keys, required)]
   companion <- nis_companion_check_keys(.data, companion, keys, con)
   joined <- dplyr::left_join(.data, companion, by = keys, na_matches = "never")
-  joined$src$.easyNIS_source_paths <- c(sources, dataset$parts$path)
+  source_info$paths <- c(source_info$paths, dataset$parts$path)
+  joined$src$.easyNIS_source <- source_info
   joined
 }
 
@@ -93,12 +94,11 @@ nis_companion_check_columns <- function(columns, core, component) {
 
 nis_companion_query <- function(parts, con, id) {
   # Annual filenames supply the year just as Hive partitions do.
-  parts$partition_year <- parts$year
-  plan <- nis_open_plan_parquet(parts, con, "duckdb")
+  plan <- nis_open_plan_parquet(parts, con, "duckdb", partition_year = parts$year)
   has_key <- vapply(
-    plan$names_by_part,
-    function(fields) {
-      !is.na(nis_companion_fields(id, fields))
+    plan$sources,
+    function(source) {
+      !is.na(nis_companion_fields(id, nis_parquet_source_fields(source)))
     },
     logical(1)
   )

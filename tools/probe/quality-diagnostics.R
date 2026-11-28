@@ -13,7 +13,7 @@ private_quality_diagnostics <- function(checks, records) {
   failed <- tool_names[vapply(
     tool_names,
     function(name) {
-      matching_records <- Filter(function(record) identical(record$step, name), records)
+      matching_records <- Filter(function(record) identical(record$step, quality_receipt_ids[[name]]), records)
       length(matching_records) > 0L &&
         any(vapply(
           matching_records,
@@ -96,7 +96,7 @@ goodpractice_pass <- function(value) {
 }
 
 quality_public_detail <- function(name, passed) {
-  if (name %in% c("goodpractice", "pkgcheck") && identical(passed, FALSE)) {
+  if (name %in% quality_receipt_ids[c("goodpractice", "pkgcheck")] && identical(passed, FALSE)) {
     return("check failures present")
   }
   ""

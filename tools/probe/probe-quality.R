@@ -1,7 +1,14 @@
 #!/usr/bin/env Rscript
 
 root <- normalizePath(".", mustWork = TRUE)
-source(file.path("tools", "probe", "probe-modules.R"))
+source(file.path("tools", "probe", "workspace.R"))
+source(file.path("tools", "probe", "git-evidence.R"))
+source(file.path("tools", "probe", "diagnostics.R"))
+source(file.path("tools", "probe", "receipt-io.R"))
+source(file.path("tools", "probe", "quality-receipts.R"))
+source(file.path("tools", "probe", "quality-diagnostics.R"))
+source(file.path("tools", "probe", "hcup-url-proxy.R"))
+source(file.path("tools", "probe", "export-documentation.R"))
 source(file.path("tools", "probe", "provenance.R"))
 source(file.path("tools", "probe", "quality-checks.R"))
 source(file.path("tools", "probe", "quality-result.R"))

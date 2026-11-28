@@ -93,7 +93,7 @@ nis_comorbidity_check_prefix <- function(prefix) {
 }
 
 nis_comorbidity_slots <- function(records, spec) {
-  lazy <- inherits(records, "tbl_sql") && inherits(dbplyr::remote_con(records), "duckdb_connection")
+  lazy <- nis_is_duckdb(records)
   if (!lazy && !is.data.frame(records)) {
     cli::cli_abort("`.data` must be a collected data frame, a {.cls tbl_svy}, or a lazy DuckDB query.")
   }

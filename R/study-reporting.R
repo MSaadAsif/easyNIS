@@ -1,17 +1,26 @@
 nis_study_coding_eras <- function(years, quarters) {
-  transition <- years == 2015L
+  transition <- years == .nis_icd_transition_year
   unknown <- any(transition) && (!length(quarters) || !all(quarters[transition] %in% as.character(1:4)))
   eras <- c(
-    if (any(years < 2015L) || any(transition & quarters %in% as.character(1:3))) "ICD-9-CM",
-    if (any(years > 2015L) || any(transition & quarters %in% "4")) "ICD-10-CM/PCS"
+    if (
+      any(years < .nis_icd_transition_year) ||
+        any(transition & quarters %in% as.character(.nis_icd_transition_quarters$icd9))
+    ) {
+      "ICD-9-CM"
+    },
+    if (
+      any(years > .nis_icd_transition_year) ||
+        any(transition & quarters %in% as.character(.nis_icd_transition_quarters$icd10))
+    ) {
+      "ICD-10-CM/PCS"
+    }
   )
   list(text = paste(eras, collapse = " and "), unknown = unknown, review = unknown || length(eras) > 1L)
 }
 
 nis_study_design_status <- function(design, input) {
   records <- design$variables
-  strata <- paste(records$YEAR, records$NIS_STRATUM, sep = "::")
-  clusters <- paste(strata, paste(records$YEAR, records$HOSP_NIS, sep = "::"), sep = ".")
+  ids <- nis_survey_ids(records)
   weights <- stats::weights(design)
   list(
     weighted = length(weights) > 0L &&
@@ -19,8 +28,8 @@ nis_study_design_status <- function(design, input) {
       isTRUE(all.equal(as.numeric(weights), as.numeric(records$DISCWT) / input$divisor)),
     taylor = inherits(design, "survey.design2") &&
       is.null(design$fpc$popsize) &&
-      identical(as.character(design$strata[[1L]]), strata) &&
-      identical(as.character(design$cluster[[1L]]), clusters)
+      identical(as.character(design$strata[[1L]]), ids$stratum) &&
+      identical(as.character(design$cluster[[1L]]), nis_survey_nested_ids(ids))
   )
 }
 
@@ -152,7 +161,7 @@ nis_study_reporting <- function(opened, design, requested_years) {
     full_years = setequal(input$years, requested_years) &&
       setequal(names(quarters), as.character(requested_years)) &&
       all(vapply(quarters, setequal, logical(1), y = as.character(1:4))),
-    release = opened$src$.easyNIS_release_check,
+    release = nis_open_source_info(opened)$release,
     design = nis_study_design_status(design, input),
     cost = nis_cost_provenance(design),
     lonely = getOption("survey.lonely.psu", "fail"),

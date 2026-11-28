@@ -102,7 +102,7 @@ check_scans <- function(scratch, evidence) {
         for (right in seq_len(nrow(domain))) {
           selected <- c(left, right)
           parts <- data.frame(path = paths[cbind(selected, 1:2)],
-            partition_year = if (hive) 2020L else NA_integer_)
+            year = 2020L, partition_year = if (hive) 2020L else NA_integer_)
           expected <- expected_scan(domain, selected, hive)
           actual <- observed_scan(plan, con, parts)
           if (!identical(expected, actual)) {

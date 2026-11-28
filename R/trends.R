@@ -15,7 +15,7 @@ nis_annual_years <- function(sample, call) {
 }
 
 nis_check_coding_era <- function(years, call) {
-  if (2015L %in% years) {
+  if (.nis_icd_transition_year %in% years) {
     cli::cli_abort(
       c(
         "2015 spans the ICD-9-CM to ICD-10-CM/PCS transition.",
@@ -24,7 +24,7 @@ nis_check_coding_era <- function(years, call) {
       call = call
     )
   }
-  if (min(years) < 2015L && max(years) > 2015L) {
+  if (min(years) < .nis_icd_transition_year && max(years) > .nis_icd_transition_year) {
     cli::cli_abort("Select one coding era for annual totals spanning ICD-9-CM and ICD-10-CM/PCS years.", call = call)
   }
 }
@@ -33,10 +33,10 @@ nis_check_2015_cohort <- function(quarters, call) {
   if (anyNA(quarters)) {
     cli::cli_abort("The 2015 cohort has missing or unrecognized discharge quarters.", call = call)
   }
-  if (identical(quarters, 4L)) {
+  if (identical(quarters, .nis_icd_transition_quarters$icd10)) {
     cli::cli_abort("The 2015 cohort includes only ICD-10-CM/PCS discharges (Q4).", call = call)
   }
-  if (length(quarters) && !4L %in% quarters) {
+  if (length(quarters) && !any(quarters %in% .nis_icd_transition_quarters$icd10)) {
     cli::cli_abort("The 2015 cohort includes only ICD-9-CM discharges (Q1-Q3).", call = call)
   }
 }
@@ -91,24 +91,29 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
   if (!"DQTR" %in% nis_names(.data)) {
     cli::cli_abort("Annual totals require `DQTR`.", call = call)
   }
-  data <- dplyr::ungroup(.data)
-  saved <- !is.null(nis_saved_cohort(data, call))
-  membership <- nis_cohort_membership(rlang::enquo(cohort), saved, call)
-  nis_design_validate(data, "TOTCHG", FALSE, call, saved)
-  data <- nis_design_input(data)
-  fields <- nis_design_fields(data, rlang::quo(YEAR), call)
+  source <- nis_sample_source(.data, rlang::enquo(cohort), call)
+  data <- nis_sample_input(source$data, source$saved, call)
+  quarters <- if (inherits(data, "tbl_lazy")) {
+    nis_collect(utils::head(dplyr::select(data, DQTR), 0L))$DQTR
+  } else {
+    data$DQTR[integer()]
+  }
   prepared <- nis_design_prepare_fields(data)
-  sample <- nis_sample_summary(prepared, fields$quarter_prototype, call, require_year = TRUE)
+  sample <- nis_sample_summary(prepared, quarters)
+  if (sample$excluded$by_field[["YEAR"]] > 0L) {
+    cli::cli_abort("Annual totals require nonmissing, finite `YEAR` values.", call = call)
+  }
+  nis_sample_check_roster(sample$hospital_rows, call)
   years <- nis_annual_years(sample, call)
   if (coding == "single_era") {
     nis_check_coding_era(years, call)
   }
-  domain <- dplyr::mutate(prepared, .nis_cohort = !!membership)
+  domain <- dplyr::mutate(prepared, .nis_cohort = !!source$membership)
   domain <- nis_design_cohort_type(domain, call)
   domain <- dplyr::filter(domain, .nis_valid)
-  if (2015L %in% years) {
+  if (.nis_icd_transition_year %in% years) {
     quarters <- domain |>
-      dplyr::filter(YEAR == 2015L, .nis_cohort) |>
+      dplyr::filter(YEAR == !!.nis_icd_transition_year, .nis_cohort) |>
       dplyr::distinct(YEAR, DQTR) |>
       nis_collect()
     nis_check_2015_cohort(nis_cohort_2015_quarters(quarters), call)
@@ -117,8 +122,8 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
 }
 
 nis_annual_summary <- function(domain, hospital_rows, years) {
-  grouped <- if (nis_design_duckdb(domain)) {
-    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n"))
+  grouped <- if (nis_is_duckdb(domain)) {
+    nis_sql_result(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n"))
   } else {
     nis_annual_cells_local(domain)
   }
@@ -161,12 +166,7 @@ nis_annual_estimates <- function(cells, hospital_rows, years) {
     scores <- cells$total[rows]
     # Keep only contributing PSUs. Survey pads their sampled strata with
     # zero scores, including when only one PSU contributes to the domain.
-    variance <- nis_survey_variance(
-      matrix(scores),
-      cells$psu[rows],
-      roster,
-      lonely.psu = getOption("survey.lonely.psu", "fail")
-    )
+    variance <- nis_survey_variance(matrix(scores), cells$psu[rows], roster)
     annual$discharges[i] <- sum(scores)
     annual$discharges_se[i] <- sqrt(variance[1L, 1L])
     annual$n[i] <- as.integer(sum(as.numeric(cells$n[rows])))

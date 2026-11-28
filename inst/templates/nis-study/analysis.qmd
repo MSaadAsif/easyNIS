@@ -34,23 +34,12 @@ data_files <- easyNIS:::nis_open_source_paths(opened)
 
 ```{r}
 #| label: definitions
-# ---- Study definitions: edit this block for each study ----
 codes <- list(
   principal_dx = c("I50"),
   exposure = c("Z515")
 )
 cohort <- rlang::expr(principal_dx & AGE >= 18)
-exposure <- "exposed"
-covariates <- c(
-  "AGE", "FEMALE",
-  if (length(params$years) > 1L) "factor(YEAR)"
-)
 annualize <- FALSE
-outcomes <- dplyr::tibble(
-  outcome = c("DIED", "LOS", "cost_adj"),
-  family = c("quasibinomial", "gaussian", "gaussian"),
-  exponentiate = c(TRUE, FALSE, FALSE)
-)
 
 nis_data <- nis_data |>
   nis_flag_dx(principal_dx = codes$principal_dx, position = "principal") |>
@@ -97,59 +86,38 @@ study_design <- rlang::inject(
 ```
 
 ```{r}
+#| label: report-definitions
+exposure <- "exposed"
+covariates <- c(
+  "AGE", "FEMALE",
+  if (length(params$years) > 1L) "factor(YEAR)"
+)
+outcomes <- dplyr::tibble(
+  outcome = c("DIED", "LOS", "cost_adj"),
+  family = c("quasibinomial", "gaussian", "gaussian"),
+  exponentiate = c(TRUE, FALSE, FALSE)
+)
+```
+
+```{r}
 #| label: design-summary
 disclosure_limit <- 10L
-eligible <- study_design$variables
-exposure_values <- if (exposure %in% names(eligible)) eligible[[exposure]] else logical()
-missing_exposure <- is.na(exposure_values)
-has_exposure_comparison <- length(unique(exposure_values[!missing_exposure])) >= 2L
-exposure_support <- function(rows) {
-  counts <- nis_cell_counts(rows)
-  display <- nis_suppress(counts, threshold = disclosure_limit, count_col = n,
-    hospital_col = hospitals, secondary = FALSE)
-  list(n = counts$n, safe = identical(display$n, as.character(counts$n)))
-}
-arm_support <- if (has_exposure_comparison) {
-  lapply(split(eligible, exposure_values), exposure_support)
-} else {
-  list()
-}
-comparisons_safe <- has_exposure_comparison &&
-  all(vapply(arm_support, function(arm) arm$n > 0L && arm$safe, logical(1))) &&
-  (!any(missing_exposure) || exposure_support(eligible[missing_exposure, , drop = FALSE])$safe)
-
 # All report estimates and disclosure checks use this analysis domain.
-exposure_restricted <- comparisons_safe && any(missing_exposure)
-analysis_design <- if (exposure_restricted) {
-  dplyr::filter(study_design, !is.na(.data[[exposure]]))
-} else study_design
+analysis <- easyNIS:::nis_study_analysis_domain(study_design, exposure, disclosure_limit)
+analysis_design <- analysis$design
+has_exposure_comparison <- analysis$comparison
+exposure_restricted <- analysis$restricted
 records <- analysis_design$variables
 cohort_n <- nrow(records)
 has_cohort <- cohort_n > 0L
 formulas <- lapply(outcomes$outcome, stats::reformulate, termlabels = c(exposure, covariates))
 report_variables <- unique(c(exposure, "AGE", "FEMALE", "DIED", "LOS", "cost_adj", unlist(lapply(formulas, all.vars))))
 support <- easyNIS:::nis_study_report_support(
-  records, report_variables, if (comparisons_safe) exposure, disclosure_limit
+  records, report_variables, if (analysis$safe) exposure, disclosure_limit
 )
 pooled_mask <- support$pooled
 outcome_ok <- support$variables[intersect(c("DIED", "LOS", "cost_adj"), names(support$variables))]
-study_header <- function(table) {
-  metadata <- table$table_styling$header
-  grouped <- "stat_1" %in% names(table$table_body)
-  total <- cohort_n
-  header <- list(stat_0 = paste0("**N = ", format(total, big.mark = ","), "**"))
-  if (grouped) {
-    columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
-    for (column in columns) {
-      row <- match(column, metadata$column)
-      label <- as.character(metadata$modify_stat_level[[row]])
-      n <- arm_support[[label]]$n
-      if (is.null(n)) stop("Cannot match a report header to its exposure arm.")
-      header[[column]] <- paste0("**", label, "**\nN = ", format(n, big.mark = ","))
-    }
-  }
-  gtsummary::modify_header(table, !!!header)
-}
+study_header <- function(table) easyNIS:::nis_study_header(table, analysis)
 report <- easyNIS:::nis_study_reporting(opened, analysis_design, params$years)
 table_one <- outcome_table <- trend_estimates <- NULL
 render_table <- function(table) {
@@ -273,6 +241,7 @@ if (!has_cohort) {
 trend_estimates <- easyNIS:::nis_study_trend_estimates(analysis_design)
 trend <- dplyr::left_join(trend_estimates, support$by_year, by = "YEAR") |>
   dplyr::rename(mortality_ok = DIED, los_ok = LOS)
+trend_masks <- easyNIS:::nis_study_trend_masks(trend)
 
 trend_long <- dplyr::bind_rows(
   trend |>
@@ -280,14 +249,14 @@ trend_long <- dplyr::bind_rows(
       YEAR, measure = "In-hospital mortality",
       estimate = mortality, lower = mortality_low, upper = mortality_upp,
       n = DIED_n,
-      visible = !nzchar(count_mask) & mortality_ok
+      visible = !nzchar(.env$trend_masks$mortality)
     ),
   trend |>
     dplyr::transmute(
       YEAR, measure = "Mean length of stay",
       estimate = mean_los, lower = mean_los_low, upper = mean_los_upp,
       n = LOS_n,
-      visible = !nzchar(count_mask) & los_ok
+      visible = !nzchar(.env$trend_masks$los)
     )
 ) |>
   dplyr::filter(visible)
@@ -305,7 +274,7 @@ if (nrow(trend_long)) print(ggplot2::ggplot(
   ggplot2::labs(x = "Discharge year", y = "Survey estimate") +
   ggplot2::theme_minimal())
 
-render_table(easyNIS:::nis_study_trend_table(trend))
+render_table(easyNIS:::nis_study_trend_table(trend, trend_masks))
 }
 ```
 

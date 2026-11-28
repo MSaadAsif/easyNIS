@@ -3,6 +3,3 @@ defaultTargets = ["DuckDBProofs"]
 
 [[lean_lib]]
 name = "DuckDBProofs"
-
-[[lean_lib]]
-name = "Mutation"

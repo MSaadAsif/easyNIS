@@ -37,7 +37,11 @@ verification_run <- function(name, action, packages = character(), source_dir = 
   print(system2("git", c("status", "--porcelain"), stdout = TRUE))
   cat("R ", R.version.string, " / ", R.version$platform, "\n", sep = "")
   cat("LOCALE ", Sys.getlocale("LC_CTYPE"), "\n", sep = "")
-  inputs <- c("DESCRIPTION", "NAMESPACE", paste0("R/", list.files(file.path(source_dir, "R"))))
+  inputs <- c(
+    "DESCRIPTION", "NAMESPACE",
+    paste0("R/", list.files(file.path(source_dir, "R"), recursive = TRUE)),
+    paste0("inst/", list.files(file.path(source_dir, "inst"), recursive = TRUE, all.files = TRUE))
+  )
   hashes <- tools::md5sum(file.path(source_dir, inputs))
   writeLines(paste(unname(hashes), inputs), file.path(evidence, "input-hashes.txt"))
   cat("SCRATCH ", scratch, "\n", sep = "")

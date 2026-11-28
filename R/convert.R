@@ -55,22 +55,17 @@ nis_convert <- function(path, dir, encoding = NULL) {
 nis_convert_with_stage <- function(dir, year, write) {
   dir <- normalizePath(dir, winslash = "/", mustWork = TRUE)
   target <- file.path(dir, paste0("NIS_", year, ".parquet"))
-  nis_convert_check_target(target)
-  temp <- nis_owned_temp_path(".easynis-convert-", dir)
-  on.exit(nis_remove_owned_directory(temp), add = TRUE)
-  if (!dir.create(temp, mode = "0700")) {
-    cli::cli_abort("Could not create a temporary sibling of {.path {target}}.")
-  }
-  db <- NULL
-  on.exit(if (!is.null(db)) db$release(), add = TRUE, after = FALSE)
-  suspendInterrupts({
-    db <- nis_duckdb_open_data()
+  nis_check_output_target(target)
+  nis_publish_directory(target, ".easynis-convert-", function(temp) {
+    db <- NULL
+    on.exit(if (!is.null(db)) db$release(), add = TRUE)
+    suspendInterrupts({
+      db <- nis_duckdb_open_data()
+    })
+    DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
+    rows <- write(temp, db$con)
+    nis_convert_check_count(db$con, temp, rows)
   })
-  DBI::dbExecute(db$con, "SET preserve_insertion_order = true")
-  rows <- write(temp, db$con)
-  nis_convert_check_count(db$con, temp, rows)
-  db$release()
-  nis_convert_publish(list(target = target, temp = temp))
 }
 
 nis_convert_check_paths <- function(path, dir) {
@@ -81,6 +76,8 @@ nis_convert_check_paths <- function(path, dir) {
     cli::cli_abort("`dir` must name an existing directory.")
   }
 }
+
+.nis_convert_batch_size <- 100000L
 
 nis_convert_haven_reader <- function(path, encoding) {
   format <- tolower(tools::file_ext(path))
@@ -97,7 +94,7 @@ nis_convert_haven_reader <- function(path, encoding) {
   read <- function(offset, size, input_encoding = encoding) {
     reader(path, encoding = input_encoding, skip = offset, n_max = size, .name_repair = "minimal")
   }
-  function(offset, size = 100000L) {
+  function(offset, size = .nis_convert_batch_size) {
     tryCatch(
       read(offset, size),
       error = function(error) nis_convert_read_error(error, read, path, encoding, offset, size)
@@ -197,18 +194,6 @@ nis_convert_filename_year <- function(filename) {
   as.integer(match[2L])
 }
 
-nis_convert_publish <- function(stage) {
-  nis_convert_check_target(stage$target)
-  if (!suppressWarnings(file.rename(stage$temp, stage$target))) {
-    cli::cli_abort("Could not publish {.path {stage$target}}.")
-  }
-  invisible(stage$target)
-}
-
-nis_convert_check_target <- function(path) {
-  if (file.exists(path)) cli::cli_abort("Output {.path {path}} already exists.")
-}
-
 nis_convert_write_batches <- function(read, data, year, temp, con) {
   offset <- 0L
   part <- 1L
@@ -223,7 +208,7 @@ nis_convert_write_batches <- function(read, data, year, temp, con) {
     path <- file.path(temp, sprintf("part-%06d.parquet", part))
     nis_convert_copy_batch(con, data, path)
     offset <- offset + size
-    if (size < 100000L) {
+    if (size < .nis_convert_batch_size) {
       break
     }
     part <- part + 1L
@@ -251,18 +236,20 @@ nis_convert_eras <- function(data, columns, year) {
     i <- match(key, columns)
     if (is.na(i)) NA_integer_ else data[[i]]
   }
-  if (year != 2015L) {
-    era <- year < 2015L
+  if (year != .nis_icd_transition_year) {
+    era <- year < .nis_icd_transition_year
     return(list(dx9 = era, pr9 = era, dx10 = !era, pr10 = !era))
   }
   quarter <- get("dqtr")
   dx <- get("dxver")
   pr <- get("prver")
+  icd9 <- .nis_icd_transition_quarters$icd9
+  icd10 <- .nis_icd_transition_quarters$icd10
   list(
-    dx9 = nis_convert_2015_era(quarter, dx, 1:3, 9L),
-    pr9 = nis_convert_2015_era(quarter, pr, 1:3, 9L),
-    dx10 = nis_convert_2015_era(quarter, dx, 4L, 10L),
-    pr10 = nis_convert_2015_era(quarter, pr, 4L, 10L)
+    dx9 = nis_convert_2015_era(quarter, dx, icd9, 9L),
+    pr9 = nis_convert_2015_era(quarter, pr, icd9, 9L),
+    dx10 = nis_convert_2015_era(quarter, dx, icd10, 10L),
+    pr10 = nis_convert_2015_era(quarter, pr, icd10, 10L)
   )
 }
 
@@ -279,8 +266,8 @@ nis_convert_validate_text <- function(values, column, eras, offset) {
     invalid <- which(!validUTF8(values) & !is.na(values))
     if (length(invalid)) nis_convert_invalid("Malformed UTF-8 in", column, offset + invalid[[1L]])
   }
-  slot <- toupper(nis_sql_identifier_key(column))
-  pattern <- nis_convert_code_pattern(slot)
+  slot <- nis_convert_slot(toupper(nis_sql_identifier_key(column)))
+  pattern <- nis_convert_slot_pattern(slot)
   if (is.null(pattern)) {
     return(invisible(NULL))
   }
@@ -291,37 +278,26 @@ nis_convert_validate_text <- function(values, column, eras, offset) {
   if (length(wrong)) {
     nis_convert_invalid("Malformed ICD code in", column, offset + wrong[[1L]])
   }
-  wrong <- which(!nis_convert_slot_era(slot, eras) & !is.na(values) & grepl("[^ ]", values, useBytes = TRUE))
+  wrong <- which(!eras[[slot[["era"]]]] & !is.na(values) & grepl("[^ ]", values, useBytes = TRUE))
   if (length(wrong)) nis_convert_invalid("Wrong coding era in", column, offset + wrong[[1L]])
 }
 
-nis_convert_slot_era <- function(slot, eras) {
-  switch(
-    sub("[0-9]+$", "", slot),
-    DX = eras$dx9,
-    ECODE = eras$dx9,
-    PR = eras$pr9,
-    I10_DX = eras$dx10,
-    I10_ECAUSE = eras$dx10,
-    I10_PR = eras$pr10
-  )
+.nis_convert_slots <- list(
+  DX = c(era = "dx9", code = "[0-9]{3,5}|V[0-9]{2,4}|E[0-9]{3,4}"),
+  ECODE = c(era = "dx9", code = "E[0-9]{3,4}"),
+  PR = c(era = "pr9", code = "[0-9]{2,4}"),
+  I10_DX = c(era = "dx10", code = "[A-Z][0-9][A-Z0-9]{1,5}"),
+  I10_ECAUSE = c(era = "dx10", code = "[A-Z][0-9][A-Z0-9]{1,5}"),
+  I10_PR = c(era = "pr10", code = "[A-HJ-NP-Z0-9]{7}")
+)
+
+nis_convert_slot <- function(column) {
+  stem <- sub("[0-9]+$", "", column)
+  if (!identical(stem, column)) .nis_convert_slots[[stem]]
 }
 
-nis_convert_code_pattern <- function(column) {
-  stem <- sub("[0-9]+$", "", column)
-  if (identical(stem, column)) {
-    return(NULL)
-  }
-  code <- switch(
-    stem,
-    DX = "[0-9]{3,5}|V[0-9]{2,4}|E[0-9]{3,4}",
-    ECODE = "E[0-9]{3,4}",
-    PR = "[0-9]{2,4}",
-    I10_DX = "[A-Z][0-9][A-Z0-9]{1,5}",
-    I10_ECAUSE = "[A-Z][0-9][A-Z0-9]{1,5}",
-    I10_PR = "[A-HJ-NP-Z0-9]{7}"
-  )
-  if (!is.null(code)) paste0("^(?:", code, "|invl|incn)? *\\z")
+nis_convert_slot_pattern <- function(slot) {
+  if (!is.null(slot)) paste0("^(?:", slot[["code"]], "|invl|incn)? *\\z")
 }
 
 nis_convert_invalid <- function(reason, column, row) {

@@ -1,3 +1,18 @@
+quality_receipt_ids <- c(
+  as_cran = "R CMD check --as-cran",
+  namespace_complexity = "installed_namespace_complexity",
+  coverage = "covr",
+  goodpractice = "goodpractice",
+  pkgcheck = "pkgcheck",
+  pkgdown = "pkgdown::check_pkgdown",
+  export_arguments = "export_arguments",
+  export_documentation = "export_documentation",
+  guide = "ropensci_manual_subset",
+  coverage_percent = "coverage_percent"
+)
+
+quality_coverage_minimum <- 90
+
 quality_evidence_valid <- function(item, current_commit, current_tree_clean) {
   is.list(item) &&
     isTRUE(current_tree_clean) &&
@@ -306,12 +321,6 @@ quality_recovered_commit <- function(names, commits) {
   commits[!is.na(commits)][[1L]]
 }
 
-read_raw_bytes <- function(path) {
-  connection <- file(path, open = "rb")
-  on.exit(close(connection))
-  readBin(connection, what = "raw", n = file.info(path)$size)
-}
-
 quality_read_raw_lines <- function(path) {
   bytes <- read_raw_bytes(path)
   if (!length(bytes)) {
@@ -447,16 +456,16 @@ coverage_percent_record <- function(coverage_check, evidence, percent_coverage) 
     value <- percent_coverage(coverage)
     valid <- valid_coverage_percent(value)
     return(list(
-      step = "coverage_percent",
+      step = quality_receipt_ids[["coverage_percent"]],
       status = if (valid) "completed" else "not_verified",
-      pass = if (valid) value >= 90 else NA,
+      pass = if (valid) value >= quality_coverage_minimum else NA,
       value = value,
       commit = evidence$commit,
       working_tree_clean = evidence$working_tree_clean
     ))
   }
   list(
-    step = "coverage_percent",
+    step = quality_receipt_ids[["coverage_percent"]],
     status = "failed",
     pass = FALSE,
     value = NA_real_,

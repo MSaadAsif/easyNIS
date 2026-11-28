@@ -267,7 +267,6 @@ test_that("nis_open pushes selected columns down to Parquet", {
 
   query <- nis_open(path, check_release = FALSE)
   sql <- dbplyr::sql_render(query |> dplyr::select(YEAR, B))
-  skip_if_not_installed("jsonlite")
   plan <- DBI::dbGetQuery(
     query$src$con,
     paste(
@@ -520,9 +519,6 @@ test_that("nis_open promotes numeric and character fields to character", {
 })
 
 test_that("derived DuckDB queries retain the connection until all are released", {
-  skip_if_not_installed("duckdb")
-  skip_if_not_installed("dbplyr")
-
   path <- tempfile("nis-duckdb-finalizer-")
   dir.create(path)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)

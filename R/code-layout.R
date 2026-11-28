@@ -1,3 +1,6 @@
+.nis_icd_transition_year <- 2015L
+.nis_icd_transition_quarters <- list(icd9 = 1:3, icd10 = 4L)
+
 nis_code_stem <- function(type, system) {
   paste0(if (system == "icd10") "I10_", type)
 }
@@ -69,13 +72,13 @@ code_system_year_value <- function(year) {
 code_system_year_range <- function(data, columns, system) {
   year <- code_system_year(data)
   icd9 <- system == "icd9"
-  cutoff <- 2015L
+  cutoff <- .nis_icd_transition_year
   if ("DQTR" %in% columns) {
-    quarters <- if (icd9) 1:3 else 4L
+    quarters <- .nis_icd_transition_quarters[[system]]
     missing_quarter <- nis_is_missing_expr(data, "DQTR")
-    other_year <- if (icd9) 2014L else 2016L
+    other_year <- if (icd9) cutoff - 1L else cutoff + 1L
     cutoff <- rlang::expr(dplyr::case_when(
-      (!!missing_quarter | DQTR %in% !!quarters) ~ 2015L,
+      (!!missing_quarter | DQTR %in% !!quarters) ~ !!cutoff,
       .default = !!other_year
     ))
   }

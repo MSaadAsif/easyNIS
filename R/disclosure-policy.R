@@ -4,7 +4,27 @@ nis_disclosure_masks <- function(counts, hospitals, threshold) {
   list(count = count, hospital = hospital & !count)
 }
 
-.nis_hospital_fields <- c("YEAR", "HOSP_NIS")
+.nis_disclosure_secondary_label <- "Masked"
+
+nis_disclosure_labels <- function(threshold) {
+  c(count = paste0("\u2264", threshold), hospital = "<2 hospitals", secondary = .nis_disclosure_secondary_label)
+}
+
+nis_disclosure_display <- function(masks, threshold, visible = NA_character_) {
+  labels <- nis_disclosure_labels(threshold)
+  result <- rep(visible, length(masks$count))
+  result[masks$count] <- labels[["count"]]
+  result[masks$hospital] <- labels[["hospital"]]
+  result
+}
+
+nis_disclosure_companion <- function(counts, masked) {
+  if (sum(masked) != 1L) {
+    return(integer())
+  }
+  candidates <- which(!masked & counts > 0)
+  candidates[which.min(counts[candidates])]
+}
 
 nis_validate_hospital_columns <- function(.data) {
   absent <- setdiff(.nis_hospital_fields, nis_names(.data))

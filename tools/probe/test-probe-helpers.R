@@ -1,6 +1,11 @@
-source(file.path("tools", "probe", "probe-modules.R"))
-source(file.path("tools", "probe", "provenance.R"))
-source("tools/probe/quality-checks.R")
+source("tools/probe/workspace.R")
+source("tools/probe/git-evidence.R")
+source("tools/probe/diagnostics.R")
+source("tools/probe/receipt-io.R")
+source("tools/probe/study-receipts.R")
+source("tools/probe/quality-receipts.R")
+source("tools/probe/quality-diagnostics.R")
+source("tools/probe/export-documentation.R")
 source("tools/probe/record-probe.R")
 
 local({

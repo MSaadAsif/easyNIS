@@ -43,7 +43,10 @@ nis_add_ccsr <- function(
   call <- rlang::current_call()
   type <- match.arg(type)
   position <- match.arg(position)
-  con <- ccsr_query_connection(.data, call)
+  if (!nis_is_duckdb(.data)) {
+    cli::cli_abort("`.data` must be a lazy DuckDB query.", call = call)
+  }
+  con <- dbplyr::remote_con(.data)
   columns <- nis_names(.data)
   ccsr_validate_output(.data, columns, name, type, position, call)
   slots <- nis_flag_slot_names(columns, toupper(type), "icd10", if (position == "default") "principal" else position)
@@ -58,12 +61,7 @@ nis_add_ccsr <- function(
     validate_ccsr_category_names(categories, available, call, source = "bundled releases")
   }
   sql <- ccsr_query_sql(.data, con, columns, slots, type, position, releases, version, categories, name)
-  out <- dplyr::tbl(con, dbplyr::sql(sql), vars = c(columns, name))
-  out$src <- .data$src
-  if (inherits(.data, "tbl_nis")) {
-    class(out) <- c("tbl_nis", class(out))
-  }
-  dplyr::group_by(out, !!!rlang::syms(dplyr::group_vars(.data)))
+  nis_sql_mutate(.data, sql, c(columns, name))
 }
 
 ccsr_reference_dir <- function() {
@@ -81,16 +79,6 @@ ccsr_releases <- function(type, version, call) {
     releases <- releases[releases$version == version, , drop = FALSE]
   }
   releases
-}
-
-ccsr_query_connection <- function(data, call) {
-  if (inherits(data, "tbl_sql")) {
-    con <- dbplyr::remote_con(data)
-    if (inherits(con, "duckdb_connection")) {
-      return(con)
-    }
-  }
-  cli::cli_abort("`.data` must be a lazy DuckDB query.", call = call)
 }
 
 ccsr_validate_output <- function(data, columns, name, type, position, call) {
@@ -111,7 +99,7 @@ ccsr_validate_output <- function(data, columns, name, type, position, call) {
 
 ccsr_reference_sql <- function(con, table) {
   path <- file.path(ccsr_reference_dir(), paste0(table, ".parquet"))
-  paste0("read_parquet(", DBI::dbQuoteString(con, path), ")")
+  nis_parquet_scan(con, path)
 }
 
 ccsr_mapping_filter <- function(con, type, versions, categories = NULL) {
@@ -162,6 +150,8 @@ ccsr_bundled_codes <- function(categories, default_only, type, version, call) {
 ccsr_release_sql <- function(con, columns, type, releases, pinned) {
   year <- 'TRY_CAST(n."YEAR" AS DOUBLE)'
   quarter <- if ("DQTR" %in% columns) 'TRY_CAST(n."DQTR" AS DOUBLE)' else "NULL"
+  transition_year <- .nis_icd_transition_year
+  transition_quarter <- .nis_icd_transition_quarters$icd10
   version_field <- paste0(toupper(type), "VER")
   version_ok <- if (version_field %in% columns) {
     field <- paste0("n.", DBI::dbQuoteIdentifier(con, version_field))
@@ -169,22 +159,27 @@ ccsr_release_sql <- function(con, columns, type, releases, pinned) {
   }
   eligible <- paste0(
     year,
-    " >= 2015 AND ",
+    " >= ",
+    transition_year,
+    " AND ",
     year,
     " = floor(",
     year,
     ")",
     " AND (",
     year,
-    " > 2015 OR ",
+    " > ",
+    transition_year,
+    " OR ",
     quarter,
     " IS NULL OR ",
     quarter,
-    " = 4)",
+    " = ",
+    transition_quarter,
+    ")",
     version_ok
   )
   fiscal_year <- as.integer(substr(releases$version, 1L, 4L))
-  # Retain the latest revision in each fiscal year, then try years in order.
   candidates <- which(!duplicated(fiscal_year))
   candidates <- candidates[order(fiscal_year[candidates])]
   coverage <- paste(year, "<", fiscal_year[candidates])

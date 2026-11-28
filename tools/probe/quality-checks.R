@@ -9,27 +9,27 @@ diagnostic_check <- function(name, run, pass) {
 }
 
 quality_checks <- list(
-  as_cran = quality_check("R CMD check --as-cran", function(root) {
+  as_cran = quality_check(quality_receipt_ids[["as_cran"]], function(root) {
     devtools::check(root, document = FALSE, args = c("--as-cran", "--no-manual"), error_on = "never")
   }),
   namespace_complexity = quality_check(
-    "installed_namespace_complexity",
+    quality_receipt_ids[["namespace_complexity"]],
     function(root) namespace_complexity(root),
     pass = function(x) namespace_complexity_pass(x$value)
   ),
   coverage = quality_check(
-    "covr",
+    quality_receipt_ids[["coverage"]],
     function(root) {
       covr::package_coverage(root, quiet = TRUE)
     },
     pass = function(x) {
       inherits(x$value, "coverage") &&
         x$pass &&
-        covr::percent_coverage(x$value) >= 90
+        covr::percent_coverage(x$value) >= quality_coverage_minimum
     }
   ),
   goodpractice = diagnostic_check(
-    "goodpractice",
+    quality_receipt_ids[["goodpractice"]],
     function(root) {
       if (!requireNamespace("goodpractice", quietly = TRUE)) {
         return("not installed")
@@ -41,7 +41,7 @@ quality_checks <- list(
     function(value) goodpractice_pass(value)
   ),
   pkgcheck = diagnostic_check(
-    "pkgcheck",
+    quality_receipt_ids[["pkgcheck"]],
     function(root) {
       if (!requireNamespace("pkgcheck", quietly = TRUE)) {
         return("not installed")
@@ -55,7 +55,7 @@ quality_checks <- list(
     },
     function(value) pkgcheck_pass(value)
   ),
-  pkgdown = quality_check("pkgdown::check_pkgdown", function(root) {
+  pkgdown = quality_check(quality_receipt_ids[["pkgdown"]], function(root) {
     if (!requireNamespace("pkgdown", quietly = TRUE)) {
       return("not installed")
     }
@@ -103,14 +103,6 @@ guide_data_first <- function(exported_args) {
   allowed <- !is.na(exceptions) & first == exceptions
   names(first)[!(first %in% c(".data", "data", "x", "design", "path", "file") | allowed)]
 }
-
-quality_receipt_ids <- c(
-  vapply(quality_checks, "[[", character(1), "name"),
-  export_arguments = "export_arguments",
-  export_documentation = "export_documentation",
-  guide = "ropensci_manual_subset",
-  coverage_percent = "coverage_percent"
-)
 
 quality_definition <- function(name) {
   key <- names(quality_receipt_ids)[match(name, quality_receipt_ids)]

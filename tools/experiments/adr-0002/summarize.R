@@ -1,4 +1,6 @@
 # Summarize the recorded runs. Keep raw CSV and JSON as the source of truth.
+source("tools/experiments/adr-0002/profile.R")
+
 args <- commandArgs(TRUE)
 root <- args[[1]]
 dirs <- list.dirs(root, recursive = FALSE, full.names = TRUE)
@@ -34,7 +36,7 @@ rows <- lapply(dirs, function(path) {
     0L
   ))
   files <- list.files(path, "^query-.*[.]json$", full.names = TRUE)
-  profiles <- lapply(files, jsonlite::read_json, simplifyVector = FALSE)
+  profiles <- lapply(files, read_experiment_profile)
   scans <- sum(vapply(profiles, scan_nodes, 0L))
   full_scans <- sum(vapply(profiles, scan_nodes, 0L, full = TRUE))
   peak_buffer <- max(c(0, unlist(lapply(profiles, "[[", "system_peak_buffer_memory"))))

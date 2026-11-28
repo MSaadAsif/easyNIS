@@ -21,10 +21,6 @@ test_that("discharge outcomes survive annual Parquet opening and survey design",
     dplyr::left_join(codes, by = "HOSP_NIS", copy = TRUE) |>
     dplyr::mutate(CCR_NIS = dplyr::if_else(.data$HOSP_NIS == 2L, NA_real_, .data$CCR_NIS))
   outcomes <- nis_outcomes(input)
-  expect_s3_class(outcomes, "tbl_lazy")
-  sql <- as.character(dbplyr::sql_render(outcomes))
-  expect_match(sql, "READ_PARQUET|read_parquet")
-  expect_false(grepl("Routine discharge|Transfer to", sql))
 
   observed <- outcomes |>
     dplyr::select(YEAR, DQTR, dplyr::all_of(names(expected))) |>

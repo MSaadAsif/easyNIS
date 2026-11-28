@@ -100,8 +100,8 @@ verify_study_inputs <- function(scratch, evidence) {
     identical(reports$empty_year$years, 2016L),
     identical(reports$invalid_year$years, 2016L),
     isTRUE(reports$missing_quarter$coding$unknown),
-    identical(opened$src$.easyNIS_release_check, "non-release"),
-    identical(empty$src$.easyNIS_release_check, "mismatch"))
+    identical(easyNIS:::nis_open_source_info(opened)$release, "non-release"),
+    identical(easyNIS:::nis_open_source_info(empty)$release, "mismatch"))
 
   extract_path <- file.path(scratch, "extract")
   stopifnot(dir.create(extract_path))
@@ -109,7 +109,7 @@ verify_study_inputs <- function(scratch, evidence) {
     DBI::dbQuoteString(con, file.path(more_inputs, "NIS_2016.parquet")),
     ") WHERE AGE >= 30) TO ", DBI::dbQuoteString(con, file.path(extract_path, "NIS_2016.parquet"))))
   extract <- suppressWarnings(easyNIS::nis_open(extract_path, years = 2016L))
-  stopifnot(identical(extract$src$.easyNIS_release_check, "mismatch"))
+  stopifnot(identical(easyNIS:::nis_open_source_info(extract)$release, "mismatch"))
   reports$extract <- check(extract, TRUE, source = extract)
   stopifnot(identical(easyNIS:::nis_study_release_status(reports$extract$release)[[1L]], "Needs attention"))
 
@@ -238,13 +238,13 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
       definition[grepl("^  years:", definition)] <-
         paste0("  years: [", paste(disclosure_case$years, collapse = ", "), "]")
       if (isTRUE(disclosure_case$supported)) {
-        flags_line <- grep("^nis_data <- nis_data", definition)
-        stopifnot(length(flags_line) == 1L)
+        summary <- which(definition == "#| label: design-summary")
+        stopifnot(length(summary) == 1L)
         definition <- append(definition, c(
           'outcomes <- dplyr::add_row(outcomes, outcome = "TOTCHG", family = "gaussian", exponentiate = FALSE)',
           'outcomes <- dplyr::add_row(outcomes, outcome = "not_kept_outcome", family = "gaussian", exponentiate = FALSE)',
           ""
-        ), after = flags_line - 1L)
+        ), after = summary)
       }
       setup <- disclosure_case$setup
       if (isTRUE(disclosure_case$flow_one_hospital) || isTRUE(disclosure_case$missing_exposure)) {
@@ -333,7 +333,7 @@ verify_study <- function(scratch, evidence, formats, input = NULL, small_cohort 
       }
     }
     if (reporting_variant == "prefiltered") {
-      line <- grep("^# Quarto can put chunk options", definition)
+      line <- grep("^design_key <- ", definition)
       stopifnot(length(line) == 1L)
       definition <- append(definition, "nis_data <- dplyr::filter(nis_data, AGE >= 30)", after = line - 1L)
     }
@@ -448,9 +448,11 @@ verify_study_reporting <- function(report, variant, evidence) {
     `shared-denominator` = c("2017, 2018, 2019, 2020, 2021, 2022", "divided by 6"),
     `one-year-denominator` = c("2022", "divided by 1"),
     c("2019, 2020", "divided by 2"))
-  expected <- c(period, criterion, "DISCWT", "with-replacement", "unweighted N",
-    "HOSP_NIS", "NIS_STRATUM", "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
-  stopifnot(all(vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)))
+  expected <- c(period, criterion, "DISCWT", "with-replacement", "cohort or group N",
+    "denominators and model sample sizes are unweighted", "HOSP_NIS", "NIS_STRATUM",
+    "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
+  absent <- expected[!vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)]
+  if (length(absent)) stop("Methods are missing ", paste(absent, collapse = ", "))
   domain <- xml2::xml_text(xml2::xml_find_first(document,
     "//section[@id='checklist-receipt']//tr[td[normalize-space(.)='Survey domain']]"))
   prefilter <- variant == "prefiltered"

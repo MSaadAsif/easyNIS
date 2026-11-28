@@ -1,11 +1,3 @@
-valid_named_fields <- function(value, required) {
-  is.list(value) && !is.null(names(value)) && !anyDuplicated(names(value)) && all(required %in% names(value))
-}
-
-valid_nonempty_string <- function(value) {
-  is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
-}
-
 valid_study_number <- function(value) {
   is.numeric(value) && length(value) == 1L && is.finite(value) && value > 0
 }

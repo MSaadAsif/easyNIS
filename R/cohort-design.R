@@ -64,7 +64,7 @@ nis_cohort_design_restore <- function(design, call) {
   }
   stratum <- as.character(design$strata[[1L]])
   psu <- as.character(design$cluster[[1L]])
-  prefix <- paste0(stratum, ".")
+  prefix <- paste0(stratum, .nis_survey_nested_separator)
   if (!all(startsWith(psu, prefix))) {
     cli::cli_abort("`design` has unsupported PSU identities for reweighting.", call = call)
   }

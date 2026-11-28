@@ -1,29 +1,25 @@
 #!/usr/bin/env Rscript
 
-lake_build <- function(lake, target, log) {
-  output <- suppressWarnings(system2(lake, c("build", target), stdout = TRUE, stderr = TRUE))
+run_lake <- function(lake, args, log) {
+  output <- suppressWarnings(system2(lake, args, stdout = TRUE, stderr = TRUE))
   writeLines(output, log)
   status <- attr(output, "status")
   if (is.null(status)) 0L else status
 }
 
 check_mutation <- function(lake, evidence, name, module, from, to) {
-  path <- "Mutation.lean"
-  if (file.exists(path)) {
-    stop("Remove the previous scratch Mutation.lean before retrying.")
-  }
+  path <- file.path(evidence, paste0(name, ".lean"))
   source <- readLines(file.path("DuckDBProofs", paste0(module, ".lean")), encoding = "UTF-8")
   matched <- grep(from, source, fixed = TRUE)
   if (length(matched) != 1L) {
     stop("Mutation does not identify one source line: ", name)
   }
   source[matched] <- sub(from, to, source[matched], fixed = TRUE)
-  on.exit(unlink(path))
   writeLines(source, path, useBytes = TRUE)
   log <- file.path(evidence, paste0(name, ".log"))
-  status <- lake_build(lake, "Mutation", log)
+  status <- run_lake(lake, c("env", "lean", shQuote(paste0("--root=", evidence)), shQuote(path)), log)
   errors <- grep(
-    "Mutation[.]lean:[0-9]+:[0-9]+:.*(unsolved goals|tactic|type mismatch|grind.*failed|omega could not prove)",
+    "[.]lean:[0-9]+:[0-9]+:.*(unsolved goals|tactic|type mismatch|grind.*failed|omega could not prove)",
     readLines(log),
     value = TRUE
   )
@@ -82,17 +78,12 @@ run_lean <- function(evidence, scratch) {
   }
   cat("LEAN", system2(lake, "--version", stdout = TRUE), "\n")
   log <- file.path(evidence, "lake-build.log")
-  if (lake_build(lake, "DuckDBProofs", log) != 0L) {
+  if (run_lake(lake, c("build", "DuckDBProofs"), log) != 0L) {
     stop("Lake build failed. See ", log)
   }
   cat("LEAN PASS", log, "\n")
   if (scratch) {
     mutations(lake, evidence)
-    log <- file.path(evidence, "lake-restored.log")
-    if (lake_build(lake, "DuckDBProofs", log) != 0L) {
-      stop("Restored Lake build failed. See ", log)
-    }
-    cat("LEAN RESTORED", log, "\n")
   }
 }
 

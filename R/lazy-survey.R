@@ -127,8 +127,6 @@ nis_survey_policy <- function() {
   policy
 }
 
-.nis_survey_keys <- c("YEAR", "NIS_STRATUM", "HOSP_NIS")
-
 nis_survey_sql <- function(query) {
   paste0("(", dbplyr::sql_render(query), ")")
 }
@@ -211,34 +209,12 @@ degf.nis_survey <- function(design, ...) {
       nis_survey_sql(query)
     )
   )
-  nrow(psus) - nrow(unique(psus[c("YEAR", "NIS_STRATUM")]))
+  nrow(psus) - nrow(unique(psus[.nis_stratum_fields]))
 }
 
 nis_survey_roster <- function(design) {
   keys <- paste(.nis_survey_keys, collapse = ", ")
   roster <- nis_survey_get(design, sprintf("SELECT DISTINCT %s FROM %s", keys, nis_survey_sql(design$query)))
-  if (!nrow(roster)) {
-    cli::cli_abort("No discharges have valid design fields.")
-  }
-  if (anyDuplicated(roster[c("YEAR", "HOSP_NIS")])) {
-    cli::cli_abort("Each hospital must map to one stratum within a year.")
-  }
+  nis_sample_check_roster(roster, rlang::current_call())
   nis_survey_roster_sizes(roster)
-}
-
-nis_survey_roster_sizes <- function(roster) {
-  roster$stratum <- vctrs::vec_group_id(roster[c("YEAR", "NIS_STRATUM")])
-  roster$n_psu <- tabulate(roster$stratum)[roster$stratum]
-  roster
-}
-
-nis_survey_variance <- function(scores, psu, roster, lonely.psu = nis_survey_policy()) {
-  strata <- roster$stratum[psu]
-  survey::svyrecvar(
-    scores,
-    matrix(psu),
-    matrix(strata),
-    list(sampsize = matrix(roster$n_psu[psu]), popsize = NULL),
-    lonely.psu = lonely.psu
-  )
 }

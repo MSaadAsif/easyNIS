@@ -373,8 +373,10 @@ and memory together. These comparisons justify no default changes.
 ## Reproduction
 
 The [experiment scripts](../../tools/experiments/adr-0002) generate and consume
-only invented records. From the repo root, set `$e` to an existing ignored
-evidence directory, then run the following in PowerShell.
+only invented records. Use the DuckDB 1.5.2 environment recorded for this
+experiment. The profile readers expect that release's JSON layout. From the
+repo root, set `$e` to an existing ignored evidence directory, then run the
+following in PowerShell.
 
 ```powershell
 Rscript --vanilla tools/experiments/adr-0002/capture.R $e fixture 4

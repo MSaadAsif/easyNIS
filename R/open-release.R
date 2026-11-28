@@ -109,9 +109,11 @@ nis_release_check_status <- function(result, years) {
 
 nis_release_inspect <- function(plan, dataset, fields) {
   con <- dbplyr::remote_con(plan$query)
-  parts <- dataset$parts
+  parts <- data.frame(
+    path = vapply(plan$sources, `[[`, character(1), "path", USE.NAMES = FALSE),
+    year = vapply(plan$sources, `[[`, integer(1), "release_year", USE.NAMES = FALSE)
+  )
   years <- dataset$years
-  # Read the Parquet footers once for either reader.
   marked <- parts$path %in% nis_release_marked_paths(con, unique(parts$path))
   release_years <- parts$year[!marked]
   expected <- nis_release_reference[nis_release_reference$year %in% release_years, ]
@@ -126,7 +128,7 @@ nis_release_inspect <- function(plan, dataset, fields) {
     comparison <- nis_release_totals(query, years, nis_sql_identifier_key(colnames(query)), compare = TRUE)
   }
   fields_by_year <- split(
-    lapply(plan$names_by_part[!marked], nis_sql_identifier_key),
+    lapply(plan$sources[!marked], function(source) nis_sql_identifier_key(nis_parquet_source_fields(source))),
     release_years
   )
   list(

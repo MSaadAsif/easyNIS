@@ -1,6 +1,53 @@
 .nis_design_fields <- c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT")
 .nis_design_invalid_fields <- stats::setNames(paste0(".nis_bad_", .nis_design_fields), .nis_design_fields)
 
+nis_sample_source <- function(data, cohort, call) {
+  data <- dplyr::ungroup(data)
+  definition <- nis_saved_cohort(data, call)
+  saved <- !is.null(definition)
+  membership <- nis_cohort_membership(cohort, saved, call)
+  list(data = data, definition = definition, membership = membership, saved = saved)
+}
+
+nis_sample_input <- function(data, saved, call) {
+  reserved <- c(
+    .nis_cohort_structure_fields,
+    if (!saved) ".in_cohort",
+    ".nis_cohort",
+    ".nis_valid",
+    unname(.nis_design_invalid_fields)
+  )
+  if (!identical(reserved, nis_internal_names(data, nis_names(data), reserved))) {
+    cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
+  }
+  data <- nis_design_input(data)
+  absent <- setdiff(.nis_design_fields, nis_names(data))
+  if (length(absent) > 0L) {
+    cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
+  }
+  data
+}
+
+nis_design_input <- function(data) {
+  if (!inherits(data, "tbl_sql")) {
+    return(data)
+  }
+  query <- data$lazy_query
+  # Reuse the rendered projection across the design queries. Preserve
+  # dbplyr's original query when row selection or window context is pending.
+  keep_query <- c(
+    !inherits(query, "lazy_select_query"),
+    isTRUE(query$distinct),
+    !is.null(query$limit),
+    length(dbplyr::op_sort(data)) > 0L,
+    !is.null(dbplyr::op_frame(data))
+  )
+  if (any(keep_query)) {
+    return(data)
+  }
+  nis_duckdb_translate_errors(dplyr::collapse(data))
+}
+
 nis_design_sample <- function(
   data,
   cohort,
@@ -8,14 +55,12 @@ nis_design_sample <- function(
   quarter_prototype,
   annualize,
   call,
-  inspect_quarters = annualize,
   saved = FALSE
 ) {
-  cohort_quo <- nis_design_cohort_expr(cohort, call)
-  prepared <- nis_design_prepare_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
-  quarters <- if (inspect_quarters) quarter_prototype
-  summary <- nis_sample_summary(prepared, if (!saved) quarters, call)
-  check_transition <- !is.null(quarters) && 2015L %in% summary$years
+  prepared <- nis_sample_fields(data, cohort)
+  summary <- nis_sample_summary(prepared, if (!saved) quarter_prototype)
+  nis_sample_check_roster(summary$hospital_rows, call)
+  check_transition <- !is.null(quarter_prototype) && .nis_icd_transition_year %in% summary$years
   collected_fields <- if (check_transition) union(selected, "DQTR") else selected
   collected <- nis_design_collect_cohort(prepared, collected_fields, call)
   if (annualize) {
@@ -31,13 +76,12 @@ nis_design_sample <- function(
     years = summary$years,
     input_rows = summary$input_rows,
     excluded = summary$excluded,
-    coverage = summary$coverage,
-    cohort_2015_quarters = if (check_transition) nis_cohort_2015_quarters(collected) else integer()
+    coverage = summary$coverage
   )
 }
 
 nis_sample_fields <- function(data, cohort_quo) {
-  nis_sample_design_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
+  nis_design_prepare_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
 }
 
 nis_sample_design_fields <- function(data) {
@@ -54,33 +98,32 @@ nis_design_invalid_exprs <- function(data) {
   rlang::set_names(invalid, unname(.nis_design_invalid_fields))
 }
 
-nis_sample_summary <- function(prepared, quarter_prototype, call, require_year = FALSE) {
+nis_sample_summary <- function(prepared, quarter_prototype) {
   keys <- c(".nis_valid", unname(.nis_design_invalid_fields), setdiff(.nis_design_fields, "DISCWT"))
   quarter_flags <- if (!is.null(quarter_prototype)) paste0(".nis_quarter_", 1:4)
-  grouped <- if (nis_design_duckdb(prepared)) {
+  grouped <- if (nis_is_duckdb(prepared)) {
     sql <- nis_sample_roster_sql(prepared, quarter_prototype)
-    nis_design_sql_tbl(prepared, sql, c(keys, "DISCWT", "n", quarter_flags))
+    nis_sql_result(prepared, sql, c(keys, "DISCWT", "n", quarter_flags))
   } else {
     nis_sample_group_local(prepared, keys, quarter_prototype)
   }
   design_groups <- nis_collect(grouped)
   excluded <- nis_sample_exclusions(design_groups)
-  if (require_year && excluded$by_field[["YEAR"]] > 0L) {
-    cli::cli_abort("Annual totals require nonmissing, finite `YEAR` values.", call = call)
-  }
   valid <- design_groups$.nis_valid
   hospital_rows <- design_groups[valid, .nis_design_fields]
-  if (nrow(hospital_rows) == 0L) {
-    cli::cli_abort("No discharges have valid design fields.", call = call)
-  }
-  stratum_counts <- dplyr::count(hospital_rows, YEAR, HOSP_NIS)
-  if (any(stratum_counts$n != 1L)) {
-    cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
-  }
   years <- sort(unique(hospital_rows$YEAR))
   coverage <- nis_sample_quarter_coverage(design_groups[valid, ], years, quarter_flags)
   input_rows <- sum(as.numeric(design_groups$n))
   list(hospital_rows = hospital_rows, years = years, excluded = excluded, coverage = coverage, input_rows = input_rows)
+}
+
+nis_sample_check_roster <- function(hospital_rows, call) {
+  if (nrow(hospital_rows) == 0L) {
+    cli::cli_abort("No discharges have valid design fields.", call = call)
+  }
+  if (anyDuplicated(hospital_rows[.nis_hospital_fields])) {
+    cli::cli_abort("Each hospital must map to one stratum within a year.", call = call)
+  }
 }
 
 nis_sample_group_local <- function(prepared, keys, quarter_prototype) {
@@ -160,7 +203,7 @@ nis_design_cohort_expr <- function(cohort_quo, call) {
 }
 
 nis_design_cohort_type <- function(prepared, call) {
-  if (nis_design_duckdb(prepared)) {
+  if (nis_is_duckdb(prepared)) {
     # LIMIT 0 inspects the expression's bound SQL type without reading rows.
     # Collection alone loses the distinction between SQL NULL and typed NA.
     query <- paste0(
@@ -188,10 +231,9 @@ nis_design_cohort_type <- function(prepared, call) {
 
 nis_design_collect_cohort <- function(prepared, collected_fields, call) {
   prepared <- nis_design_cohort_type(prepared, call)
-  # Scan 2 only collects valid discharges with true cohort membership.
-  cohort_rows <- if (nis_design_duckdb(prepared) && !length(dbplyr::op_sort(prepared))) {
+  cohort_rows <- if (nis_is_duckdb(prepared) && !length(dbplyr::op_sort(prepared))) {
     columns <- c(collected_fields, ".nis_cohort")
-    nis_design_sql_tbl(prepared, nis_design_cohort_sql(prepared, columns), columns)
+    nis_sql_result(prepared, nis_design_cohort_sql(prepared, columns), columns)
   } else {
     prepared |>
       dplyr::filter(.nis_valid, .nis_cohort) |>
@@ -211,7 +253,7 @@ nis_sample_annual_warnings <- function(summary, collected) {
   if (!is.null(summary$coverage)) {
     nis_design_quarter_warning(summary$coverage)
     nis_design_2015_warning(summary$years, collected)
-  } else if (2015L %in% summary$years) {
+  } else if (.nis_icd_transition_year %in% summary$years) {
     cli::cli_warn(c(
       "Cannot check the 2015 ICD-9/ICD-10 split without `DQTR`.",
       i = "Annualization counts 2015 as a whole year."
@@ -232,14 +274,14 @@ nis_design_quarter_warning <- function(quarter_coverage) {
 }
 
 nis_cohort_2015_quarters <- function(collected) {
-  quarters <- collected$DQTR[collected$YEAR == 2015L]
+  quarters <- collected$DQTR[collected$YEAR == .nis_icd_transition_year]
   unique(match(sub("^Q", "", as.character(quarters)), as.character(1:4)))
 }
 
 nis_design_2015_warning <- function(design_years, collected) {
-  if (2015L %in% design_years) {
+  if (.nis_icd_transition_year %in% design_years) {
     cohort_quarters <- sort(nis_cohort_2015_quarters(collected))
-    if (length(cohort_quarters) == 1L && cohort_quarters == 4L) {
+    if (identical(cohort_quarters, .nis_icd_transition_quarters$icd10)) {
       cli::cli_warn(c(
         paste0(
           "The cohort includes only ICD-10-coded 2015 discharges (Q4); ",
@@ -248,7 +290,7 @@ nis_design_2015_warning <- function(design_years, collected) {
         ),
         i = "Exclude 2015 or set `annualize = FALSE` and apply a fractional-year factor with `nis_reweight()`."
       ))
-    } else if (length(cohort_quarters) > 0L && all(cohort_quarters %in% 1:3)) {
+    } else if (length(cohort_quarters) > 0L && all(cohort_quarters %in% .nis_icd_transition_quarters$icd9)) {
       cli::cli_warn(c(
         paste0(
           "The cohort includes only ICD-9-coded 2015 discharges (Q1-Q3); ",
