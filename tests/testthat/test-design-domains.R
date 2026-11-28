@@ -151,6 +151,7 @@ test_that("design reporting follows a nested domain and the fitted complete case
   expect_gt(model_info$model$excluded_n, 0L)
   expect_equal(model_info$model$n, sum(!is.na(reference$variables$predictor)))
   expect_equal(model_info$model$n + model_info$model$excluded_n, info$domain_n)
+  expect_output(print(model_info), "Fitted model")
 
   prefiltered <- nis_design(
     dplyr::filter(query, DISCWT > 0, rare, HOSP_NIS %% 4L != 1L),

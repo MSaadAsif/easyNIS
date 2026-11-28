@@ -48,12 +48,13 @@ head(nis_label(demographics))
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
-\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},
 \code{\link[=nis_example]{nis_example()}},
-\code{\link[=nis_open]{nis_open()}}
+\code{\link[=nis_join_companion]{nis_join_companion()}},
+\code{\link[=nis_open]{nis_open()}},
+\code{\link[=nis_vars_design]{nis_vars_design()}}
 }
 \concept{data-access}

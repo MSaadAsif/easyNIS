@@ -37,7 +37,7 @@ A cohort is the set of discharges that meet your study criteria. A survey domain
 is the subpopulation you estimate within the original sample design. In the next
 example, both designs estimate the same cohort total. Filtering the input first
 changes the standard error here and can change the design degrees of
-freedom. In this example both designs have 12 degrees of freedom.
+freedom.
 
 ```{r filter}
 domain <- nis_design(nis, cohort = heart_failure, keep = AGE)

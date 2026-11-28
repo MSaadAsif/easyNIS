@@ -15,8 +15,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 
-The examples use invented discharges. A code slot is a numbered column
-that holds one diagnosis or procedure code.
+The examples use invented discharges.
 
 ## Match diagnosis and procedure codes
 
@@ -31,10 +30,10 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
 nis |> count(heart_failure, principal_hf, pci) |> collect()
 ```
 
-The default position checks all slots. Use `position = "principal"` for
-slot 1. A string such as `"I50"` matches a prefix. A `regex` matches the
-whole stored code. If you supply both, either can set the flag. Exclusions
-apply to individual matching codes, so another slot can still set the flag.
+Each code slot is a numbered field. The default checks every slot.
+Use `position = "principal"` for slot 1. A string such as `"I50"`
+matches a prefix and a `regex` matches the whole code. Either can set the
+flag. Excluding a code leaves other slots eligible to match.
 
 ```{r mixed}
 mixed <- nis_open(nis_example(years = 2014:2016)) |>
@@ -93,7 +92,14 @@ before interpreting an order.
 flow <- nis_attrition(
   nis, adult = AGE >= 18, hf = heart_failure, by_year = TRUE, .design = TRUE
 )
-flow
+flow |>
+  select(YEAR, criterion, n_unweighted, n_dropped_unweighted) |>
+  gt::gt() |>
+  gt::cols_label(
+    YEAR = "Year", criterion = "Eligibility step",
+    n_unweighted = "Remaining", n_dropped_unweighted = "Dropped"
+  ) |>
+  gt::sub_missing(missing_text = "—")
 
 eligible <- nis_attrition_cohort(flow)
 export <- nis |> mutate(stayDays = LOS)

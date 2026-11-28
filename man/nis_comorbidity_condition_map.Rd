@@ -47,7 +47,8 @@ union of the conditions represented by true flags. It applies no further
 hierarchy or present-on-admission adjudication.
 }
 \examples{
-nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
+map <- nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
+subset(map, condition == "diabetes")
 }
 \references{
 AHRQ HCUP. \href{https://hcup-us.ahrq.gov/toolssoftware/comorbidityicd10/comorbidity_icd10.jsp}{Elixhauser Comorbidity Software Refined for ICD-10-CM}.
@@ -60,7 +61,12 @@ Quan H et al. \href{https://pubmed.ncbi.nlm.nih.gov/16224307/}{Coding algorithms
 Med Care. 2005;43(11):1130–1139.
 }
 \seealso{
-Other comorbidity:
-\code{\link[=nis_comorbidity]{nis_comorbidity()}}
+\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.
+
+Other outcomes and costs:
+\code{\link[=nis_comorbidity]{nis_comorbidity()}},
+\code{\link[=nis_cost]{nis_cost()}},
+\code{\link[=nis_cost_provenance]{nis_cost_provenance()}},
+\code{\link[=nis_outcomes]{nis_outcomes()}}
 }
-\concept{comorbidity}
+\concept{outcomes and costs}

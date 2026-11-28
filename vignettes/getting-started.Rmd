@@ -7,13 +7,16 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+Use invented discharges to build a cohort, make a Table 1, and fit a
+survey-weighted model.
+
 ```{r setup, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
-
 
 ## Open the files and define the analysis groups
 
@@ -25,9 +28,8 @@ nis <- nis_open(files, years = 2019:2020) |>
   nis_outcomes()
 ```
 
-The examples use invented data. `files` is a directory of annual Parquet files.
-The query keeps the survey fields, diagnosis slots, and analysis columns. Each
-row represents a discharge. The flag checks every diagnosis slot for `I50`.
+`files` is a directory of annual Parquet files. The query keeps the design
+fields and analysis columns. The flag checks every diagnosis slot for `I50`.
 
 ## Estimate discharge totals and length of stay
 
@@ -50,15 +52,12 @@ The totals cover both years. [How easyNIS works](how-easynis-works.html)
 
 ## Make a table and fit a model
 
-Install `gtsummary` and `cardx` to run the table step.
-
 ```{r table}
-library(gtsummary)
-
-table_one <- tbl_svysummary(
+tbl_svysummary(
   design, by = heart_failure, include = c(AGE, los_days, in_hospital_death)
-)
-nis_suppress(table_one)
+) |>
+  nis_suppress() |>
+  as_gt()
 ```
 
 The table compares the groups and masks cells with too few sampled discharges
@@ -99,6 +98,7 @@ across all outputs. [Check disclosure](disclosure.html)
 
 ## Where next
 
+- [See examples in the output gallery](gallery.html).
 - [Prepare your annual files](prepare-data.html).
 - [Analyze the whole sample in DuckDB](whole-sample.html).
 - [Start a Quarto study](study-template.html).

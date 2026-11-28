@@ -204,20 +204,7 @@ test_that("nis_cost records provenance and treats unusable CCR values as missing
     TOTCHG = c(1000, 2000, 3000, 4000, 5000, 6000),
     CCR_NIS = c(0.25, 0.5, NA_real_, 0, Inf, -0.1)
   )
-  informs <- character()
-  adjusted <- withCallingHandlers(
-    nis_cost(data, dollars = 2022),
-    rlang_message = function(condition) {
-      informs <<- c(informs, conditionMessage(condition))
-      invokeRestart("muffleMessage")
-    }
-  )
-  expect_identical(
-    informs,
-    paste0(
-      "Missing or invalid `CCR_NIS`; `cost_adj` is `NA` for these rows."
-    )
-  )
+  expect_no_message(adjusted <- nis_cost(data, dollars = 2022))
 
   expect_equal(
     as.numeric(adjusted$charges_adj[1:2]),

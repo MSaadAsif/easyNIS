@@ -1,6 +1,6 @@
 ---
 title: "Derive outcomes, comorbidities, and costs"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 ---
 
 ```{r setup, message=FALSE}
@@ -22,7 +22,7 @@ The examples use invented data.
 ```{r outcomes}
 nis <- nis_open(nis_example(years = 2019:2020))
 outcomes <- nis |> nis_outcomes()
-outcomes |> select(in_hospital_death, los_days) |> head() |> collect()
+outcomes |> count(in_hospital_death) |> collect()
 ```
 
 `DIED` defines in-hospital death. `DISPUNIFORM` describes where the patient
@@ -35,7 +35,7 @@ diagnoses were present on admission.
 
 ```{r comorbidity}
 scored <- outcomes |> nis_comorbidity(method = "charlson_quan2005")
-scored |> select(starts_with("cmrb_")) |> head(3) |> collect()
+scored |> count(cmrb_n) |> arrange(cmrb_n) |> collect()
 ```
 
 Score before `nis_design()` while the diagnosis slots are available and
@@ -57,8 +57,8 @@ condition_map |> filter(condition == "diabetes")
 
 outcomes |>
   nis_comorbidity(method, count_distinct = TRUE, exclude_conditions = "diabetes") |>
-  select(cmrb_n, cmrb_n_distinct) |>
-  head(3) |>
+  count(cmrb_n, cmrb_n_distinct) |>
+  arrange(cmrb_n, cmrb_n_distinct) |>
   collect()
 ```
 
@@ -73,11 +73,9 @@ discharge with usable codes and no included conditions has a count of zero.
 ```{r cost}
 charges <- outcomes |> select(YEAR, TOTCHG, CCR_NIS) |> collect()
 costs <- nis_cost(charges, dollars = 2020)
-nis_cost_provenance(costs)
+nis_cost_provenance(costs)$multipliers
 costs |>
-  transmute(YEAR, billed = TOTCHG, charges_adj,
-            cost_at_discharge = TOTCHG * CCR_NIS, cost_adj) |>
-  head()
+  summarise(mean_charge = mean(charges_adj), mean_cost = mean(cost_adj), .by = YEAR)
 ```
 
 Join the year-specific HCUP cost-to-charge ratio before estimating costs
@@ -87,6 +85,8 @@ ratios yield missing costs. CPI-U tracks general consumer price inflation.
 It does not track hospital-specific input prices. When comparing with a
 legacy result, check its charge field, CCR source, price index, and
 dollar year. Keep the provenance alongside both cost and charge results.
+The means here describe the invented sample. Use the survey design for
+national estimates.
 [Years and coding eras](years-and-eras.html)
 
 If `nis_design()` keeps both `TOTCHG` and `CCR_NIS`, it adds `charges_adj` and

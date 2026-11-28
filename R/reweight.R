@@ -50,8 +50,7 @@ nis_reweight_data <- function(design, weights_quo, call) {
 #'
 #' @return A filtered `srvyr::tbl_svy` survey design.
 #' @family survey-design
-#' @seealso [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
-#'   [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
+#' @seealso [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2019:2020))

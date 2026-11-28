@@ -79,7 +79,7 @@ test_that("Charlson methods choose the codes and weights by discharge era", {
   updated <- nis_comorbidity(fixture, "charlson_quan2011")
   expect_identical(original$cmrb_cci, rep(6L, 4L))
   expect_identical(updated$cmrb_cci, rep(4L, 4L))
-  expect_warning(deyo <- nis_comorbidity(fixture, "charlson_deyo1992"), "2 rows")
+  expect_warning(deyo <- nis_comorbidity(fixture, "charlson_deyo1992"), "no usable")
   expect_identical(deyo$cmrb_cci, c(6L, 6L, NA_integer_, NA_integer_))
 
   fixture$DX2 <- "4280"

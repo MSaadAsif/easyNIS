@@ -27,16 +27,17 @@
 #' fields such as CCS or CCSR.
 #'
 #' @return Tidyselect column positions for the current selection.
+#' @family data-access
 #' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp),
 #'   [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019))
-#' dplyr::select(nis, nis_vars_design(), nis_vars_demographics(), LOS)
-#' dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
-#' dplyr::select(nis, -nis_vars_pr())
+#' analysis <- dplyr::select(nis, nis_vars_design(), AGE, LOS)
+#' names(analysis)
+#' code_columns <- dplyr::select(nis, nis_vars_dx(), nis_vars_pr())
+#' head(names(code_columns))
 nis_vars_design <- function() {
   tidyselect::any_of(c(.nis_design_fields, "DQTR"))
 }

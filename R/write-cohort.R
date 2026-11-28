@@ -25,6 +25,7 @@
 #' @return The original `path`, invisibly. If collecting raw rows directly
 #'   from the saved dataset, filter on `.in_cohort` to count only discharges.
 #' @export
+#' @family cohort-definition
 #' @seealso [nis_design()], [Defining cohorts](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @examples
 #' query <- nis_open(nis_example(years = 2019))
@@ -133,7 +134,7 @@ nis_cohort_copy <- function(query, membership, selected, temp, metadata, call) {
   }
   prepared <- nis_design_prepare_fields(dplyr::mutate(query, .nis_cohort = !!membership))
   patients <- nis_design_cohort_type(prepared, call)
-  patients <- nis_design_cohort_sql(patients, selected, keep_missing = FALSE)
+  patients <- nis_design_cohort_sql(patients, selected)
   hospitals <- nis_sample_roster_sql(prepared, valid_only = TRUE)
 
   # Use the staged patient files to identify represented hospitals. Only

@@ -53,13 +53,21 @@ fields such as CCS or CCSR.
 }
 \examples{
 nis <- nis_open(nis_example(years = 2019))
-dplyr::select(nis, nis_vars_design(), nis_vars_demographics(), LOS)
-dplyr::select(nis, c(nis_vars_dx(), nis_vars_pr()))
-dplyr::select(nis, -nis_vars_pr())
+analysis <- dplyr::select(nis, nis_vars_design(), AGE, LOS)
+names(analysis)
+code_columns <- dplyr::select(nis, nis_vars_dx(), nis_vars_pr())
+head(names(code_columns))
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
-\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp}{HCUP NIS File Specifications},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
+
+Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
+\code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_join_companion]{nis_join_companion()}},
+\code{\link[=nis_label]{nis_label()}},
+\code{\link[=nis_open]{nis_open()}}
 }
+\concept{data-access}

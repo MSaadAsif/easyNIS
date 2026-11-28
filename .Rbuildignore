@@ -25,6 +25,8 @@
 ^easyNIS\.Rcheck($|[/\\])
 ^easyNIS_.*[.]tar[.]gz$
 ^_pkgdown\.yml$
+^pkgdown($|[/\\])
+^README\.Rmd$
 ^_site($|[/\\])
 ^\.githooks($|[/\\])
 ^air[.]toml$

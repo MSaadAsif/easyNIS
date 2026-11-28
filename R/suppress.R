@@ -10,7 +10,7 @@ validate_suppress_dots <- function(dots, error_call) {
   }
 }
 
-#' Suppress small unweighted cells in a survey summary
+#' Mask cells with insufficient disclosure support
 #'
 #' Mask a summary using unweighted counts and contributing hospitals.
 #'
@@ -54,8 +54,7 @@ validate_suppress_dots <- function(dots, error_call) {
 #'   character. For `gtsummary` results, the table with primary and secondary
 #'   masks and a footnote describing them.
 #' @family disclosure
-#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
-#'   [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 #' @export
 #' @examplesIf rlang::is_installed(c("gtsummary", "cardx", "survey"))
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>

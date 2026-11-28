@@ -9,7 +9,7 @@
 #' tumor flags both map to `malignancy`, because its malignancy flag also
 #' covers leukemia and lymphoma.
 #'
-#' The map describes the emitted flags, including medicalcoder combination
+#' @details The map describes the emitted flags, including medicalcoder combination
 #' and compatibility flags. For example, `hfhtn_cxrenlfl_sev` maps to heart
 #' failure (`hf`), `hypertension`, and `renal_failure`. The count takes the
 #' union of the conditions represented by true flags. It applies no further
@@ -29,10 +29,12 @@
 #'   Quan H et al. [Coding algorithms for defining comorbidities in ICD-9-CM
 #'   and ICD-10 administrative data](https://pubmed.ncbi.nlm.nih.gov/16224307/).
 #'   Med Care. 2005;43(11):1130–1139.
-#' @family comorbidity
+#' @family outcomes and costs
+#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 #' @export
 #' @examples
-#' nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
+#' map <- nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
+#' subset(map, condition == "diabetes")
 nis_comorbidity_condition_map <- function(method = "elixhauser_ahrq_icd10", prefix = "cmrb_") {
   nis_comorbidity_check_prefix(prefix)
   map <- nis_cmrb_condition_map(nis_comorbidity_spec(method))

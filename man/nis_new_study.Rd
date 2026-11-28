@@ -2,7 +2,7 @@
 % Please edit documentation in R/study-scaffold.R
 \name{nis_new_study}
 \alias{nis_new_study}
-\title{Create a new NIS study folder}
+\title{Create a Quarto study}
 \usage{
 nis_new_study(path)
 }
@@ -13,7 +13,9 @@ nis_new_study(path)
 The normalized path to the created study directory.
 }
 \description{
-Create a Quarto study in a new local directory.
+Create a Quarto project with an editable NIS analysis, methods text,
+and a disclosure checklist. The example runs on invented discharges
+until you supply your own data directory.
 }
 \details{
 Open \code{analysis.qmd} to edit the cohort, outcomes, and analysis.
@@ -32,6 +34,7 @@ list.files(study_path, all.files = TRUE, no.. = TRUE)
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/study-template.html}{Start a Quarto study},
-\href{https://msaadasif.github.io/easyNIS/articles/study-template.html}{Start a Quarto study}.
+\code{\link[=nis_design_report]{nis_design_report()}} to inspect the fitted sample and \code{\link[=nis_scan_outputs]{nis_scan_outputs()}}
+to scan the files you plan to share.
 }
 \concept{study-setup}

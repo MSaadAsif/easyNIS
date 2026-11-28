@@ -16,7 +16,8 @@ fields and \code{DQTR} (quarter numbers or \code{Q1}–\code{Q4} labels). All fo
 quarters must have valid design records in each year. This coverage check
 cannot verify that the sample is complete.}
 
-\item{cohort}{Logical expression defining the domain, passed to \code{\link[=nis_design]{nis_design()}}.}
+\item{cohort}{Logical expression defining the domain. Only discharges
+with \code{TRUE} membership contribute, as in \code{\link[=nis_design]{nis_design()}}.}
 
 \item{coding}{Use \code{"single_era"} to require years within 2012–2014 or
 2016 onward. Use \code{"verified_comparable"} to acknowledge the transition and
@@ -32,16 +33,33 @@ and standard errors. Use the support counts with \code{\link[=nis_suppress]{nis_
 sharing annual estimates.
 }
 \description{
-Estimates one national total and design-based standard error per calendar
-year using unscaled discharge weights. Give the function the annual sample
-and declare the analysis domain with \code{cohort}. The design uses year-specific
-hospital and stratum identifiers, as in \code{\link[=nis_design]{nis_design()}}.
+Estimate a weighted discharge total and design-based standard error for
+each complete calendar year. Supply the annual sample and use \code{cohort} to
+define the analysis domain. The calculation uses the original discharge
+weights and year-specific hospital and stratum identifiers.
 }
 \examples{
-nis <- nis_open(nis_example(years = 2019:2020)) |>
+nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50")
-nis_annual_totals(nis, heart_failure)
+annual <- nis_annual_totals(nis, cohort = AGE >= 18 & heart_failure)
+annual
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot2::ggplot(annual, ggplot2::aes(YEAR, discharges)) +
+    ggplot2::geom_line() +
+    ggplot2::geom_point() +
+    ggplot2::scale_x_continuous(breaks = annual$YEAR) +
+    ggplot2::labs(x = "Discharge year", y = "Weighted discharges")
+}
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/trends.html}{Trends}.
+\href{https://msaadasif.github.io/easyNIS/articles/trends.html}{Estimate trends across NIS years},
+\href{https://msaadasif.github.io/easyNIS/articles/gallery.html#annual-discharge-trend}{NIS output gallery}.
+
+Other survey-design:
+\code{\link[=nis_design]{nis_design()}},
+\code{\link[=nis_design_report]{nis_design_report()}},
+\code{\link[=nis_reweight]{nis_reweight()}},
+\code{\link[=nis_survey]{nis_survey()}}
 }
+\concept{survey-design}

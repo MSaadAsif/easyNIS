@@ -9,6 +9,19 @@ vignette: >
 
 ## Data and design
 
+```{r, message=FALSE}
+library(easyNIS)
+library(dplyr)
+library(srvyr)
+
+nis_open(nis_example(years = 2020)) |>
+  nis_design(cohort = AGE >= 18, keep = AGE) |>
+  summarise(sampled = unweighted(n()), weighted = survey_total())
+```
+
+In this invented adult survey domain, `sampled` counts discharges in the
+cohort and `weighted` estimates the discharge total using `DISCWT`.
+
 | Term | Meaning |
 | --- | --- |
 | National Inpatient Sample (NIS) | The HCUP sample of inpatient discharges. Before 2012, it was called the Nationwide Inpatient Sample. |

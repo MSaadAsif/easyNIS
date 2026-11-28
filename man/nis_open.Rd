@@ -74,6 +74,8 @@ nis_open(path, years = 2020) |>
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},
 \code{\link[=nis_example]{nis_example()}},
-\code{\link[=nis_label]{nis_label()}}
+\code{\link[=nis_join_companion]{nis_join_companion()}},
+\code{\link[=nis_label]{nis_label()}},
+\code{\link[=nis_vars_design]{nis_vars_design()}}
 }
 \concept{data-access}

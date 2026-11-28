@@ -46,6 +46,12 @@ nis_open(nis_example(years = 2024)) |>
   nis_label()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs},
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}, \code{\link[=nis_cost]{nis_cost()}}
+
+Other outcomes and costs:
+\code{\link[=nis_comorbidity]{nis_comorbidity()}},
+\code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}},
+\code{\link[=nis_cost]{nis_cost()}},
+\code{\link[=nis_cost_provenance]{nis_cost_provenance()}}
 }
+\concept{outcomes and costs}

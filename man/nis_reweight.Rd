@@ -35,10 +35,10 @@ reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
 srvyr::summarise(reweighted, mean_los = srvyr::survey_mean(LOS))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models},
 \href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models}.
 
 Other survey-design:
+\code{\link[=nis_annual_totals]{nis_annual_totals()}},
 \code{\link[=nis_design]{nis_design()}},
 \code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_survey]{nis_survey()}}

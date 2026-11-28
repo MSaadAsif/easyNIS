@@ -77,7 +77,7 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
     I10_DX3 = c(NA, NA, NA, NA, paste0(" ", codes[["DEMENTIA"]], " "), codes[["AIDS"]])
   )
 
-  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "2 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "no usable")
 
   expect_identical(out$KEY, 1:6)
   expect_identical(out$cmrb_aids, c(FALSE, NA, NA, TRUE, FALSE, TRUE))
@@ -131,7 +131,7 @@ test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
   expect_true(nis_comorbidity(data)$cmrb_hf)
 
   data <- dplyr::select(data, -dplyr::starts_with("DXPOA"))
-  expect_warning(out <- nis_comorbidity(data), "I10_DX1.*I10_DX2")
+  expect_warning(out <- nis_comorbidity(data), "Assuming present on admission")
   expect_true(out$cmrb_hf)
 })
 
@@ -169,11 +169,11 @@ test_that("partial and absent POA columns warn and assume present", {
     DXPOA1 = "Y",
     DXPOA2 = "Y"
   )
-  expect_warning(partial_out <- nis_comorbidity(partial), "I10_DX3")
+  expect_warning(partial_out <- nis_comorbidity(partial), "Assuming present on admission")
   expect_true(partial_out$cmrb_hf)
 
   absent <- dplyr::select(partial, -dplyr::starts_with("DXPOA"))
-  expect_warning(absent_out <- nis_comorbidity(absent), "I10_DX1.*I10_DX2.*I10_DX3")
+  expect_warning(absent_out <- nis_comorbidity(absent), "Assuming present on admission")
   expect_true(absent_out$cmrb_hf)
 })
 
@@ -208,7 +208,7 @@ test_that("a discharge with no usable code gets NA and a warning, not zeros", {
     I10_DX1 = c(NA_character_, malformed, "ZZZ99", ""),
     I10_DX2 = NA_character_
   )
-  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "3 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "no usable")
   expect_identical(out$cmrb_n[c(1, 2, 4)], rep(NA_integer_, 3L))
   expect_identical(out$cmrb_n[[3L]], 0L)
   expect_identical(out$cmrb_any, c(NA, NA, FALSE, NA))

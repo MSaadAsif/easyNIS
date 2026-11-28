@@ -8,14 +8,7 @@ test_that("nis_design preserves year-scoped domain estimates", {
     AGE = c(40, 50, 60, 70, 42, 52, 62, 72)
   )
 
-  informs <- character()
-  design <- withCallingHandlers(
-    nis_design(data, include, keep = AGE, annualize = TRUE),
-    rlang_message = function(condition) {
-      informs <<- c(informs, conditionMessage(condition))
-      invokeRestart("muffleMessage")
-    }
-  )
+  design <- nis_design(data, include, keep = AGE, annualize = TRUE)
   reference <- srvyr::as_survey_design(
     dplyr::mutate(
       data,
@@ -36,9 +29,6 @@ test_that("nis_design preserves year-scoped domain estimates", {
   expect_equal(as.numeric(stats::weights(design)), c(1, 3.5))
   expect_equal(coef(survey::svytotal(~AGE, design)), coef(survey::svytotal(~AGE, reference)))
   expect_equal(survey::SE(survey::svytotal(~AGE, design)), survey::SE(survey::svytotal(~AGE, reference)))
-  expect_true(any(grepl("missing cohort value", informs, fixed = TRUE)))
-  expect_true(any(grepl("Preparing the cohort survey design", informs, fixed = TRUE)))
-  expect_false(any(grepl("[[:digit:]]", informs)))
 })
 
 test_that("nis_design validation conditions retain their classes and text", {
@@ -158,9 +148,6 @@ test_that("a nonannual DuckDB design does not evaluate unselected quarter data",
       "CAST(error('unneeded quarter must not be evaluated') AS INTEGER)"
     )
   )
-  expect_message(
-    design <- nis_design(query, dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE),
-    "Treated missing cohort values"
-  )
+  design <- nis_design(query, dplyr::if_else(AGE %in% c(43L, 46L), NA, TRUE), keep = AGE)
   expect_equal(nrow(design$variables), 6L)
 })

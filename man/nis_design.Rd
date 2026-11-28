@@ -18,10 +18,10 @@ nis_design(
 rowwise grouping are removed before evaluating \code{cohort}; aggregate cohort
 expressions therefore use the full input, not individual input groups.}
 
-\item{cohort}{Logical data-masked cohort expression. Missing values are
-counted and treated as outside the cohort. Only valid-design discharges
-are counted. Untyped SQL \code{NULL} values are accepted as missing logical
-values. Lazy columns are validated using their SQL type; numeric and
+\item{cohort}{Logical data-masked cohort expression. Only valid-design
+discharges with \code{TRUE} membership enter the cohort. Untyped SQL
+\code{NULL} values are accepted as missing logical values. Lazy columns
+are validated using their SQL type; numeric and
 character columns are rejected even when all missing.}
 
 \item{keep}{Tidyselect expression naming analysis columns to collect.
@@ -89,10 +89,10 @@ srvyr::summarise(
 )
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models},
 \href{https://msaadasif.github.io/easyNIS/articles/tables-and-models.html}{Make tables and fit survey models}.
 
 Other survey-design:
+\code{\link[=nis_annual_totals]{nis_annual_totals()}},
 \code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_reweight]{nis_reweight()}},
 \code{\link[=nis_survey]{nis_survey()}}

@@ -40,10 +40,10 @@ survey::svymean(~LOS, older)
 survey::svyby(~LOS, ~YEAR, older, survey::svymean)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/whole-sample.html}{Analyze the whole sample in DuckDB},
 \href{https://msaadasif.github.io/easyNIS/articles/whole-sample.html}{Analyze the whole sample in DuckDB}
 
 Other survey-design:
+\code{\link[=nis_annual_totals]{nis_annual_totals()}},
 \code{\link[=nis_design]{nis_design()}},
 \code{\link[=nis_design_report]{nis_design_report()}},
 \code{\link[=nis_reweight]{nis_reweight()}}

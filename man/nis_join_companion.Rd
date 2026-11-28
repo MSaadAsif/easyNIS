@@ -2,7 +2,7 @@
 % Please edit documentation in R/open-companion.R
 \name{nis_join_companion}
 \alias{nis_join_companion}
-\title{Attach an annual NIS companion to Core discharges}
+\title{Join an annual NIS companion file}
 \usage{
 nis_join_companion(.data, path, component, columns)
 }
@@ -37,17 +37,15 @@ The joined records still represent discharges.
 }
 \examples{
 nis <- nis_open(nis_example(2020))
-hospitals <- nis |>
-  dplyr::distinct(HOSP_NIS, beds = HOSP_BEDSIZE) |>
-  dplyr::collect()
+hospitals <- dplyr::distinct(nis, HOSP_NIS, beds = HOSP_BEDSIZE)
 
+# Write the invented Hospital part.
 path <- tempfile()
 dir.create(path)
-con <- DBI::dbConnect(duckdb::duckdb())
-DBI::dbWriteTable(con, "hospitals", hospitals)
+con <- dbplyr::remote_con(nis)
 file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
-DBI::dbExecute(con, paste("COPY hospitals TO", file, "(FORMAT PARQUET)"))
-DBI::dbDisconnect(con, shutdown = TRUE)
+sql <- dbplyr::sql_render(hospitals)
+invisible(DBI::dbExecute(con, paste0("COPY (", sql, ") TO ", file, " (FORMAT PARQUET)")))
 
 nis |>
   nis_join_companion(path, "hospital", beds) |>
@@ -56,6 +54,13 @@ nis |>
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
-\href{https://msaadasif.github.io/easyNIS/articles/opening-data.html}{Opening NIS data},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp}{HCUP NIS File Specifications}.
+
+Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
+\code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_label]{nis_label()}},
+\code{\link[=nis_open]{nis_open()}},
+\code{\link[=nis_vars_design]{nis_vars_design()}}
 }
+\concept{data-access}

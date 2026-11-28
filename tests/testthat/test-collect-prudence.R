@@ -127,10 +127,7 @@ test_that("easyNIS helpers check their DuckDB collections", {
     nis_design(wide, cohort = TRUE, keep = dplyr::starts_with("TEXT"), annualize = FALSE),
     class = "easyNIS_collect_too_large"
   )
-  expect_message(
-    design <- nis_design(query, cohort = ID %% 1000L < 4L, keep = ID, annualize = FALSE),
-    "^Preparing the cohort survey design"
-  )
+  expect_no_message(design <- nis_design(query, cohort = ID %% 1000L < 4L, keep = ID))
   expect_s3_class(design, "tbl_svy")
 })
 

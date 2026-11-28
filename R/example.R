@@ -158,7 +158,7 @@
   )
 }
 
-#' Write an invented NIS-shaped Parquet dataset
+#' Create invented NIS Parquet files
 #'
 #' @param years Years to create, from 2012 through 2024. Years before 2016
 #'   are experimental. The 2015 fixture has separate ICD-9 and ICD-10 slots,
@@ -166,8 +166,7 @@
 #'
 #' @return The temporary directory containing `NIS_<year>.parquet/` entries.
 #' @family data-access
-#' @seealso [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html),
-#'   [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html).
+#' @seealso [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html).
 #' @export
 #' @examples
 #' path <- nis_example(years = 2019:2020)

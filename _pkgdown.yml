@@ -2,15 +2,39 @@ url: https://msaadasif.github.io/easyNIS/
 destination: _site
 template:
   bootstrap: 5
+  light-switch: true
+  theme: github-light
+  theme-dark: github-dark
+  bslib:
+    primary: "#176358"
+    navbar-light-bg: "#edf6f3"
+    navbar-dark-bg: "#172b2a"
+    link-color-dark: "#8ed8c7"
+    font-size-base: 1rem
+
+home:
+  links:
+    - text: Get started
+      href: articles/getting-started.html
+    - text: Output gallery
+      href: articles/gallery.html
+    - text: Function reference
+      href: reference/index.html
+
+search:
+  exclude: [AGENTS.html, CONTRIBUTING.html, PULL_REQUEST_TEMPLATE.html]
 
 navbar:
   structure:
-    left: [get_started, guides, concepts, reference, news]
-    right: [github]
+    left: [get_started, gallery, guides, concepts, reference, news]
+    right: [search, github, lightswitch]
   components:
     get_started:
       text: Get started
       href: articles/getting-started.html
+    gallery:
+      text: Gallery
+      href: articles/gallery.html
     guides:
       text: Guides
       menu:
@@ -55,6 +79,7 @@ articles:
   - title: Get started
     contents:
       - getting-started
+      - articles/gallery
   - title: Guides
     desc: '<span id="guides"></span>'
     contents:
@@ -77,9 +102,7 @@ articles:
 
 reference:
   - title: Convert, open, and join
-    desc: >
-      Column selectors: `nis_vars_design()`, `nis_vars_demographics()`,
-      `nis_vars_dx()`, `nis_vars_pr()`, and `nis_vars_hospital()`.
+    desc: Prepare annual files, open them in DuckDB, and select or label analysis fields.
     contents:
       - nis_convert
       - nis_open
@@ -88,7 +111,7 @@ reference:
       - nis_label
       - nis_vars_design
   - title: Define and save cohorts
-    desc: Reuse eligibility criteria with `nis_attrition_cohort()`.
+    desc: Match clinical codes, count eligibility steps, and save a reusable cohort.
     contents:
       - nis_flag_dx
       - nis_flag_pr
@@ -98,29 +121,36 @@ reference:
       - nis_attrition
       - nis_write_cohort
   - title: Audit coding and completeness
+    desc: Compare code frequencies, diagnosis positions, and procedure-day coverage.
     contents:
       - nis_audit_code_transition
       - nis_audit_dx_position
       - nis_audit_prday
   - title: Derive outcomes, comorbidities, and costs
+    desc: Add discharge outcomes, score comorbidities, and express costs in a common dollar year.
     contents:
       - nis_outcomes
       - nis_comorbidity
       - nis_comorbidity_condition_map
       - nis_cost
       - nis_cost_provenance
-  - title: Survey designs and estimation
+  - title: Estimate with the survey design
+    desc: Build cohort or whole-sample designs, estimate annual totals, and report the fitted sample.
     contents:
       - nis_design
       - nis_survey
       - nis_annual_totals
       - nis_reweight
       - nis_design_report
-  - title: Disclosure and study setup
+  - title: Check disclosure
+    desc: Count supporting discharges and hospitals, mask small cells, and scan publication files.
     contents:
       - nis_cell_counts
       - nis_suppress
       - nis_scan_outputs
+  - title: Start a reproducible study
+    desc: Create a Quarto project with a sample analysis and a disclosure checklist.
+    contents:
       - nis_new_study
 
 redirects:

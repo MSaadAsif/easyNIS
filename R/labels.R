@@ -182,7 +182,6 @@ attr(.hcup_labels, "source") <- paste(
 #' existing label because its origin cannot be recovered after dropping levels.
 #' @family data-access
 #' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
 #'   [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 #' @export
 #' @examples

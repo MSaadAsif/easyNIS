@@ -1,6 +1,6 @@
 ---
 title: "Start a Quarto study"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 ---
 
 ```{r setup, message=FALSE}

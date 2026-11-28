@@ -107,8 +107,7 @@ nis_audit_code_transition(nis, codes = c(heart_failure = "I50"),
                           by = c(YEAR, DQTR), output = "inventory")
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras},
-\href{https://msaadasif.github.io/easyNIS/articles/code-transitions.html}{Code transitions and sensitivity}.
+\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras}.
 
 Other cohort-definition:
 \code{\link[=nis_attrition]{nis_attrition()}},
@@ -117,6 +116,7 @@ Other cohort-definition:
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

@@ -51,12 +51,13 @@ if (requireNamespace("haven", quietly = TRUE)) {
 }
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files}
 
 Other data-access:
 \code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_join_companion]{nis_join_companion()}},
 \code{\link[=nis_label]{nis_label()}},
-\code{\link[=nis_open]{nis_open()}}
+\code{\link[=nis_open]{nis_open()}},
+\code{\link[=nis_vars_design]{nis_vars_design()}}
 }
 \concept{data-access}

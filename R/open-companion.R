@@ -1,4 +1,4 @@
-#' Attach an annual NIS companion to Core discharges
+#' Join an annual NIS companion file
 #'
 #' Add selected companion fields to a lazy Core query.
 #'
@@ -21,23 +21,21 @@
 #'   their source names and must have names distinct from fields in `.data`.
 #'
 #' @return A lazy DuckDB-backed Core query with the requested columns added.
+#' @family data-access
 #' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2020))
-#' hospitals <- nis |>
-#'   dplyr::distinct(HOSP_NIS, beds = HOSP_BEDSIZE) |>
-#'   dplyr::collect()
+#' hospitals <- dplyr::distinct(nis, HOSP_NIS, beds = HOSP_BEDSIZE)
 #'
+#' # Write the invented Hospital part.
 #' path <- tempfile()
 #' dir.create(path)
-#' con <- DBI::dbConnect(duckdb::duckdb())
-#' DBI::dbWriteTable(con, "hospitals", hospitals)
+#' con <- dbplyr::remote_con(nis)
 #' file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
-#' DBI::dbExecute(con, paste("COPY hospitals TO", file, "(FORMAT PARQUET)"))
-#' DBI::dbDisconnect(con, shutdown = TRUE)
+#' sql <- dbplyr::sql_render(hospitals)
+#' invisible(DBI::dbExecute(con, paste0("COPY (", sql, ") TO ", file, " (FORMAT PARQUET)")))
 #'
 #' nis |>
 #'   nis_join_companion(path, "hospital", beds) |>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 136 156" role="img" aria-labelledby="title">
+  <title id="title">easyNIS</title>
+  <path d="M68 2 134 40v76l-66 38L2 116V40Z" fill="#123b35" stroke="#68cbb2" stroke-width="3"/>
+  <path d="M39 81V66h13v15m10 0V55h13v26m10 0V45h13v36" fill="none" stroke="#84dfc8" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M34 85h68" stroke="#84dfc8" stroke-width="2" stroke-linecap="round"/>
+  <text x="68" y="112" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#fff">easyNIS</text>
+</svg>

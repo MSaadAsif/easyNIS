@@ -126,10 +126,10 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #' @param .data Lazy DuckDB query or data frame. Existing dplyr groups and
 #'   rowwise grouping are removed before evaluating `cohort`; aggregate cohort
 #'   expressions therefore use the full input, not individual input groups.
-#' @param cohort Logical data-masked cohort expression. Missing values are
-#'   counted and treated as outside the cohort. Only valid-design discharges
-#'   are counted. Untyped SQL `NULL` values are accepted as missing logical
-#'   values. Lazy columns are validated using their SQL type; numeric and
+#' @param cohort Logical data-masked cohort expression. Only valid-design
+#'   discharges with `TRUE` membership enter the cohort. Untyped SQL
+#'   `NULL` values are accepted as missing logical values. Lazy columns
+#'   are validated using their SQL type; numeric and
 #'   character columns are rejected even when all missing.
 #' @param keep Tidyselect expression naming analysis columns to collect.
 #'   Renaming uses the selected source values and labels. Required design
@@ -152,8 +152,7 @@ nis_design_aliases <- function(combined, fields, cost_fields, alias_sources, cal
 #'   converts known multi-level codes to factors. Use [stats::weights()] for the
 #'   survey weights.
 #' @family survey-design
-#' @seealso [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
-#'   [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
+#' @seealso [Make tables and fit survey models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020)) |>
@@ -275,7 +274,6 @@ nis_design_records <- function(cohort_rows, fields, dollars, charges, years, cal
     cost_provenance <- NULL
   }
 
-  cli::cli_inform("Preparing the cohort survey design.")
   cohort_rows <- nis_design_aliases(cohort_rows, fields, cost_fields, alias_sources, call)
   list(rows = cohort_rows, cost_provenance = cost_provenance)
 }

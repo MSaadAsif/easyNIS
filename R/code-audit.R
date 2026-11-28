@@ -412,8 +412,7 @@
 #'   For `output = "inventory"`, the period columns, `code_group`, `code`,
 #'   `n_cohort_unweighted`, `n_unweighted`, `n_weighted`, and `status`.
 #' @family cohort-definition
-#' @seealso [Years and coding eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
-#'   [Code transitions and sensitivity](https://msaadasif.github.io/easyNIS/articles/code-transitions.html).
+#' @seealso [Years and coding eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2019:2020))

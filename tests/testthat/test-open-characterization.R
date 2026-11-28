@@ -121,9 +121,7 @@ test_that("2023 layout opens without optional geography and keeps year-scoped ID
 test_that("nis_open accepts 2012 through 2015 and still rejects earlier years", {
   path <- nis_example(2012:2013)
   on.exit(unlink(path, recursive = TRUE), add = TRUE)
-  rlang::reset_message_verbosity("easyNIS_icd9_layout")
-  withr::defer(rlang::reset_message_verbosity("easyNIS_icd9_layout"))
-  expect_message(query <- nis_open(path, years = 2012), "ICD-9")
+  query <- nis_open(path, years = 2012)
   expect_true(all(c("DX1", "DX25", "PR15") %in% colnames(query)))
   expect_false(any(grepl("^I10_", colnames(query))))
   expect_error(nis_open(path, years = 2011), "before 2012")

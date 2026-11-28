@@ -24,7 +24,6 @@
 #' @param name Name of the new column.
 #' @return A lazy DuckDB query with one additional column.
 #' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
-#'   [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
 #'   [nis_ccsr_codes()], [AHRQ HCUP CCSR](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp).
 #' @examples
 #' nis <- nis_open(nis_example(years = 2019:2020))

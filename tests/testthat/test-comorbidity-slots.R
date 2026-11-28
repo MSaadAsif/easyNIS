@@ -4,13 +4,13 @@ test_that("malformed slots do not turn missing canonical diagnoses into zeros", 
     I10_DX1 = c(NA_character_, "", "ZZZ99"),
     DXPOA1 = "Y"
   )
-  expect_warning(expected <- nis_comorbidity(control), "2 rows")
+  expect_warning(expected <- nis_comorbidity(control), "no usable")
   expect_identical(expected$cmrb_n, c(NA_integer_, NA_integer_, 0L))
 
   for (slot in c("I10_DX0", "I10_DX00", "I10_DX01", "I10_DX02")) {
     data <- control
     data[[slot]] <- "ZZZ99"
-    expect_warning(out <- nis_comorbidity(data), "2 rows")
+    expect_warning(out <- nis_comorbidity(data), "no usable")
     expect_identical(out[names(expected)], expected)
     expect_identical(out[names(data)], data)
   }

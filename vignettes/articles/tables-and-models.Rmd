@@ -1,12 +1,13 @@
 ---
 title: "Make tables and fit survey models"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 ---
 
 ```{r setup, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -32,15 +33,11 @@ design |>
 discharges across both years. Set the denominator for each statistic before
 reviewing its disclosure risk.
 
-Install `gtsummary` and `cardx` for the survey table, and `broom.helpers`
-for the regression table below.
-
 ```{r table}
-library(gtsummary)
-
 table_design <- design |> select(YEAR, HOSP_NIS, heart_failure, AGE, LOS, DIED)
 tbl_svysummary(table_design, by = heart_failure, include = c(AGE, LOS, DIED)) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
 Select the table's variables before building it. Keep `YEAR` and
@@ -49,14 +46,6 @@ the original design for models that need additional variables.
 
 ### Choose continuous summaries for large tables
 
-By default, `tbl_svysummary()` computes a survey-weighted median and
-quartiles for each continuous variable in each group. On a large design,
-those quantiles and the repeated survey calculations for each group can
-take much longer than the disclosure pass.
-
-If the analysis calls for a mean and its standard error, request them
-through `statistic` and apply the same disclosure checks.
-
 ```{r table-mean}
 tbl_svysummary(
   table_design,
@@ -64,20 +53,19 @@ tbl_svysummary(
   include = c(AGE, LOS, DIED),
   statistic = list(all_continuous() ~ "{mean} ({mean.std.error})")
 ) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
-The standard error describes uncertainty in the estimated mean. Keep the
-default summaries when you need the median and quartiles to describe the
-distribution. See the [gtsummary statistic reference](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-for other supported summaries.
+Choose the mean and standard error through `statistic`. The default
+reports the median and quartiles. See the [gtsummary statistic reference](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
 
 ## Fit a model and estimate a contrast
 
 ```{r model}
 fit <- survey::svyglm(LOS ~ heart_failure + AGE, design = design)
 survey::svycontrast(fit, c(heart_failureTRUE = 1))
-tbl_regression(fit)
+tbl_regression(fit) |> as_gt()
 nobs(fit)
 ```
 
@@ -88,12 +76,6 @@ Check the fitted sample before labeling or reporting N.
 [Check disclosure](disclosure.html)
 
 ## Report weighted event rates
-
-To report in-hospital mortality among adults under age 65, filter the
-survey design so hospitals with no discharges in the domain still
-contribute to variance estimation. Here the rates and the model use the
-same complete cases. Include any additional model covariates in the
-missing-value checks if you want both analyses to use the same discharges.
 
 ```{r mortality-rates}
 mortality_design <- design |>
@@ -111,10 +93,10 @@ rates <- mortality_design |>
   )
 ```
 
-The rate is the weighted share of discharges with an in-hospital death.
-The sampled columns count observed deaths and discharges. The weighted
-columns estimate their totals over the years in the design. The rate,
-standard error, and 95% confidence limits are on the 0–1 scale.
+Filtering the design preserves the sample structure for the under-65
+domain. The rate is the weighted share of discharges with an in-hospital
+death, on a 0–1 scale. The rate and model below use the same complete
+cases. Check additional covariates for missingness if you add them.
 
 Before displaying the rates or their counts, check support for both
 deaths and discharges without a death. An absent outcome level has zero

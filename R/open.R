@@ -57,7 +57,6 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   }
   error_call <- rlang::current_call()
   dataset <- nis_open_discover(path, years, error_call)
-  nis_open_notice(dataset$years)
   connection <- NULL
   on.exit(if (!is.null(connection)) connection$release(), add = TRUE)
   suspendInterrupts({
@@ -92,20 +91,6 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
 
 nis_open_source_paths <- function(query) {
   query$src$.easyNIS_source_paths
-}
-
-nis_open_notice <- function(years) {
-  if (any(years < 2016L)) {
-    cli::cli_inform(
-      c(
-        "Experimental: years before 2016 store ICD-9-CM codes in {.field DX1}, {.field PR1}, ... slots.",
-        i = "Flag them with {.code system = \"icd9\"}; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4) slots."
-      ),
-      .frequency = "once",
-      .frequency_id = "easyNIS_icd9_layout"
-    )
-  }
-  invisible(NULL)
 }
 
 nis_open_normalize_names <- function(query, source_names) {

@@ -66,19 +66,7 @@ test_that("nis_design carries cost provenance through the survey workflow", {
     TOTCHG = c(100, NA_real_, 300, 400),
     CCR_NIS = c(0.25, NA_real_, 0.4, 0.5)
   )
-  informs <- character()
-  design <- withCallingHandlers(
-    nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022),
-    rlang_message = function(condition) {
-      informs <<- c(informs, conditionMessage(condition))
-      invokeRestart("muffleMessage")
-    }
-  )
-  expect_true(any(grepl(
-    "Missing or invalid `CCR_NIS`; `cost_adj` is `NA`",
-    informs,
-    fixed = TRUE
-  )))
+  design <- nis_design(data, eligible, keep = c(TOTCHG, CCR_NIS), dollars = 2022)
 
   provenance <- nis_cost_provenance(design)
   expect_identical(provenance$charge_field, "TOTCHG")
@@ -285,7 +273,7 @@ test_that("annualization distinguishes data coverage from cohort quarter coverag
   ))
 
   no_quarter <- dplyr::select(pooled, -DQTR)
-  expect_message(
+  expect_warning(
     nis_design(no_quarter, eligible, keep = YEAR, annualize = TRUE),
     "Cannot check the 2015 ICD-9/ICD-10 split"
   )
@@ -317,10 +305,7 @@ test_that("annualized weights divide by the number of years and missing cohorts 
     AGE = c(50, 60),
     eligible = c(TRUE, NA)
   )
-  expect_message(
-    domain <- nis_design(data, eligible, keep = c(AGE)),
-    "missing cohort values"
-  )
+  domain <- nis_design(data, eligible, keep = AGE)
   expect_equal(nrow(domain$variables), 1L)
 })
 

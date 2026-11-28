@@ -1,6 +1,6 @@
 ---
 title: "Analyze the whole sample in DuckDB"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 ---
 
 ```{r setup, message=FALSE}

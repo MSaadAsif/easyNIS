@@ -43,16 +43,17 @@ nis_check_2015_cohort <- function(quarters, call) {
 
 #' Estimate annual national discharge totals
 #'
-#' Estimates one national total and design-based standard error per calendar
-#' year using unscaled discharge weights. Give the function the annual sample
-#' and declare the analysis domain with `cohort`. The design uses year-specific
-#' hospital and stratum identifiers, as in [nis_design()].
+#' Estimate a weighted discharge total and design-based standard error for
+#' each complete calendar year. Supply the annual sample and use `cohort` to
+#' define the analysis domain. The calculation uses the original discharge
+#' weights and year-specific hospital and stratum identifiers.
 #'
 #' @param .data A data frame or lazy DuckDB query with the standard NIS design
 #'   fields and `DQTR` (quarter numbers or `Q1`–`Q4` labels). All four
 #'   quarters must have valid design records in each year. This coverage check
 #'   cannot verify that the sample is complete.
-#' @param cohort Logical expression defining the domain, passed to [nis_design()].
+#' @param cohort Logical expression defining the domain. Only discharges
+#'   with `TRUE` membership contribute, as in [nis_design()].
 #' @param coding Use `"single_era"` to require years within 2012–2014 or
 #'   2016 onward. Use `"verified_comparable"` to acknowledge the transition and
 #'   confirm that the definition is coding-independent or an audit found no
@@ -64,12 +65,23 @@ nis_check_2015_cohort <- function(quarters, call) {
 #'   valid cohort discharges have zero support counts and missing estimates
 #'   and standard errors. Use the support counts with [nis_suppress()] before
 #'   sharing annual estimates.
-#' @seealso [Trends](https://msaadasif.github.io/easyNIS/articles/trends.html).
+#' @family survey-design
+#' @seealso [Estimate trends across NIS years](https://msaadasif.github.io/easyNIS/articles/trends.html),
+#'   [NIS output gallery](https://msaadasif.github.io/easyNIS/articles/gallery.html#annual-discharge-trend).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#' nis <- nis_open(nis_example(years = 2019:2021)) |>
 #'   nis_flag_dx(heart_failure = "I50")
-#' nis_annual_totals(nis, heart_failure)
+#' annual <- nis_annual_totals(nis, cohort = AGE >= 18 & heart_failure)
+#' annual
+#'
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   ggplot2::ggplot(annual, ggplot2::aes(YEAR, discharges)) +
+#'     ggplot2::geom_line() +
+#'     ggplot2::geom_point() +
+#'     ggplot2::scale_x_continuous(breaks = annual$YEAR) +
+#'     ggplot2::labs(x = "Discharge year", y = "Weighted discharges")
+#' }
 nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_comparable")) {
   coding <- match.arg(coding)
   call <- rlang::current_call()
@@ -106,15 +118,11 @@ nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_
 
 nis_annual_summary <- function(domain, hospital_rows, years) {
   grouped <- if (nis_design_duckdb(domain)) {
-    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n", "missing"))
+    nis_design_sql_tbl(domain, nis_annual_cells_sql(domain), c(.nis_survey_keys, "total", "n"))
   } else {
     nis_annual_cells_local(domain)
   }
-  cells <- nis_collect(grouped)
-  if (any(cells$missing > 0L)) {
-    cli::cli_inform("Treated missing cohort values as outside the cohort.")
-  }
-  nis_annual_estimates(cells, hospital_rows, years)
+  nis_annual_estimates(nis_collect(grouped), hospital_rows, years)
 }
 
 nis_annual_cells_sql <- function(domain) {
@@ -122,8 +130,7 @@ nis_annual_cells_sql <- function(domain) {
     paste(
       'SELECT "YEAR", "NIS_STRATUM", "HOSP_NIS",',
       'sum(CASE WHEN ".nis_cohort" THEN CAST("DISCWT" AS DOUBLE) ELSE 0.0 END) AS "total",',
-      'count(*) FILTER (WHERE ".nis_cohort") AS "n",',
-      'count(*) FILTER (WHERE ".nis_cohort" IS NULL) AS "missing"',
+      'count(*) FILTER (WHERE ".nis_cohort") AS "n"',
       "FROM (%s) AS domain GROUP BY 1, 2, 3"
     ),
     dbplyr::sql_render(domain)
@@ -136,7 +143,6 @@ nis_annual_cells_local <- function(domain) {
     dplyr::summarise(
       total = sum(dplyr::if_else(dplyr::coalesce(.nis_cohort, FALSE), as.double(DISCWT), 0), na.rm = TRUE),
       n = sum(dplyr::coalesce(.nis_cohort, FALSE), na.rm = TRUE),
-      missing = sum(is.na(.nis_cohort), na.rm = TRUE),
       .groups = "drop"
     )
 }

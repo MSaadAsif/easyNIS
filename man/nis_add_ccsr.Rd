@@ -56,6 +56,5 @@ nis |>
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
-\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}}, \href{https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp}{AHRQ HCUP CCSR}.
 }
