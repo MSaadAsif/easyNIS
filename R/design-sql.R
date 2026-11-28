@@ -9,13 +9,19 @@ nis_design_prepare_fields <- function(data) {
 
 nis_design_validity_sql <- function(data) {
   con <- dbplyr::remote_con(data)
-  fields <- DBI::dbQuoteIdentifier(con, .nis_design_fields)
-  flags <- DBI::dbQuoteIdentifier(con, unname(.nis_design_invalid_fields))
-  invalid <- sprintf("NOT COALESCE(isfinite(%s) AND %s > 0, FALSE) AS %s", fields, fields, flags)
+  predicates <- nis_design_invalid_exprs(data)
+  flags <- DBI::dbQuoteIdentifier(con, names(predicates))
+  invalid <- vapply(
+    predicates,
+    function(expr) {
+      as.character(dbplyr::translate_sql(!!expr, con = con, window = FALSE))
+    },
+    character(1)
+  )
   sprintf(
     'SELECT *, NOT (%s) AS ".nis_valid" FROM (SELECT *, %s FROM (%s) AS sample) AS defects',
     paste(flags, collapse = " OR "),
-    paste(invalid, collapse = ", "),
+    paste(paste(invalid, "AS", flags), collapse = ", "),
     dbplyr::sql_render(data)
   )
 }

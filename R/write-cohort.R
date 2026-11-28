@@ -84,7 +84,7 @@ nis_cohort_copy <- function(query, membership, selected, temp, metadata, call) {
     DBI::dbExecute(con, "SET partitioned_write_flush_threshold = 16384")
     on.exit(DBI::dbExecute(con, paste("SET partitioned_write_flush_threshold =", flush)), add = TRUE)
   }
-  prepared <- nis_design_prepare_fields(dplyr::mutate(query, .nis_cohort = !!membership))
+  prepared <- nis_sample_fields(query, membership)
   patients <- nis_design_cohort_type(prepared, call)
   patients <- nis_design_cohort_sql(patients, selected)
   hospitals <- nis_cohort_hospitals_sql(prepared)

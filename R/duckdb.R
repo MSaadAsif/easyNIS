@@ -91,14 +91,17 @@ nis_duckdb_open_data <- function(arrow = FALSE) {
     cli::cli_abort("The DuckDB `temp_directory` must name an existing directory.")
   }
   root <- normalizePath(root, winslash = "/", mustWork = TRUE)
-  spill <- nis_owned_temp_path("easynis-spill-", root)
+  spill <- NULL
   con <- NULL
   release <- function() {
-    on.exit(nis_remove_owned_directory(spill), add = TRUE)
+    on.exit(if (!is.null(spill)) nis_remove_owned_directory(spill), add = TRUE)
     if (!is.null(con) && DBI::dbIsValid(con)) DBI::dbDisconnect(con, shutdown = TRUE)
   }
   on.exit(release(), add = TRUE)
-  if (!dir.create(spill, mode = "0700")) {
+  suspendInterrupts({
+    spill <- nis_create_owned_directory("easynis-spill-", root)
+  })
+  if (is.null(spill)) {
     cli::cli_abort("Could not create a private DuckDB spill directory.")
   }
   config$temp_directory <- spill
@@ -158,6 +161,14 @@ nis_duckdb_set_collect_source <- function(query) {
 
 nis_duckdb_is_collect_source <- function(con, sql) {
   identical(as.character(sql), attr(con, "easyNIS_collect")$source)
+}
+
+nis_retain_sql_source <- function(result, data) {
+  result$src <- data$src
+  if (inherits(data, "tbl_nis")) {
+    class(result) <- unique(c("tbl_nis", class(result)))
+  }
+  result
 }
 
 #' @exportS3Method dplyr::compute

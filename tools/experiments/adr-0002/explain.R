@@ -1,5 +1,7 @@
 # Replay the heaviest profiled self-contained SELECT for EXPLAIN ANALYZE.
 # Entry-point timings use the original statements and exclude this replay.
+source("tools/experiments/adr-0002/profile.R")
+
 args <- commandArgs(TRUE)
 root <- args[[1]]
 paths <- list.dirs(root, recursive = FALSE, full.names = TRUE)
@@ -11,7 +13,7 @@ for (path in paths) {
   if (!length(profiles)) {
     next
   }
-  qs <- lapply(profiles, jsonlite::read_json)
+  qs <- lapply(profiles, read_experiment_profile)
   read_query <- function(x) {
     grepl("^\\s*(SELECT|WITH)\\b", x$query_name, ignore.case = TRUE) &&
       grepl("read_parquet", x$query_name, fixed = TRUE) &&

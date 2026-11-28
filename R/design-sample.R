@@ -57,7 +57,7 @@ nis_design_sample <- function(
   call,
   saved = FALSE
 ) {
-  prepared <- nis_design_prepare_fields(dplyr::mutate(data, .nis_cohort = !!cohort))
+  prepared <- nis_sample_fields(data, cohort)
   summary <- nis_sample_summary(prepared, if (!saved) quarter_prototype)
   nis_sample_check_roster(summary$hospital_rows, call)
   check_transition <- !is.null(quarter_prototype) && .nis_icd_transition_year %in% summary$years
@@ -81,7 +81,7 @@ nis_design_sample <- function(
 }
 
 nis_sample_fields <- function(data, cohort_quo) {
-  nis_sample_design_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
+  nis_design_prepare_fields(dplyr::mutate(data, .nis_cohort = !!cohort_quo))
 }
 
 nis_sample_design_fields <- function(data) {

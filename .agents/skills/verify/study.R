@@ -448,9 +448,11 @@ verify_study_reporting <- function(report, variant, evidence) {
     `shared-denominator` = c("2017, 2018, 2019, 2020, 2021, 2022", "divided by 6"),
     `one-year-denominator` = c("2022", "divided by 1"),
     c("2019, 2020", "divided by 2"))
-  expected <- c(period, criterion, "DISCWT", "with-replacement", "unweighted N",
-    "HOSP_NIS", "NIS_STRATUM", "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
-  stopifnot(all(vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)))
+  expected <- c(period, criterion, "DISCWT", "with-replacement", "cohort or group N",
+    "denominators and model sample sizes are unweighted", "HOSP_NIS", "NIS_STRATUM",
+    "Taylor linearization", "ICD-10-CM/PCS", "DuckDB", "survey")
+  absent <- expected[!vapply(expected, grepl, logical(1), x = methods, fixed = TRUE)]
+  if (length(absent)) stop("Methods are missing ", paste(absent, collapse = ", "))
   domain <- xml2::xml_text(xml2::xml_find_first(document,
     "//section[@id='checklist-receipt']//tr[td[normalize-space(.)='Survey domain']]"))
   prefilter <- variant == "prefiltered"

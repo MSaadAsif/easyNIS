@@ -27,14 +27,6 @@ nis_is_duckdb <- function(data) {
   inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")
 }
 
-nis_retain_sql_source <- function(result, data) {
-  result$src <- data$src
-  if (inherits(data, "tbl_nis")) {
-    class(result) <- unique(c("tbl_nis", class(result)))
-  }
-  result
-}
-
 nis_sql_result <- function(data, sql, columns) {
   result <- dplyr::tbl(dbplyr::remote_con(data), dbplyr::sql(sql), vars = columns)
   nis_retain_sql_source(result, data)

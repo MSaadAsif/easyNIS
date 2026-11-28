@@ -54,6 +54,10 @@ shared requirement and record the places where the existing structure obscures i
   sibling-directory publication contract through a conversion-specific
   interface. Keep cleanup, validation, and publication ordered so a failed
   operation leaves the destination intact.
+- Both staging and DuckDB spill cleanup formerly assumed ownership before
+  directory creation succeeded. A name collision could delete the
+  existing directory. Record ownership only after creation and make the
+  handoff safe against an interrupt.
 
 ### Prepare the survey sample once and keep feature policy at its call site
 
@@ -70,6 +74,9 @@ shared requirement and record the places where the existing structure obscures i
   `valid_only`. The export needs a roster of valid hospitals and minimum
   weights. The sample summary also needs counts and quarter coverage for
   diagnostics. Keep SQL for the export roster with its consumer.
+- The design and study flow used different implementations of the same
+  design-field eligibility rules. Prepare membership and validity through
+  one entry point and translate the common predicates into native SQL.
 - `R/trends.R:156–169` reaches into lazy survey for roster variance.
   Variance depends on the survey sample and its singleton policy. The
   distinct factor-level policies in summaries and complete-case models
@@ -122,6 +129,9 @@ shared requirement and record the places where the existing structure obscures i
 - The Lean workflow tracked a hand-maintained subset of R files that
   already missed Parquet scan construction. Trigger the existing proof
   check on package source changes when the exact dependency list can drift.
+- The historical ADR-0002 analysis could turn missing profiler fields
+  into zero metrics. Have its readers verify the recorded profile layout
+  before replaying or summarizing the experiment.
 - Scheduled compatibility jobs, full-test and optional dependency guards,
   exact mutation anchors, and malformed receipt recovery represent
   verification requirements. The Windows process sampler's polling measures
@@ -136,6 +146,9 @@ shared requirement and record the places where the existing structure obscures i
 - A study cache test observes an internal list field. Compare the complete
   key used by the consumer. Retain scaffold failure injection where it
   exercises cleanup otherwise difficult to trigger deterministically.
+- The installed reporting check expected an obsolete literal in Methods.
+  Check the current explanation of table headers and unweighted estimate
+  denominators and model sample sizes.
 - Remove comments that repeat the next expression or constant name.
   Keep external format, backend, variance, and disclosure constraints.
 
