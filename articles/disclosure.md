@@ -5,6 +5,7 @@
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -16,22 +17,6 @@ The examples use invented data.
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpE3dQPQ/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpE3dQPQ/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 counts <- nis_cell_counts(nis, by = c(YEAR, heart_failure))
 counts
 #> # A tibble: 4 × 4
@@ -78,16 +63,12 @@ The helper also masks zeros as a conservative default.
 
 ## Mask a survey table
 
-Install `gtsummary` and `cardx` to run the survey table examples.
-
 ``` r
 
-library(gtsummary)
-
 design <- nis_design(nis, AGE >= 18, keep = c(AGE, RACE, heart_failure))
-#> Preparing the cohort survey design.
 tbl_svysummary(design, by = heart_failure, include = c(AGE, RACE)) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
 [TABLE]
@@ -101,15 +82,6 @@ masked cell before release.
 
 ## Export a three-group table to CSV
 
-The oldest age group in this invented example has ten or fewer sampled
-discharges.
-[`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-masks its header denominator and its statistics.
-[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html)
-carries the masked heading into the CSV. Use `<=` for the
-less-than-or-equal suppression marker so the file also works in
-non-UTF-8 locales.
-
 ``` r
 
 bands <- nis |>
@@ -119,7 +91,6 @@ bands <- nis |>
     AGE >= 18 ~ "18 to 64"
   ))
 age_design <- nis_design(bands, cohort = AGE >= 18, keep = c(age_group, LOS))
-#> Preparing the cohort survey design.
 masked <- tbl_svysummary(age_design, by = age_group, include = LOS) |>
   nis_suppress()
 csv <- tibble::as_tibble(masked) |>
@@ -133,39 +104,28 @@ read.csv(file, check.names = FALSE)
 #> 1                           <=10
 ```
 
-Review the CSV alongside any table headings, footnotes, totals, and
-related outputs you plan to share.
+Suppression masks the oldest group’s denominator and statistics.
+[`as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html)
+carries the masked heading into the CSV. The export uses the ASCII
+marker `<=` for compatibility with non-UTF-8 locales. Review the CSV
+alongside the other outputs you plan to share.
 
 ## Scan the finished publication folder
 
-Place the files you intend to publish in a dedicated folder. After
-rendering reports and exporting tables, run the scan on that folder and
-its subfolders.
-
 ``` r
 
-nis_scan_outputs("public-outputs")
-nis_scan_outputs("public-outputs", error = TRUE)
+publication <- tempfile("publication-")
+dir.create(publication)
+write.csv(counts, file.path(publication, "draft-counts.csv"), row.names = FALSE)
+nis_scan_outputs(publication)
+#> [1] file     location issue    field   
+#> <0 rows> (or 0-length row.names)
 ```
 
-The result gives each finding’s relative file path, location, and issue
-type. Identifier findings give the recognized field name. The scan looks
-for names such as `KEY_NIS`, `HOSP_NIS`, legacy `KEY` and `HOSPID`, and
-HCUP linkage fields such as `VisitLink`. A methods description can
-trigger a finding simply by naming a field. [HCUP NIS data
-elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp)
-
-The scan flags visible integers from 1 to 10 under headers such as `n`,
-`unweighted n`, `Count`, and `n (%)`. It also looks for explicit
-statements such as “n = 5” or “5 discharges.” It accepts suppression
-markers such as `<=10` and `Masked`. Report readers handle UTF-8 CSV,
-TSV, HTML, Markdown and plain text, plus XLSX worksheets and DOCX text
-and tables. XLSX requires `readxl`, HTML and DOCX require `xml2`, and
-Markdown also requires `commonmark`. A supported file the scan cannot
-read yields a `scan_error` finding.
-
-Review PDFs, images, charts, renamed fields, workbook formulas, and
-unusual table layouts manually. Check for indirect identification, cells
-with too few contributing hospitals, and counts readers can infer from
-totals, percentages, or other releases. A clean scan covers only the
-patterns it recognizes.
+Run the scan on the folder you plan to publish. It reports file paths,
+locations, and finding types for recognized identifiers and small
+counts. Use `error = TRUE` to stop on findings. Review images, charts,
+hospital support, and counts that readers could infer from related
+outputs. See
+[`nis_scan_outputs()`](https://msaadasif.github.io/easyNIS/reference/nis_scan_outputs.md)
+for the supported formats and patterns.

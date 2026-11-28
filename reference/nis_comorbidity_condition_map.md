@@ -70,50 +70,21 @@ data](https://pubmed.ncbi.nlm.nih.gov/16224307/). Med Care.
 
 ## See also
 
-Other comorbidity:
-[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md)
+[Derive outcomes, comorbidities, and
+costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
+
+Other outcomes and costs:
+[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md),
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md),
+[`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
 
 ## Examples
 
 ``` r
-nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
-#>               output     condition
-#> 1          risk_aids          aids
-#> 2       risk_alcohol       alcohol
-#> 3       risk_anemdef       anemdef
-#> 4    risk_autoimmune    autoimmune
-#> 5       risk_bldloss       bldloss
-#> 6   risk_cancer_leuk   cancer_leuk
-#> 7  risk_cancer_lymph  cancer_lymph
-#> 8   risk_cancer_mets  solid_cancer
-#> 9  risk_cancer_nsitu  solid_cancer
-#> 10 risk_cancer_solid  solid_cancer
-#> 11         risk_cbvd          cbvd
-#> 12           risk_hf            hf
-#> 13         risk_coag          coag
-#> 14     risk_dementia      dementia
-#> 15      risk_depress       depress
-#> 16      risk_diab_cx      diabetes
-#> 17    risk_diab_uncx      diabetes
-#> 18         risk_drug          drug
-#> 19       risk_htn_cx  hypertension
-#> 20     risk_htn_uncx  hypertension
-#> 21    risk_liver_mld liver_disease
-#> 22    risk_liver_sev liver_disease
-#> 23 risk_lung_chronic  lung_chronic
-#> 24   risk_neuro_movt    neuro_movt
-#> 25    risk_neuro_oth     neuro_oth
-#> 26   risk_neuro_seiz    neuro_seiz
-#> 27        risk_obese         obese
-#> 28    risk_paralysis     paralysis
-#> 29     risk_perivasc      perivasc
-#> 30    risk_psychoses     psychoses
-#> 31     risk_pulmcirc      pulmcirc
-#> 32   risk_renlfl_mod renal_failure
-#> 33   risk_renlfl_sev renal_failure
-#> 34 risk_thyroid_hypo  thyroid_hypo
-#> 35  risk_thyroid_oth   thyroid_oth
-#> 36 risk_ulcer_peptic  ulcer_peptic
-#> 37        risk_valve         valve
-#> 38     risk_wghtloss      wghtloss
+map <- nis_comorbidity_condition_map("elixhauser_ahrq2027", prefix = "risk_")
+subset(map, condition == "diabetes")
+#>            output condition
+#> 16   risk_diab_cx  diabetes
+#> 17 risk_diab_uncx  diabetes
 ```

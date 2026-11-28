@@ -1,6 +1,8 @@
-# Create a new NIS study folder
+# Create a Quarto study
 
-Create a Quarto study in a new local directory.
+Create a Quarto project with an editable NIS analysis, methods text, and
+a disclosure checklist. The example runs on invented discharges until
+you supply your own data directory.
 
 ## Usage
 
@@ -35,15 +37,17 @@ sharing it.
 
 [Start a Quarto
 study](https://msaadasif.github.io/easyNIS/articles/study-template.html),
-[Start a Quarto
-study](https://msaadasif.github.io/easyNIS/articles/study-template.html).
+[`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md)
+to inspect the fitted sample and
+[`nis_scan_outputs()`](https://msaadasif.github.io/easyNIS/reference/nis_scan_outputs.md)
+to scan the files you plan to share.
 
 ## Examples
 
 ``` r
 study_path <- tempfile("nis-study-example-")
 nis_new_study(study_path)
-#> [1] "/tmp/RtmpepKHEX/nis-study-example-190c286b25a7"
+#> [1] "/tmp/RtmphtElYQ/nis-study-example-19ed259079e3"
 list.files(study_path, all.files = TRUE, no.. = TRUE)
 #> [1] ".gitignore"   "_quarto.yml"  "analysis.qmd"
 ```

@@ -35,12 +35,13 @@ provenance is present.
 ## See also
 
 [Derive outcomes, comorbidities, and
-costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-[Derive outcomes, comorbidities, and
 costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 
-Other costs:
-[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
+Other outcomes and costs:
+[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md),
+[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md),
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
+[`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
 
 ## Examples
 
@@ -49,56 +50,7 @@ charges <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect() |>
   nis_cost(dollars = 2024)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-nis_cost_provenance(charges)
-#> $charge_field
-#> [1] "TOTCHG"
-#> 
-#> $ccr_field
-#> [1] "CCR_NIS"
-#> 
-#> $inflation_index
-#> [1] "CPI-U All items, U.S. city average (annual average)"
-#> 
-#> $inflation_index_source
-#> [1] "U.S. Bureau of Labor Statistics, CPI-U All items, U.S. city average, not seasonally adjusted, series CUUR0000SA0; annual averages"
-#> 
-#> $base_year
-#> [1] 2024
-#> 
-#> $multipliers
+nis_cost_provenance(charges)$multipliers
 #>   year multiplier
 #> 1 2019   1.226992
-#> 
-#> $rows_missing_or_invalid_ccr
-#> [1] 0
-#> 
-#> $rows_missing_charges
-#> [1] 0
-#> 
-#> $ccr_treatment
-#> [1] "Missing, non-finite, zero, or negative CCR_NIS values produce NA cost_adj; charges_adj is retained."
-#> 
-#> $charges_treatment
-#> [1] "Negative, missing, or non-finite charges produce NA charges_adj and cost_adj; zero charges are retained."
-#> 
-#> $output_types
-#>                  charges_adj                     cost_adj 
-#> "Inflation-adjusted charges" "Estimated cost via CCR_NIS" 
-#> 
 ```

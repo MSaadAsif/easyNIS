@@ -5,19 +5,25 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Tidy Workflows for the National Inpatient Sample • easyNIS</title>
-<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
+<script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Tidy Workflows for the National Inpatient Sample">
 <meta name="description" content="Pipe-friendly tools for opening annual Healthcare Cost and Utilization Project National Inpatient Sample Parquet files, flagging diagnosis and procedure codes, applying HCUP CCSR mappings, adding experimental comorbidity indicators and indices, preparing designs and weights with the survey package, applying supported HCUP labels, adjusting charges and costs, and reviewing disclosure risks. The Agency for Healthcare Research and Quality provides information on the NIS and how to obtain it at &lt;https://hcup-us.ahrq.gov/nisoverview.jsp&gt;. Experimental methods and annual-layout assumptions are not independently verified or scientifically approved.">
 <meta property="og:description" content="Pipe-friendly tools for opening annual Healthcare Cost and Utilization Project National Inpatient Sample Parquet files, flagging diagnosis and procedure codes, applying HCUP CCSR mappings, adding experimental comorbidity indicators and indices, preparing designs and weights with the survey package, applying supported HCUP labels, adjusting charges and costs, and reviewing disclosure risks. The Agency for Healthcare Research and Quality provides information on the NIS and how to obtain it at &lt;https://hcup-us.ahrq.gov/nisoverview.jsp&gt;. Experimental methods and annual-layout assumptions are not independently verified or scientifically approved.">
+<meta property="og:image" content="https://msaadasif.github.io/easyNIS/logo.svg">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="index.html">easyNIS</a>
 
@@ -31,6 +37,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/getting-started.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/gallery.html">Gallery</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
@@ -58,7 +65,18 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
+<li><button class="dropdown-item" data-bs-theme-value="light"><span class="fa fa-sun"></span> Light</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="dark"><span class="fa fa-moon"></span> Dark</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
+  </ul>
+</li>
       </ul>
 </div>
 
@@ -67,48 +85,50 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="easynis">easyNIS<a class="anchor" aria-label="anchor" href="#easynis"></a>
-</h1></div>
-<p><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a> <a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml/badge.svg" alt="Test coverage workflow"></a> <a href="https://www.repostatus.org/#wip" class="external-link"><img src="https://www.repostatus.org/badges/latest/wip.svg" alt="Project Status: WIP"></a> <a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg" alt="Lifecycle: experimental"></a></p>
-<p>easyNIS opens annual HCUP National Inpatient Sample (NIS) files and helps you define discharge cohorts. Use it to estimate national totals, fit survey-weighted models, and review results for disclosure.</p>
+<div class="page-header">
+<img src="logo.svg" class="logo" alt=""><h1 id="easynis-">easyNIS <a class="anchor" aria-label="anchor" href="#easynis-"></a>
+</h1>
+</div>
+<!-- badges: start -->
+
+<p>easyNIS helps you analyze the HCUP National Inpatient Sample (NIS) in R. Open annual files in DuckDB, define a discharge cohort with dplyr, and use srvyr and survey to estimate totals, make tables, and fit models.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
-<p>Install pak first with <code>install.packages("pak")</code> if you need it.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"MSaadAsif/easyNIS"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"MSaadAsif/easyNIS"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="estimate-a-cohort-total">Estimate a cohort total<a class="anchor" aria-label="anchor" href="#estimate-a-cohort-total"></a>
+<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h2>
-<p>This example uses invented data.</p>
+<p>Estimate the total number of adult discharges with a heart failure diagnosis across two years. This example uses invented data.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MSaadAsif/easyNIS" class="external-link">easyNIS</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
-<span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, cohort <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span> <span class="op">&amp;</span> <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span></span>
-<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, <span class="va">heart_failure</span><span class="op">)</span>, cohort <span class="op">=</span> <span class="cn">TRUE</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span>cohort <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">design</span>, discharges <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>          prefiltered <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">filtered</span>, discharges <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, .id <span class="op">=</span> <span class="st">"design"</span><span class="op">)</span></span></code></pre></div>
-<p>Both designs estimate the same weighted total. Their standard errors differ. Pass eligibility to <code>cohort</code> to account for every sampled hospital. <a href="https://msaadasif.github.io/easyNIS/articles/how-easynis-works.html#define-the-domain-after-identifying-the-sample">See the two calculations side by side</a>.</p>
+<span></span>
+<span><span class="fu"><a href="reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/nis_design.html">nis_design</a></span><span class="op">(</span>cohort <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span> <span class="op">&amp;</span> <span class="va">heart_failure</span>, keep <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>discharges <span class="op">=</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/survey_total.html" class="external-link">survey_total</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 1 x 2</span></span>
+<span><span class="co">#&gt;   discharges discharges_se</span></span>
+<span><span class="co">#&gt;        &lt;dbl&gt;         &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1       125.          17.3</span></span></code></pre></div>
+<p>The output gives the weighted total and its design-based standard error. Pass eligibility to <code>cohort</code> so the design retains the contribution of sampled hospitals with no eligible discharges.</p>
+<p><a href="https://msaadasif.github.io/easyNIS/articles/getting-started.html">Get started</a> · <a href="https://msaadasif.github.io/easyNIS/articles/gallery.html">Output gallery</a> · <a href="https://msaadasif.github.io/easyNIS/reference/index.html">Function reference</a></p>
 </div>
 <div class="section level2">
 <h2 id="using-real-nis-files">Using real NIS files<a class="anchor" aria-label="anchor" href="#using-real-nis-files"></a>
 </h2>
-<p>Unpack each annual Core file and convert it with <a href="https://msaadasif.github.io/easyNIS/reference/nis_convert.html"><code>nis_convert()</code></a>. Open the Parquet directory with <code><a href="reference/nis_open.html">nis_open()</a></code>. Keep the files in your private workspace. The <a href="https://hcup-us.ahrq.gov/team/NationwideDUA.jsp" class="external-link">HCUP Data Use Agreement</a> prohibits publishing cells based on 1 through 10 discharges.</p>
-<p><a href="https://msaadasif.github.io/easyNIS/articles/getting-started.html">Get started</a> · <a href="https://msaadasif.github.io/easyNIS/articles/index.html#guides">Guides</a> · <a href="https://msaadasif.github.io/easyNIS/articles/index.html#concepts">Concepts</a></p>
+<p>Keep annual Core files in a private workspace and prepare them with <a href="https://msaadasif.github.io/easyNIS/reference/nis_convert.html"><code>nis_convert()</code></a>. The <a href="https://hcup-us.ahrq.gov/team/NationwideDUA.jsp" class="external-link">HCUP Data Use Agreement</a> prohibits publishing cells based on 1 through 10 sampled discharges. Before sharing statistics, also check for at least two contributing hospitals.</p>
 </div>
 <div class="section level2">
-<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+<h2 id="citation-and-license">Citation and license<a class="anchor" aria-label="anchor" href="#citation-and-license"></a>
 </h2>
-<p>Run <code>citation("easyNIS")</code> in R for the package citation. Cite the HCUP NIS documentation and other methods or code-set references used in your analysis.</p>
-</div>
-<div class="section level2">
-<h2 id="authors-and-license">Authors and license<a class="anchor" aria-label="anchor" href="#authors-and-license"></a>
-</h2>
-<p>Muhammad Saad (<a href="https://orcid.org/0000-0002-1792-2357" class="external-link">ORCID</a>) and Ali Salman (<a href="https://orcid.org/0009-0001-1102-226X" class="external-link">ORCID</a>) are the package authors and co-maintainers. easyNIS is licensed under the <a href="https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE" class="external-link">GNU Affero General Public License v3.0 only</a>.</p>
+<p>Run <code>citation("easyNIS")</code> for the package citation. Cite the HCUP NIS documentation and the methods and code sets used in your analysis.</p>
+<p>easyNIS is licensed under the <a href="https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE" class="external-link">GNU Affero General Public License v3.0 only</a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -116,6 +136,9 @@
 <ul class="list-unstyled">
 <li><a href="https://github.com/MSaadAsif/easyNIS/" class="external-link">Browse source code</a></li>
 <li><a href="https://github.com/MSaadAsif/easyNIS/issues" class="external-link">Report a bug</a></li>
+<li><a href="articles/getting-started.html">Get started</a></li>
+<li><a href="articles/gallery.html">Output gallery</a></li>
+<li><a href="reference/index.html">Function reference</a></li>
 </ul>
 </div>
 
@@ -151,7 +174,16 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
+<li><a href="https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml" class="external-link"><img src="https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml/badge.svg" alt="Test coverage"></a></li>
+<li><a href="https://www.repostatus.org/#wip" class="external-link"><img src="https://www.repostatus.org/badges/latest/wip.svg" alt="Project status: WIP"></a></li>
+<li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg" alt="Lifecycle: experimental"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

@@ -49,11 +49,10 @@ The design supports the `"fail"` and `"adjust"` settings of
 ## See also
 
 [Analyze the whole sample in
-DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html),
-[Analyze the whole sample in
 DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html)
 
 Other survey-design:
+[`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md),
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
 [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md),
 [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
@@ -62,22 +61,6 @@ Other survey-design:
 
 ``` r
 nis <- nis_open(nis_example(2019:2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_survey(nis)
 older <- dplyr::filter(design, AGE >= 65)
 survey::svymean(~LOS, older)

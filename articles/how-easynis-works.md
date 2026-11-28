@@ -21,22 +21,6 @@ library(srvyr)
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpWeMRsz/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpWeMRsz/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 ```
 
 The examples use invented data. `nis` is a query over Parquet files.
@@ -56,15 +40,12 @@ A cohort is the set of discharges that meet your study criteria. A
 survey domain is the subpopulation you estimate within the original
 sample design. In the next example, both designs estimate the same
 cohort total. Filtering the input first changes the standard error here
-and can change the design degrees of freedom. In this example both
-designs have 12 degrees of freedom.
+and can change the design degrees of freedom.
 
 ``` r
 
 domain <- nis_design(nis, cohort = heart_failure, keep = AGE)
-#> Preparing the cohort survey design.
 filtered <- nis_design(filter(nis, heart_failure), cohort = TRUE, keep = AGE)
-#> Preparing the cohort survey design.
 bind_rows(full_sample = summarise(domain, total = survey_total()),
           prefiltered = summarise(filtered, total = survey_total()), .id = "design")
 #> # A tibble: 2 × 3

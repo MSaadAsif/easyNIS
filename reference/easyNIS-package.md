@@ -56,3 +56,15 @@ Authors:
 
 - Ali Salman ([ORCID](https://orcid.org/0009-0001-1102-226X))
   (project_role: co-maintainer)
+
+## Examples
+
+``` r
+nis_open(nis_example(2020)) |>
+  dplyr::count(YEAR) |>
+  dplyr::collect()
+#> # A tibble: 1 × 2
+#>    YEAR     n
+#>   <int> <dbl>
+#> 1  2020    96
+```

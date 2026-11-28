@@ -86,43 +86,23 @@ columns in an existing design.
 ## See also
 
 [Derive outcomes, comorbidities, and
-costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-[Derive outcomes, comorbidities, and
 costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 
-Other comorbidity:
-[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md)
+Other outcomes and costs:
+[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md),
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md),
+[`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
 
 ## Examples
 
 ``` r
 nis <- nis_open(nis_example(2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 nis_comorbidity(nis, method = "elixhauser_ahrq2027") |>
   dplyr::count(cmrb_mortality_index) |>
   dplyr::collect()
-#> Warning: No matching POA column for 40 diagnosis slots: I10_DX1, I10_DX10, I10_DX11,
-#> I10_DX12, I10_DX13, I10_DX14, I10_DX15, I10_DX16, I10_DX17, I10_DX18, I10_DX19,
-#> I10_DX2, I10_DX20, I10_DX21, I10_DX22, I10_DX23, I10_DX24, I10_DX25, I10_DX26,
-#> I10_DX27, I10_DX28, I10_DX29, I10_DX3, I10_DX30, I10_DX31, I10_DX32, I10_DX33,
-#> I10_DX34, I10_DX35, I10_DX36, I10_DX37, I10_DX38, I10_DX39, I10_DX4, I10_DX40,
-#> I10_DX5, I10_DX6, I10_DX7, I10_DX8, I10_DX9. Assuming present.
-#> ℹ POA-dependent comorbidities may include conditions acquired in hospital.
+#> Warning: No matching POA column for some diagnosis slots. Assuming present on admission.
+#> ℹ POA-dependent scores may include conditions acquired in hospital.
 #> # A tibble: 2 × 2
 #>   cmrb_mortality_index     n
 #>                  <int> <dbl>

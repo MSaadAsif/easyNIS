@@ -66,8 +66,6 @@ category.
 
 [Define and save a
 cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
-[Define and save a
-cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
 [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
 [AHRQ HCUP
 CCSR](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp).
@@ -76,22 +74,6 @@ CCSR](https://hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp).
 
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 nis |>
   nis_add_ccsr(position = "default") |>
   dplyr::count(ccsr) |>
@@ -99,6 +81,6 @@ nis |>
 #> # A tibble: 2 × 2
 #>   ccsr       n
 #>   <chr>  <dbl>
-#> 1 RSP002    84
-#> 2 CIR019   108
+#> 1 CIR019   108
+#> 2 RSP002    84
 ```

@@ -1,4 +1,4 @@
-# Suppress small unweighted cells in a survey summary
+# Mask cells with insufficient disclosure support
 
 Mask a summary using unweighted counts and contributing hospitals.
 
@@ -96,8 +96,6 @@ subtraction.
 ## See also
 
 [Check disclosure before sharing
-results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
-[Check disclosure before sharing
 results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
@@ -109,24 +107,7 @@ Other disclosure:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, heart_failure, keep = c(AGE, FEMALE, RACE))
-#> Preparing the cohort survey design.
 table <- gtsummary::tbl_svysummary(
   design,
   by = RACE,

@@ -50,9 +50,13 @@ outcomes.
 
 [Derive outcomes, comorbidities, and
 costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-[Derive outcomes, comorbidities, and
-costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
 [`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md)
+
+Other outcomes and costs:
+[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md),
+[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md),
+[`nis_cost()`](https://msaadasif.github.io/easyNIS/reference/nis_cost.md),
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
 
 ## Examples
 
@@ -62,22 +66,6 @@ nis_open(nis_example(years = 2024)) |>
   dplyr::count(discharge_disposition) |>
   dplyr::collect() |>
   nis_label()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 8 × 2
 #>   discharge_disposition                                       n
 #>   <fct>                                                   <dbl>

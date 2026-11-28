@@ -5,6 +5,7 @@
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(ggplot2)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -16,35 +17,36 @@ The examples use invented data.
 
 nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt4WxUb/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/Rtmpt4WxUb/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 annual <- nis_annual_totals(nis, cohort = heart_failure & AGE >= 18)
-annual
-#> # A tibble: 3 × 5
-#>    YEAR discharges discharges_se     n hospitals
-#>   <int>      <dbl>         <dbl> <int>     <int>
-#> 1  2019       62.4          12.3    54         9
-#> 2  2020       62.4          12.3    54         9
-#> 3  2021       62.4          12.3    54         9
+reviewed_annual <- nis_suppress(
+  annual, count_col = n, hospital_col = hospitals,
+  weighted_cols = c(discharges, discharges_se)
+) |>
+  mutate(across(c(discharges, discharges_se), ~ suppressWarnings(as.numeric(.x))))
 ```
+
+``` r
+
+ggplot(reviewed_annual, aes(YEAR, discharges)) +
+  geom_line(na.rm = TRUE) +
+  geom_point(na.rm = TRUE) +
+  geom_errorbar(
+    aes(ymin = discharges - discharges_se, ymax = discharges + discharges_se),
+    width = 0.08, na.rm = TRUE
+  ) +
+  scale_x_continuous(breaks = annual$YEAR) +
+  labs(x = "Discharge year", y = "Weighted discharges",
+       caption = "Invented data. Bars show ±1 standard error.") +
+  theme_minimal()
+```
+
+![Weighted adult heart failure discharges by calendar year with standard
+error bars.](trends_files/figure-html/plot-1.png)
 
 [`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md)
 uses original discharge weights and requires all four quarters in each
-year. For analyses that include 2015 or cross the ICD transition, use
+year. Convert the reviewed values back to numbers so masked years appear
+as gaps. For analyses that include 2015 or cross the ICD transition, use
 `coding = "verified_comparable"` only after establishing comparability.
 [Years and coding
 eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.md)
@@ -58,7 +60,6 @@ diagnosis.
 ``` r
 
 adults <- nis_design(nis, cohort = AGE >= 18, keep = heart_failure)
-#> Preparing the cohort survey design.
 adults |>
   group_by(YEAR) |>
   summarise(heart_failure_share = survey_mean(heart_failure, vartype = "se"))
@@ -134,11 +135,9 @@ the external denominator as fixed.
 ``` r
 
 pooled <- nis_design(nis, cohort = heart_failure & AGE >= 18, keep = LOS)
-#> Preparing the cohort survey design.
 average <- nis_design(
   nis, cohort = heart_failure & AGE >= 18, keep = LOS, annualize = TRUE
 )
-#> Preparing the cohort survey design.
 summarise(pooled, mean_los = survey_mean(LOS))
 #> # A tibble: 1 × 2
 #>   mean_los mean_los_se

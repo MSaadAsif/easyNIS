@@ -1,4 +1,4 @@
-# Attach an annual NIS companion to Core discharges
+# Join an annual NIS companion file
 
 Add selected companion fields to a lazy Core query.
 
@@ -55,51 +55,29 @@ discharges.
 
 [Prepare annual NIS
 files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-[Opening NIS
-data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 [HCUP NIS File
 Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
+
+Other data-access:
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
+[`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
+[`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md),
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
+[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
 
 ## Examples
 
 ``` r
 nis <- nis_open(nis_example(2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-hospitals <- nis |>
-  dplyr::distinct(HOSP_NIS, beds = HOSP_BEDSIZE) |>
-  dplyr::collect()
+hospitals <- dplyr::distinct(nis, HOSP_NIS, beds = HOSP_BEDSIZE)
 
+# Write the invented Hospital part.
 path <- tempfile()
 dir.create(path)
-con <- DBI::dbConnect(duckdb::duckdb())
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-DBI::dbWriteTable(con, "hospitals", hospitals)
+con <- dbplyr::remote_con(nis)
 file <- DBI::dbQuoteString(con, file.path(path, "NIS_2020.parquet"))
-DBI::dbExecute(con, paste("COPY hospitals TO", file, "(FORMAT PARQUET)"))
-#> [1] 12
-DBI::dbDisconnect(con, shutdown = TRUE)
+sql <- dbplyr::sql_render(hospitals)
+invisible(DBI::dbExecute(con, paste0("COPY (", sql, ") TO ", file, " (FORMAT PARQUET)")))
 
 nis |>
   nis_join_companion(path, "hospital", beds) |>

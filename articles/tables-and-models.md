@@ -5,6 +5,7 @@
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -16,24 +17,7 @@ The examples use invented data.
 
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpiSJvQT/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpiSJvQT/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS, DIED, RACE, heart_failure))
-#> Preparing the cohort survey design.
 
 design |>
   group_by(heart_failure) |>
@@ -54,16 +38,12 @@ design |>
 discharges across both years. Set the denominator for each statistic
 before reviewing its disclosure risk.
 
-Install `gtsummary` and `cardx` for the survey table, and
-`broom.helpers` for the regression table below.
-
 ``` r
-
-library(gtsummary)
 
 table_design <- design |> select(YEAR, HOSP_NIS, heart_failure, AGE, LOS, DIED)
 tbl_svysummary(table_design, by = heart_failure, include = c(AGE, LOS, DIED)) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
 [TABLE]
@@ -74,16 +54,6 @@ the original design for models that need additional variables.
 
 ### Choose continuous summaries for large tables
 
-By default,
-[`tbl_svysummary()`](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-computes a survey-weighted median and quartiles for each continuous
-variable in each group. On a large design, those quantiles and the
-repeated survey calculations for each group can take much longer than
-the disclosure pass.
-
-If the analysis calls for a mean and its standard error, request them
-through `statistic` and apply the same disclosure checks.
-
 ``` r
 
 tbl_svysummary(
@@ -92,16 +62,15 @@ tbl_svysummary(
   include = c(AGE, LOS, DIED),
   statistic = list(all_continuous() ~ "{mean} ({mean.std.error})")
 ) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
 [TABLE]
 
-The standard error describes uncertainty in the estimated mean. Keep the
-default summaries when you need the median and quartiles to describe the
-distribution. See the [gtsummary statistic
-reference](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html)
-for other supported summaries.
+Choose the mean and standard error through `statistic`. The default
+reports the median and quartiles. See the [gtsummary statistic
+reference](https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html).
 
 ## Fit a model and estimate a contrast
 
@@ -111,7 +80,7 @@ fit <- survey::svyglm(LOS ~ heart_failure + AGE, design = design)
 survey::svycontrast(fit, c(heart_failureTRUE = 1))
 #>          contrast     SE
 #> contrast  0.17863 0.4205
-tbl_regression(fit)
+tbl_regression(fit) |> as_gt()
 ```
 
 [TABLE]
@@ -132,13 +101,6 @@ disclosure](https://msaadasif.github.io/easyNIS/articles/disclosure.md)
 
 ## Report weighted event rates
 
-To report in-hospital mortality among adults under age 65, filter the
-survey design so hospitals with no discharges in the domain still
-contribute to variance estimation. Here the rates and the model use the
-same complete cases. Include any additional model covariates in the
-missing-value checks if you want both analyses to use the same
-discharges.
-
 ``` r
 
 mortality_design <- design |>
@@ -156,10 +118,10 @@ rates <- mortality_design |>
   )
 ```
 
-The rate is the weighted share of discharges with an in-hospital death.
-The sampled columns count observed deaths and discharges. The weighted
-columns estimate their totals over the years in the design. The rate,
-standard error, and 95% confidence limits are on the 0–1 scale.
+Filtering the design preserves the sample structure for the under-65
+domain. The rate is the weighted share of discharges with an in-hospital
+death, on a 0–1 scale. The rate and model below use the same complete
+cases. Check additional covariates for missingness if you add them.
 
 Before displaying the rates or their counts, check support for both
 deaths and discharges without a death. An absent outcome level has zero

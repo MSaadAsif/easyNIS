@@ -26,11 +26,11 @@ nis_design(
 
 - cohort:
 
-  Logical data-masked cohort expression. Missing values are counted and
-  treated as outside the cohort. Only valid-design discharges are
-  counted. Untyped SQL `NULL` values are accepted as missing logical
-  values. Lazy columns are validated using their SQL type; numeric and
-  character columns are rejected even when all missing.
+  Logical data-masked cohort expression. Only valid-design discharges
+  with `TRUE` membership enter the cohort. Untyped SQL `NULL` values are
+  accepted as missing logical values. Lazy columns are validated using
+  their SQL type; numeric and character columns are rejected even when
+  all missing.
 
 - keep:
 
@@ -93,11 +93,10 @@ Set `dollars` to use another reference year.
 ## See also
 
 [Make tables and fit survey
-models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
-[Make tables and fit survey
 models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 
 Other survey-design:
+[`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md),
 [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md),
 [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md),
 [`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
@@ -107,29 +106,12 @@ Other survey-design:
 ``` r
 nis <- nis_open(nis_example(years = 2019:2020)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(
   nis,
   cohort = heart_failure & AGE >= 50,
   keep = c(AGE, FEMALE, TOTCHG, CCR_NIS),
   dollars = 2024
 )
-#> Preparing the cohort survey design.
 srvyr::summarise(
   design,
   discharges = srvyr::survey_total(),

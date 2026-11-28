@@ -5,7 +5,12 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Check disclosure before sharing results • easyNIS</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
+<script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -15,7 +20,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">easyNIS</a>
 
@@ -29,6 +34,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/gallery.html">Gallery</a></li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
@@ -56,7 +62,18 @@
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/MSaadAsif/easyNIS" aria-label="GitHub"><span class="fa fa-github"></span></a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
+<li><button class="dropdown-item" data-bs-theme-value="light"><span class="fa fa-sun"></span> Light</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="dark"><span class="fa fa-moon"></span> Dark</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
+  </ul>
+</li>
       </ul>
 </div>
 
@@ -69,8 +86,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>Check disclosure before sharing results</h1>
+      <img src="../logo.svg" class="logo" alt=""><h1>Check disclosure before sharing results</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/MSaadAsif/easyNIS/blob/main/vignettes/articles/disclosure.Rmd" class="external-link"><code>vignettes/articles/disclosure.Rmd</code></a></small>
@@ -83,6 +99,7 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/MSaadAsif/easyNIS" class="external-link">easyNIS</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ddsjoberg/gtsummary" class="external-link">gtsummary</a></span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/knitr/man/opts_chunk.html" class="external-link">opts_chunk</a></span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>collapse <span class="op">=</span> <span class="cn">TRUE</span>, comment <span class="op">=</span> <span class="st">"#&gt;"</span><span class="op">)</span></span></code></pre></div>
 <p>The examples use invented data.</p>
 <div class="section level2">
@@ -91,22 +108,6 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_open.html">nis_open</a></span><span class="op">(</span><span class="fu"><a href="../reference/nis_example.html">nis_example</a></span><span class="op">(</span>years <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2020</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_flag_dx.html">nis_flag_dx</a></span><span class="op">(</span>heart_failure <span class="op">=</span> <span class="st">"I50"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpE3dQPQ/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
-<span><span class="co">#&gt; duckdb keeps downloaded extensions and secrets in a temporary directory:</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> /tmp/RtmpE3dQPQ/duckdb</span></span>
-<span><span class="co">#&gt; This is removed when the R session ends.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Extensions are re-downloaded each session.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Secrets are lost.</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">ℹ</span> See ?duckdb_storage for details and alternatives.</span></span>
 <span><span class="va">counts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_cell_counts.html">nis_cell_counts</a></span><span class="op">(</span><span class="va">nis</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">YEAR</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">counts</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
@@ -150,15 +151,11 @@ The helper also masks zeros as a conservative default.</p>
 <div class="section level2">
 <h2 id="mask-a-survey-table">Mask a survey table<a class="anchor" aria-label="anchor" href="#mask-a-survey-table"></a>
 </h2>
-<p>Install <code>gtsummary</code> and <code>cardx</code> to run the
-survey table examples.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ddsjoberg/gtsummary" class="external-link">gtsummary</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">RACE</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
+<code class="sourceCode R"><span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">nis</span>, <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">RACE</span>, <span class="va">heart_failure</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span><span class="va">design</span>, by <span class="op">=</span> <span class="va">heart_failure</span>, include <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">AGE</span>, <span class="va">RACE</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/as_gt.html" class="external-link">as_gt</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div id="ulbfdpbcyv" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>#ulbfdpbcyv table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -685,12 +682,6 @@ masked cell before release.</p>
 <div class="section level2">
 <h2 id="export-a-three-group-table-to-csv">Export a three-group table to CSV<a class="anchor" aria-label="anchor" href="#export-a-three-group-table-to-csv"></a>
 </h2>
-<p>The oldest age group in this invented example has ten or fewer
-sampled discharges. <code><a href="../reference/nis_suppress.html">nis_suppress()</a></code> masks its header
-denominator and its statistics. <code><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble()</a></code> carries the
-masked heading into the CSV. Use <code>&lt;=</code> for the
-less-than-or-equal suppression marker so the file also works in
-non-UTF-8 locales.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bands</span> <span class="op">&lt;-</span> <span class="va">nis</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>age_group <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
@@ -699,7 +690,6 @@ non-UTF-8 locales.</p>
 <span>    <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span> <span class="op">~</span> <span class="st">"18 to 64"</span></span>
 <span>  <span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">age_design</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nis_design.html">nis_design</a></span><span class="op">(</span><span class="va">bands</span>, cohort <span class="op">=</span> <span class="va">AGE</span> <span class="op">&gt;=</span> <span class="fl">18</span>, keep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">age_group</span>, <span class="va">LOS</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Preparing the cohort survey design.</span></span>
 <span><span class="va">masked</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://www.danieldsjoberg.com/gtsummary/reference/tbl_svysummary.html" class="external-link">tbl_svysummary</a></span><span class="op">(</span><span class="va">age_design</span>, by <span class="op">=</span> <span class="va">age_group</span>, include <span class="op">=</span> <span class="va">LOS</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/nis_suppress.html">nis_suppress</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">csv</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble</a></span><span class="op">(</span><span class="va">masked</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -711,40 +701,28 @@ non-UTF-8 locales.</p>
 <span><span class="co">#&gt; 1 Length of stay, days          6.0 (5.0, 8.0)         3.0 (1.0, 9.0)</span></span>
 <span><span class="co">#&gt;   **90 and older**  \nN = Masked</span></span>
 <span><span class="co">#&gt; 1                           &lt;=10</span></span></code></pre></div>
-<p>Review the CSV alongside any table headings, footnotes, totals, and
-related outputs you plan to share.</p>
+<p>Suppression masks the oldest group’s denominator and statistics.
+<code><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble()</a></code> carries the masked heading into the CSV. The
+export uses the ASCII marker <code>&lt;=</code> for compatibility with
+non-UTF-8 locales. Review the CSV alongside the other outputs you plan
+to share.</p>
 </div>
 <div class="section level2">
 <h2 id="scan-the-finished-publication-folder">Scan the finished publication folder<a class="anchor" aria-label="anchor" href="#scan-the-finished-publication-folder"></a>
 </h2>
-<p>Place the files you intend to publish in a dedicated folder. After
-rendering reports and exporting tables, run the scan on that folder and
-its subfolders.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/nis_scan_outputs.html">nis_scan_outputs</a></span><span class="op">(</span><span class="st">"public-outputs"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/nis_scan_outputs.html">nis_scan_outputs</a></span><span class="op">(</span><span class="st">"public-outputs"</span>, error <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>The result gives each finding’s relative file path, location, and
-issue type. Identifier findings give the recognized field name. The scan
-looks for names such as <code>KEY_NIS</code>, <code>HOSP_NIS</code>,
-legacy <code>KEY</code> and <code>HOSPID</code>, and HCUP linkage fields
-such as <code>VisitLink</code>. A methods description can trigger a
-finding simply by naming a field. <a href="https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp" class="external-link">HCUP NIS data
-elements</a></p>
-<p>The scan flags visible integers from 1 to 10 under headers such as
-<code>n</code>, <code>unweighted n</code>, <code>Count</code>, and
-<code>n (%)</code>. It also looks for explicit statements such as “n =
-5” or “5 discharges.” It accepts suppression markers such as
-<code>&lt;=10</code> and <code>Masked</code>. Report readers handle
-UTF-8 CSV, TSV, HTML, Markdown and plain text, plus XLSX worksheets and
-DOCX text and tables. XLSX requires <code>readxl</code>, HTML and DOCX
-require <code>xml2</code>, and Markdown also requires
-<code>commonmark</code>. A supported file the scan cannot read yields a
-<code>scan_error</code> finding.</p>
-<p>Review PDFs, images, charts, renamed fields, workbook formulas, and
-unusual table layouts manually. Check for indirect identification, cells
-with too few contributing hospitals, and counts readers can infer from
-totals, percentages, or other releases. A clean scan covers only the
-patterns it recognizes.</p>
+<code class="sourceCode R"><span><span class="va">publication</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="st">"publication-"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">publication</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">counts</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">publication</span>, <span class="st">"draft-counts.csv"</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/nis_scan_outputs.html">nis_scan_outputs</a></span><span class="op">(</span><span class="va">publication</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] file     location issue    field   </span></span>
+<span><span class="co">#&gt; &lt;0 rows&gt; (or 0-length row.names)</span></span></code></pre></div>
+<p>Run the scan on the folder you plan to publish. It reports file
+paths, locations, and finding types for recognized identifiers and small
+counts. Use <code>error = TRUE</code> to stop on findings. Review
+images, charts, hospital support, and counts that readers could infer
+from related outputs. See <a href="../reference/nis_scan_outputs.html"><code>nis_scan_outputs()</code></a>
+for the supported formats and patterns.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

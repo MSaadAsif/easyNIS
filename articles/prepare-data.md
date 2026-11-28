@@ -10,54 +10,25 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## Convert the annual Core files
 
-HCUP distributes the Core file as fixed-width ASCII. Unpack the annual
-archive and pass the `.asc` file to `nis_convert(path, dir)`. Repeat for
-each data year using the same private output directory. The supported
-ASCII layouts use the annual Core filenames and fields. The 2015 ASCII
-Core file has separate diagnosis and procedure files. Prepare those
-separately before an analysis that needs the code slots.
-[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
-converts the 2015 ASCII Core file alone. For code-based work, use an
-annual Stata, SAS, or SPSS input with the code slots already attached.
-
-For Stata (`.dta`), SAS (`.sas7bdat`), or SPSS (`.sav`), the call is the
-same. Install `haven` for these formats. Each input must have a numeric
-`YEAR` column with one data year. This example converts a Stata file
-made from invented data.
-
 ``` r
 
 source <- nis_open(nis_example(years = 2019)) |> collect()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTslbh9/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTslbh9/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 stata <- file.path(tempdir(), "NIS_2019_Core.dta")
 haven::write_dta(source, stata)
 annual <- tempfile("nis-annual-")
 dir.create(annual)
 nis_convert(stata, annual)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTslbh9/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 ```
+
+HCUP distributes Core files as fixed-width ASCII. Unpack the archive and
+pass the annual `.asc` file to `nis_convert(path, dir)`. Use the same
+private output directory for each year. In 2015, diagnosis and procedure
+codes ship separately from ASCII Core. For 2015 code-based work, convert
+a Stata, SAS, or SPSS file with the code slots already attached.
+
+The example converts an invented Stata file. Stata (`.dta`), SAS
+(`.sas7bdat`), and SPSS (`.sav`) inputs need `haven` and a numeric
+`YEAR` column with one data year per file.
 
 If conversion reports malformed UTF-8, check the source encoding and
 correct the source or supply its known encoding for a haven format. For
@@ -69,14 +40,6 @@ encoding override cannot repair damaged bytes.
 ``` r
 
 nis <- nis_open(annual, years = 2019, check_release = FALSE)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpTslbh9/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 analysis <- nis |> select(nis_vars_design(), AGE, LOS)
 colnames(analysis)
 #> [1] "YEAR"        "HOSP_NIS"    "NIS_STRATUM" "DISCWT"      "DQTR"       
@@ -121,25 +84,12 @@ the diagnosis and procedure columns used in your study. If one fails
 with malformed UTF-8, reconvert from the correctly encoded source into a
 new directory and review the release check.
 
-Use `nis_open(reader = "arrow")` when you need to preserve the source
-bytes, including malformed UTF-8. easyNIS limits the size of Arrow scan
-batches to reduce decoded read-ahead across annual files. During a
-query, it caps Arrow’s CPU worker pool at the DuckDB thread count from
-when the source was opened. Set
-`options(easyNIS.duckdb_config = list(threads = 4L, memory_limit = "4 GiB"))`
-before opening the data to use a four-thread DuckDB profile. A smaller
-`threads` value can reduce scan memory further.
-
-DuckDB’s `memory_limit` governs its buffer manager. Budget separately
-for Arrow’s decoded Parquet batches, which depend on the projected
-columns and file layout, and for the R objects created by collection.
-Both readers materialize cohort rows in R for
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
-Keep only the years and columns needed for the analysis and pass the
-needed analysis columns in `keep`. For estimators supported by
-[`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md),
-leaving the discharge rows in DuckDB avoids materializing the cohort in
-R.
+Use `nis_open(reader = "arrow")` when you need to preserve malformed
+source bytes. Keep only the years and columns your analysis needs.
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
+collects cohort rows in R. For supported estimators,
+[`nis_survey()`](https://msaadasif.github.io/easyNIS/articles/whole-sample.md)
+leaves the discharge rows in DuckDB.
 
 ## Join companion files
 

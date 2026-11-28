@@ -8,8 +8,7 @@ library(srvyr)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-The examples use invented discharges. A code slot is a numbered column
-that holds one diagnosis or procedure code.
+The examples use invented discharges.
 
 ## Match diagnosis and procedure codes
 
@@ -21,30 +20,6 @@ nis <- nis_open(nis_example(years = 2019:2020)) |>
   ) |>
   nis_flag_dx(principal_hf = "I50", position = "principal") |>
   nis_flag_pr(pci = "0270")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 
 nis |> count(heart_failure, principal_hf, pci) |> collect()
 #> # A tibble: 4 × 4
@@ -56,11 +31,10 @@ nis |> count(heart_failure, principal_hf, pci) |> collect()
 #> 4 FALSE         FALSE        TRUE     42
 ```
 
-The default position checks all slots. Use `position = "principal"` for
-slot 1. A string such as `"I50"` matches a prefix. A `regex` matches the
-whole stored code. If you supply both, either can set the flag.
-Exclusions apply to individual matching codes, so another slot can still
-set the flag.
+Each code slot is a numbered field. The default checks every slot. Use
+`position = "principal"` for slot 1. A string such as `"I50"` matches a
+prefix and a `regex` matches the whole code. Either can set the flag.
+Excluding a code leaves other slots eligible to match.
 
 ``` r
 
@@ -70,25 +44,6 @@ mixed <- nis_open(nis_example(years = 2014:2016)) |>
     "4280", DX1
   )) |>
   nis_flag_dx(hf = list(icd9 = "428", icd10 = "I50"), system = "both")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> Experimental: years before 2016 store ICD-9-CM codes in DX1, PR1, ... slots.
-#> ℹ Flag them with `system = "icd9"`; 2015 mixes ICD-9 (Q1-Q3) and ICD-10 (Q4)
-#>   slots.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 
 mixed |> filter(YEAR == 2015) |> count(DQTR, hf) |> arrange(DQTR, hf) |> collect()
 #> # A tibble: 8 × 3
@@ -139,8 +94,8 @@ nis |>
 #> # A tibble: 2 × 2
 #>   ccsr       n
 #>   <chr>  <dbl>
-#> 1 RSP002    84
-#> 2 CIR019   108
+#> 1 CIR019   108
+#> 2 RSP002    84
 
 timing <- nis |> mutate(PRDAY1 = 0L, PRDAY2 = 1L)
 nis_audit_prday(timing, pr = "0270")
@@ -167,14 +122,6 @@ timing |>
   ) |>
   count(outcome_post_index) |>
   collect()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 2 × 2
 #>   outcome_post_index     n
 #>   <lgl>              <dbl>
@@ -199,39 +146,32 @@ procedure-day availability before interpreting an order.
 flow <- nis_attrition(
   nis, adult = AGE >= 18, hf = heart_failure, by_year = TRUE, .design = TRUE
 )
-flow
-#> # A tibble: 6 × 8
-#>    YEAR  step criterion             n_unweighted n_dropped_unweighted n_weighted
-#>   <int> <int> <chr>                        <int>                <int>      <dbl>
-#> 1  2020     0 Valid design dischar…           96                   NA      114. 
-#> 2  2020     1 adult                           96                    0      114. 
-#> 3  2020     2 hf                              54                   42       62.4
-#> 4  2019     0 Valid design dischar…           96                   NA      114. 
-#> 5  2019     1 adult                           96                    0      114. 
-#> 6  2019     2 hf                              54                   42       62.4
-#> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
+flow |>
+  select(YEAR, criterion, n_unweighted, n_dropped_unweighted) |>
+  gt::gt() |>
+  gt::cols_label(
+    YEAR = "Year", criterion = "Eligibility step",
+    n_unweighted = "Remaining", n_dropped_unweighted = "Dropped"
+  ) |>
+  gt::sub_missing(missing_text = "—")
+```
+
+| Year | Eligibility step        | Remaining | Dropped |
+|------|-------------------------|-----------|---------|
+| 2020 | Valid design discharges | 96        | —       |
+| 2020 | adult                   | 96        | 0       |
+| 2020 | hf                      | 54        | 42      |
+| 2019 | Valid design discharges | 96        | —       |
+| 2019 | adult                   | 96        | 0       |
+| 2019 | hf                      | 54        | 42      |
+
+``` r
+
 
 eligible <- nis_attrition_cohort(flow)
 export <- nis |> mutate(stayDays = LOS)
 path <- nis_write_cohort(export, !!eligible, tempfile(), keep = c(AGE, stayDays))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis_open(path), keep = stayDays)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpRXCDs8/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> Preparing the cohort survey design.
 summarise(design, total = survey_total(), mean_stay = survey_mean(stayDays))
 #> # A tibble: 1 × 4
 #>   total total_se mean_stay mean_stay_se

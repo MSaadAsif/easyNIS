@@ -40,11 +40,10 @@ Uncertainty estimates treat the supplied factors as fixed.
 ## See also
 
 [Make tables and fit survey
-models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html),
-[Make tables and fit survey
 models](https://msaadasif.github.io/easyNIS/articles/tables-and-models.html).
 
 Other survey-design:
+[`nis_annual_totals()`](https://msaadasif.github.io/easyNIS/reference/nis_annual_totals.md),
 [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
 [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md),
 [`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
@@ -53,24 +52,7 @@ Other survey-design:
 
 ``` r
 nis <- nis_open(nis_example(2019:2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 design <- nis_design(nis, AGE >= 18, keep = c(AGE, LOS))
-#> Preparing the cohort survey design.
 reweighted <- nis_reweight(design, ifelse(AGE >= 65, 1.2, 0.9))
 srvyr::summarise(reweighted, mean_los = srvyr::survey_mean(LOS))
 #> # A tibble: 1 × 2

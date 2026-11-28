@@ -49,15 +49,15 @@ label because its origin cannot be recovered after dropping levels.
 
 [Prepare annual NIS
 files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-[Prepare annual NIS
-files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
 [HCUP NIS Description of Data
 Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 
 Other data-access:
 [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+[`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md),
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
+[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
 
 ## Examples
 
@@ -65,22 +65,6 @@ Other data-access:
 demographics <- nis_open(nis_example(years = 2019)) |>
   dplyr::select(AGE, FEMALE, RACE) |>
   dplyr::collect()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 head(nis_label(demographics))
 #> # A tibble: 6 × 3
 #>     AGE FEMALE RACE                     

@@ -1,4 +1,4 @@
-# ICD-10 codes in HCUP CCSR categories
+# Find ICD-10 codes in a CCSR category
 
 Returns the full ICD-10-CM or ICD-10-PCS codes assigned to the requested
 categories in a bundled AHRQ HCUP CCSR release. Use
@@ -76,19 +76,12 @@ Other cohort-definition:
 [`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md),
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
 
 ## Examples
 
 ``` r
 head(nis_ccsr_codes("CIR019"))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> [1] "I0981" "I110"  "I130"  "I132"  "I501"  "I5020"
 ```

@@ -1,10 +1,9 @@
 # Estimate annual national discharge totals
 
-Estimates one national total and design-based standard error per
-calendar year using unscaled discharge weights. Give the function the
-annual sample and declare the analysis domain with `cohort`. The design
-uses year-specific hospital and stratum identifiers, as in
-[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
+Estimate a weighted discharge total and design-based standard error for
+each complete calendar year. Supply the annual sample and use `cohort`
+to define the analysis domain. The calculation uses the original
+discharge weights and year-specific hospital and stratum identifiers.
 
 ## Usage
 
@@ -27,7 +26,8 @@ nis_annual_totals(
 
 - cohort:
 
-  Logical expression defining the domain, passed to
+  Logical expression defining the domain. Only discharges with `TRUE`
+  membership contribute, as in
   [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md).
 
 - coding:
@@ -49,33 +49,36 @@ before sharing annual estimates.
 
 ## See also
 
-[Trends](https://msaadasif.github.io/easyNIS/articles/trends.html).
+[Estimate trends across NIS
+years](https://msaadasif.github.io/easyNIS/articles/trends.html), [NIS
+output
+gallery](https://msaadasif.github.io/easyNIS/articles/gallery.html#annual-discharge-trend).
+
+Other survey-design:
+[`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md),
+[`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md),
+[`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md),
+[`nis_survey()`](https://msaadasif.github.io/easyNIS/reference/nis_survey.md)
 
 ## Examples
 
 ``` r
-nis <- nis_open(nis_example(years = 2019:2020)) |>
+nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50")
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-nis_annual_totals(nis, heart_failure)
-#> # A tibble: 2 × 5
+annual <- nis_annual_totals(nis, cohort = AGE >= 18 & heart_failure)
+annual
+#> # A tibble: 3 × 5
 #>    YEAR discharges discharges_se     n hospitals
 #>   <int>      <dbl>         <dbl> <int>     <int>
 #> 1  2019       62.4          12.3    54         9
 #> 2  2020       62.4          12.3    54         9
+#> 3  2021       62.4          12.3    54         9
+
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  ggplot2::ggplot(annual, ggplot2::aes(YEAR, discharges)) +
+    ggplot2::geom_line() +
+    ggplot2::geom_point() +
+    ggplot2::scale_x_continuous(breaks = annual$YEAR) +
+    ggplot2::labs(x = "Discharge year", y = "Weighted discharges")
+}
 ```

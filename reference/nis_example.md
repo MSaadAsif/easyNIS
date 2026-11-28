@@ -1,6 +1,6 @@
-# Write an invented NIS-shaped Parquet dataset
+# Create invented NIS Parquet files
 
-Write an invented NIS-shaped Parquet dataset
+Create invented NIS Parquet files
 
 ## Usage
 
@@ -24,27 +24,19 @@ The temporary directory containing `NIS_<year>.parquet/` entries.
 ## See also
 
 [Analyze your first NIS
-cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html),
-[Analyze your first NIS
 cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html).
 
 Other data-access:
 [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md),
+[`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md),
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md),
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
+[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
 
 ## Examples
 
 ``` r
 path <- nis_example(years = 2019:2020)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 list.files(path)
 #> [1] "NIS_2019.parquet" "NIS_2020.parquet"
 ```

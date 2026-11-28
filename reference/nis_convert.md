@@ -46,14 +46,14 @@ leaves any existing annual directory intact.
 ## See also
 
 [Prepare annual NIS
-files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-[Prepare annual NIS
 files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html)
 
 Other data-access:
 [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md),
+[`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md),
 [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md),
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
+[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md),
+[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
 
 ## Examples
 
@@ -71,38 +71,6 @@ if (requireNamespace("haven", quietly = TRUE)) {
     dplyr::count(YEAR) |>
     dplyr::collect()
 }
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 #> # A tibble: 1 × 2
 #>    YEAR     n
 #>   <int> <dbl>

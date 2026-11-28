@@ -1,4 +1,4 @@
-# Summarize sequential cohort attrition
+# Count discharges at each eligibility step
 
 Count the discharges that remain after each eligibility criterion.
 
@@ -86,8 +86,6 @@ Use `nis_attrition_cohort()` to reuse the combined expression.
 ## See also
 
 [Define and save a
-cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
-[Define and save a
 cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 
 Other cohort-definition:
@@ -97,28 +95,13 @@ Other cohort-definition:
 [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
 
 ## Examples
 
 ``` r
 nis <- nis_open(nis_example(2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 flow <- nis_attrition(nis, adult = AGE >= 18, older = AGE >= 65, .design = TRUE)
 flow
 #> # A tibble: 3 × 7
@@ -129,7 +112,6 @@ flow
 #> 3     2 older                             44                   52       52.5
 #> # ℹ 2 more variables: n_dropped_weighted <dbl>, pct_retained <dbl>
 nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
-#> Preparing the cohort survey design.
 #> Stratified 1 - level Cluster Sampling design (with replacement)
 #> With (12) clusters.
 #> Called via srvyr

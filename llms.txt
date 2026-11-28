@@ -1,100 +1,81 @@
 # easyNIS
 
-[![R-CMD-check](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/R-CMD-check.yaml)
-[![pkgdown](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/pkgdown.yaml)
-[![Test coverage
-workflow](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/MSaadAsif/easyNIS/actions/workflows/test-coverage.yaml)
-[![Project Status:
-WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
-[![Lifecycle:
-experimental](https://lifecycle.r-lib.org/articles/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-
-easyNIS opens annual HCUP National Inpatient Sample (NIS) files and
-helps you define discharge cohorts. Use it to estimate national totals,
-fit survey-weighted models, and review results for disclosure.
+easyNIS helps you analyze the HCUP National Inpatient Sample (NIS) in R.
+Open annual files in DuckDB, define a discharge cohort with dplyr, and
+use srvyr and survey to estimate totals, make tables, and fit models.
 
 ## Install
 
-Install pak first with `install.packages("pak")` if you need it.
-
 ``` r
 
+# install.packages("pak")
 pak::pak("MSaadAsif/easyNIS")
 ```
 
-## Estimate a cohort total
+## Usage
 
-This example uses invented data.
+Estimate the total number of adult discharges with a heart failure
+diagnosis across two years. This example uses invented data.
 
 ``` r
 
 library(easyNIS)
 library(dplyr)
 library(srvyr)
-nis <- nis_open(nis_example(years = 2019:2020)) |>
-  nis_flag_dx(heart_failure = "I50")
-design <- nis_design(nis, cohort = AGE >= 18 & heart_failure, keep = LOS)
-filtered <- nis_design(filter(nis, AGE >= 18, heart_failure), cohort = TRUE, keep = LOS)
-bind_rows(cohort = summarise(design, discharges = survey_total()),
-          prefiltered = summarise(filtered, discharges = survey_total()), .id = "design")
+
+nis_open(nis_example(years = 2019:2020)) |>
+  nis_flag_dx(heart_failure = "I50") |>
+  nis_design(cohort = AGE >= 18 & heart_failure, keep = LOS) |>
+  summarise(discharges = survey_total())
+#> # A tibble: 1 x 2
+#>   discharges discharges_se
+#>        <dbl>         <dbl>
+#> 1       125.          17.3
 ```
 
-Both designs estimate the same weighted total. Their standard errors
-differ. Pass eligibility to `cohort` to account for every sampled
-hospital. [See the two calculations side by
-side](https://msaadasif.github.io/easyNIS/articles/how-easynis-works.html#define-the-domain-after-identifying-the-sample).
-
-## Using real NIS files
-
-Unpack each annual Core file and convert it with
-[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.html).
-Open the Parquet directory with
-[`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md).
-Keep the files in your private workspace. The [HCUP Data Use
-Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) prohibits
-publishing cells based on 1 through 10 discharges.
+The output gives the weighted total and its design-based standard error.
+Pass eligibility to `cohort` so the design retains the contribution of
+sampled hospitals with no eligible discharges.
 
 [Get
 started](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
-·
-[Guides](https://msaadasif.github.io/easyNIS/articles/index.html#guides)
-·
-[Concepts](https://msaadasif.github.io/easyNIS/articles/index.html#concepts)
+· [Output
+gallery](https://msaadasif.github.io/easyNIS/articles/gallery.html) ·
+[Function
+reference](https://msaadasif.github.io/easyNIS/reference/index.html)
 
-## Citation
+## Using real NIS files
 
-Run `citation("easyNIS")` in R for the package citation. Cite the HCUP
-NIS documentation and other methods or code-set references used in your
-analysis.
+Keep annual Core files in a private workspace and prepare them with
+[`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.html).
+The [HCUP Data Use
+Agreement](https://hcup-us.ahrq.gov/team/NationwideDUA.jsp) prohibits
+publishing cells based on 1 through 10 sampled discharges. Before
+sharing statistics, also check for at least two contributing hospitals.
 
-## Authors and license
+## Citation and license
 
-Muhammad Saad ([ORCID](https://orcid.org/0000-0002-1792-2357)) and Ali
-Salman ([ORCID](https://orcid.org/0009-0001-1102-226X)) are the package
-authors and co-maintainers. easyNIS is licensed under the [GNU Affero
-General Public License v3.0
+Run `citation("easyNIS")` for the package citation. Cite the HCUP NIS
+documentation and the methods and code sets used in your analysis.
+
+easyNIS is licensed under the [GNU Affero General Public License v3.0
 only](https://github.com/MSaadAsif/easyNIS/blob/main/LICENSE).
 
 # Package index
 
 ## Convert, open, and join
 
-Column selectors:
-[`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
-[`nis_vars_demographics()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
-[`nis_vars_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
-[`nis_vars_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md),
-and
-[`nis_vars_hospital()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md).
+Prepare annual files, open them in DuckDB, and select or label analysis
+fields.
 
 - [`nis_convert()`](https://msaadasif.github.io/easyNIS/reference/nis_convert.md)
   : Convert a NIS file to annual Parquet
 - [`nis_open()`](https://msaadasif.github.io/easyNIS/reference/nis_open.md)
   : Open annual NIS Parquet files lazily
 - [`nis_join_companion()`](https://msaadasif.github.io/easyNIS/reference/nis_join_companion.md)
-  : Attach an annual NIS companion to Core discharges
+  : Join an annual NIS companion file
 - [`nis_example()`](https://msaadasif.github.io/easyNIS/reference/nis_example.md)
-  : Write an invented NIS-shaped Parquet dataset
+  : Create invented NIS Parquet files
 - [`nis_label()`](https://msaadasif.github.io/easyNIS/reference/nis_label.md)
   : Apply HCUP labels
 - [`nis_vars_design()`](https://msaadasif.github.io/easyNIS/reference/nis_vars_design.md)
@@ -106,8 +87,8 @@ and
 
 ## Define and save cohorts
 
-Reuse eligibility criteria with
-[`nis_attrition_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md).
+Match clinical codes, count eligibility steps, and save a reusable
+cohort.
 
 - [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md)
   : Add diagnosis code flags
@@ -118,23 +99,29 @@ Reuse eligibility criteria with
 - [`nis_add_ccsr()`](https://msaadasif.github.io/easyNIS/reference/nis_add_ccsr.md)
   : Add CCSR categories to a NIS query
 - [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md)
-  : ICD-10 codes in HCUP CCSR categories
+  : Find ICD-10 codes in a CCSR category
 - [`nis_attrition()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
   [`nis_attrition_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_attrition.md)
-  : Summarize sequential cohort attrition
+  : Count discharges at each eligibility step
 - [`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
   : Save a reusable NIS cohort
 
 ## Audit coding and completeness
 
+Compare code frequencies, diagnosis positions, and procedure-day
+coverage.
+
 - [`nis_audit_code_transition()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_code_transition.md)
   : Audit code-group frequencies across periods
 - [`nis_audit_dx_position()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_dx_position.md)
-  : Summarize diagnosis-position sensitivity
+  : Compare principal and any-slot diagnosis matches
 - [`nis_audit_prday()`](https://msaadasif.github.io/easyNIS/reference/nis_audit_prday.md)
-  : Summarize procedure-day completeness by year and procedure slot
+  : Check procedure-day completeness
 
 ## Derive outcomes, comorbidities, and costs
+
+Add discharge outcomes, score comorbidities, and express costs in a
+common dollar year.
 
 - [`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
   : Add standard discharge outcomes
@@ -147,7 +134,10 @@ Reuse eligibility criteria with
 - [`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
   : Read cost adjustment provenance
 
-## Survey designs and estimation
+## Estimate with the survey design
+
+Build cohort or whole-sample designs, estimate annual totals, and report
+the fitted sample.
 
 - [`nis_design()`](https://msaadasif.github.io/easyNIS/reference/nis_design.md)
   : Prepare a cohort survey design
@@ -158,18 +148,27 @@ Reuse eligibility criteria with
 - [`nis_reweight()`](https://msaadasif.github.io/easyNIS/reference/nis_reweight.md)
   : Reweight a cohort survey design
 - [`nis_design_report()`](https://msaadasif.github.io/easyNIS/reference/nis_design_report.md)
-  : Report the design and fitted sample for NIS analyses
+  : Report the survey design and fitted sample
 
-## Disclosure and study setup
+## Check disclosure
+
+Count supporting discharges and hospitals, mask small cells, and scan
+publication files.
 
 - [`nis_cell_counts()`](https://msaadasif.github.io/easyNIS/reference/nis_cell_counts.md)
   : Count discharges and contributing hospitals by cell
 - [`nis_suppress()`](https://msaadasif.github.io/easyNIS/reference/nis_suppress.md)
-  : Suppress small unweighted cells in a survey summary
+  : Mask cells with insufficient disclosure support
 - [`nis_scan_outputs()`](https://msaadasif.github.io/easyNIS/reference/nis_scan_outputs.md)
   : Scan a publication folder for disclosure risks
+
+## Start a reproducible study
+
+Create a Quarto project with a sample analysis and a disclosure
+checklist.
+
 - [`nis_new_study()`](https://msaadasif.github.io/easyNIS/reference/nis_new_study.md)
-  : Create a new NIS study folder
+  : Create a Quarto study
 
 # Articles
 
@@ -177,6 +176,8 @@ Reuse eligibility criteria with
 
 - [Analyze your first NIS
   cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.md):
+- [NIS output
+  gallery](https://msaadasif.github.io/easyNIS/articles/gallery.md):
 
 ### Guides
 

@@ -1,4 +1,4 @@
-# Summarize diagnosis-position sensitivity
+# Compare principal and any-slot diagnosis matches
 
 Compare principal, secondary-only, and any-position diagnosis
 definitions.
@@ -65,8 +65,6 @@ results.
 ## See also
 
 [Years and coding
-eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html),
-[Years and coding
 eras](https://msaadasif.github.io/easyNIS/articles/years-and-eras.html).
 
 Other cohort-definition:
@@ -76,28 +74,13 @@ Other cohort-definition:
 [`nis_ccsr_codes()`](https://msaadasif.github.io/easyNIS/reference/nis_ccsr_codes.md),
 [`nis_flag_dx()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_dx.md),
 [`nis_flag_pr()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr.md),
-[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md)
+[`nis_flag_pr_timing()`](https://msaadasif.github.io/easyNIS/reference/nis_flag_pr_timing.md),
+[`nis_write_cohort()`](https://msaadasif.github.io/easyNIS/reference/nis_write_cohort.md)
 
 ## Examples
 
 ``` r
 nis <- nis_open(nis_example(years = 2019))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 nis_audit_dx_position(nis, "I50")
 #> # A tibble: 3 × 9
 #>   presentation n_unweighted n_weighted pct_of_any_unweighted pct_of_any_weighted

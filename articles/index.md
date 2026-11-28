@@ -4,6 +4,8 @@
 
 - [Analyze your first NIS
   cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.md):
+- [NIS output
+  gallery](https://msaadasif.github.io/easyNIS/articles/gallery.md):
 
 ### Guides
 

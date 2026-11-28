@@ -1,10 +1,14 @@
 # Analyze your first NIS cohort
 
+Use invented discharges to build a cohort, make a Table 1, and fit a
+survey-weighted model.
+
 ``` r
 
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -13,32 +17,15 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ``` r
 
 files <- nis_example(years = 2019:2020)
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpP7uVk7/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 nis <- nis_open(files, years = 2019:2020) |>
   select(nis_vars_design(), nis_vars_dx(), AGE, LOS, DIED, DISPUNIFORM) |>
   nis_flag_dx(heart_failure = "I50") |>
   nis_outcomes()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpP7uVk7/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 ```
 
-The examples use invented data. `files` is a directory of annual Parquet
-files. The query keeps the survey fields, diagnosis slots, and analysis
-columns. Each row represents a discharge. The flag checks every
-diagnosis slot for `I50`.
+`files` is a directory of annual Parquet files. The query keeps the
+design fields and analysis columns. The flag checks every diagnosis slot
+for `I50`.
 
 ## Estimate discharge totals and length of stay
 
@@ -48,7 +35,6 @@ design <- nis_design(
   nis, cohort = AGE >= 18,
   keep = c(AGE, heart_failure, los_days, in_hospital_death)
 )
-#> Preparing the cohort survey design.
 
 estimates <- design |>
   group_by(heart_failure) |>
@@ -69,16 +55,13 @@ works](https://msaadasif.github.io/easyNIS/articles/how-easynis-works.md)
 
 ## Make a table and fit a model
 
-Install `gtsummary` and `cardx` to run the table step.
-
 ``` r
 
-library(gtsummary)
-
-table_one <- tbl_svysummary(
+tbl_svysummary(
   design, by = heart_failure, include = c(AGE, los_days, in_hospital_death)
-)
-nis_suppress(table_one)
+) |>
+  nis_suppress() |>
+  as_gt()
 ```
 
 [TABLE]
@@ -107,57 +90,15 @@ in-hospital death in this example.
 ``` r
 
 nis_design_report(design)
-#> $years
-#> [1] 2019 2020
-#> 
-#> $cohort
-#> [1] "AGE >= 18"
-#> 
-#> $input_n
-#> [1] 192
-#> 
-#> $excluded
-#> $excluded$total
-#> [1] 0
-#> 
-#> $excluded$by_field
-#>        YEAR    HOSP_NIS NIS_STRATUM      DISCWT 
-#>           0           0           0           0 
-#> 
-#> $excluded$by_year
-#> # A tibble: 0 × 2
-#> # ℹ 2 variables: YEAR <int>, n <dbl>
-#> 
-#> 
-#> $cohort_n
-#> [1] 192
-#> 
-#> $domain_n
-#> [1] 192
-#> 
-#> $weight
-#> [1] "DISCWT"
-#> 
-#> $psu
-#> [1] "YEAR"     "HOSP_NIS"
-#> 
-#> $strata
-#> [1] "YEAR"        "NIS_STRATUM"
-#> 
-#> $nest
-#> [1] TRUE
-#> 
-#> $annualize
-#> [1] FALSE
-#> 
-#> $divisor
-#> [1] 1
-#> 
-#> $reweighted
-#> [1] FALSE
-#> 
-#> $model
-#> NULL
+#> NIS design report
+#> Years: 2019, 2020
+#> Weights: DISCWT
+#> # A tibble: 3 × 2
+#>   stage           discharges
+#>   <chr>                <dbl>
+#> 1 Input sample           192
+#> 2 Original cohort        192
+#> 3 Current domain         192
 
 reviewed <- estimates |>
   left_join(nis_cell_counts(design, by = heart_failure), by = "heart_failure") |>
@@ -182,6 +123,8 @@ disclosure](https://msaadasif.github.io/easyNIS/articles/disclosure.md)
 
 ## Where next
 
+- [See examples in the output
+  gallery](https://msaadasif.github.io/easyNIS/articles/gallery.md).
 - [Prepare your annual
   files](https://msaadasif.github.io/easyNIS/articles/prepare-data.md).
 - [Analyze the whole sample in

@@ -32,8 +32,6 @@ A data frame with the columns in `by`, `n` (unweighted discharges), and
 ## See also
 
 [Check disclosure before sharing
-results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
-[Check disclosure before sharing
 results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 
 Other disclosure:
@@ -44,22 +42,6 @@ Other disclosure:
 
 ``` r
 nis <- nis_open(nis_example(2020))
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
 nis_cell_counts(nis, by = DQTR)
 #> # A tibble: 4 × 3
 #>    DQTR     n hospitals

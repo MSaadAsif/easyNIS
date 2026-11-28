@@ -1,6 +1,10 @@
 # Adjust NIS charges and costs to a reference dollar year
 
-Adjust NIS charges and costs to a reference dollar year
+Express charges and estimated hospital costs in a common dollar year.
+Invalid charges produce missing adjusted charges and costs. Invalid
+cost-to-charge ratios produce missing costs. Use
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
+to inspect the annual multipliers and audit missing values.
 
 ## Usage
 
@@ -37,12 +41,13 @@ with
 ## See also
 
 [Derive outcomes, comorbidities, and
-costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-[Derive outcomes, comorbidities, and
 costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 
-Other costs:
-[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md)
+Other outcomes and costs:
+[`nis_comorbidity()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity.md),
+[`nis_comorbidity_condition_map()`](https://msaadasif.github.io/easyNIS/reference/nis_comorbidity_condition_map.md),
+[`nis_cost_provenance()`](https://msaadasif.github.io/easyNIS/reference/nis_cost_provenance.md),
+[`nis_outcomes()`](https://msaadasif.github.io/easyNIS/reference/nis_outcomes.md)
 
 ## Examples
 
@@ -50,30 +55,11 @@ Other costs:
 charges <- nis_open(nis_example(years = 2019:2020)) |>
   dplyr::select(YEAR, TOTCHG, CCR_NIS) |>
   dplyr::collect()
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-#> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpepKHEX/duckdb
-#> This is removed when the R session ends.
-#> • Extensions are re-downloaded each session.
-#> • Secrets are lost.
-#> ℹ Run duckdb(shared_home = TRUE) (or create ~/.duckdb) to keep them (suitable for most users).
-#> ℹ Run duckdb(shared_home = FALSE) to accept the temporary directory (and silence this message).
-#> ℹ See ?duckdb_storage for details and alternatives.
-head(nis_cost(charges, dollars = 2024))
-#> # A tibble: 6 × 5
-#>    YEAR TOTCHG CCR_NIS cost_adj charges_adj
-#>   <int>  <dbl>   <dbl>    <dbl>       <dbl>
-#> 1  2019  14154    0.29    5036.      17367.
-#> 2  2019  14189    0.29    5049.      17410.
-#> 3  2019  14224    0.29    5061.      17453.
-#> 4  2019  14259    0.29    5074.      17496.
-#> 5  2019  14294    0.29    5086.      17539.
-#> 6  2019  14329    0.29    5099.      17582.
+nis_cost(charges, dollars = 2024) |>
+  dplyr::summarise(mean_cost = mean(cost_adj), .by = YEAR)
+#> # A tibble: 2 × 2
+#>    YEAR mean_cost
+#>   <int>     <dbl>
+#> 1  2019     5366.
+#> 2  2020     5301.
 ```
