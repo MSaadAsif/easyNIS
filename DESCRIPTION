@@ -53,6 +53,7 @@ Suggests:
     knitr,
     medicalcoder (>= 0.10.0),
     purrr,
+    R6,
     readxl,
     rmarkdown,
     survey,

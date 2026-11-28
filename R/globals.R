@@ -25,5 +25,6 @@ utils::globalVariables(c(
   "starts_with",
   "isfinite",
   "isnan",
-  "regexp_full_match"
+  "regexp_full_match",
+  "super"
 ))
