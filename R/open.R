@@ -116,25 +116,33 @@ nis_open_normalize_names <- function(query, source_names) {
   fields <- vapply(name_groups, "[[", character(1), 1L)
   computed <- which(lengths(name_groups) > 1L | grepl("[^ -~]", fields, useBytes = TRUE))
 
-  if (length(computed)) {
-    con <- dbplyr::remote_con(query)
-    # Use ASCII argument names while retaining the lazy projection so dbplyr
-    # can drop unused coalesces before DuckDB binds their types.
-    aliases <- nis_internal_names(query, c(old_names, output), paste0(".nis_projection_", seq_along(computed)))
-    expressions <- lapply(name_groups[computed], function(group) {
-      quoted <- DBI::dbQuoteIdentifier(con, group)
-      if (length(quoted) == 1L) {
-        return(dbplyr::sql(quoted))
-      }
-      dbplyr::sql(paste0("COALESCE(", paste(quoted, collapse = ", "), ")"))
-    })
-    query <- dplyr::mutate(query, !!!stats::setNames(expressions, aliases))
-    fields[computed] <- aliases
+  con <- dbplyr::remote_con(query)
+  if (!length(computed)) {
+    sql <- nis_open_projection_sql(con, dbplyr::sql_render(query), fields, output)
+    return(nis_open_sql_tbl(con, sql, vars = output))
   }
+
+  # Keep computed columns in the lazy projection so dbplyr can drop unused
+  # coalesces before DuckDB binds their types.
+  aliases <- nis_internal_names(query, c(old_names, output), paste0(".nis_projection_", seq_along(computed)))
+  expressions <- lapply(name_groups[computed], function(group) {
+    quoted <- DBI::dbQuoteIdentifier(con, group)
+    if (length(quoted) == 1L) {
+      return(dbplyr::sql(quoted))
+    }
+    dbplyr::sql(paste0("COALESCE(", paste(quoted, collapse = ", "), ")"))
+  })
+  query <- dplyr::mutate(query, !!!stats::setNames(expressions, aliases))
+  fields[computed] <- aliases
 
   # Tidyselect converts spliced argument names to the native encoding.
   selection <- stats::setNames(fields, output)
   dplyr::select(query, tidyselect::all_of(selection))
+}
+
+nis_open_projection_sql <- function(con, source, fields, output) {
+  projection <- paste(DBI::dbQuoteIdentifier(con, fields), "AS", DBI::dbQuoteIdentifier(con, output))
+  paste0("SELECT ", paste(projection, collapse = ", "), " FROM (", source, ")")
 }
 
 nis_open_restore_spelling <- function(output, source_names) {
