@@ -12,7 +12,6 @@ library(srvyr)
 library(gtsummary)
 library(ggplot2)
 
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50") |>
   mutate(age_group = case_when(

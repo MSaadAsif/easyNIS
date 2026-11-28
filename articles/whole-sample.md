@@ -5,7 +5,6 @@
 library(easyNIS)
 library(dplyr)
 library(srvyr)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented data.
@@ -36,11 +35,13 @@ aggregate in DuckDB.
 ``` r
 
 fit <- survey::svyglm(LOS ~ AGE + factor(YEAR), design = older)
-summary(fit)$coefficients
-#>                    Estimate Std. Error   t value   Pr(>|t|)
-#> (Intercept)      15.2509080 3.07763091  4.955405 0.00014320
-#> AGE              -0.1379447 0.03732822 -3.695453 0.00196111
-#> factor(YEAR)2020  0.0000000 0.58616423  0.000000 1.00000000
+broom::tidy(fit, conf.int = TRUE)
+#> # A tibble: 3 × 7
+#>   term             estimate std.error statistic  p.value conf.low conf.high
+#>   <chr>               <dbl>     <dbl>     <dbl>    <dbl>    <dbl>     <dbl>
+#> 1 (Intercept)        15.3      3.08        4.96 0.000143    8.73    21.8   
+#> 2 AGE                -0.138    0.0373     -3.70 0.00196    -0.217   -0.0588
+#> 3 factor(YEAR)2020    0        0.586       0    1          -1.24     1.24
 ```
 
 Use additive `svyglm()` models with Gaussian identity, binomial or

@@ -5,7 +5,6 @@
 library(easyNIS)
 library(dplyr)
 library(srvyr)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented discharges.

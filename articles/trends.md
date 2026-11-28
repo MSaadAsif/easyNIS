@@ -6,7 +6,6 @@ library(easyNIS)
 library(dplyr)
 library(srvyr)
 library(ggplot2)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented data.
@@ -158,10 +157,12 @@ pooled discharge count by the number of included years.
 ``` r
 
 fit <- survey::svyglm(LOS ~ I(YEAR - 2019), design = pooled)
-summary(fit)$coefficients
-#>                    Estimate Std. Error     t value     Pr(>|t|)
-#> (Intercept)    5.663462e+00  0.2956263 1.91575e+01 6.039735e-13
-#> I(YEAR - 2019) 2.646794e-16  0.2289912 1.15585e-15 1.000000e+00
+broom::tidy(fit, conf.int = TRUE)
+#> # A tibble: 2 × 7
+#>   term           estimate std.error statistic   p.value conf.low conf.high
+#>   <chr>             <dbl>     <dbl>     <dbl>     <dbl>    <dbl>     <dbl>
+#> 1 (Intercept)    5.66e+ 0     0.296  1.92e+ 1 6.04 e-13    5.04      6.29 
+#> 2 I(YEAR - 2019) 3.11e-16     0.229  1.36e-15 1.000e+ 0   -0.483     0.483
 ```
 
 The slope estimates the mean change in length of stay per calendar year

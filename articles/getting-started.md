@@ -9,7 +9,6 @@ library(easyNIS)
 library(dplyr)
 library(srvyr)
 library(gtsummary)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 ## Open the files and define the analysis groups
@@ -57,9 +56,21 @@ works](https://msaadasif.github.io/easyNIS/articles/how-easynis-works.md)
 
 ``` r
 
-tbl_svysummary(
-  design, by = heart_failure, include = c(AGE, los_days, in_hospital_death)
-) |>
+design |>
+  mutate(heart_failure = factor(
+    heart_failure,
+    levels = c(FALSE, TRUE),
+    labels = c("No heart failure", "Heart failure")
+  )) |>
+  tbl_svysummary(
+    by = heart_failure,
+    include = c(AGE, los_days, in_hospital_death),
+    label = list(
+      AGE ~ "Age (years)",
+      los_days ~ "Length of stay (days)",
+      in_hospital_death ~ "In-hospital death"
+    )
+  ) |>
   nis_suppress() |>
   as_gt()
 ```
@@ -75,15 +86,20 @@ fit <- survey::svyglm(
   in_hospital_death ~ heart_failure + AGE,
   design = design, family = quasibinomial()
 )
-summary(fit)$coefficients
-#>                      Estimate Std. Error    t value     Pr(>|t|)
-#> (Intercept)        0.46145631 0.98828434  0.4669267 6.468475e-01
-#> heart_failureTRUE -0.63073217 1.21522210 -0.5190262 6.108471e-01
-#> AGE               -0.09334641 0.01276033 -7.3153612 1.734965e-06
+tbl_regression(
+  fit,
+  exponentiate = TRUE,
+  label = list(heart_failure ~ "Heart failure", AGE ~ "Age (years)")
+) |>
+  as_gt()
 ```
 
-The heart-failure coefficient is the age-adjusted log odds ratio for
-in-hospital death in this example.
+[TABLE]
+
+The heart failure odds ratio compares the odds of in-hospital death
+between the two groups, adjusting for age. Before sharing a model fitted
+to real data, review the discharges that contributed to the fit for
+disclosure risk.
 
 ## Check the design and export a summary
 

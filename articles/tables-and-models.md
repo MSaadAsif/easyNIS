@@ -6,7 +6,6 @@ library(easyNIS)
 library(dplyr)
 library(srvyr)
 library(gtsummary)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented data.
