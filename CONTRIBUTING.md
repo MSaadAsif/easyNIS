@@ -26,8 +26,9 @@ Apply factor labels to multi-level codes at the R boundary with `nis_label()`.
 - Put changelog bullets in one unique `news/<topic-slug>.md` fragment. Leave `NEWS.md` for collection.
   An optional first `##` heading must match a development section in `NEWS.md`.
 - Before committing, run `Rscript --vanilla tools/check-package.R --lint` for
-  Air formatting, Jarl lint, and installed-package cyclomatic complexity of 15
-  or less.
+  CodeMeta freshness, Air formatting, Jarl lint, and installed-package
+  cyclomatic complexity of 15 or less. Refresh CodeMeta with
+  `Rscript --vanilla tools/probe/update-codemeta.R` after editing package metadata.
 - Before opening the PR, run `Rscript --vanilla tools/check-package.R --full`.
   It runs `devtools::check()` on the exact commit with `EASYNIS_FULL_TESTS`
   enabled, isolated from the working tree and ignored data.
