@@ -1,0 +1,1 @@
+- `nis_open()` opens wide annual Parquet data faster with the DuckDB reader and translates the first downstream query faster with either reader when column names require only renaming or reordering.

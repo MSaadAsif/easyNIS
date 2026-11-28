@@ -193,17 +193,47 @@ The bundled CCSR code lookup uses its own single-thread connection.
    the staged second export pass for one minimum-weight placeholder per
    valid hospital-year with zero contributing discharges. Peak memory
    varied little and the measurements support a translation improvement.
-5. **Opening, preflight and schema probes.** Merge the two
-   `parquet_kv_metadata()` lookups for non-release and saved-cohort markers.
-   Reuse physical schema information already acquired for native scans when
-   preparing the grouped projection. Reuse rendered SQL within an operation.
-   Keep source-year integrity and release totals, which detect different
-   failures. Keep the collection guard for unbounded results. Remove its
-   planning round trips for internally provable scalar or bounded outputs
-   once a test shows that no result-size risk is introduced. Keep a projected
-   prototype for genuinely type-based tidyselect and keep checking the type
-   of caller expressions. A lazy `colnames()` call normally reads retained
-   vars in R.
+5. **Opening, preflight and schema probes (evaluated).** Use a quoted SQL
+   projection for one-to-one ASCII column names with either reader.
+   Keep dbplyr's lazy projection for Unicode names and coalesces so unused
+   coalesces can be dropped before DuckDB binds their types. Keep saved-cohort
+   names, source-year validation, and the collection guard.
+
+   Five fresh processes at `7e624f8b` and three after the final change ran
+   each reader and release setting on five 500,000-row, 139-column invented
+   annual files. Runs used Windows x64, four threads, a 4 GB buffer limit,
+   DuckDB 1.5.2, dbplyr 2.5.2, and Arrow 24.0.0. The first query filtered by
+   age and counted rows by year. Values are medians in milliseconds. Opening
+   render time includes any SQL rendering inside the release check.
+
+   | Reader / release check | Open wall | Open rendering | First query rendering | First DuckDB prepare | Open statements |
+   | --- | ---: | ---: | ---: | ---: | ---: |
+   | DuckDB / on | 1,220 → 705 | 701 → 2 | 793 → 68 | 8 → 11 | 11 |
+   | DuckDB / off | 1,371 → 339 | 935 → 2 | 1,090 → 64 | 11 → 11 | 8 |
+   | Arrow / on | 713 → 833 | 1 → 2 | 796 → 50 | 19 → 21 | 12 |
+   | Arrow / off | 452 → 442 | 0 → 1 | 875 → 79 | 21 → 25 | 9 |
+
+   Rendering accounted for 57–68% of native open wall time. Arrow already
+   deferred that work until the first downstream query. Three alternating
+   checked Arrow replays of the prototype showed the same first-render improvement
+   (659 → 63 ms). Arrow opening wall time varied, including in the common
+   release-check and schema phases before the projection. The measurements
+   support faster first-query rendering for Arrow.
+
+   Metadata and schema statements took 51–91 ms at baseline. The five
+   physical descriptions establish per-part schemas. The pooled binding,
+   which took 13–18 ms, resolves the output schema across heterogeneous files.
+   Checked opens issued two different queries against the same key-value
+   footers, with no identical SQL repeats. The extra lookup cost 10–12 ms
+   including R time. Unchecked opens issued one key-value lookup. The
+   checked-release path took 257 ms (native) and 342 ms (Arrow), including
+   171 and 235 ms in the projected aggregate. Keep those probes and the
+   release aggregate. Their repeated work fell below the 20% threshold,
+   and the aggregate checks weights and hospitals that the footers cannot
+   establish. The statement counts were unchanged after the port.
+
+   The opening decision completes the port inventory. The retained
+   boundaries and owner decisions below still apply.
 6. **Keep the remaining boundaries.** Keep R survey materialization for
    `nis_design()` and PSU-only materialization for `nis_survey()`. Keep the
    connection subclass, source attributes
@@ -273,7 +303,7 @@ overlap the phases in the baseline table.
 | Layer | Time | What the measurement supports |
 | --- | --- | --- |
 | Open, connection setup | 0.16 / 0.32 | One connection per open is part of the resource lifetime. |
-| Open, release check | 0.43 / 0.71 | Three statements beyond the skip path. Keep the projected data scan for weight and hospital checks and merge duplicate footer reads. |
+| Open, release check | 0.43 / 0.71 | Three statements beyond the skip path. Port 5 separately measures the projected data scan and the repeated footer read. |
 | Open, attach finalizer | Under 0.001 / under 0.001 | Keep the ownership hook. |
 | Key and eligibility validation before comorbidity scoring | 2.46 / 2.30 | One extra scan and a substantial execution cost. Preserve uniqueness and code-era checks while testing a combined scoring plan. |
 | Design tidyselect prototype | 0.16 / 0.19 | Keep type-based selection. Investigate a names-only fast path with equivalent schema validation. |
