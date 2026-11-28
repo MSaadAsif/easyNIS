@@ -32,7 +32,7 @@ nis_open_parquet_query <- function(scans, con) {
 nis_open_scan <- function(path, partition_year, index, con, reader) {
   owner <- NULL
   if (reader == "arrow") {
-    owner <- arrow::open_dataset(path, partitioning = character())
+    owner <- nis_open_arrow_dataset(path)
     name <- paste0("easyNIS_arrow_", index)
     duckdb::duckdb_register_arrow(con, name, owner)
     scan <- as.character(DBI::dbQuoteIdentifier(con, name))
@@ -57,6 +57,21 @@ nis_open_scan <- function(path, partition_year, index, con, reader) {
     )
   }
   list(path = path, scan = scan, schema = schema, year = partition_year, physical = physical, owner = owner)
+}
+
+nis_open_arrow_dataset <- function(path) {
+  dataset <- arrow::open_dataset(path, partitioning = character())
+  reader <- R6::R6Class(
+    "nis_arrow_dataset",
+    inherit = arrow::FileSystemDataset,
+    public = list(NewScan = function() {
+      # Parquet read-ahead scales with the batch size for each active scan.
+      builder <- super$NewScan()
+      builder$BatchSize(8192L)
+      builder
+    })
+  )
+  reader$new(dataset$pointer())
 }
 
 nis_open_validate_partition <- function(scan, con) {

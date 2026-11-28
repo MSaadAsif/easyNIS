@@ -120,6 +120,25 @@ test_that("invalid UTF-8 in a release field warns and keeps clean columns querya
   expect_error(dplyr::collect(dplyr::select(query, NIS_STRATUM)), class = "easyNIS_invalid_utf8")
 })
 
+test_that("Arrow scans push down projections and filters across batches", {
+  skip_if_not_installed("arrow")
+  path <- withr::local_tempdir()
+  ids <- seq_len(20000L)
+  write_duckdb_parquet(
+    data.frame(YEAR = 2020L, id = ids, LOS = 1L + ids %% 2L, unused = "sample"),
+    file.path(path, "NIS_2020.parquet")
+  )
+  query <- nis_open(path, reader = "arrow", check_release = FALSE) |>
+    dplyr::filter(LOS == 2L) |>
+    dplyr::select(id)
+  con <- dbplyr::remote_con(query)
+  plan <- DBI::dbGetQuery(con, paste("EXPLAIN", dbplyr::sql_render(query)))$explain_value
+  expect_match(plan, "Projections: id", fixed = TRUE)
+  # DuckDB versions differ in spacing around the operator.
+  expect_match(plan, "Filters: LOS ?= ?2")
+  expect_identical(sort(dplyr::collect(query)$id), ids[ids %% 2L == 1L])
+})
+
 test_that("Arrow reader preserves invalid UTF-8 bytes and integer years", {
   skip_if_not_installed("arrow")
   local_mocked_bindings(
