@@ -4,12 +4,13 @@ template:
   bootstrap: 5
   light-switch: true
   theme: github-light
-  theme-dark: github-dark
+  theme-dark: a11y-dark
   bslib:
     primary: "#176358"
     navbar-light-bg: "#edf6f3"
     navbar-dark-bg: "#172b2a"
     link-color-dark: "#8ed8c7"
+    code-color-dark: "#f8f8f2"
     font-size-base: 1rem
 
 home:

@@ -6,14 +6,17 @@ output: rmarkdown::html_document
 Create a survey-weighted Table 1, a regression table, a trend figure, a
 cohort attrition table, and a design report from the same invented sample.
 
-```{r setup, message=FALSE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r packages, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
 library(gtsummary)
 library(ggplot2)
 
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 nis <- nis_open(nis_example(years = 2019:2021)) |>
   nis_flag_dx(heart_failure = "I50") |>
   mutate(age_group = case_when(
