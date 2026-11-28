@@ -22,10 +22,15 @@ nis_open_plan_parquet <- function(parts, con, reader) {
 nis_open_parquet_query <- function(scans, con) {
   projections <- vapply(scans, nis_open_project_year, character(1))
   union <- paste(projections, collapse = " UNION ALL BY NAME ")
+  nis_open_sql_tbl(con, paste0("SELECT * FROM (", union, ")"))
+}
+
+nis_open_sql_tbl <- function(con, sql, vars = NULL) {
   dbplyr::tbl_sql(
     c("duckdb_connection", "dbi"),
     src = dbplyr::src_dbi(con),
-    from = dbplyr::sql(paste0("SELECT * FROM (", union, ")"))
+    from = dbplyr::sql(sql),
+    vars = vars
   )
 }
 

@@ -65,3 +65,6 @@ jobs:
       - name: Gate design, annual totals, and cohort export performance
         timeout-minutes: 2
         run: Rscript --vanilla tools/experiments/adr-0002/design-gate.R "$RUNNER_TEMP/prday-gate"
+      - name: Gate wide Parquet open and first-query performance
+        timeout-minutes: 2
+        run: Rscript --vanilla tools/experiments/adr-0002/open-gate.R "$RUNNER_TEMP/prday-gate"
