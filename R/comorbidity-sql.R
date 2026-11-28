@@ -9,7 +9,6 @@ nis_cmrb_inputs <- function(records, slots, keys, fiscal_exemptions) {
   quoted_keys <- DBI::dbQuoteIdentifier(con, keys)
   eligible <- nis_cmrb_slot_eligibility(con, input, fields, slots)
   dx <- DBI::dbQuoteIdentifier(con, slots$name)
-  # Remove ASCII whitespace and decimal separators, as with compact ICD codes.
   code <- paste0(
     "NULLIF(UPPER(TRANSLATE(",
     dx,
@@ -220,7 +219,6 @@ nis_cmrb_decode_sql <- function(con, spec) {
 }
 
 nis_cmrb_lookup_sql <- function(con, map) {
-  # Codes with identical masks share a constant list in the query.
   version <- substr(map$id, 1L, regexpr(":", map$id) - 1L)
   kind <- substr(map$id, nchar(version) + 2L, nchar(version) + 2L)
   code <- substring(map$id, nchar(version) + 4L)

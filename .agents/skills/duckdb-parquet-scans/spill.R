@@ -20,7 +20,7 @@ make_sort_fixture <- function(path, rows) {
 
 run_sort <- function(path, spill, rows, threads, output, profile = NULL, cap = "768MB") {
   old <- options(easyNIS.duckdb_config = list(
-    memory_limit = "192MB", max_temp_directory_size = cap,
+    memory_limit = "256MB", max_temp_directory_size = cap,
     temp_directory = spill, threads = threads, preserve_insertion_order = FALSE
   ))
   on.exit(options(old))

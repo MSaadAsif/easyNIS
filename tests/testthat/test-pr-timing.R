@@ -357,8 +357,6 @@ test_that("PRDAY completeness counts matching slots by year and slot", {
 })
 
 test_that("PRDAY completeness aggregates on DuckDB queries", {
-  skip_if_not_installed("duckdb")
-  skip_if_not_installed("dbplyr")
   data <- dplyr::tibble(YEAR = c(2020L, 2020L), I10_PR1 = c("IX", "IX"), PRDAY1 = c(0L, -99L))
   con <- duckdb::dbConnect(duckdb::duckdb())
   on.exit(duckdb::dbDisconnect(con, shutdown = TRUE), add = TRUE)

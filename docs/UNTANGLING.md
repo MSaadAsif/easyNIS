@@ -111,7 +111,10 @@ shared requirement and record the places where the existing structure obscures i
 - The spill benchmark reads a shared profile after disabling profiling.
   DuckDB 2.0.1 records the disabling statement in that file and nests the
   metrics under `system`. Capture the measured COPY's profile before
-  disabling and validate both supported layouts.
+  disabling and validate both supported layouts. Increase the benchmark's
+  buffer from 192 MB to 256 MB after reproducing timed allocation failures
+  at the old setting on both revisions. Retain the spill and 1 MB failure
+  assertions.
 - `tools/formal/duckdb/run.R:10–25` used a fixed `Mutation.lean` in the
   proof project. An interrupted or overlapping run could block the next
   qualification. Compile each mutant from its own evidence directory and

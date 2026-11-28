@@ -53,7 +53,7 @@ Install `jsonlite` in addition to the normal imports and allow about
 
 - Generates eight million invented rows in four Hive Parquet parts.
 - Verifies `nis_open(years = 2020L)` selects the expected files and rows.
-- Sorts and writes the whole fixture with a 192 MB DuckDB buffer setting
+- Sorts and writes the whole fixture with a 256 MB DuckDB buffer setting
   and a 768 MB temporary-directory cap.
 - Profiles one run per setting, then times five alternating unprofiled
   exports each with one and two DuckDB threads. It checks row count,
@@ -65,6 +65,9 @@ Install `jsonlite` in addition to the normal imports and allow about
 DuckDB 1.5.2 reported the 1 MB cap through `current_setting()` even when an
 export exceeded it. The production connection now applies the cap with
 `SET` after opening. The failure test exercises disk enforcement directly.
+On DuckDB 2.0.1, both the starting revision and the refactor exhausted the
+previous 192 MB buffer setting during timed runs. The 256 MB setting still
+requires disk spill and lets both thread configurations finish.
 
 Record the engine version, median and range, peak buffer bytes, peak spill
 bytes, and whether both settings completed. Compare only runs with the
