@@ -21,6 +21,9 @@ home:
     - text: Function reference
       href: reference/index.html
 
+search:
+  exclude: [AGENTS.html, CONTRIBUTING.html, PULL_REQUEST_TEMPLATE.html]
+
 navbar:
   structure:
     left: [get_started, gallery, guides, concepts, reference, news]
