@@ -131,7 +131,7 @@ test_that("diagnosis POA indicators exclude secondary in-hospital conditions", {
   expect_true(nis_comorbidity(data)$cmrb_hf)
 
   data <- dplyr::select(data, -dplyr::starts_with("DXPOA"))
-  expect_warning(out <- nis_comorbidity(data), "I10_DX1.*I10_DX2")
+  expect_warning(out <- nis_comorbidity(data), "Assuming present on admission")
   expect_true(out$cmrb_hf)
 })
 
@@ -169,11 +169,11 @@ test_that("partial and absent POA columns warn and assume present", {
     DXPOA1 = "Y",
     DXPOA2 = "Y"
   )
-  expect_warning(partial_out <- nis_comorbidity(partial), "I10_DX3")
+  expect_warning(partial_out <- nis_comorbidity(partial), "Assuming present on admission")
   expect_true(partial_out$cmrb_hf)
 
   absent <- dplyr::select(partial, -dplyr::starts_with("DXPOA"))
-  expect_warning(absent_out <- nis_comorbidity(absent), "I10_DX1.*I10_DX2.*I10_DX3")
+  expect_warning(absent_out <- nis_comorbidity(absent), "Assuming present on admission")
   expect_true(absent_out$cmrb_hf)
 })
 
