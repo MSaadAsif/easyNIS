@@ -53,7 +53,7 @@ nis_design_report <- function(x) {
     reweighted = input$reweighted,
     model = if (is_fit) list(n = stats::nobs(x), excluded_n = omitted)
   )
-  structure(report, class = "nis_design_report")
+  structure(report, class = c("nis_design_report", "list"))
 }
 
 #' @export
