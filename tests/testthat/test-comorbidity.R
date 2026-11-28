@@ -77,7 +77,7 @@ test_that("wide-to-long reshaping keeps row order and tolerates messy codes", {
     I10_DX3 = c(NA, NA, NA, NA, paste0(" ", codes[["DEMENTIA"]], " "), codes[["AIDS"]])
   )
 
-  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "2 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "no usable")
 
   expect_identical(out$KEY, 1:6)
   expect_identical(out$cmrb_aids, c(FALSE, NA, NA, TRUE, FALSE, TRUE))
@@ -208,7 +208,7 @@ test_that("a discharge with no usable code gets NA and a warning, not zeros", {
     I10_DX1 = c(NA_character_, malformed, "ZZZ99", ""),
     I10_DX2 = NA_character_
   )
-  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "3 rows")
+  expect_warning(out <- without_poa_warning(nis_comorbidity(data)), "no usable")
   expect_identical(out$cmrb_n[c(1, 2, 4)], rep(NA_integer_, 3L))
   expect_identical(out$cmrb_n[[3L]], 0L)
   expect_identical(out$cmrb_any, c(NA, NA, FALSE, NA))
