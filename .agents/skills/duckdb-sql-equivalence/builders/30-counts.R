@@ -13,7 +13,9 @@ design_cases <- function(con) {
     DQTR = c(1L, 2L, 3L, 4L, NA),
     keep = c(FALSE, TRUE, NA)
   )
-  list(case(rows))
+  text <- rows
+  text$DQTR <- c("1", "Q2", "3", "Q4")[text$DQTR]
+  list(case(rows), case(text))
 }
 
 design_output <- function(cohort, hospitals, bad, coverage, input_rows) {
@@ -43,7 +45,7 @@ design_sql <- function(con, rows, args) {
     duck_table(con, rows),
     rlang::quo(keep),
     "id",
-    0L,
+    rows$DQTR[integer()],
     annualize = FALSE,
     call = rlang::caller_call(),
     inspect_quarters = TRUE
@@ -58,6 +60,7 @@ design_reference <- function(rows, args) {
   sample <- rows[valid$ok, ]
   hospital <- stats::aggregate(DISCWT ~ YEAR + HOSP_NIS, sample, min)
   coverage <- unique(sample[!is.na(sample$DQTR), c("YEAR", "DQTR")])
+  coverage$DQTR <- as.integer(sub("^Q", "", coverage$DQTR))
   names(coverage)[2L] <- "quarter"
   coverage <- coverage[order(coverage$YEAR, coverage$quarter), ]
   design_output(sample$id[sample$keep %in% TRUE], hospital, colSums(valid$bad), coverage, nrow(rows))
@@ -78,7 +81,7 @@ register(
   design_cases,
   design_sql,
   design_reference,
-  mutation("design-sample.R", "nis_sample_group_rows", "min(dplyr::if_else", "max(dplyr::if_else"),
+  mutation("design-sql.R", "nis_sample_roster_sql", "min(CASE", "max(CASE"),
   relations = list(years = design_years, rows = shuffle_rows),
   relation_case = function(cases) {
     x <- cases[[1L]]

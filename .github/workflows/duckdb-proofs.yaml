@@ -18,6 +18,7 @@ on:
       - R/comorbidity-sql.R
       - R/convert.R
       - R/design-sample.R
+      - R/design-sql.R
       - R/duckdb.R
       - R/lazy-survey.R
       - R/lazy-survey-glm.R

@@ -170,13 +170,29 @@ The bundled CCSR code lookup uses its own single-thread connection.
    replay profiles reported 574 and 576 MiB of peak DuckDB buffers for Quan
    and 289 and 402 MiB for Deyo. These gains fall short of the 20% end-to-end
    threshold used for this port.
-4. **Design, annual totals and cohort export.** The three paths spent
-   about 3.6–7.6 s rendering dbplyr expressions. Test a single builder for
-   each internal projection and aggregate while translating caller criteria
-   at the API boundary. Keep the sample roster separate from the cohort
-   rows when both are needed. Keep the analogous second export pass that
-   restores hospitals with no selected discharge until a measured one-pass
-   plan proves equivalent with bounded memory.
+4. **Design, annual totals and cohort export (evaluated).** Port the
+   internal validity, roster, cohort projection and PSU aggregate queries.
+   Translate caller criteria with dbplyr and reuse the rendered input when
+   preparing the export schema and rows. Relative to `ebe6eeed`, three
+   alternating fresh runs per workload used five invented annual files of
+   500,000 rows each on Windows x64 with DuckDB 1.5.2, four threads and a
+   4 GB buffer limit. Baseline rendering and preparation accounted for
+   54–67% of wall time across the workloads, above the 20% threshold.
+
+   | Workload | Wall (s) | Render + prepare (s) | DuckDB execution (s) | R result transfer (ms) | Peak process commit (MiB) |
+   | --- | ---: | ---: | ---: | ---: | ---: |
+   | Design from annual sample | 4.06 → 2.53 | 2.61 → 1.22 | 0.530 → 0.559 | 16 → 17 | 403 → 405 |
+   | Design from saved cohort | 2.42 → 0.89 | 1.43 → 0.10 | 0.070 → 0.061 | 16 → 14 | 401 → 399 |
+   | Annual totals | 5.99 → 2.42 | 3.71 → 1.24 | 0.730 → 0.660 | 16 → 16 | 400 → 399 |
+   | Cohort export | 5.77 → 2.60 | 3.87 → 1.46 | 0.683 → 0.512 | 10 → 12 | 403 → 401 |
+
+   Values are medians. Execution uses DuckDB's JSON query latency bounded
+   by driver elapsed time. Result transfer estimates the extra driver time
+   for reads and includes DBI fetch. It excludes SQL rendering and
+   collection guard queries' engine time. Keep the separate roster scan and
+   the staged second export pass for one minimum-weight placeholder per
+   valid hospital-year with zero contributing discharges. Peak memory
+   varied little and the measurements support a translation improvement.
 5. **Opening, preflight and schema probes.** Merge the two
    `parquet_kv_metadata()` lookups for non-release and saved-cohort markers.
    Reuse physical schema information already acquired for native scans when
