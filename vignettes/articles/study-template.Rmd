@@ -3,11 +3,14 @@ title: "Start a Quarto study"
 output: rmarkdown::html_document
 ---
 
-```{r setup, message=FALSE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r packages, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 The examples use invented data.
