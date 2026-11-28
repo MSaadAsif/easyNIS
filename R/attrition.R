@@ -147,7 +147,7 @@ nis_attrition_metrics <- function(data, criteria_count) {
   dplyr::filter(.data, !(!!any_invalid))
 }
 
-#' Summarize sequential cohort attrition
+#' Count discharges at each eligibility step
 #'
 #' Count the discharges that remain after each eligibility criterion.
 #'
@@ -185,8 +185,7 @@ nis_attrition_metrics <- function(data, criteria_count) {
 #'   are missing for ordinary logical criteria. Pass the flow to
 #'   [nis_audit_code_transition()] to summarize its code criteria by period.
 #' @family cohort-definition
-#' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html),
-#'   [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
+#' @seealso [Define and save a cohort](https://msaadasif.github.io/easyNIS/articles/cohorts.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2020))

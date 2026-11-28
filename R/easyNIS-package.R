@@ -12,4 +12,8 @@
 #'
 #' @aliases easyNIS
 #' @keywords internal
+#' @examples
+#' nis_open(nis_example(2020)) |>
+#'   dplyr::count(YEAR) |>
+#'   dplyr::collect()
 "_PACKAGE"

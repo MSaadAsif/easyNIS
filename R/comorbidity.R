@@ -47,9 +47,8 @@
 #'   `<prefix>readmission_index` (Elixhauser) or `<prefix>cci` (Charlson).
 #'   Charlson scores are based on diagnoses and any mapped procedures without
 #'   an age adjustment.
-#' @family comorbidity
-#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-#'   [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
+#' @family outcomes and costs
+#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2020))

@@ -33,10 +33,12 @@ charges <- nis_open(nis_example(years = 2019:2020)) |>
 head(nis_cost(charges, dollars = 2024))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs},
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.
 
-Other costs:
-\code{\link[=nis_cost_provenance]{nis_cost_provenance()}}
+Other outcomes and costs:
+\code{\link[=nis_comorbidity]{nis_comorbidity()}},
+\code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}},
+\code{\link[=nis_cost_provenance]{nis_cost_provenance()}},
+\code{\link[=nis_outcomes]{nis_outcomes()}}
 }
-\concept{costs}
+\concept{outcomes and costs}

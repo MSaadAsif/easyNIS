@@ -48,9 +48,11 @@ nis_study_copy_template <- function(path, call) {
   }
 }
 
-#' Create a new NIS study folder
+#' Create a Quarto study
 #'
-#' Create a Quarto study in a new local directory.
+#' Create a Quarto project with an editable NIS analysis, methods text,
+#' and a disclosure checklist. The example runs on invented discharges
+#' until you supply your own data directory.
 #'
 #' @details Open `analysis.qmd` to edit the cohort, outcomes, and analysis.
 #' Render with `quarto render analysis.qmd` from the study directory. With
@@ -65,7 +67,8 @@ nis_study_copy_template <- function(path, call) {
 #' @return The normalized path to the created study directory.
 #' @family study-setup
 #' @seealso [Start a Quarto study](https://msaadasif.github.io/easyNIS/articles/study-template.html),
-#'   [Start a Quarto study](https://msaadasif.github.io/easyNIS/articles/study-template.html).
+#'   [nis_design_report()] to inspect the fitted sample and [nis_scan_outputs()]
+#'   to scan the files you plan to share.
 #' @export
 #' @examples
 #' study_path <- tempfile("nis-study-example-")

@@ -43,10 +43,10 @@ nis_check_2015_cohort <- function(quarters, call) {
 
 #' Estimate annual national discharge totals
 #'
-#' Estimates one national total and design-based standard error per calendar
-#' year using unscaled discharge weights. Give the function the annual sample
-#' and declare the analysis domain with `cohort`. The design uses year-specific
-#' hospital and stratum identifiers, as in [nis_design()].
+#' Estimate a weighted discharge total and design-based standard error for
+#' each complete calendar year. Supply the annual sample and use `cohort` to
+#' define the analysis domain. The calculation uses the original discharge
+#' weights and year-specific hospital and stratum identifiers.
 #'
 #' @param .data A data frame or lazy DuckDB query with the standard NIS design
 #'   fields and `DQTR` (quarter numbers or `Q1`–`Q4` labels). All four
@@ -64,12 +64,23 @@ nis_check_2015_cohort <- function(quarters, call) {
 #'   valid cohort discharges have zero support counts and missing estimates
 #'   and standard errors. Use the support counts with [nis_suppress()] before
 #'   sharing annual estimates.
-#' @seealso [Trends](https://msaadasif.github.io/easyNIS/articles/trends.html).
+#' @family survey-design
+#' @seealso [Estimate trends across NIS years](https://msaadasif.github.io/easyNIS/articles/trends.html),
+#'   [NIS output gallery](https://msaadasif.github.io/easyNIS/articles/gallery.html#annual-discharge-trend).
 #' @export
 #' @examples
-#' nis <- nis_open(nis_example(years = 2019:2020)) |>
+#' nis <- nis_open(nis_example(years = 2019:2021)) |>
 #'   nis_flag_dx(heart_failure = "I50")
-#' nis_annual_totals(nis, heart_failure)
+#' annual <- nis_annual_totals(nis, cohort = AGE >= 18 & heart_failure)
+#' annual
+#'
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   ggplot2::ggplot(annual, ggplot2::aes(YEAR, discharges)) +
+#'     ggplot2::geom_line() +
+#'     ggplot2::geom_point() +
+#'     ggplot2::scale_x_continuous(breaks = annual$YEAR) +
+#'     ggplot2::labs(x = "Discharge year", y = "Weighted discharges")
+#' }
 nis_annual_totals <- function(.data, cohort, coding = c("single_era", "verified_comparable")) {
   coding <- match.arg(coding)
   call <- rlang::current_call()

@@ -2,7 +2,7 @@
 % Please edit documentation in R/dx-sensitivity.R
 \name{nis_audit_dx_position}
 \alias{nis_audit_dx_position}
-\title{Summarize diagnosis-position sensitivity}
+\title{Compare principal and any-slot diagnosis matches}
 \usage{
 nis_audit_dx_position(
   .data,
@@ -52,7 +52,6 @@ outcome_names <- c("ELECTIVE", "DIED")
 nis_audit_dx_position(nis, "I50", outcomes = tidyselect::all_of(outcome_names))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras},
 \href{https://msaadasif.github.io/easyNIS/articles/years-and-eras.html}{Years and coding eras}.
 
 Other cohort-definition:
@@ -62,6 +61,7 @@ Other cohort-definition:
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

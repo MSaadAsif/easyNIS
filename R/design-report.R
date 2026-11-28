@@ -1,4 +1,4 @@
-#' Report the design and fitted sample for NIS analyses
+#' Report the survey design and fitted sample
 #'
 #' Report the discharges and survey weights used in a design or fitted model.
 #'
@@ -21,8 +21,7 @@
 #'   the fit omitted for missing model data (`excluded_n`).
 #'
 #' @family survey-design
-#' @seealso [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html),
-#'   [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
+#' @seealso [Analyze your first NIS cohort](https://msaadasif.github.io/easyNIS/articles/getting-started.html)
 #' @export
 #' @examples
 #' data <- nis_open(nis_example(2019:2020))

@@ -25,8 +25,8 @@
 #'     enforcement) and 99 (alive, destination unknown) are valid codes.
 #'
 #'   For a lazy DuckDB input, the result is a lazy query.
-#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html),
-#'   [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html), [nis_cost()]
+#' @family outcomes and costs
+#' @seealso [Derive outcomes, comorbidities, and costs](https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html), [nis_cost()]
 #' @export
 #' @examples
 #' nis_open(nis_example(years = 2024)) |>

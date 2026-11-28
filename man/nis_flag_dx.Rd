@@ -75,6 +75,7 @@ Other cohort-definition:
 \code{\link[=nis_audit_prday]{nis_audit_prday()}},
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

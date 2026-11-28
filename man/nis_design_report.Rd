@@ -2,7 +2,7 @@
 % Please edit documentation in R/design-report.R
 \name{nis_design_report}
 \alias{nis_design_report}
-\title{Report the design and fitted sample for NIS analyses}
+\title{Report the survey design and fitted sample}
 \usage{
 nis_design_report(x)
 }
@@ -37,10 +37,10 @@ nis_design_report(design)
 nis_design_report(survey::svyglm(LOS ~ AGE, design = design))
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort},
 \href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort}
 
 Other survey-design:
+\code{\link[=nis_annual_totals]{nis_annual_totals()}},
 \code{\link[=nis_design]{nis_design()}},
 \code{\link[=nis_reweight]{nis_reweight()}},
 \code{\link[=nis_survey]{nis_survey()}}

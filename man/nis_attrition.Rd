@@ -3,7 +3,7 @@
 \name{nis_attrition}
 \alias{nis_attrition}
 \alias{nis_attrition_cohort}
-\title{Summarize sequential cohort attrition}
+\title{Count discharges at each eligibility step}
 \usage{
 nis_attrition(
   .data,
@@ -69,7 +69,6 @@ flow
 nis_design(nis, cohort = !!nis_attrition_cohort(flow), keep = LOS)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort},
 \href{https://msaadasif.github.io/easyNIS/articles/cohorts.html}{Define and save a cohort}.
 
 Other cohort-definition:
@@ -79,6 +78,7 @@ Other cohort-definition:
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

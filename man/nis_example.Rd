@@ -2,7 +2,7 @@
 % Please edit documentation in R/example.R
 \name{nis_example}
 \alias{nis_example}
-\title{Write an invented NIS-shaped Parquet dataset}
+\title{Create invented NIS Parquet files}
 \usage{
 nis_example(years = 2017:2022)
 }
@@ -15,19 +15,20 @@ with invented codes and version indicators; it is not a clinical crosswalk.}
 The temporary directory containing \verb{NIS_<year>.parquet/} entries.
 }
 \description{
-Write an invented NIS-shaped Parquet dataset
+Create invented NIS Parquet files
 }
 \examples{
 path <- nis_example(years = 2019:2020)
 list.files(path)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort},
 \href{https://msaadasif.github.io/easyNIS/articles/getting-started.html}{Analyze your first NIS cohort}.
 
 Other data-access:
 \code{\link[=nis_convert]{nis_convert()}},
+\code{\link[=nis_join_companion]{nis_join_companion()}},
 \code{\link[=nis_label]{nis_label()}},
-\code{\link[=nis_open]{nis_open()}}
+\code{\link[=nis_open]{nis_open()}},
+\code{\link[=nis_vars_design]{nis_vars_design()}}
 }
 \concept{data-access}

@@ -1,4 +1,4 @@
-#' Summarize procedure-day completeness by year and procedure slot
+#' Check procedure-day completeness
 #'
 #' Counts matched procedure slots with known, missing, negative/sentinel, or
 #' absent PRDAY values. Prefix matching and day classification follow

@@ -76,10 +76,12 @@ nis_comorbidity(nis, method = "elixhauser_ahrq2027") |>
   dplyr::collect()
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs},
 \href{https://msaadasif.github.io/easyNIS/articles/outcomes-and-costs.html}{Derive outcomes, comorbidities, and costs}.
 
-Other comorbidity:
-\code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}}
+Other outcomes and costs:
+\code{\link[=nis_comorbidity_condition_map]{nis_comorbidity_condition_map()}},
+\code{\link[=nis_cost]{nis_cost()}},
+\code{\link[=nis_cost_provenance]{nis_cost_provenance()}},
+\code{\link[=nis_outcomes]{nis_outcomes()}}
 }
-\concept{comorbidity}
+\concept{outcomes and costs}

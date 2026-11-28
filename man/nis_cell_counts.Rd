@@ -27,7 +27,6 @@ nis <- nis_open(nis_example(2020))
 nis_cell_counts(nis, by = DQTR)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results},
 \href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results}.
 
 Other disclosure:

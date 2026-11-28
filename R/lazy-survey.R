@@ -20,8 +20,7 @@
 #'   weights. The default uses discharge weights without annualization.
 #' @return A lazy `nis_survey` design.
 #' @family survey-design
-#' @seealso [Analyze the whole sample in DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html),
-#'   [Analyze the whole sample in DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html)
+#' @seealso [Analyze the whole sample in DuckDB](https://msaadasif.github.io/easyNIS/articles/whole-sample.html)
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2019:2020))

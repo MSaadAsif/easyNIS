@@ -1,4 +1,4 @@
-#' ICD-10 codes in HCUP CCSR categories
+#' Find ICD-10 codes in a CCSR category
 #'
 #' Returns the full ICD-10-CM or ICD-10-PCS codes assigned to the requested
 #' categories in a bundled AHRQ HCUP CCSR release. Use [nis_add_ccsr()] for

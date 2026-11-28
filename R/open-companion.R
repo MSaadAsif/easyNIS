@@ -1,4 +1,4 @@
-#' Attach an annual NIS companion to Core discharges
+#' Join an annual NIS companion file
 #'
 #' Add selected companion fields to a lazy Core query.
 #'
@@ -21,8 +21,8 @@
 #'   their source names and must have names distinct from fields in `.data`.
 #'
 #' @return A lazy DuckDB-backed Core query with the requested columns added.
+#' @family data-access
 #' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Opening NIS data](https://msaadasif.github.io/easyNIS/articles/opening-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp).
 #' @export
 #' @examples

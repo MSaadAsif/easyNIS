@@ -61,8 +61,7 @@ nis_hospital_count_query <- function(data, by) {
 #' @return A data frame with the columns in `by`, `n` (unweighted discharges),
 #'   and `hospitals` (distinct year-scoped hospitals).
 #' @family disclosure
-#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html),
-#'   [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
+#' @seealso [Check disclosure before sharing results](https://msaadasif.github.io/easyNIS/articles/disclosure.html).
 #' @export
 #' @examples
 #' nis <- nis_open(nis_example(2020))

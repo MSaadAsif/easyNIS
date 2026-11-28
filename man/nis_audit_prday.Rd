@@ -2,7 +2,7 @@
 % Please edit documentation in R/prday-completeness.R
 \name{nis_audit_prday}
 \alias{nis_audit_prday}
-\title{Summarize procedure-day completeness by year and procedure slot}
+\title{Check procedure-day completeness}
 \usage{
 nis_audit_prday(.data, pr, system = c("icd10", "icd9"))
 }
@@ -50,6 +50,7 @@ Other cohort-definition:
 \code{\link[=nis_ccsr_codes]{nis_ccsr_codes()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

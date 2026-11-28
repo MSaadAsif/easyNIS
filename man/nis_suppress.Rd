@@ -2,7 +2,7 @@
 % Please edit documentation in R/suppress.R
 \name{nis_suppress}
 \alias{nis_suppress}
-\title{Suppress small unweighted cells in a survey summary}
+\title{Mask cells with insufficient disclosure support}
 \usage{
 nis_suppress(
   .data,
@@ -85,7 +85,6 @@ cells <- nis_cell_counts(nis, by = DQTR)
 nis_suppress(cells, count_col = n, hospital_col = hospitals, by = DQTR)
 }
 \seealso{
-\href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results},
 \href{https://msaadasif.github.io/easyNIS/articles/disclosure.html}{Check disclosure before sharing results}.
 
 Other disclosure:

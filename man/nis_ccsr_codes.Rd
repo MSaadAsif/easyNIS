@@ -2,7 +2,7 @@
 % Please edit documentation in R/ccsr.R
 \name{nis_ccsr_codes}
 \alias{nis_ccsr_codes}
-\title{ICD-10 codes in HCUP CCSR categories}
+\title{Find ICD-10 codes in a CCSR category}
 \usage{
 nis_ccsr_codes(
   categories,
@@ -62,6 +62,7 @@ Other cohort-definition:
 \code{\link[=nis_audit_prday]{nis_audit_prday()}},
 \code{\link[=nis_flag_dx]{nis_flag_dx()}},
 \code{\link[=nis_flag_pr]{nis_flag_pr()}},
-\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}}
+\code{\link[=nis_flag_pr_timing]{nis_flag_pr_timing()}},
+\code{\link[=nis_write_cohort]{nis_write_cohort()}}
 }
 \concept{cohort-definition}

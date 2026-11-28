@@ -1,12 +1,13 @@
 ---
 title: "Check disclosure before sharing results"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_document
 ---
 
 ```{r setup, message=FALSE}
 library(easyNIS)
 library(dplyr)
 library(srvyr)
+library(gtsummary)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -47,14 +48,11 @@ helper also masks zeros as a conservative default.
 
 ## Mask a survey table
 
-Install `gtsummary` and `cardx` to run the survey table examples.
-
 ```{r table}
-library(gtsummary)
-
 design <- nis_design(nis, AGE >= 18, keep = c(AGE, RACE, heart_failure))
 tbl_svysummary(design, by = heart_failure, include = c(AGE, RACE)) |>
-  nis_suppress()
+  nis_suppress() |>
+  as_gt()
 ```
 
 The helper checks the non-missing complement of a displayed two-level
@@ -65,12 +63,6 @@ Check whether percentages, totals, or other outputs reveal a masked cell
 before release.
 
 ## Export a three-group table to CSV
-
-The oldest age group in this invented example has ten or fewer sampled
-discharges. `nis_suppress()` masks its header denominator and its statistics.
-`as_tibble()` carries the masked heading into the CSV. Use `<=` for the
-less-than-or-equal suppression marker so the file also works in non-UTF-8
-locales.
 
 ```{r export-table}
 bands <- nis |>
@@ -89,35 +81,23 @@ write.csv(csv, file, row.names = FALSE)
 read.csv(file, check.names = FALSE)
 ```
 
-Review the CSV alongside any table headings, footnotes, totals, and
-related outputs you plan to share.
+Suppression masks the oldest group's denominator and statistics.
+`as_tibble()` carries the masked heading into the CSV. The export uses
+the ASCII marker `<=` for compatibility with non-UTF-8 locales. Review
+the CSV alongside the other outputs you plan to share.
 
 ## Scan the finished publication folder
 
-Place the files you intend to publish in a dedicated folder. After rendering
-reports and exporting tables, run the scan on that folder and its subfolders.
-
-```{r publication-scan, eval=FALSE}
-nis_scan_outputs("public-outputs")
-nis_scan_outputs("public-outputs", error = TRUE)
+```{r publication-scan}
+publication <- tempfile("publication-")
+dir.create(publication)
+write.csv(counts, file.path(publication, "draft-counts.csv"), row.names = FALSE)
+nis_scan_outputs(publication)
 ```
 
-The result gives each finding's relative file path, location, and issue type.
-Identifier findings give the recognized field name. The scan looks for names
-such as `KEY_NIS`, `HOSP_NIS`, legacy `KEY` and `HOSPID`, and HCUP linkage
-fields such as `VisitLink`. A methods description can trigger a finding
-simply by naming a field.
-[HCUP NIS data elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp)
-
-The scan flags visible integers from 1 to 10 under headers such as `n`,
-`unweighted n`, `Count`, and `n (%)`. It also looks for explicit statements
-such as “n = 5” or “5 discharges.” It accepts suppression markers such as
-`<=10` and `Masked`. Report readers handle UTF-8 CSV, TSV, HTML, Markdown
-and plain text, plus XLSX worksheets and DOCX text and tables. XLSX requires
-`readxl`, HTML and DOCX require `xml2`, and Markdown also requires `commonmark`.
-A supported file the scan cannot read yields a `scan_error` finding.
-
-Review PDFs, images, charts, renamed fields, workbook formulas, and unusual
-table layouts manually. Check for indirect identification, cells with too few
-contributing hospitals, and counts readers can infer from totals, percentages,
-or other releases. A clean scan covers only the patterns it recognizes.
+Run the scan on the folder you plan to publish. It reports file paths,
+locations, and finding types for recognized identifiers and small counts.
+Use `error = TRUE` to stop on findings. Review images, charts, hospital
+support, and counts that readers could infer from related outputs.
+See [`nis_scan_outputs()`](../reference/nis_scan_outputs.html) for the
+supported formats and patterns.

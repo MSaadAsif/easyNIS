@@ -23,8 +23,7 @@
 #'
 #' @return The path of the annual Parquet directory, invisibly.
 #' @family data-access
-#' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html)
+#' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html)
 #' @export
 #' @examples
 #' if (requireNamespace("haven", quietly = TRUE)) {

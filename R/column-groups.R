@@ -27,8 +27,8 @@
 #' fields such as CCS or CCSR.
 #'
 #' @return Tidyselect column positions for the current selection.
+#' @family data-access
 #' @seealso [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
-#'   [Prepare annual NIS files](https://msaadasif.github.io/easyNIS/articles/prepare-data.html),
 #'   [HCUP NIS File Specifications](https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp),
 #'   [HCUP NIS Description of Data Elements](https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp).
 #' @export

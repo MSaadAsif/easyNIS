@@ -1,0 +1,1 @@
+- Add an output gallery, rendered examples, and searchable light and dark themes to the easyNIS documentation site.

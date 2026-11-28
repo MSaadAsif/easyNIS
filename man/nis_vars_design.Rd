@@ -59,7 +59,14 @@ dplyr::select(nis, -nis_vars_pr())
 }
 \seealso{
 \href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
-\href{https://msaadasif.github.io/easyNIS/articles/prepare-data.html}{Prepare annual NIS files},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisfilespecs.jsp}{HCUP NIS File Specifications},
 \href{https://hcup-us.ahrq.gov/db/nation/nis/nisdde.jsp}{HCUP NIS Description of Data Elements}.
+
+Other data-access:
+\code{\link[=nis_convert]{nis_convert()}},
+\code{\link[=nis_example]{nis_example()}},
+\code{\link[=nis_join_companion]{nis_join_companion()}},
+\code{\link[=nis_label]{nis_label()}},
+\code{\link[=nis_open]{nis_open()}}
 }
+\concept{data-access}
