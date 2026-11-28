@@ -83,7 +83,7 @@ Other cohort-definition:
 ``` r
 head(nis_ccsr_codes("CIR019"))
 #> duckdb keeps downloaded extensions and secrets in a temporary directory:
-#> ℹ /tmp/RtmpbD2WgP/duckdb
+#> ℹ /tmp/Rtmpf1sxLd/duckdb
 #> This is removed when the R session ends.
 #> • Extensions are re-downloaded each session.
 #> • Secrets are lost.
