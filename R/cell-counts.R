@@ -2,11 +2,7 @@
   if (inherits(.data, "tbl_svy") && !is.null(.data$variables)) {
     .data <- nis_cohort_records(.data$variables)
   }
-  if (
-    !is.data.frame(.data) &&
-      !(inherits(.data, "tbl_sql") &&
-        inherits(dbplyr::remote_con(.data), "duckdb_connection"))
-  ) {
+  if (!is.data.frame(.data) && !nis_is_duckdb(.data)) {
     cli::cli_abort("`.data` must be a record-level data frame, a DuckDB query, or a `nis_design()` result.")
   }
   .data

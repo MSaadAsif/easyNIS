@@ -27,7 +27,7 @@ open_gate_trial <- function(path, reader) {
   elapsed <- clock() - start
   stopifnot(
     warned,
-    identical(input$src$.easyNIS_release_check, "mismatch"),
+    identical(easyNIS:::nis_open_source_info(input)$release, "mismatch"),
     ncol(input) == 139L,
     identical(sort(rows$YEAR), 2017:2021),
     all(rows$rows == sum(18 + (0:49999 %% 80) >= 40))

@@ -60,12 +60,8 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   connection <- NULL
   on.exit(if (!is.null(connection)) connection$release(), add = TRUE)
   suspendInterrupts({
-    connection <- nis_duckdb_open_data()
+    connection <- nis_duckdb_open_data(arrow = reader == "arrow")
   })
-  if (reader == "arrow") {
-    settings <- DBI::dbGetQuery(connection$con, "SELECT current_setting('threads') AS threads")
-    attr(connection$con, "easyNIS_arrow_threads") <- as.integer(settings$threads)
-  }
   plan <- nis_open_plan_parquet(dataset$parts, connection$con, reader)
   # Check source columns before name normalization can add unrelated expressions.
   release <- if (check_release) nis_open_check_release(plan, dataset) else "skipped"
@@ -73,24 +69,26 @@ nis_open <- function(path, years = NULL, reader = c("duckdb", "arrow"), check_re
   definitions <- nis_cohort_definitions(connection$con, paths)
   query <- plan$query
   if (anyNA(definitions) || length(definitions) != length(paths)) {
-    query <- nis_open_normalize_names(query, unlist(plan$names_by_part, use.names = FALSE))
+    source_names <- unlist(lapply(plan$sources, nis_parquet_source_fields), use.names = FALSE)
+    query <- nis_open_normalize_names(query, source_names)
   }
   nis_open_warn_2023(query)
   if (reader == "duckdb") {
-    collect <- attr(connection$con, "easyNIS_collect")
-    collect$source <- as.character(dbplyr::sql_render(query))
+    nis_duckdb_set_collect_source(query)
   }
-  query$src$.easyNIS_source_paths <- paths
-  query$src$.easyNIS_cohort_definitions <- definitions
-  query$src$.easyNIS_years <- dataset$years
-  query$src$.easyNIS_release_check <- release
-  result <- nis_duckdb_attach_finalizer(query, connection$release, plan$owners)
+  query$src$.easyNIS_source <- list(paths = paths, definitions = definitions, years = dataset$years, release = release)
+  owners <- Filter(Negate(is.null), lapply(plan$sources, `[[`, "owner"))
+  result <- nis_duckdb_attach_finalizer(query, connection$release, owners)
   on.exit(NULL, add = FALSE)
   result
 }
 
 nis_open_source_paths <- function(query) {
-  query$src$.easyNIS_source_paths
+  nis_open_source_info(query)$paths
+}
+
+nis_open_source_info <- function(query) {
+  if (inherits(query, "tbl_sql")) query$src$.easyNIS_source
 }
 
 nis_open_normalize_names <- function(query, source_names) {

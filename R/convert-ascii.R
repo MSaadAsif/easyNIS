@@ -131,7 +131,7 @@ nis_convert_ascii_field <- function(con, field, year) {
     return(paste(expr, "AS", column))
   }
   value <- paste0("NULLIF(rtrim(", value, "), '')")
-  pattern <- nis_convert_code_pattern(field$column)
+  pattern <- nis_convert_slot_pattern(nis_convert_slot(field$column))
   if (!is.null(pattern)) {
     valid <- nis_convert_ascii_matches(con, value, pattern)
     error <- nis_convert_ascii_error(con, "Malformed ICD code", field$column)

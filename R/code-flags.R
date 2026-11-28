@@ -234,13 +234,6 @@ validate_flag_regex <- function(patterns) {
   invisible(patterns)
 }
 
-nis_sql_regex_match <- function(patterns, column) {
-  per_pattern <- lapply(patterns, function(pattern) {
-    rlang::expr(regexp_full_match(as.character(!!rlang::sym(column)), !!pattern))
-  })
-  reduce_or(per_pattern)
-}
-
 normalize_prefixes <- function(value, arg = NULL) {
   if (!is.character(value) || length(value) == 0L || anyNA(value)) {
     if (is.null(arg)) {
@@ -259,35 +252,57 @@ normalize_prefixes <- function(value, arg = NULL) {
 # errors on malformed text. Regex definitions use DuckDB's RE2 engine for the
 # same whole-code matching semantics as lazy queries.
 nis_code_match <- function(rule, data, slot_names) {
-  local <- is.data.frame(data)
-  per_slot <- lapply(slot_names, function(column) {
-    value <- rlang::expr(as.character(!!rlang::sym(column)))
-    included <- list()
-    if (length(rule$prefix)) {
-      prefix <- if (local) {
-        reduce_or(lapply(rule$prefix, function(code) rlang::expr(startsWith(!!value, !!code))))
-      } else {
-        nis_sql_match(rule$prefix, column)
-      }
-      included <- list(prefix)
-    }
-    if (length(rule$regex)) {
-      regex <- if (local) {
-        rlang::expr(nis_frame_regex_match(!!value, !!rule$regex))
-      } else {
-        nis_sql_regex_match(rule$regex, column)
-      }
-      included <- c(included, list(regex))
-    }
-    matched <- reduce_or(included)
-    if (!length(rule$exclude)) {
-      return(matched)
-    }
-    excluded <- rlang::expr(!!value %in% !!rule$exclude)
-    # Keep the inclusion OR grouped when dbplyr translates the exclusion.
-    rlang::expr(dplyr::coalesce(!!matched, FALSE) & !dplyr::coalesce(!!excluded, FALSE))
-  })
+  per_slot <- if (inherits(data, "tbl_sql")) {
+    matches <- nis_code_match_sql(dbplyr::remote_con(data), rule, slot_names)
+    lapply(matches, dbplyr::sql)
+  } else {
+    lapply(slot_names, nis_code_match_frame, rule = rule)
+  }
   rlang::expr(dplyr::coalesce(!!reduce_or(per_slot), FALSE))
+}
+
+nis_code_match_frame <- function(column, rule) {
+  value <- rlang::expr(as.character(!!rlang::sym(column)))
+  tests <- lapply(rule$prefix, function(code) rlang::expr(startsWith(!!value, !!code)))
+  if (length(rule$regex)) {
+    tests <- c(tests, list(rlang::expr(nis_frame_regex_match(!!value, !!rule$regex))))
+  }
+  matched <- reduce_or(tests)
+  if (length(rule$exclude)) {
+    matched <- rlang::expr((!!matched) & !(!!value %in% !!rule$exclude))
+  }
+  matched
+}
+
+nis_code_match_sql <- function(con, rule, columns) {
+  identifiers <- DBI::dbQuoteIdentifier(con, columns)
+  prefixes <- DBI::dbQuoteString(con, rule$prefix)
+  regexes <- DBI::dbQuoteString(con, rule$regex)
+  exclusions <- DBI::dbQuoteString(con, rule$exclude)
+  vapply(
+    identifiers,
+    function(column) {
+      value <- sprintf("TRY_CAST(%s AS VARCHAR)", column)
+      tests <- c(
+        if (length(prefixes)) sprintf("substr(%s, 1, %d) = %s", column, nchar(rule$prefix), prefixes),
+        if (length(regexes)) sprintf("regexp_full_match(%s, %s)", value, regexes)
+      )
+      match <- paste0("COALESCE(", paste(tests, collapse = " OR "), ", FALSE)")
+      if (length(exclusions)) {
+        match <- sprintf("(%s AND NOT COALESCE(%s IN (%s), FALSE))", match, value, paste(exclusions, collapse = ", "))
+      }
+      match
+    },
+    character(1)
+  )
+}
+
+nis_code_eligible_sql <- function(con, condition, result) {
+  if (is.null(condition)) {
+    return(result)
+  }
+  predicate <- dbplyr::translate_sql(!!condition, con = con, window = FALSE)
+  sprintf("CASE WHEN %s THEN %s ELSE FALSE END", predicate, result)
 }
 
 nis_prefix_rule <- function(prefix) {
@@ -318,12 +333,4 @@ nis_frame_regex_match <- function(values, patterns) {
   sql <- paste0("SELECT ", row_id, ", (", match_expression, ") AS matched FROM regex_values ORDER BY ", row_id)
   result <- DBI::dbGetQuery(con, sql, params = as.list(patterns))
   result$matched
-}
-
-nis_sql_match <- function(prefix, column) {
-  per_prefix <- lapply(prefix, function(code) {
-    # jarl-ignore string_boundary: Keep the existing SQL SUBSTR translation.
-    rlang::expr(substr(!!rlang::sym(column), 1L, !!nchar(code)) == !!code)
-  })
-  reduce_or(per_prefix)
 }

@@ -2,6 +2,129 @@
 
 The audit uses invented fixtures, package source, and Git history. Public signatures, supported inputs, disclosure rules, and statistical assumptions define the behavior to preserve. Comments and test cleanup follow the production changes.
 
+## Architecture audit at `05cc12dc`
+
+The inventory covers the R package, generated Quarto study, package tests,
+verification scripts, probes, and CI. The decisions below start with the
+shared requirement and record the places where the existing structure obscures it.
+
+### Give DuckDB query composition one owner
+
+- `R/design-sql.R:1–9` and `R/procedure-days.R:54,105–112` have separate
+  backend predicates and source-preserving table constructors. Comorbidity
+  and CCSR also test the backend independently.
+- `R/pr-timing-sql.R:13–19`, `R/ccsr-query.R:61–66`,
+  `R/design-sql.R:16–20`, and `R/duckdb.R:163–168` each carry source
+  ownership, class, grouping, or window state forward. Put the dbplyr
+  representation behind one boundary. Summaries start fresh grouping and
+  window state. Row-preserving augmentations retain their context.
+- The opener's direct dbplyr constructor, scan groups, Arrow ownership, and
+  single-join CCSR inlining support measured performance requirements.
+  Preserve those query shapes.
+
+### Define procedure work before selecting an execution backend
+
+- `R/pr-timing.R:58–94` and `R/pr-timing-sql.R:1–12` each expand mixed
+  definitions, validate the two rules, and pick eligible slots. Prepare one
+  ordered set of timing specs and feed both backends.
+- `R/procedure-days.R:74–95` associates SQL code matching with day decoding.
+  `R/code-flags.R:261–290` also compiles the same rule elements. Put both
+  forms with code rules and share the DuckDB matcher where query projection
+  stays bounded. Keep local byte-safe prefix matching and full RE2 matching.
+- `R/prday-completeness.R:79–128` repeats the output bucket contract. Keep
+  schema absence distinct from null, non-finite, and negative values.
+  Timing applies its own missing-day and within-window policies.
+- Coding transition facts recur in conversion, flags, CCSR, study text,
+  and annualization. Conversion requires positive evidence, flags tolerate
+  missing indicators, and CCSR applies fiscal release coverage. Each
+  feature retains responsibility for its own evidence and diagnostics.
+
+### Keep opened source metadata and staged publication at their boundaries
+
+- `R/open.R:73–93`, `R/open-companion.R:46–72`, `R/write-cohort.R:71,94–122`,
+  `R/study-reporting.R:155`, and verification reach into dbplyr source fields.
+  Opened source facts and saved cohort interpretation outlive any one
+  transformation. A companion extends the paths used to validate mixed inputs.
+- `R/open-parquet.R:1–18` and `R/open-release.R:111–128` exchange parallel
+  views of the same parts. Derive fields and owners from source descriptors.
+- `R/duckdb.R:9–21,113`, `R/open.R:65–82`, and
+  `R/collect-prudence.R:130` pass attributes across modules. Keep the
+  dbplyr source reference and the connection's collection state explicit.
+- `R/convert.R:55–74,200–210` and `R/write-cohort.R:43–77` share the
+  sibling-directory publication contract through a conversion-specific
+  interface. Keep cleanup, validation, and publication ordered so a failed
+  operation leaves the destination intact.
+
+### Prepare the survey sample once and keep feature policy at its call site
+
+- `R/design.R:177–194`, `R/trends.R:94–107`, and
+  `R/write-cohort.R:47–53` repeat ungrouping, saved membership, validation,
+  and collapse. Trends and export supply dummy cost settings, and trends
+  supplies a dummy keep selection for the quarter prototype.
+- `R/design-sample.R:4–35,57–69` exposes a redundant quarter control, an
+  unused result, and a trend-specific validation switch. Preserve error
+  precedence, two lazy scans, typed missing membership, and window-dependent
+  membership. Keep annualization, selected aliases, and export policy with
+  the caller.
+- `R/design-sql.R:37–64` serves two differently shaped results behind
+  `valid_only`. The export needs a roster of valid hospitals and minimum
+  weights. The sample summary also needs counts and quarter coverage for
+  diagnostics. Keep SQL for the export roster with its consumer.
+- `R/trends.R:156–169` reaches into lazy survey for roster variance.
+  Variance depends on the survey sample and its singleton policy. The
+  distinct factor-level policies in summaries and complete-case models
+  remain appropriate for their estimands.
+
+### Share disclosure decisions wherever a report presents the same cells
+
+- `R/suppress-data-frame.R:39–56` and `R/suppress-survey.R:293–302`
+  choose the same positive companion cell. The rule needs one owner,
+  including ties, zero counts, and absent cells. Survey overall propagation
+  still applies its own recovery checks.
+- `R/suppress-survey.R:186,196–214` wraps a comparison and repeats the same
+  card predicate on overall fallback. Keep exact-match validation and the
+  intentional overall fallback.
+- `inst/templates/nis-study/analysis.qmd:277–292` has a second decision
+  about which trend estimates a chart may expose alongside the table in
+  `R/study-disclosure.R:243–261`. The same disclosure output should drive
+  both displays.
+- The template separately counts exposure support and formats its header
+  from those counts. Define the report's analysis domain and exposure
+  support together. Keep the report-only outcome and model settings in a
+  chunk outside the survey design's cache key.
+- The study cache depends on executable package code even for local
+  installs sharing a version. The broader package dependency is deliberate
+  until a dependency trace can cover dynamic calls. Outcome and model
+  publication checks serve different populations from the initial arm
+  support checks and must continue to fail closed.
+
+### Make verification entry points declare the evidence they consume
+
+- `tools/probe/probe-modules.R:1–12` sources unrelated modules into
+  multiple commands. `tools/probe/quality-receipts.R:1–41,309–315` and
+  `tools/probe/study-receipts.R:1–7,37` depend on each other for simple
+  validation and raw reads. Give the common evidence boundary a small
+  module and make command dependencies visible.
+- `.agents/skills/verify/runner.R:37–42` hashes R source but omits the
+  scaffold files even for a render. Retain those hashes with the generated
+  report, inputs, and command.
+- Scheduled compatibility jobs, full-test and optional dependency guards,
+  exact mutation anchors, and malformed receipt recovery represent
+  verification requirements. The Windows process sampler's polling measures
+  a resource peak. It does not coordinate package behavior.
+
+### Remove assertions and comments that move with their implementation
+
+- SQL spelling checks in the CCSR, companion, cohort export, and outcome
+  tests overlap nearby checks that the work stays lazy, unused expressions
+  remain unevaluated, and results survive collection or reopening. Remove
+  spelling checks where those behavior checks exercise the same guarantee.
+- A study cache test observes an internal list field. Compare the complete
+  key used by the consumer. Retain scaffold failure injection where it
+  exercises cleanup otherwise difficult to trigger deterministically.
+- Remove comments that repeat the next expression or constant name.
+  Keep external format, backend, variance, and disclosure constraints.
+
 ## Read annual files through a single source description
 
 - `R/open-flags.R` couples file discovery to diagnosis and procedure flags. `R/duckdb.R` pairs source paths and optional scans by index, repeats schema inspection, and attaches a temporary query attribute consumed only by open-time name normalization.

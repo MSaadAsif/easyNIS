@@ -84,7 +84,7 @@ nis_duckdb_connect <- function(config = list()) {
   methods::new("nis_duckdb_connection", DBI::dbConnect(driver))
 }
 
-nis_duckdb_open_data <- function() {
+nis_duckdb_open_data <- function(arrow = FALSE) {
   config <- nis_duckdb_workload_settings(getOption("easyNIS.duckdb_config", list()))
   root <- if (is.null(config$temp_directory)) tempdir() else config$temp_directory
   if (!dir.exists(root)) {
@@ -111,6 +111,10 @@ nis_duckdb_open_data <- function() {
   # dbplyr may keep both modern and legacy references to the connection.
   # Attach the mutable metadata before handing the connection to dbplyr.
   attr(con, "easyNIS_collect") <- new.env(parent = emptyenv())
+  if (arrow) {
+    settings <- DBI::dbGetQuery(con, "SELECT current_setting('threads') AS threads")
+    attr(con, "easyNIS_arrow_threads") <- as.integer(settings$threads)
+  }
   if (!is.null(spill_limit)) {
     # DuckDB 1.5.2 can report a startup cap without enforcing it during spill.
     DBI::dbExecute(con, paste("SET max_temp_directory_size =", DBI::dbQuoteString(con, spill_limit)))
@@ -118,18 +122,6 @@ nis_duckdb_open_data <- function() {
   db <- list(con = con, release = release)
   on.exit(NULL, add = FALSE)
   db
-}
-
-nis_owned_temp_path <- function(prefix, parent) {
-  # Keep the path canonical before creation, including for a drive root on Windows.
-  paste0(sub("/$", "", parent), "/", basename(tempfile(prefix, tmpdir = parent)))
-}
-
-nis_remove_owned_directory <- function(path) {
-  if (dir.exists(path) && identical(normalizePath(path, winslash = "/", mustWork = TRUE), path)) {
-    unlink(path, recursive = TRUE)
-  }
-  invisible(NULL)
 }
 
 nis_duckdb_workload_settings <- function(config) {
@@ -159,16 +151,21 @@ nis_duckdb_attach_finalizer <- function(tbl, release, owners = list()) {
   tbl
 }
 
-#' @exportS3Method dplyr::compute
-compute.tbl_nis <- function(x, ...) {
-  result <- NextMethod()
-  # dbplyr 2.6 rebuilds the source when returning a materialized table.
-  result$src <- x$src
-  class(result) <- unique(c("tbl_nis", class(result)))
-  result
+nis_duckdb_set_collect_source <- function(query) {
+  metadata <- attr(dbplyr::remote_con(query), "easyNIS_collect")
+  metadata$source <- as.character(dbplyr::sql_render(query))
 }
 
-# Parquet files produced by easyNIS that do not represent an HCUP release.
+nis_duckdb_is_collect_source <- function(con, sql) {
+  identical(as.character(sql), attr(con, "easyNIS_collect")$source)
+}
+
+#' @exportS3Method dplyr::compute
+compute.tbl_nis <- function(x, ...) {
+  # dbplyr 2.6 rebuilds the source when returning a materialized table.
+  nis_retain_sql_source(NextMethod(), x)
+}
+
 nis_non_release_metadata <- c(easyNIS_source = "non_release")
 
 nis_duckdb_write_parquet <- function(data, path, con) {

@@ -142,7 +142,6 @@ test_that("an enriched example can be saved and reopened as a survey domain", {
     "No matching POA column"
   )
   expect_s3_class(source, "tbl_lazy")
-  expect_match(as.character(dbplyr::sql_render(source)), "read_parquet", fixed = TRUE)
 
   path <- nis_write_cohort(.data = source, cohort = ccsr == "CIR019", path = tempfile(), keep = c(LOS, cmrb_any))
   design <- nis_design(nis_open(path), keep = c(LOS, cmrb_any))

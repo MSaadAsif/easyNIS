@@ -55,41 +55,40 @@ nis_flag_pr_timing <- function(
   if (relation == "within_days") {
     window <- as.integer(window)
   }
-  if (nis_prday_duckdb(.data)) {
-    return(timing_flag_duckdb(.data, index_pr, outcome_pr, name, relation, window, missing_day, system, error_call))
+  specs <- timing_specs(.data, index_pr, outcome_pr, system, error_call)
+  if (nis_is_duckdb(.data)) {
+    sql <- timing_query_sql(.data, specs, data_names, name, relation, window, missing_day)
+    return(nis_sql_mutate(.data, sql, c(data_names, name)))
   }
-  if (system == "both") {
-    return(timing_flag_both(.data, index_pr, outcome_pr, name, relation, window, missing_day, error_call))
-  }
-  timing_flag_system(.data, index_pr, outcome_pr, name, relation, window, missing_day, system, error_call)
+  timing_flag_frame(.data, specs, name, relation, window, missing_day)
 }
 
-timing_flag_both <- function(data, index_pr, outcome_pr, name, relation, window, missing_day, error_call) {
+timing_specs <- function(data, index_pr, outcome_pr, system, error_call) {
+  if (system != "both") {
+    return(list(timing_spec(data, index_pr, outcome_pr, system, error_call)))
+  }
   index_pr <- nis_mixed_flag_definition(index_pr)
   outcome_pr <- nis_mixed_flag_definition(outcome_pr)
-  systems <- c("icd9", "icd10")
-  flags <- nis_internal_names(data, c(nis_names(data), name), paste0(".nis_timing_", systems))
-  for (i in seq_along(systems)) {
-    system <- systems[[i]]
-    data <- timing_flag_system(
-      data,
-      index_pr[[system]],
-      outcome_pr[[system]],
-      flags[[i]],
-      relation,
-      window,
-      missing_day,
-      system,
-      error_call
-    )
+  lapply(c("icd9", "icd10"), function(era) {
+    timing_spec(data, index_pr[[era]], outcome_pr[[era]], era, error_call)
+  })
+}
+
+timing_flag_frame <- function(data, specs, name, relation, window, missing_day) {
+  if (length(specs) == 1L) {
+    return(timing_flag_frame_system(data, specs[[1L]], name, relation, window, missing_day))
   }
+  flags <- nis_internal_names(data, c(nis_names(data), name), paste0(".nis_timing_flag_", seq_along(specs)))
+  for (i in seq_along(specs)) {
+    data <- timing_flag_frame_system(data, specs[[i]], flags[[i]], relation, window, missing_day)
+  }
+  result <- reduce_or(rlang::syms(flags))
   data |>
-    dplyr::mutate(!!name := !!rlang::sym(flags[[1L]]) | !!rlang::sym(flags[[2L]])) |>
+    dplyr::mutate(!!name := !!result) |>
     dplyr::select(-dplyr::all_of(flags))
 }
 
-timing_flag_system <- function(data, index_pr, outcome_pr, name, relation, window, missing_day, system, error_call) {
-  spec <- timing_spec(data, index_pr, outcome_pr, system, error_call)
+timing_flag_frame_system <- function(data, spec, name, relation, window, missing_day) {
   reserved <- c(nis_names(data), name)
   slots <- timing_slot_fields(data, spec$layout, spec$rules, missing_day, reserved)
   min_name <- nis_internal_names(data, c(reserved, names(slots$fields)), ".nis_timing_min_index_day")
@@ -128,20 +127,12 @@ timing_validate_name <- function(name, data, data_names, error_call) {
 
 timing_validate_window <- function(relation, window, error_call) {
   if (relation == "within_days") {
-    if (!timing_window_scalar(window) || !timing_window_range(window) || window != as.integer(window)) {
+    if (!nis_is_nonnegative_integer(window)) {
       cli::cli_abort("window must be a single non-negative integer for within_days.", call = error_call)
     }
   } else if (!is.null(window)) {
     cli::cli_abort("window must be NULL unless relation is within_days.", call = error_call)
   }
-}
-
-timing_window_scalar <- function(window) {
-  is.numeric(window) && length(window) == 1L && !is.na(window) && is.finite(window)
-}
-
-timing_window_range <- function(window) {
-  window >= 0 && window <= .Machine$integer.max
 }
 
 timing_slot_fields <- function(data, layout, rules, missing_day, reserved) {

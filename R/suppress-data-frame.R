@@ -43,34 +43,10 @@ complementary_suppress_rows <- function(x, counts, primary, by) {
   }
   groups <- dplyr::group_by(x, dplyr::across(dplyr::all_of(by)))
   for (rows in dplyr::group_rows(groups)) {
-    masked <- rows[primary[rows]]
-    if (length(masked) != 1L || length(rows) < 2L) {
-      next
-    }
-    candidates <- rows[!primary[rows] & counts[rows] > 0]
-    if (length(candidates)) {
-      secondary_rows[candidates[[which.min(counts[candidates])]]] <- TRUE
-    }
+    companion <- nis_disclosure_companion(counts[rows], primary[rows])
+    secondary_rows[rows[companion]] <- TRUE
   }
   secondary_rows
-}
-
-apply_dataframe_suppression <- function(
-  x,
-  columns,
-  count_primary,
-  hospital_primary,
-  secondary_rows,
-  threshold
-) {
-  for (column in columns) {
-    values <- as.character(x[[column]])
-    values[count_primary] <- paste0("\u2264", threshold)
-    values[hospital_primary] <- "<2 hospitals"
-    values[secondary_rows] <- "Masked"
-    x[[column]] <- values
-  }
-  x
 }
 
 suppress_dataframe <- function(
@@ -86,19 +62,17 @@ suppress_dataframe <- function(
   validate_secondary_option(secondary, error_call)
   counts <- validate_df_count_columns(x, count_col, hospital_col, error_call)
   masks <- nis_disclosure_masks(counts$counts, counts$hospital_counts, threshold)
-  primary <- masks$count | masks$hospital
-  secondary_rows <- if (secondary) {
-    complementary_suppress_rows(x, counts$counts, primary, by)
-  } else {
-    rep(FALSE, nrow(x))
+  display <- nis_disclosure_display(masks, threshold)
+  if (secondary) {
+    secondary_rows <- complementary_suppress_rows(x, counts$counts, !is.na(display), by)
+    display[secondary_rows] <- .nis_disclosure_secondary_label
   }
   columns <- unique(c(count_col, weighted_cols, hospital_col))
-  apply_dataframe_suppression(
-    x,
-    columns,
-    masks$count,
-    masks$hospital,
-    secondary_rows,
-    threshold
-  )
+  masked <- !is.na(display)
+  for (column in columns) {
+    values <- as.character(x[[column]])
+    values[masked] <- display[masked]
+    x[[column]] <- values
+  }
+  x
 }

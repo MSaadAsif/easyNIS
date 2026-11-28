@@ -1,15 +1,58 @@
 nis_study_mask <- function(n, hospitals, threshold) {
   masks <- nis_disclosure_masks(n, hospitals, threshold)
-  result <- rep("", length(n))
-  result[masks$count] <- paste0("\u2264", threshold)
-  result[masks$hospital] <- "<2 hospitals"
-  result
+  nis_disclosure_display(masks, threshold, visible = "")
 }
 
 nis_study_support <- function(data, threshold) {
   n <- nrow(data)
   hospitals <- dplyr::n_distinct(data$YEAR, data$HOSP_NIS, na.rm = TRUE)
   list(n = n, hospitals = hospitals, mask = nis_study_mask(n, hospitals, threshold))
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_analysis_domain <- function(design, exposure, threshold) {
+  eligible <- design$variables
+  values <- if (exposure %in% names(eligible)) eligible[[exposure]] else logical()
+  missing <- is.na(values)
+  comparison <- length(unique(values[!missing])) >= 2L
+  support <- function(rows) {
+    nis_validate_hospital_columns(rows)
+    nis_validate_hospital_ids(rows)
+    nis_study_support(rows, threshold)
+  }
+  arms <- if (comparison) {
+    lapply(split(eligible, values), support)
+  } else {
+    list()
+  }
+  safe <- comparison &&
+    all(vapply(arms, function(arm) !nzchar(arm$mask), logical(1))) &&
+    (!any(missing) || !nzchar(support(eligible[missing, , drop = FALSE])$mask))
+  restricted <- safe && any(missing)
+  if (restricted) {
+    design <- dplyr::filter(design, !is.na(.data[[exposure]]))
+  }
+  list(design = design, arms = arms, comparison = comparison, safe = safe, restricted = restricted)
+}
+
+# jarl-ignore unused_function: Called by the bundled Quarto study.
+nis_study_header <- function(table, analysis) {
+  total <- nrow(analysis$design$variables)
+  header <- list(stat_0 = paste0("**N = ", format(total, big.mark = ","), "**"))
+  if ("stat_1" %in% names(table$table_body)) {
+    columns <- grep("^stat_[1-9][0-9]*$", names(table$table_body), value = TRUE)
+    metadata <- table$table_styling$header
+    for (column in columns) {
+      row <- match(column, metadata$column)
+      label <- as.character(metadata$modify_stat_level[[row]])
+      n <- analysis$arms[[label]]$n
+      if (is.null(n)) {
+        stop("Cannot match a report header to its exposure arm.")
+      }
+      header[[column]] <- paste0("**", label, "**\nN = ", format(n, big.mark = ","))
+    }
+  }
+  gtsummary::modify_header(table, !!!header)
 }
 
 nis_study_split <- function(values) {
@@ -53,7 +96,7 @@ nis_study_report_support <- function(data, variables, exposure, threshold) {
   supported <- nis_study_variable_support(data, keys, variables, exposure, groups, arms, threshold)
   pooled <- nis_study_support(keys, threshold)$mask
   if (!nzchar(pooled) && any(nzchar(by_year$count_mask))) {
-    pooled <- "Masked"
+    pooled <- .nis_disclosure_secondary_label
   }
   # When pooled results are withheld, safe annual estimates stand on their own.
   for (variable in c("DIED", "LOS")) {
@@ -223,12 +266,12 @@ nis_study_summary_table <- function(table, supported, threshold, header) {
   # Otherwise, a displayed percentage and a group header can recover the count.
   table <- gtsummary::modify_table_body(table, function(body) {
     stat <- grep("^stat_[0-9]+$", names(body), value = TRUE)
-    masks <- c(paste0("\u2264", threshold), "<2 hospitals", "Masked")
+    masks <- nis_disclosure_labels(threshold)
     masked <- Reduce(`|`, lapply(body[stat], function(values) values %in% masks))
     related <- body$variable %in% c(body$variable[masked], names(supported)[!supported])
     for (column in stat) {
       value <- body[[column]]
-      value[related & !is.na(value) & nzchar(value) & !value %in% masks] <- "Masked"
+      value[related & !is.na(value) & nzchar(value) & !value %in% masks] <- .nis_disclosure_secondary_label
       body[[column]] <- value
     }
     if ("p.value" %in% names(body)) {
@@ -239,27 +282,34 @@ nis_study_summary_table <- function(table, supported, threshold, header) {
   header(table)
 }
 
+nis_study_trend_masks <- function(trend) {
+  estimate_mask <- function(ok) {
+    ifelse(!nzchar(trend$count_mask) & !ok, .nis_disclosure_secondary_label, trend$count_mask)
+  }
+  list(
+    mortality = estimate_mask(trend$mortality_ok),
+    los = estimate_mask(trend$los_ok)
+  )
+}
+
 # jarl-ignore unused_function: Called by the bundled Quarto study.
-nis_study_trend_table <- function(trend) {
+nis_study_trend_table <- function(trend, masks = nis_study_trend_masks(trend)) {
   display <- function(mask, value) ifelse(nzchar(mask), mask, value)
-  estimate_mask <- function(ok, count_mask) ifelse(!nzchar(count_mask) & !ok, "Masked", count_mask)
-  mortality_mask <- estimate_mask(trend$mortality_ok, trend$count_mask)
-  los_mask <- estimate_mask(trend$los_ok, trend$count_mask)
   dplyr::transmute(
     trend,
     `Discharge year` = as.character(!!rlang::sym("YEAR")),
     discharges = display(.data$count_mask, format(.data$n, big.mark = ",", trim = TRUE)),
     weighted_N = display(.data$count_mask, formatC(.data$weighted_n, format = "f", digits = 1, big.mark = ",")),
     mortality = display(
-      mortality_mask,
+      !!masks$mortality,
       paste0(formatC(.data$mortality * 100, format = "f", digits = 1), "%")
     ),
     mean_LOS = display(
-      los_mask,
+      !!masks$los,
       formatC(.data$mean_los, format = "f", digits = 2)
     ),
-    `Mortality n` = display(mortality_mask, format(.data$DIED_n, big.mark = ",", trim = TRUE)),
-    `Length of stay n` = display(los_mask, format(.data$LOS_n, big.mark = ",", trim = TRUE))
+    `Mortality n` = display(!!masks$mortality, format(.data$DIED_n, big.mark = ",", trim = TRUE)),
+    `Length of stay n` = display(!!masks$los, format(.data$LOS_n, big.mark = ",", trim = TRUE))
   )
 }
 
@@ -326,7 +376,7 @@ nis_study_flow <- function(data, principal, cohort, design, pooled_mask, thresho
   }
   complementary <- !same_cohort || any(nzchar(mask[primary])) || any(nzchar(mask[-primary]) & totals[-primary, 1L] > 0)
   if (complementary) {
-    mask[mask == ""] <- "Masked"
+    mask[mask == ""] <- .nis_disclosure_secondary_label
   }
   nis_study_flow_display(
     c(

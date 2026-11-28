@@ -38,7 +38,9 @@ evaluate_readiness <- function(
   manual_pass <- check_pass("guide")
   pkgcheck_available <- !is.null(pkgcheck) && !identical(pkgcheck$status, "skipped_not_installed")
   pkgcheck_pass <- pkgcheck_available && check_pass("pkgcheck") && manual_pass
-  coverage_ready <- is.finite(coverage_value) && coverage_value >= 90 && check_pass("coverage_percent")
+  coverage_ready <- is.finite(coverage_value) &&
+    coverage_value >= quality_coverage_minimum &&
+    check_pass("coverage_percent")
   pkgdown_ready <- check_pass("pkgdown") && workflow_documented
   ci_status <- if (ci_runs_ok) "ready" else "not verified"
   as_cran_evidence <- function() {
@@ -77,7 +79,7 @@ evaluate_readiness <- function(
       }
     ),
     record(
-      "Test coverage >= 90%",
+      sprintf("Test coverage >= %s%%", quality_coverage_minimum),
       if (coverage_ready) {
         "ready"
       } else if (!is.finite(coverage_value)) {

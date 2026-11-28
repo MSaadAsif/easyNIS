@@ -76,18 +76,6 @@ survey_row_spec_by_type <- function(body, row, variable, row_type, var_type, car
   NULL
 }
 
-survey_cell_mask <- function(masks, threshold) {
-  if (masks$count[[1L]]) {
-    paste0("\u2264", threshold)
-  } else if (masks$hospital[[1L]]) {
-    "<2 hospitals"
-  } else if (any(masks$count | masks$hospital)) {
-    "Masked"
-  } else {
-    NA_character_
-  }
-}
-
 survey_level_row_spec <- function(
   body,
   row,
@@ -120,7 +108,7 @@ survey_level_row_spec <- function(
     variable = variable,
     context = context,
     stat_name = "n_unweighted",
-    level_index = survey_level_index(card_variable_level, body$label[[row]]),
+    level_index = card_variable_level == body$label[[row]],
     level_value = level_value,
     continuous2 = FALSE
   )
@@ -183,10 +171,6 @@ survey_variable_levels <- function(cards) {
   }
 }
 
-survey_level_index <- function(card_variable_level, level) {
-  card_variable_level == level
-}
-
 survey_continuous2_blank <- function(cell) {
   length(cell) == 0L ||
     (length(cell) == 1L &&
@@ -194,21 +178,13 @@ survey_continuous2_blank <- function(cell) {
 }
 
 survey_card_matches <- function(cards, spec, column) {
-  matches <- which(
-    cards$variable == spec$variable &
-      cards$context == spec$context &
-      cards$stat_name == spec$stat_name &
-      cards$gts_column == column &
-      spec$level_index
-  )
+  eligible <- cards$variable == spec$variable &
+    cards$context == spec$context &
+    cards$stat_name == spec$stat_name &
+    spec$level_index
+  matches <- which(eligible & cards$gts_column == column)
   if (length(matches) == 0L && identical(column, "stat_0") && !spec$continuous2) {
-    matches <- which(
-      cards$variable == spec$variable &
-        cards$context == spec$context &
-        cards$stat_name == spec$stat_name &
-        grepl("^stat_[1-9][0-9]*$", cards$gts_column) &
-        spec$level_index
-    )
+    matches <- which(eligible & grepl("^stat_[1-9][0-9]*$", cards$gts_column))
   }
   matches
 }
@@ -257,7 +233,12 @@ survey_cell_suppression <- function(x, records, cell, cards, column, spec, thres
   evidence <- survey_cell_evidence(x, records, cards, matches, column, spec, error_call)
   evidence$n[[1L]] <- min(count, evidence$n[[1L]])
   masks <- nis_disclosure_masks(evidence$n, evidence$hospitals, threshold)
-  list(count = evidence$n[[1L]], mask = survey_cell_mask(masks, threshold))
+  display <- nis_disclosure_display(masks, threshold)
+  mask <- display[[1L]]
+  if (is.na(mask) && !all(is.na(display))) {
+    mask <- .nis_disclosure_secondary_label
+  }
+  list(count = evidence$n[[1L]], mask = mask)
 }
 
 survey_stat_displayed <- function(body, row, stat_columns) {
@@ -292,18 +273,15 @@ survey_row_mapping_error <- function(body, row, row_type, error_call) {
 
 survey_categorical_companions <- function(masks, counts, levels) {
   for (rows in levels) {
-    masked <- !is.na(masks[rows])
-    if (sum(masked) == 1L) {
-      visible <- rows[which(!masked & counts[rows] > 0)]
-      masks[visible[which.min(counts[visible])]] <- "Masked"
-    }
+    companion <- nis_disclosure_companion(counts[rows], !is.na(masks[rows]))
+    masks[rows[companion]] <- .nis_disclosure_secondary_label
   }
   masks
 }
 
 survey_suppression_cells <- function(x, body, stat_columns, threshold, error_call) {
   cards <- survey_suppress_cards(x)
-  records <- survey_hospital_cohort_records(x, error_call)
+  records <- survey_hospital_cohort_records(x, cards, error_call)
   card_variable_level <- survey_variable_levels(cards)
   masks <- matrix(NA_character_, nrow(body), length(stat_columns), dimnames = list(NULL, stat_columns))
   counts <- matrix(NA_real_, nrow(body), length(stat_columns), dimnames = list(NULL, stat_columns))
@@ -326,15 +304,15 @@ survey_suppression_cells <- function(x, body, stat_columns, threshold, error_cal
       }
     }
   }
-  headers <- survey_protected_headers(x, records, cards, stat_columns, threshold, error_call)
+  headers <- survey_protected_headers(records, stat_columns, threshold)
   list(masks = masks, counts = counts, headers = headers)
 }
 
-survey_protected_headers <- function(x, records, cards, columns, threshold, error_call) {
+survey_protected_headers <- function(records, columns, threshold) {
   protected <- vapply(
     columns,
     function(column) {
-      rows <- survey_hospital_group_records(records, x, cards, column, error_call)
+      rows <- records$group_rows(column)
       evidence <- survey_record_counts(records$data[rows, .nis_hospital_fields, drop = FALSE])
       masks <- nis_disclosure_masks(evidence$n, evidence$hospitals, threshold)
       masks$count | masks$hospital
@@ -363,7 +341,7 @@ survey_mask_headers <- function(x, columns, protected) {
     header$label == paste0(prefix, gtsummary::style_number(header$modify_stat_n_unweighted))
   reset <- stats & !masked & !(standard %in% TRUE)
   header$label[reset] <- level[reset]
-  header$label[masked] <- paste0(prefix[masked], "Masked")
+  header$label[masked] <- paste0(prefix[masked], .nis_disclosure_secondary_label)
   header$interpret_label[reset | masked] <- "gt::md"
   # Even non-statistic column templates can interpolate the overall N.
   defaults <- c(label = "**Characteristic**", p.value = "**p-value**")
@@ -387,7 +365,7 @@ survey_complete_masks <- function(cells, body, stat_columns) {
   if ("stat_0" %in% stat_columns) {
     # Propagate by-group companions before checking the overall column total.
     from_groups <- rowSums(!is.na(masks[, groups, drop = FALSE])) > 0L
-    masks[from_groups & is.na(masks[, "stat_0"]), "stat_0"] <- "Masked"
+    masks[from_groups & is.na(masks[, "stat_0"]), "stat_0"] <- .nis_disclosure_secondary_label
     masks[, "stat_0"] <- survey_categorical_companions(masks[, "stat_0"], cells$counts[, "stat_0"], levels)
   }
   masks
@@ -453,7 +431,7 @@ survey_card_scalar_values <- function(cards, column, rows, error_call) {
   values[[1L]]
 }
 
-survey_hospital_cohort_records <- function(x, error_call) {
+survey_hospital_cohort_records <- function(x, cards, error_call) {
   data <- x$inputs$data$variables
   if (!is.data.frame(data)) {
     cli::cli_abort("Survey design records are unavailable for hospital counting.", call = error_call)
@@ -467,7 +445,14 @@ survey_hospital_cohort_records <- function(x, error_call) {
     values[is.na(data[[by]])] <- NA_character_
     split(rows, values)
   }
-  list(data = data, rows = rows, groups = groups)
+  column_groups <- new.env(parent = emptyenv())
+  group_rows <- function(column) {
+    if (is.null(column_groups[[column]])) {
+      column_groups[[column]] <- survey_hospital_group_records(rows, groups, by, cards, column, error_call)
+    }
+    column_groups[[column]]
+  }
+  list(data = data, group_rows = group_rows)
 }
 
 survey_hospital_var_records <- function(values, x, cards, matches, spec, error_call) {
@@ -507,10 +492,9 @@ survey_hosp_dichotomous <- function(values, x, variable, error_call) {
   values %in% value
 }
 
-survey_hospital_group_records <- function(records, x, cards, column, error_call) {
-  by <- x$inputs$by
+survey_hospital_group_records <- function(rows, groups, by, cards, column, error_call) {
   if (!length(by) || identical(column, "stat_0")) {
-    return(records$rows)
+    return(rows)
   }
   if (length(by) != 1L || !all(c("gts_column", "group1", "group1_level") %in% names(cards))) {
     cli::cli_abort("Cannot map `{column}` to a by-group from summary cards.", call = error_call)
@@ -524,8 +508,8 @@ survey_hospital_group_records <- function(records, x, cards, column, error_call)
     cli::cli_abort("Summary cards do not identify one valid by-group for `{column}`.", call = error_call)
   }
   raw_level <- survey_card_scalar_values(cards, "group1_level", group_rows, error_call)
-  i <- match(raw_level, names(records$groups))
-  if (is.na(i)) integer() else records$groups[[i]]
+  i <- match(raw_level, names(groups))
+  if (is.na(i)) integer() else groups[[i]]
 }
 
 survey_cell_evidence <- function(x, records, cards, matches, column, spec, error_call) {
@@ -537,7 +521,7 @@ survey_cell_evidence <- function(x, records, cards, matches, column, spec, error
   if (!variable %in% names(data)) {
     cli::cli_abort("Summary variable `{variable}` is absent from survey records.", call = error_call)
   }
-  group <- survey_hospital_group_records(records, x, cards, column, error_call)
+  group <- records$group_rows(column)
   values <- data[[variable]][group]
   selected <- survey_hospital_var_records(values, x, cards, matches, spec, error_call)
   evidence <- survey_record_counts(data[group[selected], .nis_hospital_fields, drop = FALSE])

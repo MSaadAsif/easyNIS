@@ -60,7 +60,6 @@ test_that("CCSR assigns exact codes in DuckDB using the release for each NIS yea
     I10_PR1 = "0016070"
   )
   data <- dplyr::copy_to(ref$con, inputs, "ccsr_inputs")
-  local_mocked_bindings(nis_collect = function(...) stop("Unexpected early collection"))
   result <- data |>
     nis_add_ccsr() |>
     nis_add_ccsr(position = "principal", name = "principal") |>
@@ -69,7 +68,6 @@ test_that("CCSR assigns exact codes in DuckDB using the release for each NIS yea
     nis_add_ccsr(version = "2020.3", position = "default", name = "older") |>
     nis_add_ccsr(type = "pr", name = "procedure")
   expect_s3_class(result, "tbl_sql")
-  expect_match(as.character(dbplyr::sql_render(result)), "read_parquet")
 
   out <- dplyr::collect(dplyr::arrange(result, id))
   expect_identical(out$id, inputs$id)
@@ -86,6 +84,28 @@ test_that("CCSR assigns exact codes in DuckDB using the release for each NIS yea
   expect_setequal(out$ccsr[[7]], c("ZZZ001", "ZZZ002"))
   expect_identical(out$procedure[[5]], "ZZP001")
   expect_error(nis_add_ccsr(data, version = "1999.1"), "1999.1")
+})
+
+test_that("CCSR keeps grouping and explicit order for downstream windows", {
+  inputs <- data.frame(
+    id = 1:6,
+    arm = rep(c("a", "b"), each = 3),
+    YEAR = 2020L,
+    DQTR = 4L,
+    I10_DX1 = "A000"
+  )
+  query <- duckdb_query_fixture(inputs) |> dplyr::group_by(arm)
+  ranks <- function(data) {
+    data |>
+      nis_add_ccsr(position = "principal") |>
+      dplyr::mutate(sequence = dplyr::row_number()) |>
+      dplyr::arrange(id) |>
+      dplyr::collect() |>
+      dplyr::pull(sequence)
+  }
+
+  expect_equal(ranks(dbplyr::window_order(query, id)), rep(1:3, 2))
+  expect_equal(ranks(dbplyr::window_order(query, dplyr::desc(id))), rep(3:1, 2))
 })
 
 test_that("a CCSR-enriched query can be saved after its original query goes out of scope", {

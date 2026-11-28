@@ -1,13 +1,14 @@
 #!/usr/bin/env Rscript
 
-source(file.path("tools", "probe", "probe-modules.R"))
+source(file.path("tools", "probe", "workspace.R"))
+source(file.path("tools", "probe", "diagnostics.R"))
+source(file.path("tools", "probe", "record-probe.R"))
 loop_dir <- probe_workspace()
 data_dir <- Sys.getenv("EASYNIS_DATA", unset = "")
 if (!dir.exists(data_dir)) {
   stop("EASYNIS_DATA must point to the local NIS data directory.")
 }
 run_dir <- probe_run_directory(loop_dir, "real-data")
-source(file.path("tools", "probe", "record-probe.R"))
 recorder <- new_probe_recorder(run_dir)
 duckdb_config <- getOption("easyNIS.duckdb_config", list())
 duckdb_config$temp_directory <- file.path(run_dir, "private")

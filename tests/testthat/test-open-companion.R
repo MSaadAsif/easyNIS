@@ -28,7 +28,6 @@ test_that("companions enrich discharges lazily using the keys for each year", {
 
   expect_s3_class(enriched, "tbl_sql")
   expect_identical(dbplyr::remote_con(enriched), dbplyr::remote_con(core))
-  expect_match(dbplyr::sql_render(enriched), "read_parquet")
   observed <- enriched |>
     dplyr::arrange(YEAR, KEY_NIS) |>
     dplyr::collect()

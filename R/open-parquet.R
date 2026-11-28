@@ -1,8 +1,9 @@
-nis_open_plan_parquet <- function(parts, con, reader) {
+nis_open_plan_parquet <- function(parts, con, reader, partition_year = parts$partition_year) {
   sources <- Map(
     nis_open_scan,
     parts$path,
-    parts$partition_year,
+    parts$year,
+    partition_year,
     seq_len(nrow(parts)),
     MoreArgs = list(con = con, reader = reader)
   )
@@ -11,12 +12,7 @@ nis_open_plan_parquet <- function(parts, con, reader) {
     nis_open_validate_partition(scan, con)
   }
   nis_open_check_year_values(scans, con)
-  list(
-    query = nis_open_parquet_query(scans, con),
-    sources = sources,
-    names_by_part = lapply(sources, function(source) source$schema$column_name),
-    owners = Filter(Negate(is.null), lapply(sources, function(source) source$owner))
-  )
+  list(query = nis_open_parquet_query(scans, con), sources = sources)
 }
 
 nis_open_parquet_query <- function(scans, con) {
@@ -34,7 +30,7 @@ nis_open_sql_tbl <- function(con, sql, vars = NULL) {
   )
 }
 
-nis_open_scan <- function(path, partition_year, index, con, reader) {
+nis_open_scan <- function(path, release_year, partition_year, index, con, reader) {
   owner <- NULL
   if (reader == "arrow") {
     owner <- nis_open_arrow_dataset(path)
@@ -61,7 +57,19 @@ nis_open_scan <- function(path, partition_year, index, con, reader) {
       double = paste0("TRY_CAST(", column, " AS DOUBLE)")
     )
   }
-  list(path = path, scan = scan, schema = schema, year = partition_year, physical = physical, owner = owner)
+  list(
+    path = path,
+    release_year = release_year,
+    scan = scan,
+    schema = schema,
+    year = partition_year,
+    physical = physical,
+    owner = owner
+  )
+}
+
+nis_parquet_source_fields <- function(source) {
+  source$schema$column_name
 }
 
 nis_open_arrow_dataset <- function(path) {

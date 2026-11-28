@@ -23,6 +23,32 @@ nis_names <- function(data) {
   if (inherits(data, "tbl_sql")) colnames(data) else names(data)
 }
 
+nis_is_duckdb <- function(data) {
+  inherits(data, "tbl_sql") && inherits(dbplyr::remote_con(data), "duckdb_connection")
+}
+
+nis_retain_sql_source <- function(result, data) {
+  result$src <- data$src
+  if (inherits(data, "tbl_nis")) {
+    class(result) <- unique(c("tbl_nis", class(result)))
+  }
+  result
+}
+
+nis_sql_result <- function(data, sql, columns) {
+  result <- dplyr::tbl(dbplyr::remote_con(data), dbplyr::sql(sql), vars = columns)
+  nis_retain_sql_source(result, data)
+}
+
+nis_sql_mutate <- function(data, sql, columns) {
+  result <- nis_sql_result(data, sql, columns)
+  result <- dplyr::group_by(result, !!!rlang::syms(dplyr::group_vars(data)))
+  # Keep the caller's window context when adding fields to its rows.
+  result$lazy_query$order_vars <- dbplyr::op_sort(data)
+  result$lazy_query$frame <- dbplyr::op_frame(data)
+  result
+}
+
 nis_select_columns <- function(data, selection, error_call = rlang::caller_call(), exclude = character()) {
   lazy <- inherits(data, "tbl_sql")
   if (lazy) {

@@ -47,8 +47,7 @@ design_sql <- function(con, rows, args) {
     "id",
     rows$DQTR[integer()],
     annualize = FALSE,
-    call = rlang::caller_call(),
-    inspect_quarters = TRUE
+    call = rlang::caller_call()
   )
   coverage <- data.frame(YEAR = rep(sample$years, lengths(sample$coverage)), quarter = unlist(sample$coverage))
   bad <- setNames(sample$excluded$by_field, c("YEAR", "HOSP_NIS", "NIS_STRATUM", "DISCWT"))

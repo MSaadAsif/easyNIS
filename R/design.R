@@ -1,49 +1,12 @@
-nis_design_input <- function(data) {
-  if (!inherits(data, "tbl_sql")) {
-    return(data)
-  }
-  query <- data$lazy_query
-  # Reuse the rendered projection across the design queries. Preserve
-  # dbplyr's original query when row selection or window context is pending.
-  keep_query <- c(
-    !inherits(query, "lazy_select_query"),
-    isTRUE(query$distinct),
-    !is.null(query$limit),
-    length(dbplyr::op_sort(data)) > 0L,
-    !is.null(dbplyr::op_frame(data))
-  )
-  if (any(keep_query)) {
-    return(data)
-  }
-  nis_duckdb_translate_errors(dplyr::collapse(data))
-}
-
-nis_design_validate <- function(.data, charges, annualize, call, saved = FALSE) {
-  if (!is.character(charges) || length(charges) != 1L || is.na(charges)) {
-    cli::cli_abort("`charges` must be a single column name.", call = call)
-  }
+nis_design_validate_options <- function(charges, annualize, call) {
+  .nis_cost_validate_charge(charges, call)
   if (length(annualize) != 1L || !is.logical(annualize) || is.na(annualize)) {
     cli::cli_abort("`annualize` must be `TRUE` or `FALSE`.", call = call)
-  }
-  reserved <- c(
-    .nis_cohort_structure_fields,
-    if (!saved) ".in_cohort",
-    ".nis_cohort",
-    ".nis_valid",
-    unname(.nis_design_invalid_fields)
-  )
-  if (!identical(reserved, nis_internal_names(.data, nis_names(.data), reserved))) {
-    cli::cli_abort("Input column names beginning with the internal design names are reserved.", call = call)
   }
 }
 
 nis_design_fields <- function(.data, keep_quo, call) {
-  design_fields <- .nis_design_fields
   data_names <- nis_names(.data)
-  absent <- setdiff(design_fields, data_names)
-  if (length(absent) > 0L) {
-    cli::cli_abort("`.data` is missing design column{?s} {.val {absent}}.", call = call)
-  }
   # A zero-row lazy query obtains R column types without collecting discharges.
   select_data <- if (inherits(.data, "tbl_lazy")) {
     nis_collect(utils::head(.data, 0L))
@@ -76,11 +39,10 @@ nis_design_fields <- function(.data, keep_quo, call) {
   if (any(startsWith(c(keep_names, names(keep_map)), "."))) {
     cli::cli_abort("`keep` cannot select internal or dot-prefixed columns.", call = call)
   }
-  selected <- unique(c(design_fields, keep_names))
   list(
     keep_names = keep_names,
     keep_map = keep_map,
-    selected = selected,
+    selected = unique(c(.nis_design_fields, keep_names)),
     quarter_prototype = select_data[["DQTR"]][integer()]
   )
 }
@@ -174,24 +136,21 @@ nis_design <- function(.data, cohort, keep, annualize = FALSE, dollars = NULL, c
   nis_design_build(prepared$sample, prepared$fields, annualize, dollars, charges, call)
 }
 
-nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call, inspect_quarters = annualize) {
-  .data <- dplyr::ungroup(.data)
-  saved <- !is.null(nis_saved_cohort(.data, call))
-  cohort <- nis_cohort_membership(cohort, saved, call)
-  nis_design_validate(.data, charges, annualize, call, saved)
-  .data <- nis_design_input(.data)
-  fields <- nis_design_fields(.data, keep, call)
+nis_design_prepare <- function(.data, cohort, keep, annualize, charges, call) {
+  source <- nis_sample_source(.data, cohort, call)
+  nis_design_validate_options(charges, annualize, call)
+  data <- nis_sample_input(source$data, source$saved, call)
+  fields <- nis_design_fields(data, keep, call)
   sample <- nis_design_sample(
-    .data,
-    cohort,
+    data,
+    source$membership,
     fields$selected,
-    fields$quarter_prototype,
+    if (annualize) fields$quarter_prototype,
     annualize,
     call,
-    inspect_quarters,
-    saved
+    source$saved
   )
-  sample$cohort <- nis_design_cohort_text(cohort)
+  sample$cohort <- nis_design_cohort_text(source$membership)
   list(sample = sample, fields = fields)
 }
 
@@ -208,7 +167,7 @@ nis_design_build <- function(sample, fields, annualize, dollars, charges, call) 
 
   year_count <- length(sample$years)
   divisor <- if (annualize) year_count else 1
-  keys <- c("YEAR", "HOSP_NIS")
+  keys <- .nis_hospital_fields
   hospital_index <- vctrs::vec_match(cohort_rows[keys], hospital_rows[keys])
   has_cohort <- tabulate(hospital_index, nrow(hospital_rows)) > 0L
   empty <- which(!has_cohort)
@@ -281,21 +240,20 @@ nis_design_records <- function(cohort_rows, fields, dollars, charges, years, cal
 nis_design_clusters <- function(hospital_rows, hospital_index, empty, discharge_weights, divisor) {
   # Form the nested labels once per hospital-year. Factor codes retain the
   # original stratum and PSU ordering used by survey's variance calculation.
-  psu <- paste(hospital_rows$YEAR, hospital_rows$HOSP_NIS, sep = "::")
-  stratum <- paste(hospital_rows$YEAR, hospital_rows$NIS_STRATUM, sep = "::")
+  ids <- nis_survey_ids(hospital_rows)
   # survey requires nesting when the sample contains just one PSU.
   nest <- nrow(hospital_rows) == 1L
-  cluster <- factor(if (nest) psu else paste(stratum, psu, sep = "."))
+  cluster <- factor(if (nest) ids$psu else nis_survey_nested_ids(ids))
   indices <- if (length(empty)) c(hospital_index, empty) else hospital_index
   placeholders <- dplyr::tibble(
-    .nis_psu = psu[empty],
-    .nis_stratum = stratum[empty],
+    .nis_psu = ids$psu[empty],
+    .nis_stratum = ids$stratum[empty],
     .nis_weight = hospital_rows$DISCWT[empty] / divisor
   )
   cohort_weights <- discharge_weights / divisor
   structure <- dplyr::tibble(
     .nis_psu = cluster[indices],
-    .nis_stratum = factor(stratum)[indices],
+    .nis_stratum = factor(ids$stratum)[indices],
     .nis_weight = if (length(empty)) c(cohort_weights, placeholders$.nis_weight) else cohort_weights
   )
   list(structure = structure, placeholders = placeholders, nest = nest)

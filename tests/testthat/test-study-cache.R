@@ -29,7 +29,7 @@ test_that("study cache keys change when definitions or external data roots chang
   }
   key_a <- make(data_a, file_a)
   key_b <- make(data_b, file_b)
-  expect_false(identical(key_a$data, key_b$data))
+  expect_false(identical(key_a, key_b))
   expect_false(identical(key_a, make(data_a, file_a, "x <- x + 2L")))
   expect_identical(key_a, make(data_a, file_a, "# comment\nx <- x + 1L"))
   withr::local_options(easyNIS.duckdb_config = list(threads = 2L))

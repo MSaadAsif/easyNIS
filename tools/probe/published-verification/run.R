@@ -1,4 +1,7 @@
-source("tools/probe/probe-modules.R")
+source("tools/probe/workspace.R")
+source("tools/probe/git-evidence.R")
+source("tools/probe/receipt-io.R")
+source("tools/probe/study-receipts.R")
 source("tools/probe/provenance.R")
 
 local({
